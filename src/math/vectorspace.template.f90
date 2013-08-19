@@ -34,6 +34,7 @@ module moduleName
 
   interface assignment(=)
     module procedure optr_assign
+    module procedure optr_assign_scalar
   end interface assignment(=)
 
   interface print
@@ -96,5 +97,14 @@ subroutine optr_assign(v, rhs)
   v%v_ = rhs%v_
 
 end subroutine optr_assign
+
+subroutine optr_assign_scalar(v, rhs)
+
+  type(vectorspaceTypeName), intent(out) :: v
+  real(DP), intent(in) :: rhs
+  
+  v%v_ = rhs
+
+end subroutine optr_assign_scalar
 
 end module moduleName

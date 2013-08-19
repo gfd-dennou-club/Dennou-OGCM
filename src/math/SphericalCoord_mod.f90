@@ -7,6 +7,8 @@ module SphericalCoord_mod
   public :: SphToCartPos, CartToSphPos
   public :: RadToDegUnit, DegToRadUnit
 
+  public :: geodesicArcLength
+
   real(DP), save  :: PI = acos(-1d0)
 
 contains
@@ -34,6 +36,17 @@ function CartToSphPos(cartPos) result(sphPos)
   end if
 
 end function CartToSphPos
+
+function geodesicArcLength(p1, p2) result(geodesic)
+  type(Vector3d), intent(in) :: p1, p2
+  real(DP) :: geodesic
+
+  real(DP) :: r2
+
+  r2 = p1 .dot. p1
+  geodesic = sqrt(r2) * acos( (p1 .dot. p2)/r2 )
+
+end function geodesicArcLength
 
 function RadToDegUnit(radPos) result(degPos)
   type(Vector2d), intent(in) :: radPos

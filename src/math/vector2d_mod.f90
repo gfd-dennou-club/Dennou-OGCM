@@ -19,6 +19,7 @@ module vector2d_mod
   end interface operator(/)
   interface assignment(=)
     module procedure optr_assign
+    module procedure optr_assign_scalar
   end interface assignment(=)
   interface print
      module procedure printVec
@@ -60,4 +61,9 @@ subroutine optr_assign(v, rhs)
   type(vector2d), intent(in) :: rhs
   v%v_ = rhs%v_
 end subroutine optr_assign
+subroutine optr_assign_scalar(v, rhs)
+  type(vector2d), intent(out) :: v
+  real(DP), intent(in) :: rhs
+  v%v_ = rhs
+end subroutine optr_assign_scalar
 end module vector2d_mod
