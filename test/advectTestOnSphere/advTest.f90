@@ -7,7 +7,7 @@ program advTest
   implicit none
 
   type(HexTriIcMesh) :: mesh
-  integer, parameter :: glevel = 0
+  integer, parameter :: glevel = 5
 
   write(*,*) 'glevel:', glevel
   call HexTriIcMesh_Init(mesh, glevel)

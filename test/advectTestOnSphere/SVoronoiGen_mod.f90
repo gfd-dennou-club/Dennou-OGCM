@@ -11,10 +11,13 @@ module SVoronoiGen_mod
   public :: SVoronoiGen_Init, SVoronoiGen_Final
   public :: SVoronoiDiagramGen
 
+  public :: printVTKDataFile
+
   integer, allocatable :: vorVx2VorVxId(:,:)
   integer, allocatable :: vorVx2VorRcId(:,:)
   real(DP), allocatable :: vorVxRadius(:)
   type(Vector3d), allocatable :: vorVx(:)
+  type(Face), allocatable :: vorRCList(:)
 
   integer :: siteNum     ! The number of generators
   integer :: vorVxNum    ! The number of voronoi vetecies
@@ -27,15 +30,17 @@ subroutine SVoronoiGen_Init(generatorsNum)
   type(Vector3d) :: zeroVec
 
   siteNum = generatorsNum
-  vorVxNum = 2*siteNum - 4
+  vorVxNum = 2*siteNum - 4 
 
   if(allocated(vorVx)) deallocate(vorVx)
   if(allocated(vorVx2VorVxId)) deallocate(vorVx2VorVxId)
   if(allocated(vorVx2VorRcId)) deallocate(vorVx2VorRcId)
   if(allocated(vorVxRadius)) deallocate(vorVxRadius)
+  if(allocated(vorRCList)) deallocate(vorRCList)
 
   allocate(vorVx(vorVxNum), vorVxRadius(vorVxNum))
   allocate(vorVx2VorVxId(3, vorVxNum), vorVx2VorRcId(3, vorVxNum))
+  allocate(vorRCList(siteNum))
 
   vorVxRadius(:) = 0d0
   zeroVec = 0d0
@@ -54,6 +59,10 @@ subroutine SVoronoiDiagramGen(pts, ini4ptsIds_)
   integer, allocatable :: brokenVxIdList(:)
   logical :: bVxFlag(vorVxNum)
 
+  integer :: vorRgVx(6, siteNum)
+  integer :: vxId, nextVxId, endVxId, cellVxNum
+  
+
   write(*,*) "= generate voronoi diagram.."
   write(*,*) "  site=", siteNum
 
@@ -69,13 +78,20 @@ subroutine SVoronoiDiagramGen(pts, ini4ptsIds_)
   isAddedSite(ini4ptsIds) = .true.
   call SVoronoiGen_prepair( pts, ini4ptsIds )
 
+  !
+  write(*,*) "* create voronoi mesh using increment method.."
+
   do nowSiteId=1, siteNum
-     if( .not. isAddedSite(nowSiteId) ) then
-        write(*,'(a,i4)') "----", nowSiteId
+    if( mod(nowSiteId, siteNum/10) == 0) then
+      write(*,*) "..", nowSiteId*100/siteNum, "%"
+    end if
+
+    if( .not. isAddedSite(nowSiteId) ) then
+ !       write(*,'(a,i4)') "----", nowSiteId
 
         ! Step1, 2: collect an information with the broken voronoi vertecies by adding new site.
         call getBrokenVorVxIdList(pts(nowSiteId), brokenVxIdList, bVxFlag)
-        write(*,*) "broken Vx:", brokenVxIdList(:)
+ !       write(*,*) "broken Vx:", brokenVxIdList(:)
 
         ! Step3, 4: generate new voronoi region corresponding to new site
         !           using an information of broken voronoi vertecies.
@@ -84,7 +100,87 @@ subroutine SVoronoiDiagramGen(pts, ini4ptsIds_)
      end if
   end do
 
+
+!do i=1,vorVxNum
+!   write(*,'(i2,a,3i7,a,3i7, a, 1f12.5, 5f12.5)') i, "*", vorVx2vorRcId(:,i), ":", vorVx2vorVxId(:,i), &
+!        & ":",  VorVxRadius(i), & 
+!        & radToDegUnit(cartToSphPos(vorVx(i))), vorVx(i)%v_(:)
+!end do
+
+
+  !
+  !
+  write(*,*) "* create an information of topology.." 
+
+  do nowSiteId=1, siteNum
+
+    do vxId=1, vorVxNum
+      if(vorVx2vorRCId(1,vxId) == nowSiteId .or. vorVx2vorRCId(2,vxId) ==nowSiteId &
+        & .or. vorVx2vorRCId(3,vxId) ==nowSiteId) exit;
+    end do
+
+    nextVxId = vxId; endVxId = vxId
+    cellVxNum = 0
+    do while(.true.)
+      cellVxNum = cellVxNum + 1
+      vorRCList(nowSiteId)%vertIdList(cellVxNum) = nextVxId
+
+      do i=1,3
+        if(nowSiteId==vorVx2vorRCId(i,nextVxId)) then
+          nextVxId = vorVx2vorVxId(mod(i,3)+1,nextVxId)
+          exit
+        end if
+      end do
+
+      if(nextVxId == endVxId) exit;
+    end do
+
+    vorRCList(nowSiteId)%vertNum = cellVxNum
+!    write(*,*) "site=",nowSiteId, ";", vorRCList(nowSiteId)%vertIdList(1:cellVxNum)
+  end do
+
+
 end subroutine SVoronoiDiagramGen
+
+subroutine printVTKDataFile(fileName, sites)
+  character(*), intent(in) :: fileName
+  type(Vector3d), intent(in) :: sites(:)
+  integer :: i, cellDataSize
+
+  open(17, file=fileName, status="replace")
+
+  write(17,'(a)') "# vtk DataFile Version 2.0"
+  write(17,'(a)') "Spherical Voronoi Diagram"
+  write(17,'(a)') "ASCII"
+  write(17,'(a)') "DATASET UNSTRUCTURED_GRID"
+  write(17,*)
+
+  write(17,'(a,i10,a)') "POINTS ", vorVxNum, " float"
+  do i=1, vorVxNum
+    write(17,'(3f12.5)') vorVx(i)%v_(1), vorVx(i)%v_(2), vorVx(i)%v_(3) 
+  end do
+  write(17,*)
+  
+  cellDataSize = 0
+  do i=1, siteNum
+    cellDataSize = cellDataSize + vorRCList(i)%vertNum + 1
+  end do
+
+  write(17,'(a,i10,i10)') "CELLS", siteNum, cellDataSize
+  do i=1, siteNum
+    write(17,'(i0,6i7)') vorRCList(i)%vertNum, vorRCList(i)%vertIdList(1:vorRCList(i)%vertNum) - 1
+  end do
+  write(17,*)
+
+  write(17,'(a,i10)') "CELL_TYPES", siteNum
+  do i=1, siteNum
+    write(17,'(i0)') 7
+  end do
+  write(17,*)
+
+  close(17)
+
+end subroutine printVTKDataFile
 
 subroutine SVoronoiGen_Final()
 
@@ -92,6 +188,7 @@ subroutine SVoronoiGen_Final()
   if(allocated(vorVx2VorVxId)) deallocate(vorVx2VorVxId)
   if(allocated(vorVx2VorRcId)) deallocate(vorVx2VorRcId)
   if(allocated(vorVxRadius)) deallocate(vorVxRadius)
+  if(allocated(vorRCList)) deallocate(vorRCList)
 
 end subroutine SVoronoiGen_Final
 
@@ -160,7 +257,7 @@ subroutine getBrokenVorVxIdList(newSitePos, brokenVxIdList, bVxFlag)
 
   integer :: startBrokenVxId
   integer :: parentVxId, childVxId
-  integer :: tmpList(30)
+  integer :: tmpList(siteNum/3)
   integer :: lEndPtr
   integer :: searchPtr
   integer :: i
@@ -168,7 +265,7 @@ subroutine getBrokenVorVxIdList(newSitePos, brokenVxIdList, bVxFlag)
   
   bVxFlag(:) = .false.
   startBrokenVxId = -1
-  call searchBrokenVorVxId(newSitePos, 1, bVxFlag, startBrokenVxId)
+  call searchNeighVorVxId(newSitePos, vorIdMapHead, bVxFlag, startBrokenVxId)
 
   !
   bVxFlag(:) = .false.
@@ -180,9 +277,12 @@ subroutine getBrokenVorVxIdList(newSitePos, brokenVxIdList, bVxFlag)
   bVxFlag(startBrokenVxId) = .true.
   
   do while(lEndPtr /= searchPtr)
-     parentVxId = tmpList(searchPtr); searchPtr = searchPtr + 1
+    searchPtr = searchPtr + 1
+    parentVxId = tmpList(searchPtr); 
+
      do i=1,3
         childVxId = vorVx2vorVxId(i,parentVxId)
+
         if ( (.not. bVxFlag(childVxId)) .and. &
            & geodesicArcLength(newSitePos, vorVx(childVxId)) < vorVxRadius(childVxId) ) then
 
@@ -198,13 +298,13 @@ subroutine getBrokenVorVxIdList(newSitePos, brokenVxIdList, bVxFlag)
   if(allocated(brokenVxIdList)) deallocate(brokenVxIdList)
 
   allocate(brokenVxIdList(lEndPtr))
-  !write(*,*) "newSite:", radtodegunit(carttosphpos(newsitepos))
-  !write(*,*) "tmpbroken:", startBrokenVxId, tmpList(1:lEndPtr)
+!  write(*,*) "newSite:", radtodegunit(carttosphpos(newsitepos))
+!  write(*,*) "tmpbroken:", startBrokenVxId, tmpList(1:lEndPtr)
   brokenVxIdList(1:lEndPtr) = tmpList(1:lEndPtr)
 
 end subroutine getBrokenVorVxIdList
 
-recursive subroutine searchBrokenVorVxId(newSitePos, startVxId, judgedFlag, foundVxId)
+recursive subroutine searchNeighVorVxId(newSitePos, startVxId, judgedFlag, foundVxId)
   type(Vector3d), intent(in) :: newSitePos
   integer, intent(in) :: startVxId
   logical, intent(inout) :: judgedFlag(:)
@@ -220,13 +320,13 @@ recursive subroutine searchBrokenVorVxId(newSitePos, startVxId, judgedFlag, foun
         return
      else
         do i=1, 3
-           call searchBrokenVorVxId(newSitePos, vorVx2vorVxId(i, startVxId), judgedFlag, foundVxId)
+           call searchNeighVorVxId(newSitePos, vorVx2vorVxId(i, startVxId), judgedFlag, foundVxId)
         end do
         
      end if
   end if
 
-end subroutine searchBrokenVorVxId
+end subroutine searchNeighVorVxId
 
 subroutine construct_newVoronoiRegion( newSiteId, bVxIdList, bVxFlag, pts )
   integer, intent(in) :: newSiteId
@@ -234,91 +334,95 @@ subroutine construct_newVoronoiRegion( newSiteId, bVxIdList, bVxFlag, pts )
   logical, intent(in) :: bVxFlag(:)
   type(Vector3d), intent(in) :: pts(:)
 
-  integer :: i, j, bVxId
-  integer :: neighVxId, newVorVxId
+  integer :: i, j, k, bVxId
+  integer :: neighVxId, newVxId, newVorVxIds(size(bVxIdList)*3)
   integer :: newVxNum
   integer :: newVorVxIdLink(siteNum)
   integer :: endNewVxId, nextNewVxId, prevNewVxId
-  integer :: rcids(3), oldVx2RCId(3)
+  integer :: rcids(3)
+  integer :: tmpVx2RCId(3, size(bVxIdList)*3)
+  integer :: tmpVx2VxId(3, size(bVxIdList)*3)
+  integer :: neighVxCorrectedIdList(size(bVxIdList)*3)
+  integer :: cids(3)
 
   newVxNum = 0 
   newVorVxIdLink(:) = -1
 
-
-do i=1,vorVxNum
-   write(*,'(i2,a,3i3,a,3i3, a, f12.5, 2f12.5)') i, "*", vorVx2vorRcId(:,i), ":", vorVx2vorVxId(:,i), &
-        & ":",  VorVxRadius(i), radToDegUnit(cartToSphPos(vorVx(i)))
-end do
+!do i=1,vorVxNum
+!   write(*,'(i2,a,3i3,a,3i3, a, f12.5, 2f12.5)') i, "*", vorVx2vorRcId(:,i), ":", vorVx2vorVxId(:,i), &
+!        & ":",  VorVxRadius(i), radToDegUnit(cartToSphPos(vorVx(i)))
+!end do
 
   do i=1, size(bVxIdList)
      bVxId = bVxIdList(i)
-     oldVx2RCId(:) = vorVx2vorRCId(:,bVxId)
+
+     cids(:) = (/ 1, 2, 3 /)
 
      do j=1, 3
-        neighVxId = vorVx2vorVxId(j,bVxId)
-        
+        neighVxId =  vorVx2vorVxId(j,bVxId)
+
         if( .not. bVxFlag(neighVxId) ) then
 
            newVxNum = newVxNum + 1
 
            if( newVxNum > size(bVxIdList)) then
               vorIdMapHead = vorIdMapHead + 1
-              newVorVxId = vorIdMapHead
+              newVxId = vorIdMapHead
            else
-              newVorVxId = bVxId
+              newVxId = bVxIdList(newVxNum)
            end if
-
-           vorVx2VorRCId(:,newVorVxId) = (/ &
-                & newSiteId, oldVx2RCId(2), oldVx2RCId(3) /)
-
-           where(vorVx2VorVxId(:,neighVxId) == bVxId) 
-              vorVx2VorVxId(:,neighVxId) = newVorVxId
-           end where
-
-           VorVx(newVorVxId) = calcUniSTriCenterPt( pts(vorVx2VorRCId(1:3, newVorVxId)) ) 
-           vorVxRadius(newVorVxId) = geodesicArcLength( pts(newSiteId), VorVx(newVorVxId) )
            
-           vorVx2VorVxId(1, newVorVxId) = neighVxId
-           newVorVxIdLink(oldVx2RCId(2)) = newVorVxId
+           newVorVxIds(newVxNum) = newVxId
 
-           oldVx2RCId(:) = cshift(oldVx2RCId(:), 1)
+           tmpVx2RCId(:,newVxNum) = (/ &
+                & newSiteId, vorVx2vorRCId(cids(2),bVxId), vorVx2vorRCId(cids(3),bVxId) /)
+
+           VorVx(newVxId) = calcUniSTriCenterPt( pts(tmpVx2RCId(:, newVxNum)) ) 
+           vorVxRadius(newVxId) = geodesicArcLength( pts(newSiteId), VorVx(newVxId) )
+           
+           tmpVx2VxId(1, newVxNum) = neighVxId
+           do k=1, 3
+             if(bVxId==vorVx2vorVxId(k,neighVxId)) neighVxCorrectedIdList(newVxNum) = k
+           end do
+
+           newVorVxIdLink(vorVx2vorRCId(cids(2),bVxId)) = newVxId
 
         end if
+
+        cids = cshift(cids, 1)
      end do
   end do
 
-  endNewVxId = newVorVxId
-  nextNewVxId = newVorVxId
+  do i=1, newVxNum
+    neighVxId = tmpVx2VxId(1, i)
+    vorVx2vorVxId(neighVxCorrectedIdList(i), neighVxId) = newVorVxIds(i)
+  end do
+
+  vorVx2VorRCId(:,newVorVxIds) = tmpVx2RCId(:, 1:newVxNum)
+  vorVx2VorVxId(:,newVorVxIds) = tmpVx2VxId(:, 1:newVxNum)
+
+  !
+  !write(*,*) "link:", newVorVxIdLink(:)
+  endNewVxId = newVorVxIds(newVxNum)
+  nextNewVxId = newVorVxIds(newVxNum)
 
   do while(.true.)
 
      prevNewVxId = nextNewVxId
      nextNewVxId = newVorVxIdLink(vorVx2vorRCId(3,prevNewVxId))
+
+!write(*,*) prevNewVxId, "-.>", nextNewVxId
      if(nextNewVxId == -1) then
         write(*,*) "error"; stop
      end if
-     vorVx2VorVxId(2, nextNewVxId) = prevNewVxId
-     vorVx2VorVxId(3, prevNewVxId) = nextNewVxId
-!write(*,*) prevNewVxId, "-.>", nextNewVxId
+     vorVx2VorVxId(3, nextNewVxId) = prevNewVxId
+     vorVx2VorVxId(2, prevNewVxId) = nextNewVxId
+     neighVxId = vorVx2VorVxId(1, prevNewVxId)
+
      if ( nextNewVxId == endNewVxId ) exit
   end do
 
-do i=1,vorVxNum
-   write(*,'(i2,a,3i3,a,3i3, a, 1f12.5, 5f12.5)') i, "*", vorVx2vorRcId(:,i), ":", vorVx2vorVxId(:,i), &
-        & ":",  VorVxRadius(i), & 
-        & radToDegUnit(cartToSphPos(vorVx(i))), vorVx(i)%v_(:)
-if(i>=4) then
-call print(radToDegUnit(cartToSphPos(pts(vorVx2VorRCId(1, i))) ))
-call print(radToDegUnit(cartToSphPos(pts(vorVx2VorRCId(2, i))) ))
-call print(radToDegUnit(cartToSphPos(pts(vorVx2VorRCId(3, i))) ))
-
-endif
-
-end do
-stop
 end subroutine construct_newVoronoiRegion
-
-
 
 function calcUniSTriCenterPt(pts) result(centerPt)
   type(Vector3d), intent(in) :: pts(3)
