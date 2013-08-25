@@ -1,8 +1,8 @@
 #!/bin/bash
 
 TYPES=( "real(DP)" "integer" "type(vector3d)")
-TYPENames=( "Field_d" "Field_i" "Field_vec3d")
-FileNameHints=( "Field_d" "Field_i" "Field_vec3d")
+TYPENames=( "List_d" "List_i" "List_vec3d")
+FileNameHints=( "List_d" "List_i" "List_vec3d")
 total=3
 EXT="f90"
 TEMPLATE_FILE="./list_mod.template.f90"

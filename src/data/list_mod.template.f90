@@ -17,18 +17,33 @@ module moduleName
 
   !
   type, public :: ListTypeName
-     ListElemType, pointer :: v_(:)
-     character(TOKEN) :: name
-     character(TOKEN) :: units
+     ListElemType, pointer :: v_(:) => null()
+     integer :: refCount = 0
   end type ListTypeName
 
-  interface setAtitude
-     module procedure funcNameSuffix(setAtitude)
-  end interface setAtitude
+  interface List_Init
+    module procedure funcNameSuffix(Init)
+  end interface List_Init
+
+  interface List_Final
+    module procedure funcNameSuffix(Final)
+  end interface List_Final
+  
+  interface getListSize
+    module procedure funcNameSuffix(getListSize)
+  end interface getListSize
+
+  interface decRef
+    module procedure funcNameSuffix(decRef)
+  end interface decRef
+
+  interface incRef
+    module procedure funcNameSuffix(incRef)
+  end interface incRef
   
   ! Public procedures
-  public :: funcNameSuffix(Init), funcNameSuffix(Final), setAtitude
-
+  public :: List_Init, List_Final
+  public :: incRef, decRef, getListSize
   
 contains
 
@@ -37,32 +52,58 @@ contains
 subroutine funcNameSuffix(Init) (list, list_size)
   type(ListTypeName), intent(inout) :: list
   integer, intent(in) :: list_size
-  
+ 
+  call List_Final(list)
+
   allocate(list%v_(list_size))
+  list%refCount = 1
 
 end subroutine funcNameSuffix(Init)
-
-!
-!
-!
-subroutine funcNameSuffix(setAtitude) (list, name, units)  
-  type(ListTypeName), intent(inout) :: list
-  character(*), intent(in) :: name
-  character(*), intent(in) :: units
-
-  list%name = name
-  list%units = units
-
-end subroutine funcNameSuffix(setAtitude)
 
 !
 !
 subroutine funcNameSuffix(Final) (list)
   type(ListTypeName), intent(inout) :: list
 
-  deallocate(list%v_)
+  !
+  if(.not. associated(list%v_)) return
+    
+  ! Check whether the reference counting for this object is equal to 0.
+  ! If so, the resource of list will be release. 
+  if(list%refCount == 0) then
+    write(*,*) "Safe to release a resource.."
+    deallocate(list%v_)
+  end if
 
 end subroutine funcNameSuffix(Final)
 
-end module moduleName
+function funcNameSuffix(getListSize) (list) result(listSize)
+  type(ListTypeName), intent(in) :: list
+  integer :: listSize
 
+  listSize = size(list%v_(:))
+
+end function funcNameSuffix(getListSize)
+
+!
+subroutine funcNameSuffix(incRef) (list)
+  type(ListTypeName), intent(inout) :: list
+ 
+  list%refCount = list%refCount + 1
+
+end subroutine funcNameSuffix(incRef)
+
+subroutine funcNameSuffix(decRef) (list, ret)
+  type(ListTypeName), intent(inout) :: list
+  logical, optional :: ret
+
+  ! Decrease the reference counting for this object 
+  list%refCount = list%refCount - 1
+  
+  if ( present(ret) ) then
+    ret = ( list%refCount == 0 )
+  end if
+
+end subroutine funcNameSuffix(decRef)
+
+end module moduleName

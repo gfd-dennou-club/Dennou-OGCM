@@ -14,3 +14,13 @@ SYSCXXFLAGS=@SYSCXXFLAGS@
 
 #dist-hook:
 #	sh $(top_srcdir)/dist_tool/generate-ChangeLog.sh       
+
+
+test: check
+	@echo ""
+	@echo ""
+	@echo " *** All unit tests are succeeded !! *** "
+	@echo ""
+	@echo ""
+
+
