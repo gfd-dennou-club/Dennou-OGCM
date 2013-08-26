@@ -7,7 +7,7 @@ module SphericalCoord_mod
   public :: SphToCartPos, CartToSphPos
   public :: RadToDegUnit, DegToRadUnit
 
-  public :: geodesicArcLength
+  public :: geodesicArcLength, sphericalTriArea
 
   real(DP), save  :: PI = acos(-1d0)
 
@@ -47,6 +47,28 @@ function geodesicArcLength(p1, p2) result(geodesic)
   geodesic = sqrt(r2) * acos( (p1 .dot. p2)/r2 )
 
 end function geodesicArcLength
+
+function sphericalTriArea(p1, p2, p3) result(area)
+  type(Vector3d), intent(in) :: p1, p2, p3
+  real(DP) :: area
+
+  real(DP) :: a_2, b_2, c_2, s_2
+  type(Vector3d) :: nP1, nP2, nP3
+
+  nP1 = normalizedVec(p1)
+  nP2 = normalizedVec(p2)
+  nP3 = normalizedVec(p3)
+
+  a_2 = 2d0/2d0 * asin( l2norm(nP1 - nP2) )
+  b_2 = 2d0/2d0 * asin( l2norm(nP2 - nP3) )
+  c_2 = 2d0/2d0 * asin( l2norm(nP3 - nP1) )
+  s_2 = a_2 + b_2 + c_2
+
+  area = l2norm(p1) * 4d0 * atan( &
+    &  sqrt( abs(tan(s_2)*tan(s_2 - a_2)*tan(s_2 - b_2)*tan(s_2 - c_2) ) )  &
+    & )
+  
+end function sphericalTriArea
 
 function RadToDegUnit(radPos) result(degPos)
   type(Vector2d), intent(in) :: radPos

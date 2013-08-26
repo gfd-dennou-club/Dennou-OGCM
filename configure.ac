@@ -203,6 +203,8 @@ AC_CONFIG_FILES([Makefile
 		 src/math/Makefile
                  src/data/Makefile
 		 src/mesh/Makefile
+		 src/fvm/Makefile
+		 src/io/Makefile
 		 test/Makefile
 		 test/unitTests/Makefile
 		 test/apps/Makefile])

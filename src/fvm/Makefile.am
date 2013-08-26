@@ -1,10 +1,10 @@
-SUBDIRS = math mesh data fvm io
+SUBDIRS = 
 
 AM_FCFLAGS = $(SYSFFLAGS) \
 	$(MODPATHFLAG)$(srcdir)/ \
 	$(MODPATHFLAG)$(srcdir)/../math \
 	$(MODPATHFLAG)$(srcdir)/../mesh \
-	$(MODPATHFLAG)$(srcdir)/../data 
+	$(MODPATHFLAG)$(srcdir)/../data
 
 #AM_CXXFLAGS = $(SYSCXXFLAGS) \
 #	-I $(srcdir)/data/ \
@@ -21,16 +21,14 @@ AM_FCFLAGS = $(SYSFFLAGS) \
 CLEANFILES = *$(MODEXT)
 
 #bin_PROGRAMS = IGModel-NHRM
-#
+
 #IGModel_NHRM_SOURCES = \
-#	main.f90
+	main.f90
 
-lib_LTLIBRARIES = \
-	libDQGModelCore.la
+noinst_LTLIBRARIES = libDQGModelFVM.la
+nodist_libDQGModelFVM_la_SOURCES = \
+	fvMeshInfo_mod.f90 \
+	fvCalculus_mod.f90
 
-libDQGModelCore_la_SOURCES = 
-libDQGModelCore_la_LIBADD = \
-	$(srcdir)/math/libDQGModelMath.la \
-	$(srcdir)/mesh/libDQGModelMesh.la \
-	$(srcdir)/data/libDQGModelData.la \
-	$(srcdir)/fvm/libDQGModelFVM.la
+
+

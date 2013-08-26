@@ -71,7 +71,7 @@ subroutine funcNameSuffix(Final) (list)
   ! Check whether the reference counting for this object is equal to 0.
   ! If so, the resource of list will be release. 
   if(list%refCount == 0) then
-    write(*,*) "Safe to release a resource.."
+    write(*,*) "Safe to release a resource of list data.."
     deallocate(list%v_)
   end if
 
@@ -104,6 +104,7 @@ subroutine funcNameSuffix(decRef) (list, ret)
     ret = ( list%refCount == 0 )
   end if
 
+  write(*,*) "current RefCount=", list%refCount
 end subroutine funcNameSuffix(decRef)
 
 end module moduleName

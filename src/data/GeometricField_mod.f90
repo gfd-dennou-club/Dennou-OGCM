@@ -17,7 +17,7 @@ module GeometricField_mod
 
   public :: GeometricField_Init, GeometricField_Final
   public :: SetFieldAtitude
-  public :: operator(+), assignment(=)
+  public :: operator(+), operator(-), assignment(=), operator(.At.)
 
 contains
 end module GeometricField_mod

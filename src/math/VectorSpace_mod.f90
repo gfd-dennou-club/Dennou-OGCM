@@ -14,7 +14,7 @@ module VectorSpace_mod
   public :: vector2d, vector3d
   public :: operator(+), operator(-), operator(*), operator(/), assignment(=)
   
-  public :: operator(.dot.), normalizedVec
+  public :: operator(.dot.), normalizedVec, l2norm
   public :: operator(.cross.)
 
   public :: print

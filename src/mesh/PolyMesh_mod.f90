@@ -14,6 +14,7 @@ module PolyMesh_mod
 
      integer :: ownCellId
      integer :: neighCellId
+
   end type Face
 
   integer, parameter :: MAX_CELL_FACE_NUM = 6
@@ -21,6 +22,7 @@ module PolyMesh_mod
   type, public :: Cell
      integer :: faceNum
      integer :: faceIdList(MAX_CELL_FACE_NUM)
+
   end type Cell
 
   type, public :: PolyMesh
@@ -34,10 +36,16 @@ module PolyMesh_mod
     module procedure PolyMesh_Init2
   end interface PolyMesh_Init
   
+  interface getFaceVertex
+    module procedure getFaceVertex1
+    module procedure getFaceVertex2
+  end interface getFaceVertex
+  
   public :: Face_Init, Cell_Init
   public :: PolyMesh_Init, PolyMesh_Final
   public :: PolyMesh_SetPoint, PolyMesh_SetFace, PolyMesh_SetCell
   public :: getPointListSize, getFaceListSize, getCellListSize
+  public :: getFaceVertex
 
 contains
 
@@ -102,6 +110,39 @@ function getCellListSize(mesh) result(listSize)
   listSize = size(mesh%cellList)
 end function getCellListSize
 
+function getFaceVertex1(mesh, faceGId) result(vxs)
+  type(PolyMesh), intent(in) :: mesh
+  integer, intent(in) :: faceGId
+  type(Vector3d) :: vxs(mesh%FaceList(faceGId)%vertNum)
+
+  type(Face) :: face_
+
+  face_ = mesh%FaceList(faceGId)
+  vxs(:) = mesh%PointList( face_%vertIdList(1:face_%vertNum) )  
+
+end function getFaceVertex1
+
+function getFaceVertex2(mesh, cellGId, faceLId) result(vxs)
+  type(PolyMesh), intent(in) :: mesh
+  integer, intent(in) :: cellGId
+  integer, intent(in) :: faceLId
+  type(Vector3d) :: vxs(mesh%FaceList(mesh%cellList(cellGId)%faceIdList(faceLId))%vertNum)
+
+  integer :: faceGId
+  type(Vector3d) :: tmp
+  type(Face) :: face_
+
+
+  faceGId = mesh%cellList(cellGId)%faceIdList(faceLId)
+  face_ = mesh%FaceList(faceGId)
+  vxs(:) = mesh%PointList( face_%vertIdList(1:face_%vertNum) )  
+
+  if( face_%neighCellId == cellGId ) then
+    ! Swap
+    tmp = vxs(1); vxs(1) = vxs(2); vxs(2) = tmp 
+  end if
+
+end function getFaceVertex2
 
 subroutine PolyMesh_dataAlloc(mesh, ptNum, faceNum, cellNum)
   type(PolyMesh), intent(inout) :: mesh

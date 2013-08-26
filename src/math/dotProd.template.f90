@@ -20,7 +20,11 @@ module moduleName
      module procedure normalize_
   end interface normalizedVec
 
-  public :: operator(.dot.), normalizedVec
+  interface l2norm
+    module procedure l2norm_
+  end interface l2norm
+
+  public :: operator(.dot.), normalizedVec, l2norm
 
 contains
 function normalize_(v) result(normVec)
@@ -39,5 +43,12 @@ function dotProduct(v1, v2) result(dot)
 
 end function dotProduct
 
+function l2norm_(v) result(nrm)
+  type(vectorspaceTypeName), intent(in) :: v
+  real(DP) :: nrm
+
+  nrm = sqrt( v .dot. v )
+
+end function l2norm_
 
 end module moduleName

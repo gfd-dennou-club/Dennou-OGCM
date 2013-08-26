@@ -9,7 +9,7 @@ module List_mod
   ! Cascade
   public :: List_i, List_d, List_vec3d
   public :: List_Init, List_Final
-  public :: getListSize
+  public :: getListSize, incRef, decRef
 
 contains
 end module List_mod

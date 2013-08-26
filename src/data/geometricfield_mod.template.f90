@@ -45,8 +45,14 @@ module moduleName
   
   !
   interface assignment(=)
-    module procedure funcNameSuffix(assignOptr)
+    module procedure funcNameSuffix(assignFieldObj)
+    module procedure funcNameSuffix(assignFDElemType)
+    module procedure funcNameSuffix(assignFDElemTypeArray)
   end interface assignment(=)
+
+!!$  interface assignment(:=)
+!!$    module procedure funcNameSuffix(assignForExpr)
+!!$  end interface assignment(:=)
   
   interface operator(+)
     module procedure funcNameSuffix(addOptr1)
@@ -60,10 +66,14 @@ module moduleName
 !    module procedure funcNameSuffix(subOptr3)
   end interface operator(-)
   
+  interface operator(.At.)
+    module procedure funcNameSuffix(ReturnElemRef)
+  end interface operator(.At.)
+  
   !
   public :: GeometricField_Init, GeometricField_Final
   public :: SetFieldAtitude
-  public :: operator(+), assignment(=)
+  public :: operator(+), operator(-), assignment(=), operator(.At.)
 
   
   character(TOKEN), parameter :: DATADEFLOC_SURFACE = "surface"
@@ -91,12 +101,8 @@ subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units)
   !
 
   !
-  call GeometrcField_Final(field)
+  call GeometricField_Final(field)
   
-  !
-  allocate(field%data)
-  call List_Init(field%data, dataSize)
-
   !
   field%mesh => mesh
   call setFieldAtitude(field, "field", " ", "1")
@@ -115,6 +121,10 @@ subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units)
       dataSize = getPointListSize(field%mesh)
   end select
 
+  !
+  allocate(field%data)
+  call List_Init(field%data, dataSize)
+  write(*,*) "allocated..", ", dataSize=", dataSize
 
 end subroutine funcNameSuffix(Init)
 
@@ -133,7 +143,8 @@ end subroutine funcNameSuffix(SetFieldAtitude)
 !
 subroutine funcNameSuffix(Final) (field)
   type(FieldTypeName), intent(inout) :: field
-  
+
+  write(*,*) "Call releasedataRef"
   call funcNameSuffix(releaseDataRef) (field)
   
 end subroutine funcNameSuffix(Final)
@@ -141,16 +152,18 @@ end subroutine funcNameSuffix(Final)
 
 !
 subroutine funcNameSuffix(releaseDataRef) (field)
-  type(FieldTypeName), intent(inout) :: field
+  type(FieldTypeName) :: field
   
   logical :: refIs0
 
   if( .not. associated(field%data) ) return
 
   call decRef(field%data, refIs0)
+  
   if( refIs0 ) then
-    write(*,*) "Safe to release a resource of list data." 
     call List_Final(field%data)
+    write(*,*) "FieldName=", field%name
+    if( field%tempDataFlag ) write(*,*) "This object is a temporary data. ^"
     deallocate(field%data)
   end if
 
@@ -161,7 +174,7 @@ end subroutine funcNameSuffix(releaseDataRef)
 
 ! operation
 !
-subroutine funcNameSuffix(assignOptr) (this, other)
+subroutine funcNameSuffix(assignFieldObj) (this, other)
   type(FieldTypeName), intent(inout) :: this
   type(FieldTypeName), intent(in) :: other
 
@@ -172,13 +185,50 @@ subroutine funcNameSuffix(assignOptr) (this, other)
     stop
   end if
 
+write(*,*) "In assignment.."
   !
   call funcNameSuffix(releaseDataRef) (this)
+write(*,*) ".."
 
   this%data => other%data
-  call incRef(other%data)
+  call incRef(this%data)
 
-end subroutine funcNameSuffix(assignOptr)
+  if( other%tempDataFlag ) then
+    call funcNameSuffix(releaseDataRef) (other)
+  end if
+
+end subroutine funcNameSuffix(assignFieldObj)
+
+subroutine funcNameSuffix(assignFDElemType) (this, elemData)
+  type(FieldTypeName), intent(inout) :: this
+  FieldDataElemType, intent(in) :: elemData
+
+!  call checkDataSizeEquality(field1%data, field2%data, "assign operator")
+  this%data%v_(:) = elemData
+
+end subroutine funcNameSuffix(assignFDElemType)
+
+subroutine funcNameSuffix(assignFDElemTypeArray) (this, elemArrayData)
+  type(FieldTypeName), intent(inout) :: this
+  FieldDataElemType, intent(in) :: elemArrayData(:)
+
+
+  if( getListSize(this%data) /= size(elemArrayData) ) then
+    write(*,*) "Error in assignment:"
+  end if
+
+  this%data%v_(:) = elemArrayData(:)
+
+end subroutine funcNameSuffix(assignFDElemTypeArray)
+
+function funcNameSuffix(ReturnElemRef) (this, id) result(elemRef)
+  type(FieldTypeName), intent(in) :: this
+  integer, intent(in) :: id
+  FieldDataElemType :: elemRef
+
+  elemRef = this%data%v_(id)
+
+end function funcNameSuffix(ReturnElemRef)
 
 !*
 !* 
