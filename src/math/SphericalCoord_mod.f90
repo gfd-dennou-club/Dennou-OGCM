@@ -37,14 +37,13 @@ function CartToSphPos(cartPos) result(sphPos)
 
 end function CartToSphPos
 
-function geodesicArcLength(p1, p2) result(geodesic)
+function geodesicArcLength(p1, p2) result(dist)
   type(Vector3d), intent(in) :: p1, p2
-  real(DP) :: geodesic
+  real(DP) :: dist
 
-  real(DP) :: r2
-
-  r2 = p1 .dot. p1
-  geodesic = sqrt(r2) * acos( (p1 .dot. p2)/r2 )
+  dist = &
+    & l2norm(p1) * &
+    & 2d0 * asin( 0.5* l2norm(normalizedVec(p1) - normalizedVec(p2)) )
 
 end function geodesicArcLength
 

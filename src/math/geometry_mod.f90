@@ -23,16 +23,21 @@ function icosahedron_vertex() result(orth_icvertex)
   real(DP) :: unit_radius = 1.0d0
   real(DP) :: dLambda = 2.0d0 * PI / 5.0d0
   integer :: i
+  real(DP) :: phi
 
   ! 実行文 ; Executable statements
   ! 
   
-  orth_icvertex(1)%v_(:) = (/ 0.0d0, 0.0d0, unit_radius /)
-  orth_icvertex(12)%v_(:) = (/ 0.0d0, 0.0d0, - unit_radius /)
+  orth_icvertex(1) = (/ 0.0d0, 0.0d0, unit_radius /)
+  orth_icvertex(12) = (/ 0.0d0, 0.0d0, - unit_radius /)
 
+  phi = 2d0 * asin(0.5/sin(PI/5d0)) - 0.5*PI
+  phi = 1.0d0*phi
+!write(*,*) phi*180d0/PI
+!stop
   do i=0,4
-     orth_icvertex(i+2) = SphToCartPos(dlambda*i, PI/6d0)
-     orth_icvertex(i+7) = SphToCartPos(dlambda*(i+0.5d0), -PI/6d0)
+     orth_icvertex(i+2) = SphToCartPos(dlambda*i, phi)
+     orth_icvertex(i+7) = SphToCartPos(dlambda*(i+0.5d0), -phi)
   end do
 
 end function icosahedron_vertex

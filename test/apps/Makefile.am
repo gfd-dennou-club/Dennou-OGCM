@@ -24,5 +24,6 @@ check_PROGRAMS =
 check_PROGRAMS += advTest
 advTest_SOURCES =\
 	advectTestOnSphere/SVoronoiGen_mod.f90 \
+	advectTestOnSphere/SVoronoiGen2_mod.f90 \
 	advectTestOnSphere/HexTriIcMesh_mod.f90 \
 	advectTestOnSphere/advTest.f90 

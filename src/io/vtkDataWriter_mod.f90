@@ -11,14 +11,15 @@ module vtkDataWriter_mod
     type(PolyMesh), pointer :: mesh => null()
     character(STRING) :: filePath
     integer :: outputNo
+    
+    type(VolScalarField), pointer :: ref_VScalarFList(:) => null()
+    type(VolVectorField), pointer :: ref_VVectorFList(:) => null()
+
   end type vtkDataWriter
 
-  interface write_GeometricField
-    module procedure write_volScalarField
-  end interface write_GeometricField
-  
   public :: vtkDataWriter_Init, vtkDataWriter_Final
-  public :: vtkDataWriter_writeHeader, write_GeometricField
+  public :: vtkDataWriter_Regist
+  public :: vtkDataWriter_Write
 
 contains
 subroutine vtkDataWriter_Init(writer, fileName, mesh)
@@ -32,8 +33,14 @@ subroutine vtkDataWriter_Init(writer, fileName, mesh)
 
 end subroutine vtkDataWriter_Init
 
-subroutine vtkDataWriter_writeHeader(writer)
+subroutine vtkDataWriter_write(writer)
   type(vtkDataWriter), intent(inout) :: writer
+
+  integer :: i, cellGId
+  integer :: cellNum
+  type(VolScalarField), pointer :: v_scalarField
+  
+  integer :: vScalarDataSize
 
   open(writer%outputNo, file=writer%filePath, status="replace")
 
@@ -45,13 +52,50 @@ subroutine vtkDataWriter_writeHeader(writer)
 
   call write_GridData(writer)
 
-end subroutine vtkDataWriter_writeHeader
+  ! Writer CELL_Data
+  !
+  cellNum = getCellListSize(writer%mesh) 
+  write(writer%outputNo, '(a, i10)') 'CELL_DATA', cellNum
+
+
+  vScalarDataSize = size(writer%ref_VScalarFList)
+  if(.not. associated(writer%ref_VScalarFList) ) vScalarDataSize = -1
+
+  !
+  do i=1, vScalarDataSize
+    v_scalarField => writer%ref_VScalarFList(i)
+    write(writer%outputNo,'(a,a,a)') "SCALARS ", v_scalarField%name, "float"
+    write(writer%outputNo,'(a)') "LOOKUP_TABLE default"
+    
+    do cellGId=1, cellNum
+      write(writer%outputNo, '(f12.5)') v_scalarField.At.cellGId
+    end do
+    write(writer%outputNo,*)
+  end do
+end subroutine vtkDataWriter_write
+
+subroutine vtkDataWriter_Regist(writer, &
+  & volScalarFields, volVectorFields )
+
+  type(vtkDataWriter), intent(inout) :: writer
+  type(volScalarField), target, optional :: volScalarFields(:)
+  type(volVectorField), target, optional :: volVectorFields(:)
+
+  if(present(volScalarFields)) then
+    writer%ref_VScalarFList => volScalarFields
+  end if
+
+  if(present(volVectorFields)) then
+    writer%ref_VVectorFList => volVectorFields
+  end if
+
+end subroutine vtkDataWriter_Regist
 
 subroutine write_volScalarField(writer, v_scalar)
   type(vtkDataWriter), intent(inout) :: writer
   type(volScalarField), intent(in) :: v_scalar
 
- 
+  
 end subroutine write_volScalarField
 
 subroutine vtkDataWriter_Final(writer)

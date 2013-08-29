@@ -18,10 +18,12 @@ module SVoronoiGen_mod
   real(DP), allocatable :: vorVxRadius(:)
   type(Vector3d), allocatable :: vorVx(:)
   type(Face), allocatable :: vorRCList(:)
+  logical, allocatable :: isAddedSite(:)
 
   integer :: siteNum     ! The number of generators
   integer :: vorVxNum    ! The number of voronoi vetecies
   integer :: vorIdMapHead
+  
   
 contains
 subroutine SVoronoiGen_Init(generatorsNum)
@@ -55,7 +57,6 @@ subroutine SVoronoiDiagramGen(pts, ini4ptsIds_)
 
   integer :: nowSiteId, i, j, bVxId  
   integer :: ini4ptsIds(4)
-  logical :: isAddedSite(size(pts))
   integer, allocatable :: brokenVxIdList(:)
   logical :: bVxFlag(vorVxNum)
 
@@ -74,6 +75,7 @@ subroutine SVoronoiDiagramGen(pts, ini4ptsIds_)
      ini4ptsIds(:) = (/ 1, 2, 3, 4 /) 
   end if
   
+  allocate(isAddedSite(siteNum))
   isAddedSite = .false.
   isAddedSite(ini4ptsIds) = .true.
   call SVoronoiGen_prepair( pts, ini4ptsIds )
@@ -87,16 +89,19 @@ subroutine SVoronoiDiagramGen(pts, ini4ptsIds_)
     end if
 
     if( .not. isAddedSite(nowSiteId) ) then
- !       write(*,'(a,i4)') "----", nowSiteId
+        write(*,'(a,i4)') "----", nowSiteId
 
         ! Step1, 2: collect an information with the broken voronoi vertecies by adding new site.
         call getBrokenVorVxIdList(pts(nowSiteId), brokenVxIdList, bVxFlag)
- !       write(*,*) "broken Vx:", brokenVxIdList(:)
+        write(*,*) "broken Vx:", brokenVxIdList(:)
 
         ! Step3, 4: generate new voronoi region corresponding to new site
         !           using an information of broken voronoi vertecies.
-        call construct_newVoronoiRegion(nowSiteId, brokenVxIdList, bVxFlag, pts)
 
+!        call manage_degenBrokexVorVx(nowSiteId, brokenVxIdList, pts)
+        
+        call construct_newVoronoiRegion(nowSiteId, brokenVxIdList, bVxFlag, pts)
+        
      end if
   end do
 
@@ -149,6 +154,7 @@ subroutine SVoronoiGen_Final()
   if(allocated(vorVx2VorRcId)) deallocate(vorVx2VorRcId)
   if(allocated(vorVxRadius)) deallocate(vorVxRadius)
   if(allocated(vorRCList)) deallocate(vorRCList)
+  if(allocated(isAddedSite)) deallocate(isAddedSite)
 
 end subroutine SVoronoiGen_Final
 
@@ -201,14 +207,12 @@ subroutine SVoronoiGen_prepair(pts, siteIds)
            call swap(neighVrIds(2), neighVrIds(3))
            call swap(vorVx2VorVxId(2,vxId), vorVx2VorVxId(3,vxId))
            VorVx(vxId) = calcUniSTriCenterPt( pts(neighVRIds(:)) ) 
-           
            vorVx2VorRcId(:,vxId) = neighVRIds(:)
            exit     
         end if
      end do
 
      vorVxRadius(vxId) = geodesicArcLength( pts(neighVRIds(1)), VorVx(vxId) )
-
   end do
   
 end subroutine SVoronoiGen_prepair
@@ -246,9 +250,11 @@ subroutine getBrokenVorVxIdList(newSitePos, brokenVxIdList, bVxFlag)
      do i=1,3
         childVxId = vorVx2vorVxId(i,parentVxId)
 
-        if ( (.not. bVxFlag(childVxId)) .and. &
-           & geodesicArcLength(newSitePos, vorVx(childVxId)) < vorVxRadius(childVxId) ) then
+!write(*,*) childVxId, ":", geodesicArcLength(newSitePos, vorVx(childVxId)), &
+!  & vorVxRadius(childVxId)
+!write(*,*) "   ", cartToSphPos(newSitePos), ":", cartToSphPos(vorVx(childVxId))
 
+        if ( (.not. bVxFlag(childVxId)) .and. isInsideVxCircle(newSitePos, childVxId) ) then
            lEndPtr = lEndPtr + 1
            tmpList(lEndPtr) = childVxId; 
            bVxFlag(childVxId) = .true.
@@ -273,7 +279,9 @@ recursive subroutine searchNeighVorVxId(newSitePos, startVxId, judgedFlag, found
   logical, intent(inout) :: judgedFlag(:)
   integer, intent(inout) :: foundVxId
 
-  integer :: i
+  integer :: i, neighSitePosId
+  real(DP) :: distList(siteNum)
+  real(DP), parameter :: zoomFactor = 1.1d0 
 
   if(.not. judgedFlag(startVxId)) then
      judgedFlag(startVxId) = .true.
@@ -291,6 +299,50 @@ recursive subroutine searchNeighVorVxId(newSitePos, startVxId, judgedFlag, found
 
 end subroutine searchNeighVorVxId
 
+subroutine manage_degenBrokexVorVx( newSiteId, bvxIdList, pts )
+  integer, intent(in) :: newSiteId
+  integer, intent(in) :: bvxIdList(:)
+  type(Vector3d), intent(in) :: pts(:)
+
+  integer :: bVxId, i, j, siteId, addSiteId, vxId
+  real(DP) :: dist
+  logical :: tmp_bVxFlag(vorVxNum)
+
+  do i=1, size(bVxIdList)
+    bVxId = bVxIdList(i)
+    dist = geodesicArcLength(pts(newSiteId), vorVx(bVxId))
+    
+    if( abs(dist - vorVxRadius(bVxId)) < 1e-14 ) then
+      write(*,*) "It's possible to occur degenerate.. siteID=", newSiteId, "vxID=", bVxId
+      
+      addSiteId = -1
+      do siteId=newSiteId+1, siteNum
+        if(.not. isAddedSite(siteId)) then
+          write(*,*) "siteId=", siteId, geodesicArcLength(pts(siteId), vorVx(bVxId)), vorVxRadius(bVxId)
+          if( geodesicArcLength(pts(siteId), vorVx(bVxId)) < vorVxRadius(bVxId) ) then
+            addSiteId = siteId; exit
+          end if
+        end if
+      end do
+
+      if(addSiteId < 0 ) then
+        write(*,*) "Can not avoid to occur degenerate!"
+        stop
+      end if
+
+      write(*,*) "Add a new site which has a larger siteId in advance.. siteId=", addSiteId
+      tmp_bVxFlag(:) = .false.
+      tmp_bVxFlag(bVxId) = .true.
+      call construct_newVoronoiRegion(addSiteId, (/ bVxId /), tmp_bVxFlag, pts)
+      isAddedSite(addSiteId) = .true.
+
+      stop
+    end if
+
+  end do
+
+end subroutine manage_degenBrokexVorVx
+
 subroutine construct_newVoronoiRegion( newSiteId, bVxIdList, bVxFlag, pts )
   integer, intent(in) :: newSiteId
   integer, intent(in) :: bvxIdList(:)
@@ -302,7 +354,6 @@ subroutine construct_newVoronoiRegion( newSiteId, bVxIdList, bVxFlag, pts )
   integer :: newVxNum
   integer :: newVorVxIdLink(siteNum)
   integer :: endNewVxId, nextNewVxId, prevNewVxId
-  integer :: rcids(3)
   integer :: tmpVx2RCId(3, size(bVxIdList)*3)
   integer :: tmpVx2VxId(3, size(bVxIdList)*3)
   integer :: neighVxCorrectedIdList(size(bVxIdList)*3)
@@ -310,11 +361,6 @@ subroutine construct_newVoronoiRegion( newSiteId, bVxIdList, bVxFlag, pts )
 
   newVxNum = 0 
   newVorVxIdLink(:) = -1
-
-!do i=1,vorVxNum
-!   write(*,'(i2,a,3i3,a,3i3, a, f12.5, 2f12.5)') i, "*", vorVx2vorRcId(:,i), ":", vorVx2vorVxId(:,i), &
-!        & ":",  VorVxRadius(i), radToDegUnit(cartToSphPos(vorVx(i)))
-!end do
 
   do i=1, size(bVxIdList)
      bVxId = bVxIdList(i)
@@ -385,6 +431,11 @@ subroutine construct_newVoronoiRegion( newSiteId, bVxIdList, bVxFlag, pts )
      if ( nextNewVxId == endNewVxId ) exit
   end do
 
+do i=1,vorIdMapHead
+   write(*,'(i2,a,3i3,a,3i3, a, f12.5, 2f12.5)') i, "*", vorVx2vorRcId(:,i), ":", vorVx2vorVxId(:,i), &
+        & ":",  VorVxRadius(i), radToDegUnit(cartToSphPos(vorVx(i)))
+end do
+
 end subroutine construct_newVoronoiRegion
 
 subroutine SVoronoi_setTopology(mesh)
@@ -404,6 +455,7 @@ subroutine SVoronoi_setTopology(mesh)
     call PolyMesh_SetPoint(mesh, vId, vorVx(vId))
   end do
   
+
   faceNum = 0
   do siteId=1, siteNum
     vorRC = vorRCList(siteId)
@@ -437,7 +489,7 @@ subroutine SVoronoi_setTopology(mesh)
         do m=1, vorRCList(tmpFace%neighCellId)%vertNum
           if( tmpFace%vertIdList(1) == vorRCList(tmpFace%neighCellId)%vertIdList(m) ) then
             mesh%cellList(tmpFace%neighCellId)%faceIdList(m) = faceNum
- !         write(*,*) "found: m=", m
+          write(*,*) "found: m=", m
             exit
           end if
           if(m == vorRCList(tmpFace%neighCellId)%vertNum) then
@@ -451,12 +503,32 @@ subroutine SVoronoi_setTopology(mesh)
     end do
   end do
 
-  write(*,*) "cell info--"
-  do m=1, siteNum
-    write(*,*) m, ":", mesh%cellList(m)%faceIdList(:), ":", mesh%cellList(m)%faceNum
-  end do
+!!$  write(*,*) "cell info--"
+!!$  do m=1, siteNum
+!!$    write(*,*) m, ":", mesh%cellList(m)%faceIdList(:), ":", mesh%cellList(m)%faceNum
+!!$  end do
 
 end subroutine SVoronoi_setTopology
+
+!
+!
+function isInsideVxCircle(pos, circCenterVxId) result(ret)
+  type(Vector3d), intent(in) :: pos
+  integer, intent(in) :: circCenterVxId
+  logical :: ret
+  
+  real(DP) :: dist
+
+  dist = geodesicArcLength(pos, vorVx(circCenterVxId))
+  
+ if( dist  < vorVxRadius(circCenterVxId) &
+   & .or. dabs(dist - vorVxRadius(circCenterVxId)) < 1e-14 ) then
+   ret = .true.
+ else
+   ret = .false. 
+ end if
+
+end function isInsideVxCircle
 
 function calcUniSTriCenterPt(pts) result(centerPt)
   type(Vector3d), intent(in) :: pts(3)

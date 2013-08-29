@@ -53,6 +53,7 @@ end subroutine HexTriIcMesh_Final
 subroutine HexTriIcMesh_generate(mesh)
 
   use SVoronoiGen_mod
+  use SVoronoiGen2_mod
 
   type(HexTriIcMesh), intent(inout) :: mesh
 
@@ -61,11 +62,11 @@ subroutine HexTriIcMesh_generate(mesh)
 
   call construct_icosahedralGrid(mesh%glevel, mesh%pts, iniPtsId4)
 
-  call SVoronoiGen_Init(size(mesh%pts))
-  call SVoronoiDiagramGen(mesh%pts, iniPtsId4)
-  call SVoronoi_SetTopology(mesh%mesh)
+  call SVoronoi2Gen_Init(size(mesh%pts))
+  call SVoronoi2DiagramGen(mesh%pts, iniPtsId4)
+  call SVoronoi2_SetTopology(mesh%mesh)
 
-  call SVoronoiGen_Final()
+  call SVoronoi2Gen_Final()
 
 end subroutine HexTriIcMesh_generate
 
@@ -221,7 +222,7 @@ recursive subroutine split_LCRCSubLCRC(i1, i2, j1, j2, icpts)
   icPts(miId, j2) = 0.5d0*(icPts(i1,j2) + icPts(i2,j2))
   icPts(i1, mjId) = 0.5d0*(icPts(i1,j1) + icPts(i1,j2))
   icPts(i2, mjId) = 0.5d0*(icPts(i2,j1) + icPts(i2,j2))
-  icPts(miId, mjId) = 0.5d0*(icPts(i2,j1)+icPts(i1,j2))
+  icPts(miId, mjId) = 0.5d0*(icPts(i2,j1) + icPts(i1,j2))
 
   call split_LCRCSubLCRC(i1, miId, j1, mjId, icpts)
   call split_LCRCSubLCRC(i1, miId, mjId, j2, icpts)

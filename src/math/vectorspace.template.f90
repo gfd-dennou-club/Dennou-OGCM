@@ -35,6 +35,7 @@ module moduleName
   interface assignment(=)
     module procedure optr_assign
     module procedure optr_assign_scalar
+    module procedure optr_assign_vecElem
   end interface assignment(=)
 
   interface print
@@ -52,6 +53,9 @@ subroutine printVec(v)
   
 end subroutine printVec
 
+!
+! Provide the oparation to add two elements of V. 
+!
 function optr_add(v1, v2) result(ret)
   type(vectorspaceTypeName), intent(in) :: v1, v2
   type(vectorspaceTypeName) :: ret
@@ -106,5 +110,15 @@ subroutine optr_assign_scalar(v, rhs)
   v%v_ = rhs
 
 end subroutine optr_assign_scalar
+
+
+subroutine optr_assign_vecElem(v, rhs)
+
+  type(vectorspaceTypeName), intent(out) :: v
+  vecspace_elem_type, intent(in) :: rhs(vecspace_elem_size)
+  
+  v%v_ = rhs
+
+end subroutine optr_assign_vecElem
 
 end module moduleName
