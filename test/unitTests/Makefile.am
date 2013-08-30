@@ -21,5 +21,4 @@ check_PROGRAMS =
 
 check_PROGRAMS += test_geometricField_mod
 test_geometricField_mod_SOURCES =\
-	temp.f90 \
 	test_geometricField_mod.f90

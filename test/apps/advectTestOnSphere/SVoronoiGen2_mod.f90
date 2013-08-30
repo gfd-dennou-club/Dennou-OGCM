@@ -23,6 +23,12 @@ module SVoronoiGen2_mod
   
   integer :: currentVrVxNum
 
+  type :: vrRegion
+     integer, pointer :: vertIds(:) => null()
+  end type vrRegion
+
+  type(vrRegion), allocatable :: vrRegionList(:)
+
 contains
 subroutine SVoronoi2Gen_Init(generatorsNum)
   integer, intent(in) :: generatorsNum
@@ -38,6 +44,7 @@ subroutine SVoronoi2Gen_Init(generatorsNum)
   allocate(vrRCvrVxG(12,siteNum))
   allocate(vrVxPos(vorVxNum))
   allocate(isAddedSite(siteNum))
+  allocate(vrRegionList(siteNum))
 
   vrVxRadius(:) = 0d0
   zeroVec = 0d0
@@ -346,24 +353,13 @@ subroutine SVoronoi2_setTopology(mesh)
   faceNum = 0
   do siteId=1, siteNum
 
-     lvrVxNum = 6
-     if(vrRCvrVxG(6,siteId)==-1) then
-        lvrVxNum = 5
-     end if
-
-     do i=1,5
-        if(vrRCvrVxG(i+1,siteId)==-1) then
-           write(*,*) "edgeNum=", i
-           lvrVxNum = i
-           exit
-           !   stop
-        end if
-     end do
+     lvrVxNum = size(vrRegionList(siteId)%vertIds(:))
+     if(lvrVxNum > 6) stop
 
      mesh%CellList(siteId)%faceNum = lvrVxNum
 
      do i=1, lvrVxNum
-        vrVxId = vrRCvrVxG(i, siteId)
+        vrVxId = vrRegionList(siteId)%vertIds(i)
         do m=1,3
            if(siteId == vrVxvrRCG(m,vrVxId)) then
               n = mod(m,3) + 1; 
@@ -385,13 +381,13 @@ subroutine SVoronoi2_setTopology(mesh)
 
            mesh%cellList(siteId)%faceIdList(i) = faceNum
 
-           do m=1, 6
-              if( tmpFace%vertIdList(1) == vrRCvrVxG(m,tmpFace%neighCellId) ) then
+           do m=1, size(vrRegionList(tmpFace%neighCellId)%vertIds)
+              if( tmpFace%vertIdList(1) == vrRegionList(tmpFace%neighCellId)%vertIds(m) ) then
                  mesh%cellList(tmpFace%neighCellId)%faceIdList(m) = faceNum
                  exit
               end if
 
-              if( m == 6 .or. (m==5 .and. vrRCvrVxG(5,tmpFace%neighCellId)==-1) ) then
+              if( m == size(vrRegionList(tmpFace%neighCellId)%vertIds) ) then
                  write(*,*) "error: The correspoinding vertex of neighbor cell can not be found!"
                  write(*,*) "edgeVertex=", tmpFace%vertIdList(1), RadToDegUnit(CartToSphPos(vrVxPos(tmpFace%vertIdList(1))))
                  write(*,*) "neighCell=", tmpFace%neighCellId
@@ -430,10 +426,11 @@ function searchNeighVorVxId(newSiteId, pts) result(vrVxId)
   type(Vector3d), intent(in) :: pts(:)
   integer :: vrVxId
 
-  real(DP) :: ss_distList(siteNum), vs_distList(6)
+  real(DP) :: ss_distList(siteNum), vs_distList(vorVxNum)
   type(Vector3d) :: newSitePos
   integer :: i, neighSiteId(1), minLocId(1)
-  
+  integer :: lvrVxNum
+
   newSitePos = pts(newSiteId)
   ss_distList(:) = 2d0*acos(-1d0)*l2norm(newSitePos) 
   vs_distList(:) = ss_distList(1)
@@ -443,15 +440,15 @@ function searchNeighVorVxId(newSiteId, pts) result(vrVxId)
   end do
 
   neighSiteId = minLoc(ss_distList(:))
-  
-  do i=1, 12
-     vrVxId = vrRCvrVxG(i, neighSiteId(1))
+  lvrVxNum = size(vrRegionList(neighSiteId(1))%vertIds)
+  do i=1, lvrVxNum
+     vrVxId = vrRegionList(neighSiteId(1))%vertIds(i)
      if(vrVxId > 0) vs_distList(i) = geodesicArcLength(newSitePos, vrVxPos(vrVxId)) - vrVxRadius(vrVxId)  
   end do
 
 
-  minLocId = minLoc(vs_distList(:))
-  vrVxId = vrRCvrVxG(minLocId(1), neighSiteId(1))
+  minLocId = minLoc(vs_distList(1:lvrVxNum))
+  vrVxId = vrRegionList(neighSiteId(1))%vertIds(minLocId(1))
 
 !!$if(neighSiteId(1)<1 .or. neighSiteId(1)>siteNum) then
 !!$   write(*,*) "search Error"
@@ -468,13 +465,15 @@ subroutine complete_VrRCVrVxGTree(siteId, startVrVxId)
   integer, intent(in) :: startVrVxId
 
   integer :: currentVrVxId, lvrVxId, i
+  integer :: tmplVrVxList(vorVxNum)
+  integer :: lvrVxNum
 
-  vrRCvrVxG(:, siteId) = -1
 
   currentVrVxId = startVrVxId
-  do lvrVxId=1, 12
-
-     vrRCvrVxG(lvrVxId, siteId) = currentVrVxId
+  lvrVxNum = 0
+  do while(.true.)
+     lvrVxNum = lvrVxNum + 1
+     tmplVrVxList(lvrVxNum) = currentVrVxId
 
      do i=1,3
         if( siteId == vrVxvrRCG(i,currentVrVxId) ) exit;
@@ -482,13 +481,14 @@ subroutine complete_VrRCVrVxGTree(siteId, startVrVxId)
 
      currentVrVxId = vrVxvrVxG(mod(i,3)+1, currentVrVxId)
      if(currentVrVxId==startVrVxId) exit;
-     if(lvrVxId == 12)then
-        write(*,*) "ERROR!#"
-        write(*,*) "siteId=", siteId
-call print_graph
-        stop
-     end if
+     if(lvrVxNum > vorVxNum ) stop
+
   end do
+
+  if(associated(vrRegionList(siteId)%vertIds)) deallocate(vrRegionList(siteId)%vertIds)
+
+  allocate(vrRegionList(siteId)%vertIds(lvrVxNum))
+  vrRegionList(siteId)%vertIds(:) = tmplVrVxList(1:lvrVxNum)
 
 end subroutine complete_VrRCVrVxGTree
 
@@ -508,7 +508,7 @@ subroutine print_graph()
 
   write(*,*) "----- * siteId: vrRCvrVx Graph"
   do siteId=1, siteNum
-     if(isAddedSite(siteId)) write(*,'(i6,a,12i6)') siteId, ":", vrRCvrVxG(:, siteId)  
+     if(isAddedSite(siteId)) write(*,'(i6,a,12i6)') siteId, ":", vrRegionList(siteId)%vertIds(:)  
   end do
   
 end subroutine print_graph

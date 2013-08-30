@@ -11,7 +11,7 @@ program advTest
 
   type(HexTriIcMesh) :: htiMesh
   type(fvMeshInfo) :: fvInfo
-  integer, parameter :: glevel = 4
+  integer, parameter :: glevel = 5
   type(vtkDataWriter) :: writer
 
   write(*,*) 'glevel:', glevel
@@ -30,7 +30,7 @@ program advTest
   !
   !
   call vtkDataWriter_Init(writer, "data.vtk", htiMesh%mesh)
-!  call vtkDataWriter_Regist(writer, volScalarFields=(/ fvInfo%v_CellVol /)) 
+  call vtkDataWriter_Regist(writer, (/ fvInfo%v_CellVol /))
   call vtkDataWriter_write(writer)
   call vtkDataWriter_Final(writer)
 
