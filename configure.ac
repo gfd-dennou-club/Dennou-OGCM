@@ -207,5 +207,5 @@ AC_CONFIG_FILES([Makefile
 		 src/io/Makefile
 		 test/Makefile
 		 test/unitTests/Makefile
-		 test/apps/Makefile])
+		 test/apps/Makefile ])
 AC_OUTPUT

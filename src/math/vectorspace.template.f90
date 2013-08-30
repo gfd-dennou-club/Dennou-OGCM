@@ -38,11 +38,16 @@ module moduleName
     module procedure optr_assign_vecElem
   end interface assignment(=)
 
+  interface toArray
+     module procedure toElemTypeArray
+  end interface toArray
+
   interface print
      module procedure printVec
   end interface print
   
   public :: operator(+), operator(-), operator(*), operator(/), assignment(=)
+  public :: toArray
   public :: print
 
 contains
@@ -121,4 +126,10 @@ subroutine optr_assign_vecElem(v, rhs)
 
 end subroutine optr_assign_vecElem
 
+function toElemTypeArray(v) result(ary)
+  type(vectorspaceTypeName), intent(in) :: v  
+  vecspace_elem_type :: ary(vecspace_elem_size)
+
+  ary(:) = v%v_(:)
+end function toElemTypeArray
 end module moduleName

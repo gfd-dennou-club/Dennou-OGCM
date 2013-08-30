@@ -52,8 +52,8 @@ end subroutine HexTriIcMesh_Final
 
 subroutine HexTriIcMesh_generate(mesh)
 
-  use SVoronoiGen_mod
-  use SVoronoiGen2_mod
+  use SCVoronoiGen_mod
+!  use SVoronoiGen2_mod
 
   type(HexTriIcMesh), intent(inout) :: mesh
 
@@ -62,11 +62,11 @@ subroutine HexTriIcMesh_generate(mesh)
 
   call construct_icosahedralGrid(mesh%glevel, mesh%pts, iniPtsId4)
 
-  call SVoronoi2Gen_Init(size(mesh%pts))
-  call SVoronoi2DiagramGen(mesh%pts, iniPtsId4)
-  call SVoronoi2_SetTopology(mesh%mesh)
+  call SCVoronoiGen_Init()
+  call SCVoroniDiagram_Generate(mesh%pts, iniPtsId4)
+  call SCVoronoi_SetTopology(mesh%mesh)
 
-  call SVoronoi2Gen_Final()
+  call SCVoronoiGen_Final()
 
 end subroutine HexTriIcMesh_generate
 

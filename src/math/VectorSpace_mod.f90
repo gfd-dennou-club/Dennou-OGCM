@@ -13,7 +13,7 @@ module VectorSpace_mod
   ! Cascade
   public :: vector2d, vector3d
   public :: operator(+), operator(-), operator(*), operator(/), assignment(=)
-  
+  public :: toArray
   public :: operator(.dot.), normalizedVec, l2norm
   public :: operator(.cross.)
 

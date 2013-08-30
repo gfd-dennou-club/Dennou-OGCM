@@ -11,9 +11,9 @@ AM_FCFLAGS = \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
-	$(SYSLDFLAGS) $(SYSLDLIBS) \
+	$(srcdir)/../../src/io/libDQGModelIO.la \
 	$(srcdir)/../../src/libDQGModelCore.la \
-	$(srcdir)/../../src/io/libDQGModelIO.la 
+	$(SYSLDFLAGS) $(SYSLDLIBS)
 
 CLEANFILES = *$(MODEXT)
 
@@ -25,5 +25,6 @@ check_PROGRAMS += advTest
 advTest_SOURCES =\
 	advectTestOnSphere/SVoronoiGen_mod.f90 \
 	advectTestOnSphere/SVoronoiGen2_mod.f90 \
+	advectTestOnSphere/SCVoronoiGen_mod.f90 \
 	advectTestOnSphere/HexTriIcMesh_mod.f90 \
 	advectTestOnSphere/advTest.f90 

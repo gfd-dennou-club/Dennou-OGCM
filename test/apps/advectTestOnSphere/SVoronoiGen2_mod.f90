@@ -8,15 +8,10 @@ module SVoronoiGen2_mod
   implicit none
   private
 
-  public :: SVoronoi2Gen_Init, SVoronoi2Gen_Final
-  public :: SVoronoi2DiagramGen
-  public :: SVoronoi2_setTopology
-
   integer :: vorVxNum
   integer :: siteNum
   integer, allocatable :: vrVxvrVxG(:,:)
   integer, allocatable :: vrVxvrRCG(:,:)
-  integer, allocatable :: vrRCvrVxG(:,:)
   logical, allocatable :: isAddedSite(:)
   real(DP), allocatable :: vrVxRadius(:)
   type(Vector3d), allocatable :: vrVxPos(:)
@@ -29,11 +24,14 @@ module SVoronoiGen2_mod
 
   type(vrRegion), allocatable :: vrRegionList(:)
 
+
+  public :: SVoronoi2Gen_Init, SVoronoi2Gen_Final
+  public :: SVoronoi2DiagramGen
+  public :: SVoronoi2_SetTopology, GetVrRegionPoints
+  
 contains
 subroutine SVoronoi2Gen_Init(generatorsNum)
   integer, intent(in) :: generatorsNum
-
-  type(Vector3d) :: zeroVec
 
   siteNum = generatorsNum
   vorVxNum = 2*siteNum - 4 
@@ -41,16 +39,9 @@ subroutine SVoronoi2Gen_Init(generatorsNum)
   allocate(vrVxRadius(vorVxNum))
   allocate(vrVxvrVXG(3,vorVxNum))
   allocate(vrVxvrRCG(3,vorVxNum))
-  allocate(vrRCvrVxG(12,siteNum))
   allocate(vrVxPos(vorVxNum))
   allocate(isAddedSite(siteNum))
   allocate(vrRegionList(siteNum))
-
-  vrVxRadius(:) = 0d0
-  zeroVec = 0d0
-  vrVxPos(:) = zeroVec
-  vrRCvrVxG(:,:) = -1
-  isAddedSite(:) = .false.
 
 end subroutine SVoronoi2Gen_Init
 
@@ -76,14 +67,14 @@ subroutine SVoronoi2DiagramGen(pts, ini4ptsIds_)
   
   call SVoronoiGen_prepair( pts, ini4ptsIds )  
   isAddedSite(ini4ptsIds(:)) = .true.
-  call print_graph()
+!!$  call print_graph()
 
 
   !
   write(*,*) "* create voronoi mesh using increment method.."
 
   do siteId=1, siteNum
-    if( mod(siteId, siteNum/10) == 0) then
+    if( mod(siteId, siteNum/5) == 0) then
       write(*,*) "..", siteId*100/siteNum, "%"
     end if
 
@@ -108,9 +99,33 @@ end subroutine SVoronoi2DiagramGen
 
 subroutine SVoronoi2Gen_Final()
 
+  integer :: siteId
+
+  if(allocated(vrVxRadius)) deallocate(vrVxRadius)
+  if(allocated(vrVxvrVxG)) deallocate(vrVxvrVxG)
+  if(allocated(vrVxvrRCG)) deallocate(vrVxvrRCG)
+  if(allocated(vrVxPos)) deallocate(vrVxPos)
+  if(allocated(isAddedSite)) deallocate(isAddedSite)
+  
+  if(allocated(vrRegionList)) then
+     do siteId=1, size(vrRegionList)
+        if(associated(vrRegionList(siteId)%vertIds)) deallocate(vrRegionList(siteId)%vertIds)
+     end do
+     deallocate(vrRegionList)
+  end if
 
 end subroutine SVoronoi2Gen_Final
 
+subroutine GetVrRegionPoints(siteId, vrVxs)
+  integer, intent(in) :: siteId
+  type(Vector3d), allocatable :: vrVxs(:)
+
+  if(allocated(vrVxs)) deallocate(vrVxs)
+
+  allocate( vrVxs(size(vrRegionList(siteId)%vertIds)) )
+  vrVxs(:) = vrVxPos(vrRegionList(siteId)%vertIds)
+
+end subroutine GetVrRegionPoints
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -124,8 +139,17 @@ subroutine SVoronoiGen_prepair(pts, siteIds)
   integer :: vxId, i, siteId
   integer :: neighVRIds(3) ! The index of three voronoi regions which are a neighbor of a voronoi vertex.  
   real(DP) :: dist_VorVx2unUsedSite
+  type(Vector3d) :: zeroVec
 
   ! Executable statements
+
+  !
+  !
+  !
+  vrVxRadius(:) = 0d0
+  vrVxPos(:) = zerovec!(/ 0d0, 0d0, 0d0 /)
+  isAddedSite(:) = .false.
+
 
   ! Define the mapping array to convert the index of a voronoi vertex
   ! into idecies of three voronoi regions. 
@@ -391,16 +415,7 @@ subroutine SVoronoi2_setTopology(mesh)
                  write(*,*) "error: The correspoinding vertex of neighbor cell can not be found!"
                  write(*,*) "edgeVertex=", tmpFace%vertIdList(1), RadToDegUnit(CartToSphPos(vrVxPos(tmpFace%vertIdList(1))))
                  write(*,*) "neighCell=", tmpFace%neighCellId
-                 do n=1,6
-                    write(*,*) vrRCvrVxG(n, tmpFace%neighCellId), &
-                         & RadToDegUnit( CartToSphPos(vrVxPos(vrRCvrVxG(n, tmpFace%neighCellId))) ), "-"
-                 end do
-                 write(*,*) "ownCell=", tmpFace%ownCellId
-                 do n=1,6
-                    write(*,*) vrRCvrVxG(n, tmpFace%ownCellId), &
-                         & RadToDegUnit(CartToSphPos(vrVxPos(vrRCvrVxG(n, tmpFace%ownCellId))))
-                 end do
-                 
+
                  stop
               end if
            end do

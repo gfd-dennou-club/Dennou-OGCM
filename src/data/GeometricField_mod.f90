@@ -19,5 +19,4 @@ module GeometricField_mod
   public :: SetFieldAtitude
   public :: operator(+), operator(-), assignment(=), operator(.At.)
 
-contains
 end module GeometricField_mod

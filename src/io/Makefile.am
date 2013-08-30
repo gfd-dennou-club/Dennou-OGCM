@@ -31,7 +31,12 @@ lib_LTLIBRARIES = \
 	libDQGModelIO.la
 
 libDQGModelIO_la_SOURCES = \
-	vtkDataWriter_mod.f90
+	vtkDataWriter_mod.f90 \
+	netcdfDataHelper_mod.f90 \
+	netcdfDataWriter_mod.f90 \
+	netcdfDataReader_mod.f90 
+
+
 
 libDQGModelIO_la_LIBADD = 
 
