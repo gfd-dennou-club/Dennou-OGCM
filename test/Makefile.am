@@ -1,6 +1,6 @@
 #test: check
 
-SUBDIRS =unitTests apps
+SUBDIRS =unitTests
 
 #AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../src/ \

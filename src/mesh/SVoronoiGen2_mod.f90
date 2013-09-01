@@ -441,20 +441,28 @@ function searchNeighVorVxId(newSiteId, pts) result(vrVxId)
   type(Vector3d), intent(in) :: pts(:)
   integer :: vrVxId
 
-  real(DP) :: ss_distList(siteNum), vs_distList(vorVxNum)
+  real(DP) :: vs_distList(vorVxNum)
   type(Vector3d) :: newSitePos
-  integer :: i, neighSiteId(1), minLocId(1)
-  integer :: lvrVxNum
+  integer :: i, neighSiteId(1), neighSiteId_(1), minLocId(1)
+  integer :: lvrVxNum, nextId
+  logical :: checkedFlag(siteNum)
+  integer :: vrVxId_, currentSiteId
 
   newSitePos = pts(newSiteId)
-  ss_distList(:) = 2d0*acos(-1d0)*l2norm(newSitePos) 
-  vs_distList(:) = ss_distList(1)
+  vs_distList(:) = 2d0*acos(-1d0)*l2norm(newSitePos)
 
-  do i=1, siteNum
-     if( isAddedSite(i) .and. i /= newSiteId ) ss_distList(i) = geodesicArcLength(newSitePos, pts(i))
+  checkedFlag = .false.
+  currentSiteId = newSiteId - 1
+  if(newSiteId == 1) currentSiteId = vrVxVrRCG(1,1)
+
+  do while(.true.)
+     neighSiteId(1) = moveNearVrRegion(currentSiteId)
+     if(neighSiteId(1) == currentSiteId .or. checkedFlag(neighSiteId(1)) ) exit
+
+     currentSiteId = neighSiteId(1)
   end do
 
-  neighSiteId = minLoc(ss_distList(:))
+
   lvrVxNum = size(vrRegionList(neighSiteId(1))%vertIds)
   do i=1, lvrVxNum
      vrVxId = vrRegionList(neighSiteId(1))%vertIds(i)
@@ -465,13 +473,41 @@ function searchNeighVorVxId(newSiteId, pts) result(vrVxId)
   minLocId = minLoc(vs_distList(1:lvrVxNum))
   vrVxId = vrRegionList(neighSiteId(1))%vertIds(minLocId(1))
 
-!!$if(neighSiteId(1)<1 .or. neighSiteId(1)>siteNum) then
-!!$   write(*,*) "search Error"
-!!$end if
-!!$
-!!$if(vrVxId<1 .or. vrVxId > currentVrVxNum ) then
-!!$   write(*,*) "search Error"
-!!$end if
+
+contains
+function moveNearVrRegion(siteId) result(nextSiteId)
+  integer, intent(in) :: siteId
+  integer :: nextSiteId
+
+  integer :: vxId, i, j, vxids(size(vrRegionList(siteId)%vertIds)), vxNum
+  real(DP) :: dist(1+size(vrRegionList(siteId)%vertIds))
+  integer :: RCList(1+size(vrRegionList(siteId)%vertIds))
+  integer :: minid(1)
+
+  checkedFlag(siteId) = .true.
+  vxids = vrRegionList(siteId)%vertIds
+ ! write(*,*)  "dist=", geodesicArcLength(pts(newSiteId), pts(siteId)), newSiteId, siteId
+
+  
+  vxNum = size(vxIds)
+  do i=1, vxNum
+     vxId = vxids(i)
+     do j=1, 3
+        if( siteId == vrVxvrRCG(j,vxId) ) exit
+     end do
+     RCList(i) = vrVxvrRCG(mod(j,3) + 1, vxId)
+     dist(i) = geodesicArcLength(newSitePos, pts(RCList(i)))
+  end do
+
+  RCList(vxNum+1) = siteId
+  dist(vxNum+1) = geodesicArcLength(newSitePos, pts(siteId))
+  
+  minid = minLoc(dist)
+  nextSiteId = RCList(minId(1))
+!write(*,*) RCList
+!write(*,*) dist - dist(minid(1))
+!write(*,*) "nextSiteId=", nextSiteId
+end function moveNearVrRegion
 
 end function searchNeighVorVxId
 

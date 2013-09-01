@@ -100,6 +100,16 @@ module netcdfDataHelper_mod
     integer :: varID
 
   end type Mesh_coord_element
+
+  type, public :: Mesh_connectivity_element
+     type(Mesh_dim_element), pointer :: own_dim_element => null()
+     type(Mesh_dim_element), pointer :: connected_dim_element => null()
+     character(TOKEN) :: element_name
+     character(TOKEN) :: cf_role
+     character(STRING) :: long_name
+     integer :: start_index = 1
+     integer :: varId
+  end type Mesh_connectivity_element
   
   !> \~japanese
   !! \brief Mesh2 のノード, 面, エッジ, 面のリンクに関する情報を管理する構造体.
@@ -120,10 +130,27 @@ module netcdfDataHelper_mod
     !! \~english
     type(Mesh_dim_element) :: edge
 
+    type(Mesh_dim_element) :: Two
+    type(Mesh_dim_element) :: Max_face_nodes
+
+
     !> \~japanese
     !! \~english
-    type(Mesh_dim_element) :: face_links
-    
+    type(Mesh_connectivity_element) :: face_links
+
+    !> \~japanese
+    !! \~english
+    type(Mesh_connectivity_element) :: face_nodes
+
+    !> \~japanese
+    !! \~english
+    type(Mesh_connectivity_element) :: face_edges
+
+    !> \~japanese
+    !! \~english
+    type(Mesh_connectivity_element) :: edge_nodes
+
+
     !> \~japanese Mesh2 の座標要素 node_x(次元要素が node である経度方向の座標)を表す構造型 Mesh_coord_element の変数.
     !! \~english
     type(Mesh_coord_element) :: node_x
@@ -163,7 +190,20 @@ module netcdfDataHelper_mod
 
     !> \~japanese
     !! \~english
-    type(Mesh_dim_element) :: face_links
+    type(Mesh_connectivity_element) :: face_links
+
+    !> \~japanese
+    !! \~english
+    type(Mesh_connectivity_element) :: face_nodes
+
+    !> \~japanese
+    !! \~english
+    type(Mesh_connectivity_element) :: face_edges
+
+    !> \~japanese
+    !! \~english
+    type(Mesh_connectivity_element) :: edge_nodes
+
 
     !> \~japanese
     !! \~english
@@ -190,7 +230,10 @@ module netcdfDataHelper_mod
   ! 公開手続き
   ! Public procedure
   !
-  public :: Mesh_coord_element_Init, Mesh2_ncInfo_Init, check_nf90_status
+  public :: Mesh_coord_element_Init, Mesh_connectiviy_element_Init
+  public :: Mesh2_ncInfo_Init
+  public :: check_nf90_status
+
   !public :: Mesh3_ncInfo_Init
 
 contains
@@ -242,6 +285,38 @@ subroutine Mesh_coord_element_Init( &
 
 end subroutine Mesh_coord_element_Init
 
+subroutine Mesh_connectiviy_element_Init( &
+  & self,                             &  ! (inout)
+  & dimension_element,                &  
+  & connected_dim_element, &
+  & element_name, cf_role, long_name, start_id &  ! (in)
+  & )
+
+  ! 宣言文 ; Declaration statement
+  !
+  type(Mesh_connectivity_element), intent(inout) :: self
+  type(Mesh_dim_element), intent(in), target :: dimension_element
+  type(Mesh_dim_element), intent(in), target :: connected_dim_element
+  character(*), intent(in) :: element_name
+  character(*), intent(in) :: cf_role
+  character(*), intent(in) :: long_name
+  integer, optional, intent(in) :: start_id
+
+  ! 実行文 ; Execuatble statement
+  !
+  self%own_dim_element => dimension_element
+  self%connected_dim_element => connected_dim_element
+  self%element_name = element_name
+  self%cf_role = cf_role
+  self%long_name = long_name
+  if(present(start_id)) then
+     self%start_index = start_id
+  else
+     self%start_index = 1
+  end if
+
+end subroutine Mesh_connectiviy_element_Init
+
 !
 !> \~japanese
 !! \brief NetCDF の読み書きの際に, 球面上の水平方向の非構造格子データを管理する構造型 Mesh2_ncInfo の変数を初期化する.
@@ -287,6 +362,45 @@ subroutine Mesh2_ncInfo_Init( &
   self%node%num = getPointListSize(mesh)
   self%face%element_name = 'nMesh2_cell '
   self%face%num = getCellListSize(mesh)
+  self%edge%element_name = 'nMesh2_face '
+  self%edge%num = getFaceListSize(mesh)
+  self%Two%element_name = 'Two'
+  self%Two%num = 2
+  self%Max_face_nodes%element_name = 'nMaxMesh2_face_nodes'
+  self%Max_face_nodes%num = 6
+
+
+  call Mesh_connectiviy_element_Init( &
+       & self%face_nodes,                             &  ! (inout)
+       & dimension_element=self%face,                &  
+       & connected_dim_element=self%Max_face_nodes, &
+       & element_name="Mesh2_face_nodes", cf_role="face_nodes_connectivity", &
+       & long_name="Maps every face to its corner nodes.", start_id=1 & 
+       & )
+
+  call Mesh_connectiviy_element_Init( &
+       & self%edge_nodes,                             &  ! (inout)
+       & dimension_element=self%edge,                &  
+       & connected_dim_element=self%Two, &
+       & element_name="Mesh2_edge_nodes", cf_role="edge_nodes_connectivity", &
+       & long_name="Maps every edge to the two nodes that  it connects.", start_id=1 & 
+       & )
+
+  call Mesh_connectiviy_element_Init( &
+       & self%face_edges,                             &  ! (inout)
+       & dimension_element=self%face,                &  
+       & connected_dim_element=self%Max_face_nodes, &
+       & element_name="Mesh2_face_edges", cf_role="face_edges_connectivity", &
+       & long_name="Maps every face to its edges.", start_id=1 & 
+       & )
+
+  call Mesh_connectiviy_element_Init( &
+       & self%face_links,                             &  ! (inout)
+       & dimension_element=self%edge,                &  
+       & connected_dim_element=self%Two, &
+       & element_name="Mesh2_face_links", cf_role="face_links_connectivity", &
+       & long_name="Maps every edge to the two face that it connects.", start_id=1 & 
+       & )
 
 
   ! Mesh2_node_x の初期化
@@ -303,18 +417,32 @@ subroutine Mesh2_ncInfo_Init( &
     & long_name='Latiude of 2D mesh point', units=LAT_UNITS &
     & )
 
-  ! Mesh2_node_x の初期化
+  ! Mesh2_face_x の初期化
   call Mesh_coord_element_Init( &
     & self%face_x, dimension_element=self%face, &
     & element_name='Mesh2_face_x', standard_name=LON, &
     & long_name='Latiude of 2D mesh cell', units=LON_UNITS &
     & )
 
-  ! Mesh2_node_y の初期化
+  ! Mesh2_face_y の初期化
   call  Mesh_coord_element_Init( &
     & self%face_y, dimension_element=self%face, &
     & element_name='Mesh2_face_y', standard_name=LAT, &
     & long_name='Latiude of 2D mesh cell', units=LAT_UNITS &
+    & )
+
+  ! Mesh2_face_x の初期化
+  call Mesh_coord_element_Init( &
+    & self%edge_x, dimension_element=self%edge, &
+    & element_name='Mesh2_edge_x', standard_name=LON, &
+    & long_name='Latiude of 2D mesh edge', units=LON_UNITS &
+    & )
+
+  ! Mesh2_face_y の初期化
+  call  Mesh_coord_element_Init( &
+    & self%edge_y, dimension_element=self%edge, &
+    & element_name='Mesh2_edge_y', standard_name=LAT, &
+    & long_name='Latiude of 2D mesh edge', units=LAT_UNITS &
     & )
 
 end subroutine Mesh2_ncInfo_Init

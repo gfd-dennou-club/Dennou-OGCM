@@ -4,6 +4,11 @@ module SphericalCoord_mod
   implicit none
   private
 
+  interface SphToCartPos
+     module procedure SphToCartPos1
+     module procedure SphToCartPos2
+  end interface SphToCartPos
+
   public :: SphToCartPos, CartToSphPos
   public :: RadToDegUnit, DegToRadUnit
 
@@ -12,14 +17,22 @@ module SphericalCoord_mod
   real(DP), save  :: PI = acos(-1d0)
 
 contains
-function SphToCartPos(lambda, phi) result(cartPos)
+function SphToCartPos1(lambda, phi) result(cartPos)
   real(DP), intent(in) :: lambda, phi
   type(Vector3d) :: cartPos
   
   cartPos%v_(1:3) = (/ &
        & cos(phi)*cos(lambda), cos(phi)*sin(lambda), sin(phi) /)
 
-end function SphToCartPos
+end function SphToCartPos1
+
+function SphToCartPos2(lonlatVec) result(cartPos)
+  type(vector2d), intent(in) :: lonlatVec
+  type(Vector3d) :: cartPos
+  
+  cartPos = SphToCartPos1(lonlatVec%v_(1), lonlatVec%v_(2))
+
+end function SphToCartPos2
 
 function CartToSphPos(cartPos) result(sphPos)
   type(Vector3d), intent(in) :: cartPos

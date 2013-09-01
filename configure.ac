@@ -204,8 +204,9 @@ AC_CONFIG_FILES([Makefile
                  src/data/Makefile
 		 src/mesh/Makefile
 		 src/fvm/Makefile
+		 src/mesh2/Makefile
 		 src/io/Makefile
 		 test/Makefile
 		 test/unitTests/Makefile
-		 test/apps/Makefile ])
+		 apps/Makefile ])
 AC_OUTPUT

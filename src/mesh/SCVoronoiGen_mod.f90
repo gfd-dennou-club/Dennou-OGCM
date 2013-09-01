@@ -22,12 +22,12 @@ subroutine SCVoronoiGen_Final
   call SVoronoi2Gen_Final()
 end subroutine SCVoronoiGen_Final
 
-subroutine SCVoroniDiagram_Generate(pts, iniPtsId4)
+subroutine SCVoroniDiagram_Generate(pts, iniPtsId4, itrMax)
   type(Vector3d), intent(inout) :: pts(:)
   integer, intent(in) :: iniPtsId4(4)
+  integer, intent(in) :: itrMax
 
   integer :: itr
-  integer, parameter :: itrMax = 1
 
   call SVoronoi2Gen_Init(size(pts))
 

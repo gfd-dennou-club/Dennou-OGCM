@@ -1,4 +1,4 @@
-SUBDIRS = math mesh data fvm io
+SUBDIRS = math mesh data fvm mesh2 io
 
 AM_FCFLAGS = $(SYSFFLAGS) \
 	$(MODPATHFLAG)$(srcdir)/ \
@@ -33,4 +33,5 @@ libDQGModelCore_la_LIBADD = \
 	$(srcdir)/math/libDQGModelMath.la \
 	$(srcdir)/mesh/libDQGModelMesh.la \
 	$(srcdir)/data/libDQGModelData.la \
-	$(srcdir)/fvm/libDQGModelFVM.la
+	$(srcdir)/fvm/libDQGModelFVM.la \
+	$(srcdir)/mesh2/libDQGModelMesh2.la
