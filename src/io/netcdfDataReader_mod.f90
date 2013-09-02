@@ -76,7 +76,7 @@ subroutine read_meshData(reader)
   integer :: cellNum, ptNum, faceNum, i
   type(Cell) :: tmpCell
   type(Vector3d) :: cellPos, ptPos
-  type(Vector2d) :: latlon
+  type(Vector3d) :: latlon
   type(Mesh2_ncInfo), pointer :: meshInfo
   integer, pointer :: cell_points(:,:) => null()
   integer, pointer :: cell_faces(:,:) => null()
@@ -103,13 +103,14 @@ subroutine read_meshData(reader)
   
   call PolyMesh_Init(reader%mesh, ptNum, faceNum, cellNum)
   do i=1, cellNum
-     latlon = (/ vlon(i), vlat(i) /)
+     latlon = (/ vlon(i), vlat(i), 1d0 /)
      cellPos = SphToCartPos(DegToRadUnit(latlon))
+
      call PolyMesh_SetCell(reader%mesh, i, tmpCell, cellPos)
   end do
 
   do i=1, ptNum
-     latlon = (/ plon(i), plat(i) /)
+     latlon = (/ plon(i), plat(i), 1d0 /)
      ptPos = SphToCartPos(DegToRadUnit(latlon))
      call PolyMesh_SetPoint(reader%mesh, i, ptPos)
   end do 
@@ -120,7 +121,7 @@ subroutine read_meshData(reader)
   deallocate(vlon, vlat)
   deallocate(plon, plat)
   deallocate(cell_faces, cell_points, face_points, face_links)
-stop
+
 end subroutine read_meshData
 
 end module netcdfDataReader_mod

@@ -182,15 +182,16 @@ subroutine netcdfDataWriter_writeGridData(writer)
   type(pointScalarField) :: p_lon, p_lat
   type(surfaceScalarField) :: s_lon, s_lat
   integer, allocatable :: cell_points(:,:), cell_faces(:,:), face_points(:,:), face_links(:,:)
-  integer :: cellNum, cellId
+  integer :: pointNum, cellNum, cellId
   integer :: ptNum, ptId
 
-  type(Vector2d) :: geoPos
+  type(Vector3d) :: geoPos
   integer :: i
 
   mesh => writer%mesh
   meshInfo => writer%mesh2Info
   cellNum = getCellListSize(mesh)
+  pointNum = getPointListSize(mesh)
 
   call GeometricField_Init(v_lon, mesh, "v_lon")
   call GeometricField_Init(v_lat, mesh, "v_lat")
@@ -200,7 +201,7 @@ subroutine netcdfDataWriter_writeGridData(writer)
   call GeometricField_Init(s_lat, mesh, "s_lat")
 
 
-  do i=1, cellNum
+  do i=1, pointNum
      geoPos = RadToDegUnit( cartToSphPos( mesh%pointList(i) ) )
      p_lon%data%v_(i) = geoPos%v_(1)
      p_lat%data%v_(i) = geoPos%v_(2)

@@ -68,7 +68,7 @@ subroutine vtkDataWriter_write(writer)
     write(writer%outputNo,'(a)') "LOOKUP_TABLE default"
     
     do cellGId=1, cellNum
-      write(writer%outputNo, '(f12.5)') v_scalarField.At.cellGId
+      write(writer%outputNo, '(f25.10)') v_scalarField.At.cellGId
     end do
     write(writer%outputNo,*)
   end do
@@ -125,7 +125,7 @@ subroutine write_GridData(writer)
   write(writer%outputNo,'(a,i10,a)') "POINTS ", ptListSize, " float"
   do i=1, ptListSize
     pt = mesh%pointList(i)
-    write(writer%outputNo,'(3f12.5)') pt%v_(1), pt%v_(2), pt%v_(3) 
+    write(writer%outputNo,'(3f20.5)') pt%v_(1), pt%v_(2), pt%v_(3) 
   end do
   write(writer%outputNo,*)
   

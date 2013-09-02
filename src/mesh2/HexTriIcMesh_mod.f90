@@ -16,6 +16,7 @@ module HexTriIcMesh_mod
   type, public :: HexTriIcMesh
      type(PolyMesh), pointer :: mesh => null()
      logical :: specifyMeshFlag = .false.
+     real(DP) :: radius = 1d0
   end type HexTriIcMesh
 
   
@@ -23,23 +24,32 @@ module HexTriIcMesh_mod
   public :: HexTriIcMesh_generate, HexTriIcMesh_ConfigFvMeshInfo
 
 contains
-subroutine HexTriIcMesh_Init(mesh, pmesh)
+subroutine HexTriIcMesh_Init(mesh, pmesh, radius)
   type(HexTriIcMesh), intent(inout) :: mesh
   type(PolyMesh), target, optional :: pMesh
+  real(DP), intent(in), optional :: radius
 
   if(present(pmesh)) then
      mesh%mesh => pmesh
      mesh%specifyMeshFlag = .true.
   end if
+
+  if( present(radius) ) then
+     mesh%radius = radius
+     if(mesh%specifyMeshFlag) call projectPosVecIntoSphere(mesh)
+  end if
+
 end subroutine HexTriIcMesh_Init
 
-subroutine HexTriIcMesh_Final(mesh)
+subroutine HexTriIcMesh_Final(mesh, radius)
   type(HexTriIcMesh), intent(inout) :: mesh
+  real(DP), intent(in), optional :: radius
 
   if(.not. mesh%specifyMeshFlag) then
      call PolyMesh_Final(mesh%mesh)
      deallocate(mesh%mesh)
   end if
+
 end subroutine HexTriIcMesh_Final
 
 subroutine HexTriIcMesh_generate(mesh, glevel, scvMaxItrNum)
@@ -60,9 +70,13 @@ subroutine HexTriIcMesh_generate(mesh, glevel, scvMaxItrNum)
   siteNum = 10*4**glevel + 2
   vertNum = 2*siteNum - 4
   allocate(mesh%mesh)
-  call PolyMesh_Init(mesh%mesh, vertNum, siteNum+vertNum-2, siteNum)
 
+  !
+  call PolyMesh_Init(mesh%mesh, vertNum, siteNum+vertNum-2, siteNum)
   call construct_icosahedralGrid(glevel, mesh%mesh%cellPosList, iniPtsId4)
+
+  !
+  !
 
   call SCVoronoiGen_Init()
 
@@ -73,6 +87,9 @@ subroutine HexTriIcMesh_generate(mesh, glevel, scvMaxItrNum)
 
   call SCVoronoiGen_Final()
 
+  !
+  call projectPosVecIntoSphere(mesh)
+
 end subroutine HexTriIcMesh_generate
 
 subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
@@ -80,22 +97,22 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
   type(fvMeshInfo), intent(inout) :: fvInfo
 
   type(volScalarField) :: v_cellVolume
-  type(surfaceVectorField) :: s_surfAreaVec
+  type(surfaceVectorField) :: s_faceAreaVec
+  type(surfaceVectorField) :: s_faceCenter
   
   integer :: cellGId, faceGId, faceLId, faceNum
   type(PolyMesh), pointer :: mesh
   real(DP) :: areas(6), faceArea
   type(Vector3d) :: faceNormal, edgeVxs(2)
-  
+  type(Face), pointer :: face_
+
   mesh => htiMesh%mesh
 
   !
-  call GeometricField_Init( v_cellVolume, mesh, &
-      & name="v_CellVol", long_name="volume of Cell", units="m3")
+  call GeometricField_Init( v_cellVolume, mesh, "v_cellVolume")
+  call GeometricField_Init( s_faceAreaVec, mesh, "s_faceAreaVec") 
+  call GeometricField_Init( s_faceCenter, mesh, "s_faceCenter") 
 
-
-  call GeometricField_Init( s_surfAreaVec, mesh, & 
-    & name="s_surfAreaVec", long_name="area vector of surface", units="m3")
 
 
   !
@@ -109,26 +126,57 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
     end do
     
     v_CellVolume%data%v_(cellGId) = sum(areas(1:faceNum))
+!    write(*,*) "cellGId=", cellGId, v_CellVolume%data%v_(cellGId)
   end do
 
   do faceGId=1, getFaceListSize(mesh)
-    edgeVxs(:) = getFaceVertex(mesh, faceGId)
-    faceArea = geodesicArcLength( edgeVxs(1), edgeVxs(2) )
-    faceNormal = normalizedVec( (edgeVxs(2) - edgeVxs(1)) .cross. (mesh%cellPosList(mesh%faceList(faceGId)%ownCellId)) )
-    s_surfAreaVec%data%v_(faceGId) =  faceArea * faceNormal
+     face_ => mesh%faceList(faceGId)
+
+     edgeVxs(:) = getFaceVertex(mesh, faceGId)
+     faceArea = geodesicArcLength( edgeVxs(1), edgeVxs(2) )
+     faceNormal = normalizedVec( (edgeVxs(2) - edgeVxs(1)) .cross. (mesh%cellPosList(face_%ownCellId)) )
+     s_faceAreaVec%data%v_(faceGId) =  faceArea * faceNormal
+
+
+    s_faceCenter%data%v_(faceGId) = htimesh%radius * normalizedVec( &
+         & 0.5d0*( mesh%cellPosList(face_%ownCellId) + mesh%cellPosList(face_%ownCellId) )  )
+
   end do
 
   !
-  call fvMeshInfo_prepair(fvInfo, v_cellVolume, s_surfAreaVec)
+  call fvMeshInfo_prepair(fvInfo, v_cellVolume, s_faceAreaVec, s_faceCenter)
 
   !
   call GeometricField_Final(v_cellVolume)
-  call GeometricField_Final(s_surfAreaVec)
+  call GeometricField_Final(s_faceAreaVec)
+  call GeometricField_Final(s_faceCenter)
 
 end subroutine Hextriicmesh_configfvMeshInfo
 
 !!!!!!!!!!!!!!!!!!!!!!!!
 !
+subroutine projectPosVecIntoSphere(htimesh)
+
+  type(HexTriIcMesh), target, intent(inout) :: htimesh
+
+  integer :: cellNum, pointNum
+  integer :: i
+  type(PolyMesh), pointer :: mesh
+
+  mesh => htimesh%mesh
+  cellNum = getCellListSize(mesh)
+  pointNum = getPointListSize(mesh)
+
+  do i=1, cellNum
+     mesh%cellPosList(i) = htimesh%radius * normalizedVec(mesh%cellPosList(i))
+  end do
+
+  do i=1, pointNum
+     mesh%pointList(i) = htimesh%radius * normalizedVec(mesh%pointList(i))
+  end do
+
+end subroutine projectPosVecIntoSphere
+
 subroutine construct_icosahedralGrid(glevel, pts, iniPtsId4)
   integer, intent(in) :: glevel
   type(Vector3d), intent(inout), pointer :: pts(:)

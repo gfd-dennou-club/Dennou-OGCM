@@ -18,7 +18,7 @@ program gridGen
   type(vtkDataWriter) :: vtkWriter
 
   integer, parameter :: glevel = 5
-  integer, parameter :: maxItrNum = 1000
+  integer, parameter :: maxItrNum = 5000
   logical, parameter :: outputVtkData = .true.
   character(STRING), parameter :: fileName = 'grid-glevel5'
 

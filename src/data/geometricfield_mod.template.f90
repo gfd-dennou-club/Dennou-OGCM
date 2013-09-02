@@ -43,6 +43,10 @@ module moduleName
     module procedure funcNameSuffix(SetFieldAtitude)
   end interface SetFieldAtitude
   
+  interface Release
+     module procedure funcNameSuffix(releaseDataRef)
+  end interface Release
+
   !
   interface assignment(=)
     module procedure funcNameSuffix(assignFieldObj)
@@ -56,24 +60,29 @@ module moduleName
   
   interface operator(+)
     module procedure funcNameSuffix(addOptr1)
-!    module procedure funcNameSuffix(addOptr2)
-!    module procedure funcNameSuffix(addOptr3)
+    module procedure funcNameSuffix(addOptr2)
+    module procedure funcNameSuffix(addOptr3)
   end interface operator(+)
 
   interface operator(-)
     module procedure funcNameSuffix(subOptr1)
-!    module procedure funcNameSuffix(subOptr2)
-!    module procedure funcNameSuffix(subOptr3)
+    module procedure funcNameSuffix(subOptr2)
+    module procedure funcNameSuffix(subOptr3)
   end interface operator(-)
   
+  interface operator(*)
+     module procedure funcNameSuffix(mulOptr2)
+  end interface operator(*)
+
   interface operator(.At.)
     module procedure funcNameSuffix(ReturnElemRef)
   end interface operator(.At.)
   
   !
-  public :: GeometricField_Init, GeometricField_Final
+  public :: GeometricField_Init, GeometricField_Final, Release
   public :: SetFieldAtitude
-  public :: operator(+), operator(-), assignment(=), operator(.At.)
+  public :: operator(+), operator(-), operator(*), assignment(=)
+  public :: operator(.At.)
 
   
   character(TOKEN), parameter :: DATADEFLOC_SURFACE = "surface"
@@ -124,7 +133,7 @@ subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units)
   !
   allocate(field%data)
   call List_Init(field%data, dataSize)
-  write(*,*) "allocated..", ", dataSize=", dataSize
+  !write(*,*) "allocated..", ", dataSize=", dataSize
 
 end subroutine funcNameSuffix(Init)
 
@@ -144,7 +153,7 @@ end subroutine funcNameSuffix(SetFieldAtitude)
 subroutine funcNameSuffix(Final) (field)
   type(FieldTypeName), intent(inout) :: field
 
-  write(*,*) "Call releasedataRef"
+  !write(*,*) "Call releasedataRef"
   call funcNameSuffix(releaseDataRef) (field)
   
 end subroutine funcNameSuffix(Final)
@@ -162,8 +171,8 @@ subroutine funcNameSuffix(releaseDataRef) (field)
   
   if( refIs0 ) then
     call List_Final(field%data)
-    write(*,*) "FieldName=", field%name
-    if( field%tempDataFlag ) write(*,*) "This object is a temporary data. ^"
+    !write(*,*) "FieldName=", field%name
+    !if( field%tempDataFlag ) write(*,*) "This object is a temporary data. ^"
     deallocate(field%data)
   end if
 
@@ -185,10 +194,8 @@ subroutine funcNameSuffix(assignFieldObj) (this, other)
     stop
   end if
 
-write(*,*) "In assignment.."
   !
   call funcNameSuffix(releaseDataRef) (this)
-write(*,*) ".."
 
   this%data => other%data
   call incRef(this%data)
@@ -245,6 +252,17 @@ end function funcNameSuffix(ReturnElemRef)
 #define op -
 #define opname subOptr
 #include "geometricfield_binaryOptr.template.f90"
+#undef op
+#undef opname
+
+! Define mul operators
+#define op *
+#define opname mulOptr
+#define DISABLE_OPTRGENTYPE1
+#define DISABLE_OPTRGENTYPE3
+#include "geometricfield_binaryOptr.template.f90"
+#undef DISABLE_OPTRGENTYPE1
+#undef DISABLE_OPTRGENTYPE3
 #undef op
 #undef opname
 

@@ -20,8 +20,8 @@ function icosahedron_vertex() result(orth_icvertex)
   ! Work variable
   !
   real(DP), parameter :: PI = acos(-1d0)
-  real(DP) :: unit_radius = 1.0d0
-  real(DP) :: dLambda = 2.0d0 * PI / 5.0d0
+  real(DP), parameter :: unit_radius = 1.0d0
+  real(DP), parameter :: dLambda = 2.0d0 * PI / 5.0d0
   integer :: i
   real(DP) :: phi
 
@@ -36,8 +36,8 @@ function icosahedron_vertex() result(orth_icvertex)
 !write(*,*) phi*180d0/PI
 !stop
   do i=0,4
-     orth_icvertex(i+2) = SphToCartPos(dlambda*i, phi)
-     orth_icvertex(i+7) = SphToCartPos(dlambda*(i+0.5d0), -phi)
+     orth_icvertex(i+2) = SphToCartPos(dlambda*i, phi, unit_radius)
+     orth_icvertex(i+7) = SphToCartPos(dlambda*(i+0.5d0), -phi, unit_radius)
   end do
 
 end function icosahedron_vertex

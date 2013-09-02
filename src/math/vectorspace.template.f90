@@ -16,11 +16,15 @@ module moduleName
   end type vectorspaceTypeName
 
   interface operator(+)
-    module procedure optr_add
+    module procedure optr_add1
+    module procedure optr_add2
+    module procedure optr_add3
   end interface	operator(+)
 
   interface operator(-)
-    module procedure optr_sub
+    module procedure optr_sub1
+    module procedure optr_sub2
+    module procedure optr_sub3
   end interface	operator(-)
 
   interface operator(*)
@@ -61,25 +65,65 @@ end subroutine printVec
 !
 ! Provide the oparation to add two elements of V. 
 !
-function optr_add(v1, v2) result(ret)
+function optr_add1(v1, v2) result(ret)
   type(vectorspaceTypeName), intent(in) :: v1, v2
   type(vectorspaceTypeName) :: ret
 
   ret%v_ = v1%v_ + v2%v_
   
-end function optr_add
+end function optr_add1
+
+function optr_add2(val, v2) result(ret)
+  real(DP), intent(in) :: val
+  type(vectorspaceTypeName), intent(in) :: v2
+  type(vectorspaceTypeName) :: ret
+
+  ret%v_ = val + v2%v_
+  
+end function optr_add2
+
+function optr_add3(v1, val) result(ret)
+  type(vectorspaceTypeName), intent(in) :: v1
+  real(DP), intent(in) :: val
+  type(vectorspaceTypeName) :: ret
+
+  ret%v_ = v1%v_ + val
+  
+end function optr_add3
+
 
 !
 ! Provide the oparation to substract two elements of V. 
 !
-function optr_sub(v1, v2) result(ret)
+function optr_sub1(v1, v2) result(ret)
   type(vectorspaceTypeName), intent(in) :: v1, v2
   type(vectorspaceTypeName) :: ret
 
   ret%v_ = v1%v_ - v2%v_
   
-end function optr_sub
+end function optr_sub1
 
+function optr_sub2(val, v2) result(ret)
+  real(DP), intent(in) :: val
+  type(vectorspaceTypeName), intent(in) :: v2
+  type(vectorspaceTypeName) :: ret
+
+  ret%v_ = val - v2%v_
+  
+end function optr_sub2
+
+function optr_sub3(v1, val) result(ret)
+  type(vectorspaceTypeName), intent(in) :: v1
+  real(DP), intent(in) :: val
+  type(vectorspaceTypeName) :: ret
+
+  ret%v_ = v1%v_ - val
+  
+end function optr_sub3
+
+!
+!
+!
 function optr_scalarMul(scalar, v) result(ret)
   real(DP), intent(in) :: scalar
   type(vectorspaceTypeName), intent(in) :: v

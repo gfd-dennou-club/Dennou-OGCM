@@ -28,12 +28,18 @@ subroutine SCVoroniDiagram_Generate(pts, iniPtsId4, itrMax)
   integer, intent(in) :: itrMax
 
   integer :: itr
+  real(DP), parameter :: convEPS = 1e-14 
+  real(DP) :: clusterEnergy, beforeClEnergy
 
   call SVoronoi2Gen_Init(size(pts))
 
   do itr=1, itrMax
      call SVoronoi2DiagramGen(pts, iniPtsId4)
-     call moveSiteToMassCenter(pts)
+     clusterEnergy = moveSiteToMassCenter(pts)
+     if( itr > 1 .and. abs(clusterEnergy - beforeClEnergy)  < convEPS ) exit;
+
+     beforeClEnergy = clusterEnergy
+
   end do
 
 end subroutine SCVoroniDiagram_Generate
@@ -45,15 +51,16 @@ subroutine SCVoronoi_SetTopology(mesh)
 
 end subroutine SCVoronoi_SetTopology
 
-subroutine moveSiteToMassCenter(pts)
+function moveSiteToMassCenter(pts) result(clusterEnergy)
   type(Vector3d), intent(inout) :: pts(:)
+  real(DP) :: clusterEnergy
 
   integer :: siteId, siteNum
   type(vector3d), allocatable :: lvrVxs(:)
   type(Vector3d) :: tmp, massPt, tri7Pt(7)
   integer :: lvrVxId, lvrVxNum, i
   real(DP) :: posVecs(7,3)
-  real(DP) :: clusterEnergy, area
+  real(DP) :: area
 
   siteNum = size(pts)
   clusterEnergy = 0d0
@@ -91,7 +98,7 @@ subroutine moveSiteToMassCenter(pts)
 
   write(*,*) "Clustering Energy=", clusterEnergy
 
-end subroutine moveSiteToMassCenter
+end function moveSiteToMassCenter
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1

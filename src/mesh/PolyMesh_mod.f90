@@ -269,11 +269,14 @@ subroutine PolyMesh_setConnectivity( &
   integer :: faceNum, fvertNum
 
   do cellId=1, getCellListSize(mesh)
-     do faceNum=1, MAX_CELL_FACE_NUM-1
-        if(cell_points(faceNum+1,cellId) == -1) exit
+     faceNum = 1
+     do while(cell_points(faceNum+1,cellId) /= -1 )
+        if( faceNum == MAX_CELL_FACE_NUM ) exit
+        faceNum = faceNum + 1
      end do
+
      mesh%cellList(cellId)%faceNum = faceNum
-     mesh%cellList(cellId)%faceIdList(1:faceNum) = cell_points(1:faceNum, cellId)
+     mesh%cellList(cellId)%faceIdList(1:faceNum) = cell_faces(1:faceNum, cellId)
   end do
 
   do faceId=1, getfaceListSize(mesh)
