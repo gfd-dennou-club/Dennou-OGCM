@@ -52,7 +52,7 @@ function SphToCartVec1(u, v, w, cartPos) result(cartVec)
   cartVec%v_(1) = w*cos(sphPos%v_(1))*cos(sphPos%v_(2)) &
        & - v*cos(sphPos%v_(1))*sin(sphPos%v_(2)) - u*sin(sphPos%v_(1))
   cartVec%v_(2) = w*sin(sphPos%v_(1))*cos(sphPos%v_(2)) &
-       & - v*sin(sphPos%v_(1))*sin(sphPos%v_(2)) + u*cos(sphPos%v_(3))
+       & - v*sin(sphPos%v_(1))*sin(sphPos%v_(2)) + u*cos(sphPos%v_(1))
   cartVec%v_(3) = w*sin(sphPos%v_(2)) + v*cos(sphPos%v_(2))
 
 end function SphToCartVec1
@@ -89,7 +89,7 @@ function geodesicArcLength(p1, p2) result(dist)
 
   dist = &
     & l2norm(p1) * &
-    & 2d0 * asin( 0.5* l2norm(normalizedVec(p1) - normalizedVec(p2)) )
+    & 2d0 * asin( 0.5d0 * l2norm(normalizedVec(p1) - normalizedVec(p2)) )
 
 end function geodesicArcLength
 
@@ -104,10 +104,10 @@ function sphericalTriArea(p1, p2, p3) result(area)
   nP2 = normalizedVec(p2)
   nP3 = normalizedVec(p3)
 
-  a_2 = 2d0/2d0 * asin( l2norm(nP1 - nP2) )
-  b_2 = 2d0/2d0 * asin( l2norm(nP2 - nP3) )
-  c_2 = 2d0/2d0 * asin( l2norm(nP3 - nP1) )
-  s_2 = a_2 + b_2 + c_2
+  a_2 = 2d0/2d0 * asin( 0.5d0*l2norm(nP1 - nP2) )
+  b_2 = 2d0/2d0 * asin( 0.5d0*l2norm(nP2 - nP3) )
+  c_2 = 2d0/2d0 * asin( 0.5d0*l2norm(nP3 - nP1) )
+  s_2 = 0.5*(a_2 + b_2 + c_2)
 
   area = l2norm(p1)**2 * 4d0 * atan( &
     &  sqrt( abs(tan(s_2)*tan(s_2 - a_2)*tan(s_2 - b_2)*tan(s_2 - c_2) ) )  &

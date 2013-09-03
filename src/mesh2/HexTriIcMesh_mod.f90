@@ -105,6 +105,7 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
   real(DP) :: areas(6), faceArea
   type(Vector3d) :: faceNormal, edgeVxs(2)
   type(Face), pointer :: face_
+real(DP) :: garea
 
   mesh => htiMesh%mesh
 
@@ -116,7 +117,7 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
 
 
   !
-  
+garea=0d0  
   !
   do cellGId=1, getCellListSize(mesh)
     faceNum = mesh%CellList(cellGId)%faceNum
@@ -126,8 +127,10 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
     end do
     
     v_CellVolume%data%v_(cellGId) = sum(areas(1:faceNum))
-!    write(*,*) "cellGId=", cellGId, v_CellVolume%data%v_(cellGId)
+garea = garea + sum(areas(1:faceNum))
+
   end do
+
 
   do faceGId=1, getFaceListSize(mesh)
      face_ => mesh%faceList(faceGId)
@@ -138,8 +141,7 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
      s_faceAreaVec%data%v_(faceGId) =  faceArea * faceNormal
 
 
-    s_faceCenter%data%v_(faceGId) = htimesh%radius * normalizedVec( &
-         & 0.5d0*( mesh%cellPosList(face_%ownCellId) + mesh%cellPosList(face_%ownCellId) )  )
+     s_faceCenter%data%v_(faceGId) = htimesh%radius * normalizedVec( 0.5d0*(edgeVxs(1) + edgeVxs(2)) )
 
   end do
 

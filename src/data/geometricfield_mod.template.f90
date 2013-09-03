@@ -47,6 +47,10 @@ module moduleName
      module procedure funcNameSuffix(releaseDataRef)
   end interface Release
 
+  interface DeepCopy
+     module procedure funcNameSuffix(DeepCopy)
+  end interface DeepCopy
+
   !
   interface assignment(=)
     module procedure funcNameSuffix(assignFieldObj)
@@ -80,7 +84,7 @@ module moduleName
   
   !
   public :: GeometricField_Init, GeometricField_Final, Release
-  public :: SetFieldAtitude
+  public :: SetFieldAtitude, DeepCopy
   public :: operator(+), operator(-), operator(*), assignment(=)
   public :: operator(.At.)
 
@@ -157,6 +161,17 @@ subroutine funcNameSuffix(Final) (field)
   call funcNameSuffix(releaseDataRef) (field)
   
 end subroutine funcNameSuffix(Final)
+
+
+!
+subroutine funcNameSuffix(DeepCopy) (self, field)
+  type(FieldTypeName), intent(inout) :: self
+  type(FieldTypeName), intent(in) :: field
+  
+
+  self%data%v_(:) = field%data%v_(:) 
+  
+end subroutine funcNameSuffix(DeepCopy)
 
 
 !

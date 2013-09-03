@@ -16,7 +16,7 @@ module GeometricField_mod
   public :: volScalarField, volVectorField
 
   public :: GeometricField_Init, GeometricField_Final, Release
-  public :: SetFieldAtitude
+  public :: SetFieldAtitude, DeepCopy
   public :: operator(+), operator(-), operator(*), assignment(=)
   public :: operator(.At.)
 

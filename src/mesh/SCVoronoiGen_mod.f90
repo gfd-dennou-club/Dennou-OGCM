@@ -28,12 +28,13 @@ subroutine SCVoroniDiagram_Generate(pts, iniPtsId4, itrMax)
   integer, intent(in) :: itrMax
 
   integer :: itr
-  real(DP), parameter :: convEPS = 1e-14 
+  real(DP), parameter :: convEPS = 5e-18
   real(DP) :: clusterEnergy, beforeClEnergy
 
   call SVoronoi2Gen_Init(size(pts))
 
   do itr=1, itrMax
+     write(*,*) "* itr=", itr
      call SVoronoi2DiagramGen(pts, iniPtsId4)
      clusterEnergy = moveSiteToMassCenter(pts)
      if( itr > 1 .and. abs(clusterEnergy - beforeClEnergy)  < convEPS ) exit;

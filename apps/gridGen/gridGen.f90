@@ -17,10 +17,10 @@ program gridGen
   type(netcdfDataWriter) :: ncwriter
   type(vtkDataWriter) :: vtkWriter
 
-  integer, parameter :: glevel = 5
-  integer, parameter :: maxItrNum = 5000
+  integer, parameter :: glevel = 4
+  integer, parameter :: maxItrNum = 2800
   logical, parameter :: outputVtkData = .true.
-  character(STRING), parameter :: fileName = 'grid-glevel5'
+  character(STRING), parameter :: fileName = 'grid-glevel4'
 
   ! Setup
   write(*,*) 'hexgonal grid generation.. :glevel:', glevel
