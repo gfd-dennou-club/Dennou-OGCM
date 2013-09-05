@@ -6,7 +6,7 @@ module PolyMesh_mod
   implicit none
   private
 
-  integer, parameter :: MAX_FACE_VERTEX_NUM = 6
+  integer, parameter, public :: MAX_FACE_VERTEX_NUM = 6
 
   type, public :: Face
      integer :: vertNum
@@ -17,7 +17,7 @@ module PolyMesh_mod
 
   end type Face
 
-  integer, parameter :: MAX_CELL_FACE_NUM = 6
+  integer, parameter, public :: MAX_CELL_FACE_NUM = 6
 
   type, public :: Cell
      integer :: faceNum

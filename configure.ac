@@ -187,7 +187,6 @@ SYSLDFLAGS="-L$gtool5_libdir $SYSLDFLAGS -L$netcdf_libdir"
 SYSLDLIBS="-l$gtool5_libname $SYSLDLIBS -l$netcdf_libname"
 SYSFFLAGS="$SYSFFLAGS $ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir "
 
-
 AC_SUBST(SYSLDLIBS)
 AC_SUBST(SYSLDFLAGS)
 AC_SUBST(SYSFFLAGS)
@@ -209,4 +208,5 @@ AC_CONFIG_FILES([Makefile
 		 test/Makefile
 		 test/unitTests/Makefile
 		 apps/Makefile ])
+
 AC_OUTPUT

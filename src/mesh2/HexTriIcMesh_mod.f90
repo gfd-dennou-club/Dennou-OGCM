@@ -99,13 +99,15 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
   type(volScalarField) :: v_cellVolume
   type(surfaceVectorField) :: s_faceAreaVec
   type(surfaceVectorField) :: s_faceCenter
-  
-  integer :: cellGId, faceGId, faceLId, faceNum
+  type(surfaceScalarField) :: s_dualMeshFaceArea
+  type(PointScalarField) :: p_dualMeshCellVol
+
+  integer :: cellGId, faceGId, pointGId, faceLId, faceNum
   type(PolyMesh), pointer :: mesh
   real(DP) :: areas(6), faceArea
   type(Vector3d) :: faceNormal, edgeVxs(2)
   type(Face), pointer :: face_
-real(DP) :: garea
+  integer :: cellIds(2)
 
   mesh => htiMesh%mesh
 
@@ -113,11 +115,12 @@ real(DP) :: garea
   call GeometricField_Init( v_cellVolume, mesh, "v_cellVolume")
   call GeometricField_Init( s_faceAreaVec, mesh, "s_faceAreaVec") 
   call GeometricField_Init( s_faceCenter, mesh, "s_faceCenter") 
-
+  call GeometricField_Init( s_dualMeshFaceArea, mesh, "s_dualMeshFaceArea")
+  call GeometricField_Init( p_dualMeshCellVol, mesh, "p_dualMeshCellVol")
 
 
   !
-garea=0d0  
+
   !
   do cellGId=1, getCellListSize(mesh)
     faceNum = mesh%CellList(cellGId)%faceNum
@@ -127,7 +130,6 @@ garea=0d0
     end do
     
     v_CellVolume%data%v_(cellGId) = sum(areas(1:faceNum))
-garea = garea + sum(areas(1:faceNum))
 
   end do
 
@@ -142,16 +144,29 @@ garea = garea + sum(areas(1:faceNum))
 
 
      s_faceCenter%data%v_(faceGId) = htimesh%radius * normalizedVec( 0.5d0*(edgeVxs(1) + edgeVxs(2)) )
+     s_dualMeshFaceArea%data%v_(faceGId) = &
+          & geodesicArcLength(mesh%cellPosList(face_%ownCellId), mesh%cellPosList(face_%neighCellId))
+  end do
 
+  do pointGId=1, getPointListSize(mesh)
+     do faceLId=1, 3
+        cellIds(:) = fvInfo%Face_CellId(1:2, fvInfo%Point_FaceId(faceLId,pointGId))
+        areas(faceLId) = sphericalTriArea( mesh%pointList(pointGId), mesh%cellPosList(cellIds(1)), mesh%cellPosList(cellIds(2)) )
+     end do
+     p_dualMeshCellVol%data%v_(pointGId) = sum(areas(1:3))
   end do
 
   !
-  call fvMeshInfo_prepair(fvInfo, v_cellVolume, s_faceAreaVec, s_faceCenter)
+  call fvMeshInfo_prepair(fvInfo, &
+       & v_cellVolume, s_faceAreaVec, s_faceCenter, &
+       & s_dualMeshFaceArea, p_dualMeshCellVol)
 
   !
   call GeometricField_Final(v_cellVolume)
   call GeometricField_Final(s_faceAreaVec)
   call GeometricField_Final(s_faceCenter)
+  call GeometricField_Final(s_dualMeshFaceArea)
+  call GeometricField_Final(p_dualMeshCellVol)
 
 end subroutine Hextriicmesh_configfvMeshInfo
 
