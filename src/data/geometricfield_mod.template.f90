@@ -6,6 +6,14 @@
 #define _funcNameSuffix(pref, suff) pref ## _ ## suff
 #define funcNameSuffix(suff) _eval2(_funcNameSuffix, FieldTypeName, suff)
 
+#if DataTypeId == 1
+#define DATATYPE_SCALAR
+#undef DATATYPE_VECTOR
+#elif DataTypeId == 2
+#define DATATYPE_VECTOR
+#undef DATATYPE_SCALAR 
+#endif
+
 module moduleName
   
   !
@@ -75,17 +83,29 @@ module moduleName
   end interface operator(-)
   
   interface operator(*)
+#ifdef DATATYPE_SCALAR
+     module procedure funcNameSuffix(mulOptr1)
+#endif
      module procedure funcNameSuffix(mulOptr2)
   end interface operator(*)
 
+  interface operator(/)
+#ifdef DATATYPE_SCALAR
+     module procedure funcNameSuffix(divOptr1)
+     module procedure funcNameSuffix(divOptr2)
+#endif
+     module procedure funcNameSuffix(divOptr3)
+  end interface operator(/)
+
   interface operator(.At.)
-    module procedure funcNameSuffix(ReturnElemRef)
+    module procedure funcNameSuffix(ReturnElemRef1)
+    module procedure funcNameSuffix(ReturnElemRef2)
   end interface operator(.At.)
   
   !
   public :: GeometricField_Init, GeometricField_Final, Release
   public :: SetFieldAtitude, DeepCopy
-  public :: operator(+), operator(-), operator(*), assignment(=)
+  public :: operator(+), operator(/), operator(-), operator(*), assignment(=)
   public :: operator(.At.)
 
   
@@ -243,14 +263,23 @@ subroutine funcNameSuffix(assignFDElemTypeArray) (this, elemArrayData)
 
 end subroutine funcNameSuffix(assignFDElemTypeArray)
 
-function funcNameSuffix(ReturnElemRef) (this, id) result(elemRef)
+function funcNameSuffix(ReturnElemRef1) (this, id) result(elemRef)
   type(FieldTypeName), intent(in) :: this
   integer, intent(in) :: id
   FieldDataElemType :: elemRef
 
   elemRef = this%data%v_(id)
 
-end function funcNameSuffix(ReturnElemRef)
+end function funcNameSuffix(ReturnElemRef1)
+
+function funcNameSuffix(ReturnElemRef2) (this, ids) result(elemsRef)
+  type(FieldTypeName), intent(in) :: this
+  integer, intent(in) :: ids(:)
+  FieldDataElemType :: elemsRef(size(ids))
+
+  elemsRef(:) = this%data%v_(ids(:))
+
+end function funcNameSuffix(ReturnElemRef2)
 
 !*
 !* 
@@ -273,11 +302,39 @@ end function funcNameSuffix(ReturnElemRef)
 ! Define mul operators
 #define op *
 #define opname mulOptr
+
+#ifdef DATATYPE_VECTOR
 #define DISABLE_OPTRGENTYPE1
+#endif
 #define DISABLE_OPTRGENTYPE3
+
 #include "geometricfield_binaryOptr.template.f90"
+
+#ifdef DATATYPE_VECTOR
 #undef DISABLE_OPTRGENTYPE1
+#endif
 #undef DISABLE_OPTRGENTYPE3
+#undef op
+#undef opname
+
+!*** Define div operators
+!*
+#define op /
+#define opname divOptr
+
+#ifdef DATATYPE_VECTOR
+#define DISABLE_OPTRGENTYPE1
+#define DISABLE_OPTRGENTYPE2
+#endif
+
+
+#include "geometricfield_binaryOptr.template.f90"
+
+#ifdef DATATYPE_VECTOR
+#undef DISABLE_OPTRGENTYPE1
+#undef DISABLE_OPTRGENTYPE2
+#endif
+
 #undef op
 #undef opname
 

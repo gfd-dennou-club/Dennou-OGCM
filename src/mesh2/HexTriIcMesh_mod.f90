@@ -137,13 +137,20 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
   do faceGId=1, getFaceListSize(mesh)
      face_ => mesh%faceList(faceGId)
 
+
+!     s_faceCenter%data%v_(faceGId) = htimesh%radius * normalizedVec( 0.5d0*(edgeVxs(1) + edgeVxs(2)) )
+     cellIds(:) = fvInfo%Face_CellId(1:2, faceGId)
+     s_faceCenter%data%v_(faceGId) = htimesh%radius * &
+          & normalizedVec( 0.5d0*(mesh%CellPosList(cellIds(1)) + mesh%CellPosList(cellIds(2))) )
+
      edgeVxs(:) = getFaceVertex(mesh, faceGId)
      faceArea = geodesicArcLength( edgeVxs(1), edgeVxs(2) )
-     faceNormal = normalizedVec( (edgeVxs(2) - edgeVxs(1)) .cross. (mesh%cellPosList(face_%ownCellId)) )
+!     faceNormal = normalizedVec( (edgeVxs(2) - edgeVxs(1)) .cross. (mesh%cellPosList(face_%ownCellId)) )
+     faceNormal = normalizedVec( mesh%CellPosList(cellIds(2)) - mesh%CellPosList(cellIds(1)) )
      s_faceAreaVec%data%v_(faceGId) =  faceArea * faceNormal
 
 
-     s_faceCenter%data%v_(faceGId) = htimesh%radius * normalizedVec( 0.5d0*(edgeVxs(1) + edgeVxs(2)) )
+
      s_dualMeshFaceArea%data%v_(faceGId) = &
           & geodesicArcLength(mesh%cellPosList(face_%ownCellId), mesh%cellPosList(face_%neighCellId))
   end do

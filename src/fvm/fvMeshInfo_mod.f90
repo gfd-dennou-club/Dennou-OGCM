@@ -226,21 +226,23 @@ subroutine set_ConectivityInfo(fvm)
 
      do j=1, lfaceNum1
         if( i == fvm%Cell_FaceId(j,pairCellId(1)) ) then
-           fvm%Face_PairCellFaceId(1:lfaceNum1, i) =  cshift(fvm%Cell_FaceId(:,pairCellId(1)), j-1) 
+           fvm%Face_PairCellFaceId(1:lfaceNum1, i) =  cshift(fvm%Cell_FaceId(1:lfaceNum1, pairCellId(1)), j-1) 
            exit
         end if
      end do
 
      do j=1, lfaceNum2
         if( i == fvm%Cell_FaceId(j,pairCellId(2)) ) then
-           fvm%Face_PairCellFaceId(lfaceNum+1:lfaceNum1+lfaceNum2, i) =  cshift(fvm%Cell_FaceId(:,pairCellId(2)), j-1) 
+           fvm%Face_PairCellFaceId(lfaceNum1+1:lfaceNum1+lfaceNum2, i) =  cshift(fvm%Cell_FaceId(1:lfaceNum2, pairCellId(2)), j) 
            exit
         end if
      end do
      fvm%Face_PairCellFaceId(lfaceNum1+lfaceNum2, i) = -1
+
+!write(*,*) "faceID=", faceId, fvm%Face_PairCellFaceId(:,i)
   end do
 
-  fvm%Face_PairCellFaceId = -1
+  fvm%CellPoint_PairFaceId = -1
   do i=1, cellNum
      lfaceNum = mesh%CellList(i)%faceNum
      do j=1, lfaceNum

@@ -36,6 +36,8 @@ module fvCalculus_mod
   integer, allocatable :: n_fv(:,:)
   integer, allocatable :: t_fv(:,:)
 
+  public :: n_fv, t_fv
+
 contains
 subroutine fvCalculus_Init(fvmInfo_)
   type(fvMeshInfo), target, intent(in) :: fvmInfo_
@@ -73,7 +75,7 @@ subroutine fvCalculus_Init(fvmInfo_)
   do ptId=1, pointNum
      do lfaceId=1, 3!size(fvInfo%Point_FaceId,1)
         faceID = fvmInfo%Point_FaceId(lfaceId, ptId)
-        if(fvmInfo%Face_PointId(1,faceId)==ptId) then
+        if(fvmInfo%Face_PointId(2,faceId)==ptId) then
            t_fv(lfaceId, ptId) = 1
         else
            t_fv(lfaceId, ptId) = -1
@@ -96,7 +98,7 @@ function sgrad_volScalar( v_Scalar ) result(s_grad)
   type(volScalarField), intent(in) :: v_scalar
   type(surfaceScalarField) :: s_grad
 
-  integer :: faceNum, faceId
+  integer :: faceNum, faceId, cellIds(2)
   type(PolyMesh), pointer :: mesh
   type(Face), pointer :: face_
   
@@ -109,7 +111,8 @@ function sgrad_volScalar( v_Scalar ) result(s_grad)
 
   do faceId=1, faceNum
      face_ => mesh%faceList(faceId)
-     s_grad%data%v_(faceId) =   ((v_Scalar.At.face_%neighCellId) - (v_Scalar.At.face_%ownCellId)) & 
+     cellIds(:) = fvmInfo%Face_CellId(:,faceId)
+     s_grad%data%v_(faceId) = ( (v_Scalar.At.CellIds(2)) - (v_Scalar.At.CellIds(1)) ) &
           &                / (fvmInfo%s_dualMeshFaceArea.At.faceId)  
   end do
 
@@ -204,7 +207,7 @@ function pcurl_surfNormVec(surfNormalVec) result(p_curl)
   type(pointScalarField) :: p_curl
 
   type(PolyMesh), pointer :: mesh
-  integer :: ptNum, ptId
+  integer :: ptNum, ptId, faceIds(3)
   
   mesh => fvmInfo%mesh
   ptNum = getPointListSize(mesh)
@@ -213,8 +216,9 @@ function pcurl_surfNormVec(surfNormalVec) result(p_curl)
   p_curl%TempDataFlag = .true.
 
   do ptId=1, ptNum
+     faceIds(:) = fvmInfo%Point_FaceId(1:3,ptId)
      p_curl%data%v_(ptId) = &
-          & dot_product( t_fv(1:3,ptId), surfNormalVec%data%v_(fvmInfo%Point_FaceId(1:3,ptId)) ) &
+          & sum( t_fv(1:3,ptId) * (fvmInfo%s_dualMeshFaceArea.At.faceIds) * (surfNormalVec.At.faceIds) ) &
           & / (fvmInfo%p_dualMeshCellVol.At.ptId)
   end do
 

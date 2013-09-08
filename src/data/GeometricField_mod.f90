@@ -17,7 +17,7 @@ module GeometricField_mod
 
   public :: GeometricField_Init, GeometricField_Final, Release
   public :: SetFieldAtitude, DeepCopy
-  public :: operator(+), operator(-), operator(*), assignment(=)
+  public :: operator(+), operator(-), operator(*), operator(/), assignment(=)
   public :: operator(.At.)
 
 end module GeometricField_mod

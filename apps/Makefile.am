@@ -1,5 +1,4 @@
 subdir =
-test: check
 
 AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../src/ \
@@ -18,8 +17,6 @@ LDADD = \
 
 CLEANFILES = *$(MODEXT)
 
-TESTS = $(check_PROGRAMS)
-
 bin_PROGRAMS = 
 
 bin_PROGRAMS += scvgridGen
@@ -33,4 +30,6 @@ globalSWM_SOURCES =\
 	globalSWModel/VariableSet_mod.f90 \
 	globalSWModel/GovernEquationSolver_mod.f90 \
 	globalSWModel/Exp_Williamson94_Case1.f90 \
-	globalSWModel/globalSWModel_main.f90 
+	globalSWModel/Exp_Williamson94_Case2.f90 \
+	globalSWModel/globalSWModel_main.f90
+
