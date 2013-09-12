@@ -28,7 +28,7 @@ subroutine SCVoroniDiagram_Generate(pts, iniPtsId4, itrMax)
   integer, intent(in) :: itrMax
 
   integer :: itr
-  real(DP), parameter :: convEPS = 5e-18
+  real(DP), parameter :: convEPS = 1e-18
   real(DP) :: clusterEnergy, beforeClEnergy
 
   call SVoronoi2Gen_Init(size(pts))
@@ -61,7 +61,7 @@ function moveSiteToMassCenter(pts) result(clusterEnergy)
   type(Vector3d) :: tmp, massPt, tri7Pt(7)
   integer :: lvrVxId, lvrVxNum, i
   real(DP) :: posVecs(7,3)
-  real(DP) :: area
+  real(DP) :: triArea, polyArea
 
   siteNum = size(pts)
   clusterEnergy = 0d0
@@ -71,7 +71,7 @@ function moveSiteToMassCenter(pts) result(clusterEnergy)
      call GetVrRegionPoints(siteId, lvrVxs)
      lvrVxNum = size(lvrVxs)
      massPt = 0d0
-     area = 0d0
+     polyArea = 0d0
 
 !!$     tri7Pt(1) = pts(siteId)
 !!$
@@ -88,13 +88,16 @@ function moveSiteToMassCenter(pts) result(clusterEnergy)
 !!$        end do
 !!$
 !!$        tmp = (/ volIntegrate(posVecs(:,1)), volIntegrate(posVecs(:,2)), volIntegrate(posVecs(:,3)) /)
-        massPt = massPt + lvrVxs(lvrVxId)
-        area = area + sphericalTriArea(pts(siteId), lvrVxs(lvrVxid), lvrVxs(mod(lvrVxId,lvrVxNum)+1))
-     end do
 
-     massPt = normalizedVec( massPt/dble(lvrVxNum) ) 
-     clusterEnergy = clusterEnergy + l2norm( massPt - pts(siteId)) * area
+        triArea = sphericalTriArea(pts(siteId), lvrVxs(lvrVxid), lvrVxs(mod(lvrVxId,lvrVxNum)+1))
+        massPt = massPt + triArea * ( pts(siteId) + lvrVxs(lvrVxid) + lvrVxs(mod(lvrVxId,lvrVxNum)+1) ) / 3d0
+        polyArea = polyArea + triArea
+    end do
+
+     massPt = normalizedVec( massPt/polyArea ) 
+     clusterEnergy = clusterEnergy + l2norm( massPt - pts(siteId)) * polyArea
      pts(siteId) = massPt
+
   end do
 
   write(*,*) "Clustering Energy=", clusterEnergy

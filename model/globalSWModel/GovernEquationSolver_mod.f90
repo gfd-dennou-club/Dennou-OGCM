@@ -32,13 +32,15 @@ module GovernEquationSolver_mod
   use SimParameters_mod
   use GridSet_mod
   use VariableSet_mod, only: &
-       & v_height, s_normalVel
+       & v_h, s_normalVel, v_hb
 
   implicit none
   private
 
   real(DP), allocatable :: R_iv(:,:)
   real(DP), allocatable :: Wt_ff(:,:)
+  type(volScalarField) :: v_mdhdt, v_hN, v_hTmp
+  type(surfaceScalarField) :: s_mdvdt, s_normalVelN, s_normalVelTmp
 
   public :: GovernEquationSolver_Init, GovernEquationSolver_Final
   public :: Solve_GovernEquation
@@ -47,6 +49,13 @@ contains
 subroutine GovernEquationSolver_Init()
   
   call prepairIntrpWeight()
+
+  call GeometricField_Init(v_mdhdt, plmesh, "v_Tend_height", "tendency of height", "ms-1")
+  call GeometricField_Init(v_hN, plMesh, "v_hN", "height of current tstep", "m")
+  call GeometricField_Init(v_hTmp, plMesh, "v_hTmp", "height of current tstep", "m")
+  call GeometricField_Init(s_mdvdt, plmesh, "s_Tend_normalVel", "tendency of velocity", "ms-2")
+  call GeometricField_Init(s_normalVelN, plMesh, "s_normalVelN", "normal velocity of current tstep", "ms-1")
+  call GeometricField_Init(s_normalVelTmp, plMesh, "s_normalVelTmp", "normal velocity of current tstep", "ms-1")
   
 end subroutine GovernEquationSolver_Init
 
@@ -55,48 +64,41 @@ subroutine GovernEquationSolver_Final()
   deallocate(R_iv)
   deallocate(Wt_ff)
 
+  
+  call GeometricField_Final(v_mdhdt)
+  call GeometricField_Final(s_mdvdt)
+  call GeometricField_Final(v_hN)
+  call GeometricField_Final(v_hTmp)
+  call GeometricField_Final(s_normalVelN)
+  call GeometricField_Final(s_normalVelTmp)
+
 end subroutine GovernEquationSolver_Final
 
 subroutine Solve_GovernEquation()
 
-  type(volScalarField) :: v_mdhdt, v_heightN, v_heightTmp
-  type(surfaceScalarField) :: s_mdvdt, s_normalVelN, s_normalVelTmp
 
   integer :: i , RKStep
   real(DP) :: dt
   real(DP), parameter :: RKCoef(4) = (/ 1d0, 2d0, 2d0, 1d0 /)
 
   dt = dble(delTime)
-  call GeometricField_Init(v_mdhdt, plmesh, "v_Tend_height", "tendency of height", "ms-1")
-  call GeometricField_Init(v_heightN, plMesh, "v_heightN", "height of current tstep", "m")
-  call GeometricField_Init(v_heightTmp, plMesh, "v_heightTmp", "height of current tstep", "m")
-  call GeometricField_Init(s_mdvdt, plmesh, "s_Tend_normalVel", "tendency of velocity", "ms-2")
-  call GeometricField_Init(s_normalVelN, plMesh, "s_normalVelN", "normal velocity of current tstep", "ms-1")
-  call GeometricField_Init(s_normalVelTmp, plMesh, "s_normalVelTmp", "normal velocity of current tstep", "ms-1")
 
 
   v_mdhdt = 0d0; s_mdvdt = 0d0
-  call DeepCopy(v_heightN,  v_height)
+  call DeepCopy(v_hN,  v_h)
   call DeepCopy(s_normalVelN, s_normalVel)
-  call DeepCopy(v_heightTmp,  v_height)
+  call DeepCopy(v_hTmp,  v_h)
   call DeepCopy(s_normalVelTmp, s_normalVel)
 
   do RKStep=1, 4
-     v_heightTmp = v_heightN + (-dt/RKCoef(RKStep))*v_mdhdt
+     v_hTmp = v_hN + (-dt/RKCoef(RKStep))*v_mdhdt
      s_normalVelTmp = s_normalVelN + (-dt/RKCoef(RKStep))*s_mdvdt
-     call calcTendency( v_mdhdt, s_mdvdt, v_heightTmp, s_normalVelTmp)
+     call calcTendency( v_mdhdt, s_mdvdt, v_hTmp, s_normalVelTmp)
 
-     v_height = v_height + (-dt*RKCoef(RKStep)/6d0) * v_mdhdt
+     v_h = v_h + (-dt*RKCoef(RKStep)/6d0) * v_mdhdt
      s_normalVel = s_normalVel + (-dt*RKCoef(RKStep)/6d0) * s_mdvdt
   end do
 
-  
-  call GeometricField_Final(v_mdhdt)
-  call GeometricField_Final(s_mdvdt)
-  call GeometricField_Final(v_heightN)
-  call GeometricField_Final(v_heightTmp)
-  call GeometricField_Final(s_normalVelN)
-  call GeometricField_Final(s_normalVelTmp)
 
 end subroutine Solve_GovernEquation
 
@@ -106,24 +108,9 @@ subroutine calcTendency(dmhdt, dmvdt, h, v)
   type(volScalarField), intent(in) :: h
   type(surfaceScalarField), intent(in) :: v
 
-type(surfaceScalarField) :: s_grad, s_PVFlux
-integer :: faceId
-
-!!$call GeometricField_Init(s_grad, plmesh, "s_grad")
-!!$call GeometricField_Init(s_PVflux, plmesh, "s_grad")
 
   dmhdt = div(h, v)
-  dmvdt = grad( Grav*h + KEnergy(v) ) + PVFlux(h, v) 
-
-!!$s_grad = grad( Grav*h + KEnergy(v) )
-!!$s_PVFlux = PVFlux(h, v)
-!!$
-!!$do faceID=1, getFaceListSize(plMesh)
-!!$   write(*,*) "faceID=",faceId, s_grad.At.faceId, s_PVflux.at.faceId
-!!$end do
-!!$!!stop
-!!$call GeometricField_Final(s_grad)
-!!$call GeometricField_Final(s_PVFlux)
+  dmvdt = grad( Grav*(h + v_hb) + KEnergy(v) ) + PVFlux(h, v) 
 
 end subroutine calcTendency
 
@@ -158,8 +145,8 @@ function KEnergy(s_normalVel) result(KE)
 
 end function KEnergy
 
-function PVFlux(v_height, s_normalVel) result(s_PVflux)
-  type(volScalarField), intent(in) :: v_height
+function PVFlux(v_h, s_normalVel) result(s_PVflux)
+  type(volScalarField), intent(in) :: v_h
   type(surfaceScalarField), intent(in) :: s_normalVel
   type(surfaceScalarField) :: s_PVFlux
 
@@ -171,7 +158,6 @@ function PVFlux(v_height, s_normalVel) result(s_PVflux)
   integer :: ptNum, ptId, cellIds(3), cellId
   type(Vector3d) :: geoPos
 
-real(DP) :: tangentVel, ana_tangentVel, le(12)
 
   call GeometricField_Init(p_planetVor, plMesh, "p_planetVor")
   call GeometricField_Init(p_PV, plMesh, "p_eta")
@@ -184,7 +170,7 @@ real(DP) :: tangentVel, ana_tangentVel, le(12)
      p_planetVor%data%v_(ptId) = (2d0*Omega)*sin(geoPos%v_(2))
 
      cellIds(:) = fvmInfo%Point_CellId(1:3, ptId)
-     p_height%data%v_(ptId) = sum( R_iv(1:3,ptId)*(fvmInfo%v_cellVol.At.cellIds(:)) * (v_height.At.cellIds(:)) ) &
+     p_height%data%v_(ptId) = sum( R_iv(1:3,ptId)*(fvmInfo%v_cellVol.At.cellIds(:)) * (v_h.At.cellIds(:)) ) &
           &                   / (fvmInfo%p_dualMeshCellVol.At.ptId)
 
   end do
@@ -203,34 +189,17 @@ real(DP) :: tangentVel, ana_tangentVel, le(12)
   
      s_PV = 0.5d0*sum( p_PV.At.fvmInfo%Face_PointId(1:2, faceId) )
      tmp = 0d0
-tangentVel = 0d0
-le=0d0
+
      do k=1, size(fvmInfo%Face_PairCellFaceId,1)
         faceId2 = fvmInfo%Face_PairCellFaceId(k, faceId)
         if( faceId2 == -1) exit;
 
-        s2_MomFlux = 0.5d0*sum( v_height.At.fvmInfo%Face_CellId(1:2, faceId2) ) * (s_normalVel.At.faceId2)
+        s2_MomFlux = 0.5d0*sum( v_h.At.fvmInfo%Face_CellId(1:2, faceId2) ) * (s_normalVel.At.faceId2)
         s2_PV = 0.5d0*sum( p_PV.At.fvmInfo%Face_PointId(1:2, faceId2) )
         tmp =    tmp &
              & + wt_ff(k,faceId) * l2norm(fvmInfo%s_faceAreaVec.At.faceId2) * s2_MomFlux * 0.5d0*(s_PV + s2_PV) 
 
-        tangentVel = tangentVel + wt_ff(k,faceId) * l2norm(fvmInfo%s_faceAreaVec.At.faceId2)* &
-             & (s_normalVel.At.faceId2)
-le(k) = l2norm(fvmInfo%s_faceAreaVec.At.faceId2)
      end do ! do while
-
-
-geoPos = cartToSphPos(fvmInfo%s_faceCenter.At.faceId)
-tangentVel = tangentVel / (fvmInfo%s_dualMeshFaceArea.At.faceId)
-ana_tangentVel = sqrt((2d0*PI*Radius/(12d0*3600*24d0)*cos(geoPos%v_(2)))**2 - (s_normalVel.At.faceId)**2)
-!!$if( abs(abs(tangentVel) - ana_tangentVel)/ana_tangentVel > 0.35d0 .and. ana_tangentVel > 1d-01 ) then
-!!$     write(*,*) "* faceId=", faceId, ": LOC=(", RadToDegUnit(geoPos), ")"
-!!$     write(*,*) "  tangenVel=", tangentVel, ana_tangentVel
-!!$     write(*,*) "  ...dataLists:", s_normalVel.At.fvmInfo%Face_PairCellFaceId(:, faceId)
-!!$     write(*,*) "  ...", wt_ff(:,faceId)*(s_normalVel.At.fvmInfo%Face_PairCellFaceId(:, faceId))*le&
-!!$          & /(fvmInfo%s_dualMeshFaceArea.At.faceId)
-!!$     write(*,*) 
-!!$end if
 
      s_PVFlux%data%v_(faceId) = tmp / (fvmInfo%s_dualMeshFaceArea.At.faceId)
 
@@ -263,9 +232,11 @@ subroutine prepairIntrpWeight()
   allocate( Wt_ff(MAX_CELL_FACE_NUM*2, faceNum) )
   allocate(R_vi(MAX_CELL_FACE_NUM, cellNum))
 
+  R_vi = 0d0
   do ptId=1, ptNum
      ptPos = plMesh%PointList(ptId)
      cellIds = cshift(fvmInfo%Point_CellId(1:3,ptId), -1)
+
      do m=1, 3
         areas(m) = sphericalTriArea(ptPos, plMesh%CellPosList(cellIds(m)), plMesh%CellPosList(cellIds(mod(m,3)+1)) )
      end do

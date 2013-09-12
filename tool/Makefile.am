@@ -23,13 +23,7 @@ bin_PROGRAMS += scvgridGen
 scvgridGen_SOURCES =\
 	gridGen/gridGen.f90
 
-bin_PROGRAMS += globalSWM 
-globalSWM_SOURCES =\
-	globalSWModel/SimParameters_mod.f90 \
-	globalSWModel/GridSet_mod.f90 \
-	globalSWModel/VariableSet_mod.f90 \
-	globalSWModel/GovernEquationSolver_mod.f90 \
-	globalSWModel/Exp_Williamson94_Case1.f90 \
-	globalSWModel/Exp_Williamson94_Case2.f90 \
-	globalSWModel/globalSWModel_main.f90
+bin_PROGRAMS += nc2vtk
+nc2vtk_SOURCES =\
+	nc2vtkConvert/nc2vtk_main.f90
 

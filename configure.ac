@@ -195,9 +195,10 @@ AC_SUBST(SYSFFLAGS)
 # Checks for typedefs, structures, and compiler characteristics.
 # Checks for library functions.
 # * Calling libtool
-LT_INIT
 
-AC_CONFIG_FILES([Makefile
+LT_INIT
+AC_CONFIG_FILES([
+                 Makefile
                  src/Makefile
 		 src/math/Makefile
                  src/data/Makefile
@@ -207,6 +208,9 @@ AC_CONFIG_FILES([Makefile
 		 src/io/Makefile
 		 test/Makefile
 		 test/unitTests/Makefile
-		 apps/Makefile ])
+		 tool/Makefile
+		 model/globalSWModel/Makefile
+		 model/ogcm/Makefile
+ ])
 
 AC_OUTPUT

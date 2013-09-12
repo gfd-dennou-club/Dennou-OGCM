@@ -46,9 +46,9 @@ write(*,*) "U0=", u0
   do cellId=1, cellNum
      r = geodesicArcLength(centerPos, plmesh%cellPosList(cellId))
      if(r < cosBellRadius) then
-        v_height%data%v_(cellId) = 0.5d0*h0*(1d0 + cos(PI*r/cosBellRadius))
+        v_h%data%v_(cellId) = 0.5d0*h0*(1d0 + cos(PI*r/cosBellRadius))
      else
-        v_height%data%v_(cellId) = 0d0
+        v_h%data%v_(cellId) = 0d0
      end if
   end do
 

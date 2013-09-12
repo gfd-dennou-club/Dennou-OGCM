@@ -99,12 +99,12 @@ subroutine vtkDataWriter_write(writer)
 end subroutine vtkDataWriter_write
 
 subroutine vtkDataWriter_Regist(writer, &
-  & volScalarFields, volVectorFields, ptScalarFields )
+  & volScalarFields, volVectorFields, pointScalarFields )
 
   type(vtkDataWriter), intent(inout) :: writer
   type(volScalarField), target, optional :: volScalarFields(:)
   type(volVectorField), target, optional :: volVectorFields(:)
-  type(pointScalarField), target, optional :: ptScalarFields(:)
+  type(pointScalarField), target, optional :: pointScalarFields(:)
 
   if(present(volScalarFields)) then
     writer%ref_VScalarFList => volScalarFields
@@ -114,8 +114,8 @@ subroutine vtkDataWriter_Regist(writer, &
     writer%ref_VVectorFList => volVectorFields
   end if
 
-  if(present(ptScalarFields)) then
-     writer%ref_PScalarFList => ptScalarFields
+  if(present(pointScalarFields)) then
+     writer%ref_PScalarFList => pointScalarFields
   end if
 
 end subroutine vtkDataWriter_Regist

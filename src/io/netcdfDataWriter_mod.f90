@@ -18,20 +18,22 @@ module netcdfDataWriter_mod
     type(PolyMesh), pointer :: mesh => null()
     character(STRING) :: filePath
     type(Mesh2_ncInfo) :: mesh2Info
-
     integer :: ncId
     integer :: rec_dimId
-    integer :: recCounter = 1
+    integer :: recCounter = 0
+    real(DP) :: initTime = 0d0
 
   end type netcdfDataWriter
 
   interface netcdfDataWriter_write
      module procedure write_volScalarField
+     module procedure write_ptScalarField
   end interface netcdfDataWriter_write
 
   public :: netcdfDataWriter_Init, netcdfDataWriter_Final
   public :: netcdfDataWriter_Regist
   public :: netcdfDataWriter_Write
+  public :: netcdfDataWriter_AdvanceTimeStep
 
 
   character(TOKEN), parameter :: RECODE_NAME = "time"
@@ -56,11 +58,11 @@ end subroutine netcdfDataWriter_Init
 
 
 subroutine netcdfDataWriter_Regist(writer, &
-  & volScalarFields, volVectorFields )
+  & volScalarFields, pointScalarFields )
 
   type(netcdfDataWriter), intent(inout), target :: writer
   type(volScalarField), target, optional :: volScalarFields(:)
-  type(volVectorField), target, optional :: volVectorFields(:)
+  type(pointScalarField), target, optional :: pointScalarFields(:)
 
   integer :: i, vScalarFListSize, varId
   type(Mesh2_ncInfo), pointer :: meshInfo
@@ -80,15 +82,19 @@ subroutine netcdfDataWriter_Regist(writer, &
     end do
   end if
 
-  if(present(volVectorFields)) then
-stop
-
-
+  if(present(pointScalarFields)) then
+     do i=1, size(pointScalarFields)
+        varId = netcdfDataWriter_defFieldData( &
+             & writer, (/ writer%mesh2Info%node%dimId, writer%rec_dimId /), &
+             & pointScalarFields(i)%name,  pointScalarFields(i)%long_name, pointScalarFields(i)%units &
+             & )
+    end do
   end if
 
 
   call check_nf90_status( nf90_enddef( writer%ncID ) )
   call netcdfDataWriter_writeGridData(writer)
+  call netcdfDataWriter_AdvanceTimeStep(writer, writer%initTime)
 
 end subroutine netcdfDataWriter_Regist
 
@@ -110,6 +116,24 @@ subroutine write_volScalarField(writer, v_scalar)
 
 end subroutine write_volScalarField
 
+subroutine write_ptScalarField(writer, p_scalar)
+  type(netcdfDataWriter), intent(inout) :: writer
+  type(pointScalarField), intent(in) :: p_scalar
+
+  integer :: varId
+
+
+  call check_nf90_status( &
+      & nf90_inq_varid(writer%ncID, p_scalar%name, varID) &
+      & )
+
+  call check_nf90_status( nf90_put_var( &
+       & writer%ncID, varid, p_scalar%data%v_(:), &
+       &  start=(/ 1, writer%recCounter /), count=(/ size(p_scalar%data%v_), 1 /) ) &
+ & )
+
+end subroutine write_ptScalarField
+
 subroutine netcdfDataWriter_Final(writer)
   type(netcdfDataWriter), intent(inout) :: writer
 
@@ -119,12 +143,34 @@ subroutine netcdfDataWriter_Final(writer)
 
 end subroutine netcdfDataWriter_Final
 
+subroutine netcdfDataWriter_AdvanceTimeStep( writer, newStepTime )
+  type(netcdfDataWriter), intent(inout) :: writer
+  real(DP), intent(in) :: newStepTime
+
+  integer :: varId
+
+  call check_nf90_status( &
+      & nf90_inq_varid(writer%ncID, RECODE_NAME, varID) &
+      & )
+
+  writer%recCounter = writer%recCounter + 1
+
+  call check_nf90_status( nf90_put_var( &
+       & writer%ncID, varid, (/ newStepTime /), &
+       & start=(/ writer%recCounter /), count=(/ 1 /) ) &
+ & )
+
+  
+end subroutine netcdfDataWriter_AdvanceTimeStep
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine netcdfDataWriter_writeGridMetaData(writer)
   type(netcdfDataWriter), intent(inout), target :: writer
 
   integer :: pointNum, cellNum
   type(Mesh2_ncInfo), pointer :: meshInfo
+  integer :: timeVarId
   
   meshInfo => writer%mesh2Info
   cellNum = getCellListSize(writer%mesh)
@@ -158,6 +204,13 @@ subroutine netcdfDataWriter_writeGridMetaData(writer)
     & nf90_def_dim(writer%ncID, RECODE_NAME, NF90_UNLIMITED, writer%rec_dimid), &
     message='define dimension.'  &
     & )
+
+
+  timeVarId = netcdfDataWriter_defFieldData( &
+       & writer, (/ writer%rec_dimId /), &
+       & RECODE_NAME,  "time", "second" &
+       & )
+  
 
   ! Set some information with topology
   ! NetCDF ファイルに次元要素 face を定義する.
@@ -264,6 +317,11 @@ function netcdfDataWriter_defFieldData(writer, dimIds, varname, long_name, units
        & nf90_def_var(writer%ncID, varname, NF90_DOUBLE, dimIds, varid), &
        message='Define the field `' // trim(varname) // '`.' &
        & )
+
+  ! 物理場の name を設定.
+  call check_nf90_status( &
+    & nf90_put_att( writer%ncID, varid, 'name', varname ) &
+    & )
 
   ! 物理場の long_name を設定.
   call check_nf90_status( &

@@ -23,6 +23,7 @@ module netcdfDataReader_mod
 
   interface netcdfDataReader_get
      module procedure netcdfDataReader_readvScalarData
+     module procedure netcdfDataReader_readpScalarData
   end interface netcdfDataReader_get
 
   public :: netcdfDataReader_Init, netcdfDataReader_Final
@@ -43,17 +44,31 @@ subroutine netcdfDataReader_Init(reader, fileName, mesh)
 
 end subroutine netcdfDataReader_Init
 
-subroutine netcdfDataReader_readvScalarData(reader, fieldName, field)
+subroutine netcdfDataReader_readvScalarData(reader, fieldName, field, range)
   type(netcdfDataReader), intent(in) ::reader
   character(*), intent(in) :: fieldName
   type(volScalarField), intent(inout) :: field
+  character(*), intent(in), optional :: range
 
   call GeometricField_Init(field, reader%mesh, fieldName) 
-  call HistoryGet(reader%filePath, fieldName, field%data%v_(:))
+  call HistoryGet(reader%filePath, fieldName, field%data%v_(:), range=range)
   call HistoryGetAttr(reader%filePath, fieldName, 'long_name', field%long_name)
   call HistoryGetAttr(reader%filePath, fieldName, 'units', field%units)
 
 end subroutine netcdfDataReader_readvScalarData
+
+subroutine netcdfDataReader_readpScalarData(reader, fieldName, field, range)
+  type(netcdfDataReader), intent(in) ::reader
+  character(*), intent(in) :: fieldName
+  type(pointScalarField), intent(inout) :: field
+  character(*), intent(in), optional :: range
+
+  call GeometricField_Init(field, reader%mesh, fieldName) 
+  call HistoryGet(reader%filePath, fieldName, field%data%v_(:), range=range)
+  call HistoryGetAttr(reader%filePath, fieldName, 'long_name', field%long_name)
+  call HistoryGetAttr(reader%filePath, fieldName, 'units', field%units)
+
+end subroutine netcdfDataReader_readpScalarData
 
 subroutine netcdfDataReader_Final(reader)
   type(netcdfDataReader), intent(inout) :: reader
