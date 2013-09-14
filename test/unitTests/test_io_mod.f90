@@ -78,7 +78,7 @@ subroutine dataCheck()
   integer :: i
 
   do i=1, getCellListSize(htiMesh%mesh)
-     if( (v_CellVol.At.i) /= (fvInfo%v_CellVol.At.i) ) stop
+     if( At(v_CellVol,i) /= At(fvInfo%v_CellVol,i) ) stop
   end do
 end subroutine dataCheck
 

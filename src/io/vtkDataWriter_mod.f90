@@ -70,7 +70,7 @@ subroutine vtkDataWriter_write(writer)
     write(writer%outputNo,'(a)') "LOOKUP_TABLE default"
     
     do cellGId=1, cellNum
-      write(writer%outputNo, '(f25.10)') v_scalarField.At.cellGId
+      write(writer%outputNo, '(f25.10)') At(v_scalarField, cellGId)
     end do
     write(writer%outputNo,*)
   end do
@@ -91,7 +91,7 @@ subroutine vtkDataWriter_write(writer)
     write(writer%outputNo,'(a)') "LOOKUP_TABLE default"
     
     do ptGId=1, ptNum
-      write(writer%outputNo, '(f25.10)') p_scalarField.At.ptGId
+      write(writer%outputNo, '(f25.10)') At(p_scalarField, ptGId)
     end do
     write(writer%outputNo,*)
   end do
@@ -139,21 +139,22 @@ end subroutine vtkDataWriter_Final
 subroutine write_GridData(writer)
   type(vtkDataWriter), intent(inout) :: writer
 
-  integer :: ptListSize, cellListSize, cellDataInfoSize
+  integer :: ptListSize, cellListSize, vlayerSize, cellDataInfoSize
   type(Vector3d) :: pt
   integer :: vxIds(6), faceLNum
-  integer :: i, j
+  integer :: i, j, k
   type(PolyMesh), pointer :: mesh
   type(Face) :: face_
 
   mesh => writer%mesh
 
+  vlayerSize = getVLayerSize(mesh)
   ptListSize = getPointListSize(mesh)
   cellListSize = getCellListSize(mesh)
 
   write(writer%outputNo,'(a,i10,a)') "POINTS ", ptListSize, " float"
   do i=1, ptListSize
-    pt = mesh%pointList(i)
+    pt = mesh%pointPosList(i)
     write(writer%outputNo,'(3f20.5)') pt%v_(1), pt%v_(2), pt%v_(3) 
   end do
   write(writer%outputNo,*)

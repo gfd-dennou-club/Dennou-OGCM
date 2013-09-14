@@ -26,7 +26,7 @@ module fvCalculus_mod
   end interface curl
 
   interface interpolate
-     module procedure interpolate_VolSVal_SurfSVal
+ !    module procedure interpolate_VolSVal_SurfSVal
   end interface interpolate
 
   public :: fvCalculus_Init, fvCalculus_Final
@@ -112,8 +112,8 @@ function sgrad_volScalar( v_Scalar ) result(s_grad)
   do faceId=1, faceNum
      face_ => mesh%faceList(faceId)
      cellIds(:) = fvmInfo%Face_CellId(:,faceId)
-     s_grad%data%v_(faceId) = ( (v_Scalar.At.CellIds(2)) - (v_Scalar.At.CellIds(1)) ) &
-          &                / (fvmInfo%s_dualMeshFaceArea.At.faceId)  
+     s_grad%data%v_(:,faceId) = ( vSlice(v_Scalar, CellIds(2)) - vSlice(v_Scalar, CellIds(1)) ) &
+          &                / vSlice(fvmInfo%s_dualMeshFaceArea, faceId)  
   end do
 
   if( v_Scalar%tempDataFlag ) call Release(v_Scalar)
@@ -125,21 +125,23 @@ function vdiv_surfNormVec( surfNormalVec) result(v_div)
   type(surfaceScalarField), intent(in) :: surfNormalVec
   type(volScalarField) :: v_div
   
-  integer :: cellNum, faceNum, lfaceNum
-  integer :: cellId, faceId, lfaceId 
+  integer :: cellNum, faceNum, lfaceNum, layerNum
+  integer :: cellId, faceId, lfaceId, lyrId 
   type(PolyMesh), pointer :: mesh
-  real(DP), allocatable :: surfaceflux(:)
+  real(DP), allocatable :: surfaceflux(:,:)
   type(Face), pointer :: face_
   
   mesh => fvmInfo%mesh
 
   cellNum = getCellListSize(mesh)
   faceNum = getFaceListSize(mesh)
-  allocate(surfaceflux(faceNum))
+  layerNum = surfNormalVec%vLayerNum
+  allocate(surfaceflux(layerNum, faceNum))
 
   do faceId=1, faceNum
      face_ => mesh%faceList(faceId)
-     surfaceflux(faceId) =  (surfNormalVec.At.faceId) * l2norm( fvmInfo%s_faceAreaVec.At.faceId )                                 !
+!     surfaceflux(:,faceId) = vslice(surfNormalVec,faceId) * l2norm( At(fvmInfo%s_faceAreaVec,faceId) )                              
+     surfaceflux(:,faceId) = surfNormalVec%data%v_(:,faceId) * l2norm( fvmInfo%s_faceAreaVec%data%v_(1,faceId) )                                 !
   end do
 
 
@@ -148,9 +150,11 @@ function vdiv_surfNormVec( surfNormalVec) result(v_div)
 
   do cellId=1, cellNum
      lfaceNum = mesh%cellList(cellId)%faceNum
-     v_div%data%v_(cellId) = &
-          &   dot_product( dble(n_fv(1:lfaceNum,cellId)), surfaceflux(fvmInfo%Cell_FaceId(1:lfaceNum,cellId)) ) &
-          & / (fvmInfo%v_CellVol.At.cellId)
+     !do lyrId=1, layerNum
+        v_div%data%v_(:,cellId) = &
+             &   sum( spread(n_fv(1:lfaceNum,cellId),1,layerNum) * surfaceflux(:, fvmInfo%Cell_FaceId(1:lfaceNum,cellId)), 2) &
+             & / vslice(fvmInfo%v_CellVol, cellId)
+     !end do
   end do
 
   if( surfNormalVec%tempDataFlag ) call Release(surfNormalVec)
@@ -162,25 +166,27 @@ function vdiv_volScalar_surfNormVec( volScalar, surfNormalVec) result(v_div)
   type(surfaceScalarField), intent(in) :: surfNormalVec
   type(volScalarField) :: v_div
   
-  integer :: cellNum, faceNum, lfaceNum
-  integer :: cellId, faceId, lfaceId 
+  integer :: cellNum, faceNum, lfaceNum, layerNum
+  integer :: cellId, faceId, lfaceId, lyrId 
   type(PolyMesh), pointer :: mesh
-  real(DP), allocatable :: surfaceflux(:)
+  real(DP), allocatable :: surfaceflux(:,:)
   type(Face), pointer :: face_
   
   mesh => fvmInfo%mesh
 
   cellNum = getCellListSize(mesh)
   faceNum = getFaceListSize(mesh)
-  allocate(surfaceflux(faceNum))
+  layerNum = volScalar%vLayerNum
+  allocate(surfaceflux(layerNum, faceNum))
 
   do faceId=1, faceNum
      face_ => mesh%faceList(faceId)
-     surfaceflux(faceId) =   0.5d0*((volScalar.At.face_%ownCellId) + (volScalar.At.face_%neighCellId)) & ! value interpolated at a face of cell 
-          &                * (surfNormalVec.At.faceId)                                                 & ! 
-          &                * l2norm( fvmInfo%s_faceAreaVec.At.faceId )                                 !
-
-!     write(*,*) faceID,":", geodesicArcLength(
+!!$     surfaceflux(:,faceId) =   0.5d0*sum( vSlice(volScalar, fvmInfo%Face_CellId(1:2,faceId)) )  & ! value interpolated at a face of cell 
+!!$             &                * At(surfNormalVec, faceId)                                      &  ! 
+!!$             &                * l2norm( At(fvmInfo%s_faceAreaVec, faceId) )                       !
+     surfaceflux(:,faceId) =   0.5d0*sum( volScalar%data%v_(:, fvmInfo%Face_CellId(1:2,faceId)), 2)  & ! value interpolated at a face of cell 
+             &                * surfNormalVec%data%v_(:, faceId)                                    &  ! 
+             &                * l2norm( fvmInfo%s_faceAreaVec%data%v_(1,faceId) )                      !
 
   end do
 
@@ -190,10 +196,13 @@ function vdiv_volScalar_surfNormVec( volScalar, surfNormalVec) result(v_div)
 
   do cellId=1, cellNum
      lfaceNum = mesh%cellList(cellId)%faceNum
-     v_div%data%v_(cellId) = &
-          &   dot_product( n_fv(1:lfaceNum,cellId), surfaceflux(mesh%cellList(cellId)%faceIdList(1:lfaceNum)) ) &
-          & / (fvmInfo%v_CellVol.At.cellId)
-    
+!!$     v_div%data%v_(:,cellId) = sum( &
+!!$          & spread(n_fv(1:lfaceNum,cellId),1,layerNum)*surfaceflux(:,mesh%cellList(cellId)%faceIdList(1:lfaceNum)) &
+!!$          & , 2)/ vslice(fvmInfo%v_CellVol, cellId)
+     v_div%data%v_(:,cellId) = sum( &
+          & spread(n_fv(1:lfaceNum,cellId),1,layerNum)*surfaceflux(:,mesh%cellList(cellId)%faceIdList(1:lfaceNum)) &
+          & , 2)/ fvmInfo%v_CellVol%data%v_(:, cellId)
+
   end do
 
 
@@ -208,42 +217,50 @@ function pcurl_surfNormVec(surfNormalVec) result(p_curl)
 
   type(PolyMesh), pointer :: mesh
   integer :: ptNum, ptId, faceIds(3)
+  integer :: layerNum
   
   mesh => fvmInfo%mesh
   ptNum = getPointListSize(mesh)
+  layerNum = surfNormalVec%vLayerNum
 
   call GeometricField_Init(p_curl, mesh, "s_curlOptrTmpDat")
   p_curl%TempDataFlag = .true.
 
   do ptId=1, ptNum
      faceIds(:) = fvmInfo%Point_FaceId(1:3,ptId)
-     p_curl%data%v_(ptId) = &
-          & sum( t_fv(1:3,ptId) * (fvmInfo%s_dualMeshFaceArea.At.faceIds) * (surfNormalVec.At.faceIds) ) &
-          & / (fvmInfo%p_dualMeshCellVol.At.ptId)
+
+!!$     p_curl%data%v_(:,ptId) = sum( &
+!!$          & spread(t_fv(1:3,ptId),1,layerNum) * vSlice(fvmInfo%s_dualMeshFaceArea,faceIds)*vSlice(surfNormalVec,faceIds) &
+!!$          & , 2) / vslice(fvmInfo%p_dualMeshCellVol,ptId)
+
+     p_curl%data%v_(:,ptId) = sum( &
+          & spread(t_fv(1:3,ptId),1,layerNum) * fvmInfo%s_dualMeshFaceArea%data%v_(1:1,faceIds) * surfNormalVec%data%v_(:,faceIds) &
+          & , 2) / fvmInfo%p_dualMeshCellVol%data%v_(:,ptId)
+
   end do
 
   if( surfNormalVec%tempDataFlag ) call Release(surfNormalVec)
 
 end function pcurl_surfNormVec
 
-subroutine interpolate_VolSVal_SurfSVal(v_scalar, s_scalar)
-  type(volScalarField), intent(in) :: v_scalar
-  type(surfaceScalarField), intent(out) :: s_scalar
-
-  integer :: faceId, faceNum
-  type(PolyMesh), pointer :: mesh
-  type(Face), pointer :: face_
-  
-  mesh => fvmInfo%mesh
-  faceNum = getFaceListSize(mesh)
-
-  call GeometricField_Init(s_scalar, mesh, "interpSurfVal", "value interpolated at surface")
-
-  do faceId=1, faceNum
-     face_ => mesh%faceList(faceId)
-     s_scalar%data%v_(faceId) =   0.5*((v_Scalar.At.face_%ownCellId) + (v_scalar.At.face_%neighCellId))
-  end do
-
-end subroutine interpolate_VolSVal_SurfSVal
+!!$subroutine interpolate_VolSVal_SurfSVal(v_scalar, s_scalar)
+!!$  type(volScalarField), intent(in) :: v_scalar
+!!$  type(surfaceScalarField), intent(out) :: s_scalar
+!!$
+!!$  integer :: faceId, faceNum
+!!$  type(PolyMesh), pointer :: mesh
+!!$  type(Face), pointer :: face_
+!!$  
+!!$  mesh => fvmInfo%mesh
+!!$  faceNum = getFaceListSize(mesh)
+!!$
+!!$  call GeometricField_Init(s_scalar, mesh, "interpSurfVal", "value interpolated at surface")
+!!$
+!!$  do faceId=1, faceNum
+!!$     face_ => mesh%faceList(faceId)
+!!$     s_scalar%data%v_(faceId) =   0.5*((v_Scalar.vSlice.face_%ownCellId) + (v_scalar.vSlice.face_%neighCellId))
+!!$  end do
+!!$
+!!$end subroutine interpolate_VolSVal_SurfSVal
 
 end module fvCalculus_mod

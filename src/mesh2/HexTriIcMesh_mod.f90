@@ -107,7 +107,7 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
   real(DP) :: areas(6), faceArea
   type(Vector3d) :: faceNormal, edgeVxs(2)
   type(Face), pointer :: face_
-  integer :: cellIds(2)
+  integer :: cellIds(2), ptIds(2)
 
   mesh => htiMesh%mesh
 
@@ -129,7 +129,7 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
       areas(faceLId) = sphericalTriArea( mesh%cellPosList(cellGId), edgeVxs(1), edgeVxs(2) ) 
     end do
     
-    v_CellVolume%data%v_(cellGId) = sum(areas(1:faceNum))
+    v_CellVolume%data%v_(1,cellGId) = sum(areas(1:faceNum))
 
   end do
 
@@ -140,26 +140,27 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
 
 !!     s_faceCenter%data%v_(faceGId) = htimesh%radius * normalizedVec( 0.5d0*(edgeVxs(1) + edgeVxs(2)) )
      cellIds(:) = fvInfo%Face_CellId(1:2, faceGId)
-     s_faceCenter%data%v_(faceGId) = htimesh%radius * &
+     s_faceCenter%data%v_(1,faceGId) = htimesh%radius * &
           & normalizedVec( 0.5d0*(mesh%CellPosList(cellIds(1)) + mesh%CellPosList(cellIds(2))) )
 
-     faceArea = geodesicArcLength( mesh%PointList(fvInfo%Face_PointId(1,faceGId)), mesh%PointList(fvInfo%Face_PointId(2,faceGId)) )
+     ptIds(:) = fvInfo%Face_PointId(1:2,faceGId)
+     faceArea = geodesicArcLength( mesh%PointPosList(ptIds(1)), mesh%PointPosList(ptIds(2)) )
 !!     faceNormal = normalizedVec( (edgeVxs(2) - edgeVxs(1)) .cross. (mesh%cellPosList(face_%ownCellId)) )
      faceNormal = normalizedVec( mesh%CellPosList(cellIds(2)) - mesh%CellPosList(cellIds(1)) )
-     s_faceAreaVec%data%v_(faceGId) =  faceArea * faceNormal
+     s_faceAreaVec%data%v_(1,faceGId) =  faceArea * faceNormal
 
 
 
-     s_dualMeshFaceArea%data%v_(faceGId) = &
+     s_dualMeshFaceArea%data%v_(1,faceGId) = &
           & geodesicArcLength(mesh%cellPosList(face_%ownCellId), mesh%cellPosList(face_%neighCellId))
   end do
 
   do pointGId=1, getPointListSize(mesh)
      do faceLId=1, 3
         cellIds(:) = fvInfo%Face_CellId(1:2, fvInfo%Point_FaceId(faceLId,pointGId))
-        areas(faceLId) = sphericalTriArea( mesh%pointList(pointGId), mesh%cellPosList(cellIds(1)), mesh%cellPosList(cellIds(2)) )
+        areas(faceLId) = sphericalTriArea( mesh%pointPosList(pointGId), mesh%cellPosList(cellIds(1)), mesh%cellPosList(cellIds(2)) )
      end do
-     p_dualMeshCellVol%data%v_(pointGId) = sum(areas(1:3))
+     p_dualMeshCellVol%data%v_(1,pointGId) = sum(areas(1:3))
   end do
 
   !
@@ -195,7 +196,7 @@ subroutine projectPosVecIntoSphere(htimesh)
   end do
 
   do i=1, pointNum
-     mesh%pointList(i) = htimesh%radius * normalizedVec(mesh%pointList(i))
+     mesh%pointPosList(i) = htimesh%radius * normalizedVec(mesh%pointPosList(i))
   end do
 
 end subroutine projectPosVecIntoSphere

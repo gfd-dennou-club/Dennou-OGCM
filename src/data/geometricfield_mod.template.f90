@@ -34,6 +34,7 @@ module moduleName
     character(STRING) :: long_name
     character(TOKEN) :: units
     logical :: tempDataFlag = .false.
+    integer :: vlayerNum
   end type FieldTypeName
 
   !
@@ -97,16 +98,26 @@ module moduleName
      module procedure funcNameSuffix(divOptr3)
   end interface operator(/)
 
-  interface operator(.At.)
-    module procedure funcNameSuffix(ReturnElemRef1)
-    module procedure funcNameSuffix(ReturnElemRef2)
-  end interface operator(.At.)
+  interface At
+     module procedure funcNameSuffix(At1)
+     module procedure funcNameSuffix(At2)
+  end interface At
   
+  interface hSlice
+     module procedure funcNameSuffix(hSlice1)
+     module procedure funcNameSuffix(hSlice2)
+  end interface hSlice
+
+  interface vSlice
+     module procedure funcNameSuffix(vSlice1)
+     module procedure funcNameSuffix(vSlice2)
+  end interface vSlice
+
   !
   public :: GeometricField_Init, GeometricField_Final, Release
   public :: SetFieldAtitude, DeepCopy
   public :: operator(+), operator(/), operator(-), operator(*), assignment(=)
-  public :: operator(.At.)
+  public :: At, hSlice, vSlice
 
   
   character(TOKEN), parameter :: DATADEFLOC_SURFACE = "surface"
@@ -116,16 +127,17 @@ module moduleName
 contains
 
 !
-subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units)
+subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units, vlayerNum)
   type(FieldTypeName), intent(inout) :: field
   type(PolyMesh), target, intent(in) :: mesh
-  character(*), optional :: name
-  character(*), optional :: long_name
-  character(*), optional :: units
+  character(*), optional, intent(in) :: name
+  character(*), optional, intent(in) :: long_name
+  character(*), optional, intent(in) :: units
+  integer, optional, intent(in) :: vlayerNum
 
   ! Work variables
   !
-  integer :: dataSize
+  integer :: hdataSize
   
   ! Executable statements
   !
@@ -143,21 +155,27 @@ subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units)
   if(present(name)) call setFieldAtitude(field, name=name)
   if(present(long_name)) call setFieldAtitude(field, long_name=long_name)
   if(present(units)) call setFieldAtitude(field, units=units)
+  
+  if(present(vlayerNum)) then
+     field%vlayerNum = vlayerNum
+  else
+     field%vlayerNum = mesh%vlayerNum
+  end if
 
   !
   select case( DataDefLoc )
     case (DATADEFLOC_SURFACE)
-      dataSize = getFaceListSize(field%mesh)
+       hdataSize = getFaceListSize(mesh)
     case (DATADEFLOC_VOL)
-      dataSize = getCellListSize(field%mesh)
+      hdataSize = getCellListSize(mesh)
     case (DATADEFLOC_POINT)
-      dataSize = getPointListSize(field%mesh)
+      hdataSize = getPointListSize(mesh)
   end select
 
   !
   allocate(field%data)
-  call List_Init(field%data, dataSize)
-  !write(*,*) "allocated..", ", dataSize=", dataSize
+  call List_Init(field%data, field%vLayerNum, hdataSize)
+!  write(*,*) field%name, "allocated..", ", hdataSize=", hdataSize, "vlayerNum=", field%vlayerNum
 
 end subroutine funcNameSuffix(Init)
 
@@ -189,7 +207,7 @@ subroutine funcNameSuffix(DeepCopy) (self, field)
   type(FieldTypeName), intent(in) :: field
   
 
-  self%data%v_(:) = field%data%v_(:) 
+  self%data%v_(:,:) = field%data%v_(:,:) 
   
 end subroutine funcNameSuffix(DeepCopy)
 
@@ -246,40 +264,76 @@ subroutine funcNameSuffix(assignFDElemType) (this, elemData)
   FieldDataElemType, intent(in) :: elemData
 
 !  call checkDataSizeEquality(field1%data, field2%data, "assign operator")
-  this%data%v_(:) = elemData
+  this%data%v_ = elemData
 
 end subroutine funcNameSuffix(assignFDElemType)
 
 subroutine funcNameSuffix(assignFDElemTypeArray) (this, elemArrayData)
   type(FieldTypeName), intent(inout) :: this
-  FieldDataElemType, intent(in) :: elemArrayData(:)
+  FieldDataElemType, intent(in) :: elemArrayData(:,:)
 
 
-  if( getListSize(this%data) /= size(elemArrayData) ) then
-    write(*,*) "Error in assignment:"
-  end if
+!!$  if( getListSize(this%data) /= size(elemArrayData) ) then
+!!$    write(*,*) "Error in assignment:"
+!!$  end if
 
-  this%data%v_(:) = elemArrayData(:)
+  this%data%v_(:,:) = elemArrayData(:,:)
 
 end subroutine funcNameSuffix(assignFDElemTypeArray)
 
-function funcNameSuffix(ReturnElemRef1) (this, id) result(elemRef)
+pure function funcNameSuffix(At1) (this, k, hid) result(elemRef)
   type(FieldTypeName), intent(in) :: this
-  integer, intent(in) :: id
+  integer, intent(in) :: hid, k
   FieldDataElemType :: elemRef
 
-  elemRef = this%data%v_(id)
+  elemRef = this%data%v_(k,hid)
 
-end function funcNameSuffix(ReturnElemRef1)
+end function funcNameSuffix(At1)
 
-function funcNameSuffix(ReturnElemRef2) (this, ids) result(elemsRef)
+pure function funcNameSuffix(At2) (this, hid) result(elemRef)
   type(FieldTypeName), intent(in) :: this
-  integer, intent(in) :: ids(:)
-  FieldDataElemType :: elemsRef(size(ids))
+  integer, intent(in) :: hid
+  FieldDataElemType :: elemRef
 
-  elemsRef(:) = this%data%v_(ids(:))
+  elemRef = this%data%v_(1,hid)
 
-end function funcNameSuffix(ReturnElemRef2)
+end function funcNameSuffix(At2)
+
+pure function funcNameSuffix(hSlice1) (this, vid) result(elemRef)
+  type(FieldTypeName), intent(in) :: this
+  integer, intent(in) :: vid
+  FieldDataElemType :: elemRef(getHListSize(this%data))
+
+  elemRef(:) = this%data%v_(vId,:)
+
+end function funcNameSuffix(hSlice1)
+
+pure function funcNameSuffix(hSlice2) (this, vids) result(elemsRef)
+  type(FieldTypeName), intent(in) :: this
+  integer, intent(in) :: vids(:)
+  FieldDataElemType :: elemsRef(size(vids), getHListSize(this%data))
+
+  elemsRef(:,:) = this%data%v_(vids(:),:)
+
+end function funcNameSuffix(hSlice2)
+
+pure function funcNameSuffix(vSlice1) (this, hid) result(elemRef)
+  type(FieldTypeName), intent(in) :: this
+  integer, intent(in) :: hid
+  FieldDataElemType :: elemRef(this%vlayerNum)
+
+  elemRef(:) = this%data%v_(:, hid)
+
+end function funcNameSuffix(vSlice1)
+
+pure function funcNameSuffix(vSlice2) (this, hids) result(elemsRef)
+  type(FieldTypeName), intent(in) :: this
+  integer, intent(in) :: hids(:)
+  FieldDataElemType :: elemsRef(this%vlayerNum, size(hids))
+
+  elemsRef(:,:) = this%data%v_(:, hids(:))
+
+end function funcNameSuffix(vSlice2)
 
 !*
 !* 
@@ -344,7 +398,8 @@ subroutine checkDataSizeEquality(data1, data2, info)
   type(FieldDataType), intent(in) :: data1, data2
   character(*), intent(in) :: info
 
-  if( getListSize(data1) /= getListSize(data2) ) then
+  if( getHListSize(data1) /= getHListSize(data2) &
+       & .or. getVListSize(data1) /= getVListSize(data2) ) then
     write(*,*) info, ": The size of list data in binary operation is not equal to other."
     stop
   end if

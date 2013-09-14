@@ -40,6 +40,7 @@ module moduleName
     module procedure optr_assign
     module procedure optr_assign_scalar
     module procedure optr_assign_vecElem
+    module procedure optr_assign_objArray
   end interface assignment(=)
 
   interface toArray
@@ -65,7 +66,7 @@ end subroutine printVec
 !
 ! Provide the oparation to add two elements of V. 
 !
-function optr_add1(v1, v2) result(ret)
+pure function optr_add1(v1, v2) result(ret)
   type(vectorspaceTypeName), intent(in) :: v1, v2
   type(vectorspaceTypeName) :: ret
 
@@ -73,7 +74,7 @@ function optr_add1(v1, v2) result(ret)
   
 end function optr_add1
 
-function optr_add2(val, v2) result(ret)
+pure function optr_add2(val, v2) result(ret)
   real(DP), intent(in) :: val
   type(vectorspaceTypeName), intent(in) :: v2
   type(vectorspaceTypeName) :: ret
@@ -82,7 +83,7 @@ function optr_add2(val, v2) result(ret)
   
 end function optr_add2
 
-function optr_add3(v1, val) result(ret)
+pure function optr_add3(v1, val) result(ret)
   type(vectorspaceTypeName), intent(in) :: v1
   real(DP), intent(in) :: val
   type(vectorspaceTypeName) :: ret
@@ -95,7 +96,7 @@ end function optr_add3
 !
 ! Provide the oparation to substract two elements of V. 
 !
-function optr_sub1(v1, v2) result(ret)
+pure function optr_sub1(v1, v2) result(ret)
   type(vectorspaceTypeName), intent(in) :: v1, v2
   type(vectorspaceTypeName) :: ret
 
@@ -103,7 +104,7 @@ function optr_sub1(v1, v2) result(ret)
   
 end function optr_sub1
 
-function optr_sub2(val, v2) result(ret)
+pure function optr_sub2(val, v2) result(ret)
   real(DP), intent(in) :: val
   type(vectorspaceTypeName), intent(in) :: v2
   type(vectorspaceTypeName) :: ret
@@ -112,7 +113,7 @@ function optr_sub2(val, v2) result(ret)
   
 end function optr_sub2
 
-function optr_sub3(v1, val) result(ret)
+pure function optr_sub3(v1, val) result(ret)
   type(vectorspaceTypeName), intent(in) :: v1
   real(DP), intent(in) :: val
   type(vectorspaceTypeName) :: ret
@@ -124,7 +125,7 @@ end function optr_sub3
 !
 !
 !
-function optr_scalarMul(scalar, v) result(ret)
+pure function optr_scalarMul(scalar, v) result(ret)
   real(DP), intent(in) :: scalar
   type(vectorspaceTypeName), intent(in) :: v
   type(vectorspaceTypeName) :: ret
@@ -133,7 +134,7 @@ function optr_scalarMul(scalar, v) result(ret)
   
 end function optr_scalarMul
 
-function optr_scalarDiv(v, scalar) result(ret)
+pure function optr_scalarDiv(v, scalar) result(ret)
   type(vectorspaceTypeName), intent(in) :: v
   real(DP), intent(in) :: scalar
   type(vectorspaceTypeName) :: ret
@@ -142,7 +143,7 @@ function optr_scalarDiv(v, scalar) result(ret)
   
 end function optr_scalarDiv
 
-subroutine optr_assign(v, rhs)
+pure subroutine optr_assign(v, rhs)
 
   type(vectorspaceTypeName), intent(out) :: v
   type(vectorspaceTypeName), intent(in) :: rhs
@@ -151,7 +152,7 @@ subroutine optr_assign(v, rhs)
 
 end subroutine optr_assign
 
-subroutine optr_assign_scalar(v, rhs)
+pure subroutine optr_assign_scalar(v, rhs)
 
   type(vectorspaceTypeName), intent(out) :: v
   real(DP), intent(in) :: rhs
@@ -161,7 +162,7 @@ subroutine optr_assign_scalar(v, rhs)
 end subroutine optr_assign_scalar
 
 
-subroutine optr_assign_vecElem(v, rhs)
+pure subroutine optr_assign_vecElem(v, rhs)
 
   type(vectorspaceTypeName), intent(out) :: v
   vecspace_elem_type, intent(in) :: rhs(vecspace_elem_size)
@@ -170,10 +171,24 @@ subroutine optr_assign_vecElem(v, rhs)
 
 end subroutine optr_assign_vecElem
 
+pure subroutine optr_assign_objArray(v, rhs)
+
+  type(vectorspaceTypeName), intent(out) :: v(:)
+  type(vectorspaceTypeName), intent(in) :: rhs(:)
+  
+  integer :: i
+  
+  do i=lbound(v,1), ubound(v,1)
+     v(i) = rhs(i)
+  end do
+
+end subroutine optr_assign_objArray
+
 function toElemTypeArray(v) result(ary)
   type(vectorspaceTypeName), intent(in) :: v  
   vecspace_elem_type :: ary(vecspace_elem_size)
 
   ary(:) = v%v_(:)
 end function toElemTypeArray
+
 end module moduleName

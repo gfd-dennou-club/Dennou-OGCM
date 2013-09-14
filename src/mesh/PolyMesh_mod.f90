@@ -28,8 +28,9 @@ module PolyMesh_mod
   type, public :: PolyMesh
      type(Face), pointer :: faceList(:) => null()
      type(Cell), pointer :: cellList(:) => null()
-     type(Vector3d), pointer :: pointList(:) => null()
+     type(Vector3d), pointer :: pointPosList(:) => null()
      type(Vector3d), pointer :: cellPosList(:) => null()
+     integer :: vlayerNum = 1
   end type PolyMesh
 
   interface PolyMesh_Init
@@ -47,7 +48,7 @@ module PolyMesh_mod
   public :: PolyMesh_dataAlloc
   public :: PolyMesh_SetPoint, PolyMesh_SetFace, PolyMesh_SetCell
   public :: PolyMesh_getConnectivity, PolyMesh_setConnectivity
-  public :: getPointListSize, getFaceListSize, getCellListSize
+  public :: getPointListSize, getFaceListSize, getCellListSize, getVLayerSize
   public :: getFaceVertex
 
 contains
@@ -70,48 +71,59 @@ subroutine Cell_Init(cell_, faceIds)
 
 end subroutine Cell_Init
 
-subroutine PolyMesh_Init1(mesh, ptNum, faceNum, cellNum)
+subroutine PolyMesh_Init1(mesh, ptNum, faceNum, cellNum, vlayerNum)
   type(PolyMesh), intent(inout) :: mesh
   integer, intent(in) :: ptNum, faceNum, cellNum
+  integer, optional, intent(in) :: vlayerNum
 
   call PolyMesh_dataAlloc(mesh, ptNum, faceNum, cellNum)
+  if( present(vlayerNum) ) mesh%vlayerNum = vlayerNum
 
 end subroutine PolyMesh_Init1
 
-subroutine PolyMesh_Init2(mesh, points, faces, cells)
+subroutine PolyMesh_Init2(mesh, points, faces, cells, vlayerNum)
   type(PolyMesh), intent(inout) :: mesh
   type(Vector3d), intent(in) :: points(:)
   type(Face), intent(in) :: faces(:)
   type(Cell), intent(in) :: cells(:)
+  integer, optional, intent(in) :: vlayerNum
 
   call PolyMesh_dataAlloc(mesh, size(points), size(faces), size(cells))
 
   mesh%cellList(:) = cells(:)
   mesh%faceList(:) = faces(:)  
-  mesh%pointList(:) = points(:)
+  mesh%pointPosList(:) = points(:)
 
 end subroutine PolyMesh_Init2
 
-function getFaceListSize(mesh) result(listSize)
+pure function getFaceListSize(mesh) result(listSize)
   type(PolyMesh), intent(in) :: mesh
   integer :: listSize
 
   listSize = size(mesh%faceList)
 end function getFaceListSize
 
-function getPointListSize(mesh) result(listSize)
+pure function getPointListSize(mesh) result(listSize)
   type(PolyMesh), intent(in) :: mesh
   integer :: listSize
 
-  listSize = size(mesh%PointList)
+  listSize = size(mesh%PointPosList)
 end function getPointListSize
 
-function getCellListSize(mesh) result(listSize)
+pure function getCellListSize(mesh) result(listSize)
   type(PolyMesh), intent(in) :: mesh
   integer :: listSize
 
   listSize = size(mesh%cellList)
 end function getCellListSize
+
+pure function getVLayerSize(mesh) result(vlyrNum)
+  type(PolyMesh), intent(in) :: mesh
+  integer :: vlyrNum
+
+  vlyrNum = mesh%vlayerNum
+
+end function getVLayerSize
 
 function getFaceVertex1(mesh, faceGId) result(vxs)
   type(PolyMesh), intent(in) :: mesh
@@ -121,7 +133,7 @@ function getFaceVertex1(mesh, faceGId) result(vxs)
   type(Face) :: face_
 
   face_ = mesh%FaceList(faceGId)
-  vxs(:) = mesh%PointList( face_%vertIdList(1:face_%vertNum) )  
+  vxs(:) = mesh%PointPosList( face_%vertIdList(1:face_%vertNum) )  
 
 end function getFaceVertex1
 
@@ -138,7 +150,7 @@ function getFaceVertex2(mesh, cellGId, faceLId) result(vxs)
 
   faceGId = mesh%cellList(cellGId)%faceIdList(faceLId)
   face_ = mesh%FaceList(faceGId)
-  vxs(:) = mesh%PointList( face_%vertIdList(1:face_%vertNum) )  
+  vxs(:) = mesh%PointPosList( face_%vertIdList(1:face_%vertNum) )  
 
   if( face_%neighCellId == cellGId ) then
     ! Swap
@@ -151,12 +163,12 @@ subroutine PolyMesh_dataAlloc(mesh, ptNum, faceNum, cellNum)
   type(PolyMesh), intent(inout) :: mesh
   integer, intent(in) :: ptNum, faceNum, cellNum
 
-  if(associated(mesh%pointList)) deallocate(mesh%pointList)
+  if(associated(mesh%pointPosList)) deallocate(mesh%pointPosList)
   if(associated(mesh%faceList)) deallocate(mesh%faceList)
   if(associated(mesh%cellList)) deallocate(mesh%cellList)
   if(associated(mesh%cellPosList)) deallocate(mesh%cellPosList)
 
-  allocate( mesh%pointList(ptNum) )
+  allocate( mesh%pointPosList(ptNum) )
   allocate( mesh%faceList(faceNum) )
   allocate( mesh%cellList(cellNum) )
   allocate( mesh%cellPosList(cellNum) )
@@ -166,7 +178,7 @@ end subroutine PolyMesh_dataAlloc
 subroutine PolyMesh_Final(mesh)
   type(PolyMesh), intent(inout) :: mesh
 
-  if(associated(mesh%pointList)) deallocate(mesh%pointList)
+  if(associated(mesh%pointPosList)) deallocate(mesh%pointPosList)
   if(associated(mesh%faceList)) deallocate(mesh%faceList)
   if(associated(mesh%cellList)) deallocate(mesh%cellList)
 
@@ -177,7 +189,7 @@ subroutine PolyMesh_setPoint(mesh, ptId, pt)
   integer, intent(in) :: ptId
   type(Vector3d), intent(in) :: pt
 
-  mesh%pointList(ptId) = pt
+  mesh%pointPosList(ptId) = pt
 
 end subroutine PolyMesh_setPoint
 

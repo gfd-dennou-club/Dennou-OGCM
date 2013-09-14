@@ -17,7 +17,7 @@ module moduleName
 
   !
   type, public :: ListTypeName
-     ListElemType, pointer :: v_(:) => null()
+     ListElemType, pointer :: v_(:,:) => null()
      integer :: refCount = 0
   end type ListTypeName
 
@@ -29,12 +29,16 @@ module moduleName
     module procedure funcNameSuffix(Final)
   end interface List_Final
   
-  interface getListSize
-    module procedure funcNameSuffix(getListSize)
-  end interface getListSize
+  interface getHListSize
+    module procedure funcNameSuffix(getHListSize)
+  end interface getHListSize
+
+  interface getVListSize
+     module procedure funcNameSuffix(getVListSize)
+  end interface getVListSize
 
   interface decRef
-    module procedure funcNameSuffix(decRef)
+     module procedure funcNameSuffix(decRef)
   end interface decRef
 
   interface incRef
@@ -43,19 +47,19 @@ module moduleName
   
   ! Public procedures
   public :: List_Init, List_Final
-  public :: incRef, decRef, getListSize
+  public :: incRef, decRef, getHListSize, getVListSize
   
 contains
 
 !
 !
-subroutine funcNameSuffix(Init) (list, list_size)
+subroutine funcNameSuffix(Init) (list, list_vsize, list_hsize)
   type(ListTypeName), intent(inout) :: list
-  integer, intent(in) :: list_size
+  integer, intent(in) :: list_vsize, list_hsize
  
   call List_Final(list)
 
-  allocate(list%v_(list_size))
+  allocate(list%v_(list_vsize, list_hsize))
   list%refCount = 1
 
 end subroutine funcNameSuffix(Init)
@@ -77,13 +81,21 @@ subroutine funcNameSuffix(Final) (list)
 
 end subroutine funcNameSuffix(Final)
 
-function funcNameSuffix(getListSize) (list) result(listSize)
+pure function funcNameSuffix(getHListSize) (list) result(listSize)
   type(ListTypeName), intent(in) :: list
   integer :: listSize
 
-  listSize = size(list%v_(:))
+  listSize = size(list%v_, 2)
 
-end function funcNameSuffix(getListSize)
+end function funcNameSuffix(getHListSize)
+
+pure function funcNameSuffix(getVListSize) (list) result(listSize)
+  type(ListTypeName), intent(in) :: list
+  integer :: listSize
+
+  listSize = size(list%v_, 1)
+
+end function funcNameSuffix(getVListSize)
 
 !
 subroutine funcNameSuffix(incRef) (list)

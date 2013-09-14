@@ -27,7 +27,7 @@ module moduleName
   public :: operator(.dot.), normalizedVec, l2norm
 
 contains
-function normalize_(v) result(normVec)
+pure function normalize_(v) result(normVec)
   type(vectorspaceTypeName), intent(in) :: v
   type(vectorspaceTypeName) :: normVec
 
@@ -35,7 +35,7 @@ function normalize_(v) result(normVec)
 
 end function normalize_
 
-function dotProduct(v1, v2) result(dot)
+pure function dotProduct(v1, v2) result(dot)
   type(vectorspaceTypeName), intent(in) :: v1, v2
   real(DP) :: dot
 
@@ -43,11 +43,11 @@ function dotProduct(v1, v2) result(dot)
 
 end function dotProduct
 
-function l2norm_(v) result(nrm)
+pure function l2norm_(v) result(nrm)
   type(vectorspaceTypeName), intent(in) :: v
   real(DP) :: nrm
 
-  nrm = sqrt( v .dot. v )
+  nrm = sqrt( dot_product(v%v_, v%v_ ) )
 
 end function l2norm_
 

@@ -125,22 +125,22 @@ function KEnergy(s_normalVel) result(KE)
   
   integer :: cellId, faceId
   integer :: lfaceNum, faceNum
-  real(DP), allocatable :: s_localKE(:)
+  real(DP) :: s_localKE(getVLayerSize(plMesh), getFaceListSize(plMesh))
 
   call GeometricField_Init(KE, plMesh, "KE")
   KE%TempDataFlag = .true.
 
   faceNum = getFaceListSize(plMesh)
-  allocate(s_localKE(faceNum))
 
   do faceId=1, faceNum
-     s_localKE(faceId) = 0.25d0 * l2norm( fvmInfo%s_faceAreaVec.At.faceId ) * (fvmInfo%s_dualMeshFaceArea.At.FaceId) &
-          &              * (s_normalVel.At.faceId)**2
+     s_localKE(:,faceId) = 0.25d0 * l2norm( fvmInfo%s_faceAreaVec%data%v_(1,faceId) ) &
+          & * fvmInfo%s_dualMeshFaceArea%data%v_(1,FaceId) &
+          & * s_normalVel%data%v_(:,FaceId)**2
   end do
 
   do cellId=1, getCellListSize(plMesh)
      lfaceNum = plMesh%CellList(cellId)%faceNum
-     KE%data%v_(cellId) = sum( s_localKE(fvmInfo%Cell_FaceId(1:lfaceNum, cellId)) )/(fvmInfo%v_CellVol.At.cellId)
+     KE%data%v_(:,cellId) = sum( s_localKE(:,fvmInfo%Cell_FaceId(1:lfaceNum, cellId)), 2)/ fvmInfo%v_CellVol%data%v_(:,cellId)
   end do
 
 end function KEnergy
@@ -154,7 +154,7 @@ function PVFlux(v_h, s_normalVel) result(s_PVflux)
   type(PointScalarField) :: p_height, p_PV
  
   integer :: faceId, faceId2, faceNum, k, i
-  real(DP) :: weight, tmp, s2_MomFlux, s_PV, s2_PV
+  real(DP) :: weight, tmp(1), s2_MomFlux(1), s_PV(1), s2_PV(1)
   integer :: ptNum, ptId, cellIds(3), cellId
   type(Vector3d) :: geoPos
 
@@ -166,12 +166,13 @@ function PVFlux(v_h, s_normalVel) result(s_PVflux)
   ptNum = getPointListSize(plMesh)
 
   do ptId=1, ptNum
-     geoPos = CartToSphPos( plMesh%PointList(ptId) )
-     p_planetVor%data%v_(ptId) = (2d0*Omega)*sin(geoPos%v_(2))
+     geoPos = CartToSphPos( plMesh%PointPosList(ptId) )
+     p_planetVor%data%v_(1,ptId) = (2d0*Omega)*sin(geoPos%v_(2))
 
      cellIds(:) = fvmInfo%Point_CellId(1:3, ptId)
-     p_height%data%v_(ptId) = sum( R_iv(1:3,ptId)*(fvmInfo%v_cellVol.At.cellIds(:)) * (v_h.At.cellIds(:)) ) &
-          &                   / (fvmInfo%p_dualMeshCellVol.At.ptId)
+     p_height%data%v_(:,ptId) = sum( &
+          & (spread(R_iv(1:3,ptId),1,1)) * fvmInfo%v_cellVol%data%v_(:,cellIds(:)) * v_h%data%v_(:,cellIds(:)) &
+          & , 2) / fvmInfo%p_dualMeshCellVol%data%v_(:, ptId)
 
   end do
 
@@ -186,23 +187,23 @@ function PVFlux(v_h, s_normalVel) result(s_PVflux)
   faceNum = getFaceListSize(plMesh)
                 
   do faceId=1, faceNum
-  
-     s_PV = 0.5d0*sum( p_PV.At.fvmInfo%Face_PointId(1:2, faceId) )
+     s_PV(:) = 0.5d0*sum( p_PV%data%v_(:,fvmInfo%Face_PointId(1:2, faceId)), 2)
      tmp = 0d0
 
      do k=1, size(fvmInfo%Face_PairCellFaceId,1)
         faceId2 = fvmInfo%Face_PairCellFaceId(k, faceId)
         if( faceId2 == -1) exit;
 
-        s2_MomFlux = 0.5d0*sum( v_h.At.fvmInfo%Face_CellId(1:2, faceId2) ) * (s_normalVel.At.faceId2)
-        s2_PV = 0.5d0*sum( p_PV.At.fvmInfo%Face_PointId(1:2, faceId2) )
-        tmp =    tmp &
-             & + wt_ff(k,faceId) * l2norm(fvmInfo%s_faceAreaVec.At.faceId2) * s2_MomFlux * 0.5d0*(s_PV + s2_PV) 
+        s2_MomFlux(:) = 0.5d0*sum( v_h%data%v_(:, fvmInfo%Face_CellId(1:2, faceId2)), 2) * s_normalVel%data%v_(:,faceId2)
+        s2_PV(:) = 0.5d0*sum( p_PV%data%v_(:, fvmInfo%Face_PointId(1:2, faceId2)), 2)
+
+        tmp(:) =    tmp(:) &
+             & + wt_ff(k,faceId) * l2norm( fvmInfo%s_faceAreaVec%data%v_(1,faceId2) ) * s2_MomFlux * 0.5d0*(s_PV + s2_PV) 
+
 
      end do ! do while
 
-     s_PVFlux%data%v_(faceId) = tmp / (fvmInfo%s_dualMeshFaceArea.At.faceId)
-
+     s_PVFlux%data%v_(:,faceId) = tmp(:) / fvmInfo%s_dualMeshFaceArea%data%v_(:,faceId)
     
   end do
 
@@ -234,7 +235,7 @@ subroutine prepairIntrpWeight()
 
   R_vi = 0d0
   do ptId=1, ptNum
-     ptPos = plMesh%PointList(ptId)
+     ptPos = plMesh%PointPosList(ptId)
      cellIds = cshift(fvmInfo%Point_CellId(1:3,ptId), -1)
 
      do m=1, 3
@@ -243,7 +244,7 @@ subroutine prepairIntrpWeight()
 
      do m=1, 3
         cellId = fvmInfo%Point_CellId(m, ptId) 
-        R_iv(m, ptId) = 0.5d0*( areas(m) + areas(mod(m,3)+1) )/(fvmInfo%v_CellVol.At.cellId) 
+        R_iv(m, ptId) = 0.5d0*( areas(m) + areas(mod(m,3)+1) )/ At(fvmInfo%v_CellVol, cellId) 
 
         do n=1, MAX_CELL_FACE_NUM
            if( fvmInfo%Cell_PointId(n,cellId) == ptId) then

@@ -43,19 +43,19 @@ write(*,*) "U0=", u0
   faceNum = getFaceListSize(plMesh)
 
   do faceId=1, faceNum
-     geoPos = cartToSphPos( fvmInfo%s_faceCenter.At.faceId )
-     !geoPos1 = cartToSphPos( plMesh%PointList(fvmInfo%Face_PointId(1,faceId)) )
-     !geoPos2 = cartToSphPos( plMesh%PointList(fvmInfo%Face_PointId(2,faceId)) )
-     !s_normalVel%data%v_(faceId) = - Radius*u0*( sin(geoPos1%v_(2)) - sin(geoPos2%v_(2)) )/ l2norm(fvmInfo%s_faceAreaVec.At.FaceId)
+     geoPos = cartToSphPos( At(fvmInfo%s_faceCenter,faceId) )
+     !geoPos1 = cartToSphPos( plMesh%PointPosList(fvmInfo%Face_PointId(1,faceId)) )
+     !geoPos2 = cartToSphPos( plMesh%PointPosList(fvmInfo%Face_PointId(2,faceId)) )
+     !s_normalVel%data%v_(faceId) = - Radius*u0*( sin(geoPos1%v_(2)) - sin(geoPos2%v_(2)) )/ l2norm(fvmInfo%s_faceAreaVec.hSlice.FaceId)
      geo_vel = (/ u0*(cos(geoPos%v_(2))), 0d0, 0d0 /)
-     faceNormal = normalizedVec( fvmInfo%s_faceAreaVec.At.faceId )
-     s_normalVel%data%v_(faceId) = SphToCartVec( geo_vel, fvmInfo%s_faceCenter.At.faceId) .dot. faceNormal
+     faceNormal = normalizedVec( At(fvmInfo%s_faceAreaVec,faceId) )
+     s_normalVel%data%v_(1,faceId) = SphToCartVec( geo_vel, At(fvmInfo%s_faceCenter,faceId) ).dot.faceNormal
 
   end do
 
   do cellId=1, cellNum
      geoPos = cartToSphPos( plMesh%CellPosList(cellId) )
-     v_h%data%v_(cellId) =  h0 &
+     v_h%data%v_(1,cellId) =  h0 &
           &                    - (Radius*Omega*u0 + 0.5d0*u0**2) * sin(geoPos%v_(2))**2 / Grav
   end do
 
@@ -82,38 +82,6 @@ subroutine callBack_EndCurrentTimeStep(tstep, v_hN, v_normalVelN)
   call OutputDataAnalysisInfo(tstep, L2ErrorNorm, LinfErrorNorm)
 
 end subroutine callBack_EndCurrentTimeStep
-!!$
-!!$subroutine OutputData( tstep )
-!!$
-!!$  use vtkDataWriter_mod
-!!$  use netcdfDataWriter_mod
-!!$  use dc_string
-!!$  use SphericalCoord_mod
-!!$
-!!$  integer, intent(in) :: tstep
-!!$  character(STRING) :: dataFileName
-!!$  type(vtkDataWriter) :: writer
-!!$
-!!$type(PointScalarField) :: p_zeta
-!!$type(volScalarField) :: v_hError
-!!$
-!!$call GeometricField_Init(v_hError, plMesh, "v_hError")
-!!$
-!!$!call GeometricField_Init(p_zeta, plMesh, "p_zeta", "relative vorticity", "s-1")
-!!$!p_zeta = curl(s_normalVel)
-!!$!v_div = div(s_normalVel)
-!!$v_hError = v_h - v_h0
-!!$
-!!$  dataFileName = CPrintf("errorcheck-%08d.vtk", i=(/ tstep /))
-!!$  call vtkDataWriter_Init(writer, dataFileName, plMesh)
-!!$  call vtkDataWriter_Regist(writer, (/ v_hError /))
-!!$  call vtkDataWriter_write(writer)
-!!$  call vtkDataWriter_Final(writer)
-!!$
-!!$!call GeometricField_Final(p_zeta)
-!!$call GeometricField_Final(v_hError)
-!!$
-!!$end subroutine OutputData
 
 
 subroutine checkGridQuality()
@@ -149,24 +117,24 @@ subroutine checkGridQuality()
         dists(j) = l2norm(plMesh%CellPosList(i) - plMesh%CellPosList(neighCellId) )
      end do
 
-     sigma%data%v_(i) = minval(dists(1:lfaceNum)) / maxval(dists(1:lfaceNum))
+     sigma%data%v_(1,i) = minval(dists(1:lfaceNum)) / maxval(dists(1:lfaceNum))
 !write(*,*) i, sum(dists(1:lfaceNum))/lfaceNum
   end do
 
   do ptId=1, ptNum
-     q%data%v_(ptId) = evalTriQuality(plMesh%CellPosList(fvmInfo%Point_CellId(1:3, ptId)))
+     q%data%v_(1,ptId) = evalTriQuality(plMesh%CellPosList(fvmInfo%Point_CellId(1:3, ptId)))
   end do
 
 
-  sigMin = minval(sigma%data%v_(:) )
-  sigAvg = sum(sigma%data%v_(:))/dble(cellNum)
+  sigMin = minval(sigma%data%v_ )
+  sigAvg = sum(sigma%data%v_)/dble(cellNum)
   call MessageNotify("M", "globalSWM::CheckGridQuality", &
        & "minimum of local Uniformity for VoronoiMesh=%f", d=(/ sigMin /) )
   call MessageNotify("M", "globalSWM::CheckGridQuality", &
        & "average of local Uniformity for VoronoiMesh=%f", d=(/ sigAvg /) )
 
-  qMin = minval(q%data%v_(:) )
-  qAvg = sum(q%data%v_(:))/dble(ptNum)
+  qMin = minval(q%data%v_)
+  qAvg = sum(q%data%v_)/dble(ptNum)
   call MessageNotify("M", "globalSWM::CheckGridQuality", &
        & "minimum of local Uniformity for dual DelaunayTriMesh=%f", d=(/ qMin /) )
   call MessageNotify("M", "globalSWM::CheckGridQuality", &

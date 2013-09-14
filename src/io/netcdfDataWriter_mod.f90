@@ -75,8 +75,8 @@ subroutine netcdfDataWriter_Regist(writer, &
   if(present(volScalarFields)) then
 
      do i=1, size(volScalarFields)
-        varId = netcdfDataWriter_defFieldData( &
-             & writer, (/ writer%mesh2Info%face%dimId, writer%rec_dimId /), &
+        varId = netcdfDataWriter_defFieldData( writer, &
+             & (/ writer%mesh2Info%layers%dimId, writer%mesh2Info%face%dimId, writer%rec_dimId /), &
              & volScalarFields(i)%name,  volScalarFields(i)%long_name, volScalarFields(i)%units &
              & )
     end do
@@ -84,8 +84,8 @@ subroutine netcdfDataWriter_Regist(writer, &
 
   if(present(pointScalarFields)) then
      do i=1, size(pointScalarFields)
-        varId = netcdfDataWriter_defFieldData( &
-             & writer, (/ writer%mesh2Info%node%dimId, writer%rec_dimId /), &
+        varId = netcdfDataWriter_defFieldData( writer, & 
+             & (/ writer%mesh2Info%layers%dimId, writer%mesh2Info%node%dimId, writer%rec_dimId /), &
              & pointScalarFields(i)%name,  pointScalarFields(i)%long_name, pointScalarFields(i)%units &
              & )
     end do
@@ -110,9 +110,10 @@ subroutine write_volScalarField(writer, v_scalar)
       & )
 
   call check_nf90_status( nf90_put_var( &
-       & writer%ncID, varid, v_scalar%data%v_(:), &
-       &  start=(/ 1, writer%recCounter /), count=(/ size(v_scalar%data%v_), 1 /) ) &
- & )
+       & writer%ncID, varid, v_scalar%data%v_(:,:), &
+       &  start=(/ 1, 1, writer%recCounter /), &
+       & count=(/ size(v_scalar%data%v_,1), size(v_scalar%data%v_,2), 1 /) ) &
+       & )
 
 end subroutine write_volScalarField
 
@@ -128,9 +129,10 @@ subroutine write_ptScalarField(writer, p_scalar)
       & )
 
   call check_nf90_status( nf90_put_var( &
-       & writer%ncID, varid, p_scalar%data%v_(:), &
-       &  start=(/ 1, writer%recCounter /), count=(/ size(p_scalar%data%v_), 1 /) ) &
- & )
+       & writer%ncID, varid, p_scalar%data%v_(:,:), &
+       &  start=(/ 1, 1, writer%recCounter /), &
+       & count=(/ size(p_scalar%data%v_,1), size(p_scalar%data%v_,2), 1 /) ) &
+       & )
 
 end subroutine write_ptScalarField
 
@@ -199,6 +201,9 @@ subroutine netcdfDataWriter_writeGridMetaData(writer)
   call ncdef_mesh_coordinate(writer, meshInfo%edge_x )
   call ncdef_mesh_coordinate(writer, meshInfo%edge_y )
 
+  ! NetCDF ファイルに次元要素 layers を定義する.
+  call ncdef_dimension(writer, writer%Mesh2Info%layers )
+
   ! NetCDF ファイルに時間座標を定義する.
   call check_nf90_status( &
     & nf90_def_dim(writer%ncID, RECODE_NAME, NF90_UNLIMITED, writer%rec_dimid), &
@@ -246,37 +251,37 @@ subroutine netcdfDataWriter_writeGridData(writer)
   cellNum = getCellListSize(mesh)
   pointNum = getPointListSize(mesh)
 
-  call GeometricField_Init(v_lon, mesh, "v_lon")
-  call GeometricField_Init(v_lat, mesh, "v_lat")
-  call GeometricField_Init(p_lon, mesh, "p_lon")
-  call GeometricField_Init(p_lat, mesh, "p_lat")
-  call GeometricField_Init(s_lon, mesh, "s_lon")
-  call GeometricField_Init(s_lat, mesh, "s_lat")
+  call GeometricField_Init(v_lon, mesh, "v_lon", vlayerNum=1)
+  call GeometricField_Init(v_lat, mesh, "v_lat", vlayerNum=1)
+  call GeometricField_Init(p_lon, mesh, "p_lon", vlayerNum=1)
+  call GeometricField_Init(p_lat, mesh, "p_lat", vlayerNum=1)
+  call GeometricField_Init(s_lon, mesh, "s_lon", vlayerNum=1)
+  call GeometricField_Init(s_lat, mesh, "s_lat", vlayerNum=1)
 
 
   do i=1, pointNum
-     geoPos = RadToDegUnit( cartToSphPos( mesh%pointList(i) ) )
-     p_lon%data%v_(i) = geoPos%v_(1)
-     p_lat%data%v_(i) = geoPos%v_(2)
+     geoPos = RadToDegUnit( cartToSphPos( mesh%pointPosList(i) ) )
+     p_lon%data%v_(1,i) = geoPos%v_(1)
+     p_lat%data%v_(1,i) = geoPos%v_(2)
   end do
 
   call check_nf90_status( &
-       & nf90_put_var( writer%ncID, meshInfo%node_x%varID, p_lon%data%v_(:) ) )
+       & nf90_put_var( writer%ncID, meshInfo%node_x%varID, p_lon%data%v_(1,:) ) )
 
   call check_nf90_status( &
-       & nf90_put_var( writer%ncID, meshInfo%node_y%varID, p_lat%data%v_(:) ) )
+       & nf90_put_var( writer%ncID, meshInfo%node_y%varID, p_lat%data%v_(1,:) ) )
 
   do i=1, cellNum
      geoPos = RadToDegUnit( cartToSphPos( mesh%cellPosList(i) ) )
-     v_lon%data%v_(i) = geoPos%v_(1)
-     v_lat%data%v_(i) = geoPos%v_(2)
+     v_lon%data%v_(1,i) = geoPos%v_(1)
+     v_lat%data%v_(1,i) = geoPos%v_(2)
   end do
 
   call check_nf90_status( &
-       & nf90_put_var( writer%ncID, meshInfo%face_x%varID, v_lon%data%v_(:) ) )
+       & nf90_put_var( writer%ncID, meshInfo%face_x%varID, v_lon%data%v_(1,:) ) )
 
   call check_nf90_status( &
-       & nf90_put_var( writer%ncID, meshInfo%face_y%varID, v_lat%data%v_(:) ) )
+       & nf90_put_var( writer%ncID, meshInfo%face_y%varID, v_lat%data%v_(1,:) ) )
 
   call GeometricField_Final(v_lon)
   call GeometricField_Final(v_lat)

@@ -79,11 +79,11 @@ subroutine OutputData( tstep )
   integer, intent(in) :: tstep
   character(STRING) :: dataFileName
 
-integer :: maxId(1)
+integer :: maxId(2)
 
 
 maxId = maxloc(v_h%data%v_)
-write(*,*) "max height=", v_h.At.maxId(1), ":", RadToDegUnit(CartToSphPos(plmesh%cellPosList(maxId(1))))
+write(*,*) "max height=", At(v_h,maxId(2)), ":", RadToDegUnit(CartToSphPos(plmesh%cellPosList(maxId(2))))
 
 
   p_zeta = curl(s_normalVel)

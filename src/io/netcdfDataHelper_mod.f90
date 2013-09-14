@@ -166,6 +166,10 @@ module netcdfDataHelper_mod
     !> \~japanese
     !! \~english
     type(Mesh_coord_element) :: edge_x, edge_y
+
+    !> \~japanese
+    !! \~english
+    type(Mesh_dim_element) :: layers
     
   end type Mesh2_ncInfo
 
@@ -364,6 +368,8 @@ subroutine Mesh2_ncInfo_Init( &
   self%face%num = getCellListSize(mesh)
   self%edge%element_name = 'nMesh2_face '
   self%edge%num = getFaceListSize(mesh)
+  self%layers%element_name = 'Mesh2_layers '
+  self%layers%num = getVLayerSize(mesh)
   self%Two%element_name = 'Two'
   self%Two%num = 2
   self%Max_face_nodes%element_name = 'nMaxMesh2_face_nodes'

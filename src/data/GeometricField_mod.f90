@@ -18,6 +18,6 @@ module GeometricField_mod
   public :: GeometricField_Init, GeometricField_Final, Release
   public :: SetFieldAtitude, DeepCopy
   public :: operator(+), operator(-), operator(*), operator(/), assignment(=)
-  public :: operator(.At.)
+  public :: At, hSlice, vSlice
 
 end module GeometricField_mod

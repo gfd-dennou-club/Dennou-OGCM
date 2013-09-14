@@ -47,24 +47,24 @@ subroutine fvMeshInfo_Init(fvMesh, mesh, dualMeshFlag)
 
   call GeometricField_Init( &
     & fvMesh%v_CellVol, fvMesh%mesh, name="v_CellVol", &
-    & long_name="volume of Cell", units="m3")
+    & long_name="volume of Cell", units="m3", vLayerNum=1)
 
   call GeometricField_Init( &
     & fvMesh%s_faceAreaVec, fvMesh%mesh, name="s_faceAreaVec", &
-    & long_name="area vector of face", units="m2")
+    & long_name="area vector of face", units="m2", vLayerNum=1)
 
   call GeometricField_Init( &
     & fvMesh%s_faceCenter, fvMesh%mesh, name="s_faceCenter", &
-    & long_name="center of face", units="m")
+    & long_name="center of face", units="m", vLayerNum=1)
 
   if( fvMesh%dualMeshFlag ) then
      call GeometricField_Init( &
           & fvMesh%s_dualMeshFaceArea, fvMesh%mesh, name="s_dualMeshFaceArea", &
-          & long_name="area of face in dual mesh", units="m2")
+          & long_name="area of face in dual mesh", units="m2", vLayerNum=1)
 
      call GeometricField_Init( &
           & fvMesh%p_dualMeshCellVol, fvMesh%mesh, name="p_dualMeshCellVol", &
-          & long_name="area of face in dual mesh", units="m3")
+          & long_name="area of face in dual mesh", units="m3", vLayerNum=1)
 
   end if
 

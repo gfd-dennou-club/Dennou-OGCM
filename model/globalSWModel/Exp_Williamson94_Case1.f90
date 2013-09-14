@@ -35,10 +35,10 @@ write(*,*) "U0=", u0
   faceNum = getFaceListSize(plMesh)
 
   do faceId=1, faceNum
-     geoPos = cartToSphPos( fvmInfo%s_faceCenter.At.faceId )
+     geoPos = cartToSphPos( At(fvmInfo%s_faceCenter,faceId) )
      geo_vel = (/ u0*(cos(geoPos%v_(2))), 0d0, 0d0 /)
-     faceNormal = normalizedVec( fvmInfo%s_faceAreaVec.At.faceId )
-     s_normalVel%data%v_(faceId) = SphToCartVec( geo_vel, fvmInfo%s_faceCenter.At.faceId) .dot. faceNormal
+     faceNormal = normalizedVec( At(fvmInfo%s_faceAreaVec,faceId) )
+     s_normalVel%data%v_(1,faceId) = SphToCartVec( geo_vel, At(fvmInfo%s_faceCenter,faceId) ).dot.faceNormal
 
   end do
 
@@ -46,9 +46,9 @@ write(*,*) "U0=", u0
   do cellId=1, cellNum
      r = geodesicArcLength(centerPos, plmesh%cellPosList(cellId))
      if(r < cosBellRadius) then
-        v_h%data%v_(cellId) = 0.5d0*h0*(1d0 + cos(PI*r/cosBellRadius))
+        v_h%data%v_(1,cellId) = 0.5d0*h0*(1d0 + cos(PI*r/cosBellRadius))
      else
-        v_h%data%v_(cellId) = 0d0
+        v_h%data%v_(1,cellId) = 0d0
      end if
   end do
 

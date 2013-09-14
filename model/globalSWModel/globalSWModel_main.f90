@@ -61,7 +61,7 @@ program globalSWM
   call MessageNotify( 'M', "globalSWM", "Set initial condition..")
   call Set_InitialCondition()
   
-  call OutputData(0)
+   call OutputData(0)
   call callBack_EndCurrentTimeStep(0, v_h, s_normalVel)
   
   !

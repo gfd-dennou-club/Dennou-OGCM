@@ -21,10 +21,10 @@ program gridGen
   type(netcdfDataWriter) :: ncwriter
   type(vtkDataWriter) :: vtkWriter
 
-  integer, parameter :: glevel = 6
-  integer, parameter :: maxItrNum = 3000
+  integer, parameter :: glevel = 5
+  integer, parameter :: maxItrNum = 2800
   logical, parameter :: outputVtkData = .true.
-  character(STRING), parameter :: fileName = 'grid-glevel6'
+  character(STRING), parameter :: fileName = 'grid-glevel5'
 
   ! Setup
   write(*,*) 'hexgonal grid generation.. :glevel:', glevel
@@ -91,24 +91,24 @@ subroutine checkGridQuality()
         dists(j) = l2norm(plMesh%CellPosList(i) - plMesh%CellPosList(neighCellId) )
      end do
 
-     sigma%data%v_(i) = minval(dists(1:lfaceNum)) / maxval(dists(1:lfaceNum))
+     sigma%data%v_(1,i) = minval(dists(1:lfaceNum)) / maxval(dists(1:lfaceNum))
 !write(*,*) i, sum(dists(1:lfaceNum))/lfaceNum
   end do
 
   do ptId=1, ptNum
-     q%data%v_(ptId) = evalTriQuality(plMesh%CellPosList(fvInfo%Point_CellId(1:3, ptId)))
+     q%data%v_(1,ptId) = evalTriQuality(plMesh%CellPosList(fvInfo%Point_CellId(1:3, ptId)))
   end do
 
 
-  sigMin = minval(sigma%data%v_(:) )
-  sigAvg = sum(sigma%data%v_(:))/dble(cellNum)
+  sigMin = minval(sigma%data%v_ )
+  sigAvg = sum(sigma%data%v_)/dble(cellNum)
   call MessageNotify("M", "SCVGridGen::CheckGridQuality", &
        & "minimum of local Uniformity for VoronoiMesh=%f", d=(/ sigMin /) )
   call MessageNotify("M", "SCVGridGen::CheckGridQuality", &
        & "average of local Uniformity for VoronoiMesh=%f", d=(/ sigAvg /) )
 
-  qMin = minval(q%data%v_(:) )
-  qAvg = sum(q%data%v_(:))/dble(ptNum)
+  qMin = minval(q%data%v_ )
+  qAvg = sum(q%data%v_)/dble(ptNum)
   call MessageNotify("M", "SCVGridGen::CheckGridQuality", &
        & "minimum of local Uniformity for dual DelaunayTriMesh=%f", d=(/ qMin /) )
   call MessageNotify("M", "SCVGridGen::CheckGridQuality", &

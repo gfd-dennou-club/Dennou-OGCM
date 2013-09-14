@@ -7,11 +7,12 @@ program test_geometricField_mod
   implicit none
   
   integer, parameter :: listSize = 100
+  integer, parameter :: vlayerNum = 10
   type(PolyMesh) :: mesh
   type(volScalarField) :: field1, field2, field3
 
 
-  call PolyMesh_Init(mesh, listSize, listSize, listSize)
+  call PolyMesh_Init(mesh, listSize, listSize, listSize, vlayerNum=vlayerNum)
 
   call GeometricField_Init(field1, mesh, name="sfield1")
   call GeometricField_Init(field2, mesh, name="sfield2")
@@ -21,10 +22,10 @@ program test_geometricField_mod
   field2 = 0d0
 
   field3 = field1 + field2 + field1
-  write(*,*) field3%data%v_(1:10)
+  write(*,*) field3%data%v_(10,1:10)
 
   field3 = field1 + (field2 - field1) 
-  write(*,*) field3%data%v_(1:10)
+  write(*,*) field3%data%v_(10,1:10)
 
   call GeometricField_Final(field1)
   call GeometricField_Final(field2)
