@@ -1,4 +1,4 @@
-subdir =
+SUBDIRS =
 
 AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../src/ \

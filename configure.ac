@@ -211,6 +211,9 @@ AC_CONFIG_FILES([
 		 tool/Makefile
 		 model/globalSWModel/Makefile
 		 model/ogcm/Makefile
+		 model/ogcm/setup/Makefile
+		 model/ogcm/dynamics/Makefile
  ])
 
 AC_OUTPUT
+

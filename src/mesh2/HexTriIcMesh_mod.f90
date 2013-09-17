@@ -15,7 +15,7 @@ module HexTriIcMesh_mod
 
   type, public :: HexTriIcMesh
      type(PolyMesh), pointer :: mesh => null()
-     logical :: specifyMeshFlag = .false.
+     logical :: internalGenFlag = .true.
      real(DP) :: radius = 1d0
   end type HexTriIcMesh
 
@@ -31,12 +31,12 @@ subroutine HexTriIcMesh_Init(mesh, pmesh, radius)
 
   if(present(pmesh)) then
      mesh%mesh => pmesh
-     mesh%specifyMeshFlag = .true.
+     mesh%internalGenFlag = .false.
   end if
 
   if( present(radius) ) then
      mesh%radius = radius
-     if(mesh%specifyMeshFlag) call projectPosVecIntoSphere(mesh)
+     if(mesh%internalGenFlag) call projectPosVecIntoSphere(mesh)
   end if
 
 end subroutine HexTriIcMesh_Init
@@ -45,7 +45,7 @@ subroutine HexTriIcMesh_Final(mesh, radius)
   type(HexTriIcMesh), intent(inout) :: mesh
   real(DP), intent(in), optional :: radius
 
-  if(.not. mesh%specifyMeshFlag) then
+  if( mesh%internalGenFlag ) then
      call PolyMesh_Final(mesh%mesh)
      deallocate(mesh%mesh)
   end if
@@ -61,7 +61,6 @@ subroutine HexTriIcMesh_generate(mesh, glevel, scvMaxItrNum)
   integer, intent(in) :: glevel
   integer, intent(in), optional :: scvMaxItrNum
 
-  integer :: iniPtsId4(4)
   integer :: i
   integer :: siteNum
   integer :: vertNum
@@ -69,11 +68,13 @@ subroutine HexTriIcMesh_generate(mesh, glevel, scvMaxItrNum)
 
   siteNum = 10*4**glevel + 2
   vertNum = 2*siteNum - 4
-  allocate(mesh%mesh)
 
   !
-  call PolyMesh_Init(mesh%mesh, vertNum, siteNum+vertNum-2, siteNum)
-  call construct_icosahedralGrid(glevel, mesh%mesh%cellPosList, iniPtsId4)
+  if( mesh%internalGenFlag ) then
+     allocate(mesh%mesh)
+     call PolyMesh_Init(mesh%mesh, vertNum, siteNum+vertNum-2, siteNum)
+     call construct_icosahedralGrid(glevel, mesh%mesh%cellPosList)
+  end if
 
   !
   !
@@ -82,7 +83,7 @@ subroutine HexTriIcMesh_generate(mesh, glevel, scvMaxItrNum)
 
   maxItrNum = 1
   if(present(scvMaxItrNum)) maxItrNum = scvMaxItrNum
-  call SCVoroniDiagram_Generate(mesh%mesh%cellPosList, iniPtsId4, maxItrNum)
+  call SCVoroniDiagram_Generate(mesh%mesh%cellPosList, getInit4IcGridPtId(glevel), maxItrNum)
   call SCVoronoi_SetTopology(mesh%mesh)
 
   call SCVoronoiGen_Final()
@@ -201,10 +202,22 @@ subroutine projectPosVecIntoSphere(htimesh)
 
 end subroutine projectPosVecIntoSphere
 
-subroutine construct_icosahedralGrid(glevel, pts, iniPtsId4)
+function getInit4IcGridPtId(glevel) result(iniPtsId4)
+  integer, intent(in) :: glevel
+  integer :: iniPtsId4(4)
+
+  integer :: lcEnd
+
+  lcEnd = 2**glevel+1
+
+  iniPtsId4(:) = (/ 1, 2 + (lcEnd-1)*(6*(lcEnd-1) - 1), &
+    & 2 + (lcEnd-1)*(7*(lcEnd-1) - 1), 2 + (lcEnd-1)*(9*(lcEnd-1) - 1) /)  
+
+end function getInit4IcGridPtId
+
+subroutine construct_icosahedralGrid(glevel, pts)
   integer, intent(in) :: glevel
   type(Vector3d), intent(inout), pointer :: pts(:)
-  integer, intent(out) :: iniPtsId4(4)
 
   integer :: icgridNum, lcEnd
   type(Vector3d) :: icLv0Vx(12)
@@ -230,10 +243,7 @@ subroutine construct_icosahedralGrid(glevel, pts, iniPtsId4)
   icpts(1,lcEnd, 6) = icLv0Vx(8)
   icpts(lcEnd,lcEnd, 6) = icLv0Vx(12)
 
-  iniPtsId4(:) = (/ 1, 2 + (lcEnd-1)*(6*(lcEnd-1) - 1), &
-    & 2 + (lcEnd-1)*(7*(lcEnd-1) - 1), 2 + (lcEnd-1)*(9*(lcEnd-1) - 1) /)  
-  
-  call split_LCRCSubLCRC(1,lCEnd, 1, lcEnd, icpts(:,:,1))
+   call split_LCRCSubLCRC(1,lCEnd, 1, lcEnd, icpts(:,:,1))
   call split_LCRCSubLCRC(1,lCEnd, 1, lcEnd, icpts(:,:,6))
   do j=1, lcEnd
     do i=1, lcEnd

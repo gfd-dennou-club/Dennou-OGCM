@@ -1,4 +1,8 @@
-SUBDIRS = src test tool model/globalSWModel model/ogcm
+SUBDIRS = src \
+	test \
+	tool \
+	model/globalSWModel \
+	model/ogcm
 
 ACLOCAL_AMFLAGS = -I m4
 

@@ -33,6 +33,7 @@ module netcdfDataWriter_mod
   public :: netcdfDataWriter_Init, netcdfDataWriter_Final
   public :: netcdfDataWriter_Regist
   public :: netcdfDataWriter_Write
+  public :: netcdfDataWriter_WriteGlobalAttr
   public :: netcdfDataWriter_AdvanceTimeStep
 
 
@@ -165,6 +166,16 @@ subroutine netcdfDataWriter_AdvanceTimeStep( writer, newStepTime )
   
 end subroutine netcdfDataWriter_AdvanceTimeStep
 
+subroutine netcdfDataWriter_WriteGlobalAttr(writer, attrName, attrVal)
+  type(netcdfDataWriter), intent(inout) :: writer
+  character(*), intent(in) :: attrName
+  real(DP), intent(in) :: attrVal
+
+  call check_nf90_status( &
+    & nf90_put_att(writer%ncID, NF90_GLOBAL, attrName, attrVal), &
+    message='write a global attribute.'  &
+    & )
+end subroutine netcdfDataWriter_WriteGlobalAttr
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine netcdfDataWriter_writeGridMetaData(writer)

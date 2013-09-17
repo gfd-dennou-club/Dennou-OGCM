@@ -81,18 +81,22 @@ subroutine PolyMesh_Init1(mesh, ptNum, faceNum, cellNum, vlayerNum)
 
 end subroutine PolyMesh_Init1
 
-subroutine PolyMesh_Init2(mesh, points, faces, cells, vlayerNum)
+subroutine PolyMesh_Init2(mesh, pointsPos, cellsPos, faces, cells, vlayerNum)
   type(PolyMesh), intent(inout) :: mesh
-  type(Vector3d), intent(in) :: points(:)
+  type(Vector3d), intent(in) :: pointsPos(:)
+  type(Vector3d), intent(in) :: cellsPos(:)
   type(Face), intent(in) :: faces(:)
   type(Cell), intent(in) :: cells(:)
   integer, optional, intent(in) :: vlayerNum
 
-  call PolyMesh_dataAlloc(mesh, size(points), size(faces), size(cells))
+  call PolyMesh_dataAlloc(mesh, size(pointsPos), size(faces), size(cells))
 
   mesh%cellList(:) = cells(:)
   mesh%faceList(:) = faces(:)  
-  mesh%pointPosList(:) = points(:)
+  mesh%pointPosList(:) = pointsPos(:)
+  mesh%cellPosList(:) = cellsPos(:)
+
+  if( present(vlayerNum) ) mesh%vlayerNum = vlayerNum
 
 end subroutine PolyMesh_Init2
 
@@ -164,11 +168,13 @@ subroutine PolyMesh_dataAlloc(mesh, ptNum, faceNum, cellNum)
   integer, intent(in) :: ptNum, faceNum, cellNum
 
   if(associated(mesh%pointPosList)) deallocate(mesh%pointPosList)
+  if(associated(mesh%cellPosList)) deallocate(mesh%cellPosList)
   if(associated(mesh%faceList)) deallocate(mesh%faceList)
   if(associated(mesh%cellList)) deallocate(mesh%cellList)
   if(associated(mesh%cellPosList)) deallocate(mesh%cellPosList)
 
   allocate( mesh%pointPosList(ptNum) )
+  allocate( mesh%cellPosList(cellNum) )
   allocate( mesh%faceList(faceNum) )
   allocate( mesh%cellList(cellNum) )
   allocate( mesh%cellPosList(cellNum) )

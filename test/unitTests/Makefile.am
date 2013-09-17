@@ -1,4 +1,4 @@
-subdir =
+SUBDIRS =
 
 test: check
 

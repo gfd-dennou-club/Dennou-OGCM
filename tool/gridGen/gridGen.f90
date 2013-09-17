@@ -1,7 +1,11 @@
 program gridGen
 
-  use dc_types
-  use dc_message
+  use dc_types, only: &
+       & DP, STRING
+  use dc_message, only: &
+       & MessageNotify
+  use dc_string, only: &
+       & StoI, StoA, CPrintf, Replace
 
   use VectorSpace_mod
   use SphericalCoord_mod
@@ -21,41 +25,139 @@ program gridGen
   type(netcdfDataWriter) :: ncwriter
   type(vtkDataWriter) :: vtkWriter
 
-  integer, parameter :: glevel = 5
-  integer, parameter :: maxItrNum = 2800
   logical, parameter :: outputVtkData = .true.
   character(STRING), parameter :: fileName = 'grid-glevel5'
 
+  integer :: glevel
+  integer :: maxItrNum
+  logical :: reExecuteFlag
+  character(STRING) :: loadGridFileName
+  character(STRING) :: genGridFileName
+
+  type(PolyMesh) :: plMesh   ! This variable will be used only if re-executing is specified. 
+
+  !****************************
+  !* Executable statement
+  !*****************************
+
   ! Setup
-  write(*,*) 'hexgonal grid generation.. :glevel:', glevel
-  call HexTriIcMesh_Init(htiMesh)
+  !
+
+  call argAnalysis()
+  
+  !
+
+  ! Generate spherical constrained voronoi(SCV) grid
+  !
+  call MessageNotify("M", "SCVGridGen",  'hexgonal grid generation.. glevel=%d', i=(/ glevel /))
+
+  if( reExecuteFlag ) then
+     call loadGridData()
+     call HexTriIcMesh_Init(htiMesh, pMesh=plMesh)
+  else
+     call HexTriIcMesh_Init(htiMesh)
+  end if
+ 
   call HexTriIcMesh_generate(htiMesh, glevel, maxItrNum)
 
   call fvMeshInfo_Init(fvInfo, htiMesh%mesh)
   call HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
 
+
+  ! Valify the quality of the generated grid
   !
-  write(*,*) "* output netcdf .."
-  call netcdfDataWriter_Init(ncwriter, trim(fileName)//".nc", htiMesh%mesh)
+
+  call checkGridQuality()
+
+  ! Generate a grid data file
+  !
+
+  call MessageNotify("M",  "SCVGridGen", "* output grid data as a netcdf file ..")
+  call netcdfDataWriter_Init(ncwriter, genGridFileName, htiMesh%mesh)
+  call netcdfDataWriter_writeGlobalAttr(ncWriter, "planetRadius", 1d0)
   call netcdfDataWriter_Regist(ncwriter, (/ fvInfo%v_CellVol /))
   call netcdfDataWriter_write(ncwriter, fvInfo%v_CellVol)
   call netcdfDataWriter_Final(ncwriter)
 
   if( outputVtkData ) then
-     call vtkDataWriter_Init(vtkwriter, trim(fileName)//".vtk", htiMesh%mesh)
+  call MessageNotify("M",  "SCVGridGen", "* output grid data as a vtk data file  ..")
+     call vtkDataWriter_Init(vtkwriter, Replace(genGridFileName,".nc",".vtk"), htiMesh%mesh)
      call vtkDataWriter_Regist(vtkwriter, (/ fvInfo%v_CellVol /))
      call vtkDataWriter_write(vtkwriter)
      call vtkDataWriter_Final(vtkwriter)
   end if
 
-  !
-  call checkGridQuality()
 
   ! Finalization
+  !
   call HexTriIcMesh_Final(htiMesh)
   
-contains
+  if( reExecuteFlag ) then
+     call PolyMesh_Final(plMesh)
+  end if
 
+contains
+subroutine argAnalysis()
+
+  use dc_args
+
+  type(ARGS) :: arg
+
+  logical :: optLoadFileName, optGenFileName
+  character(STRING) :: valLoadFileName, valGenFileName
+  character(STRING), pointer :: argStr(:) => null()
+
+  call DCArgsOpen(arg)
+
+  call DCArgsOption(arg, StoA('-r', '--reusedGridFile'), optLoadFileName, valLoadFileName, &
+    &         help="Specify the grid file used in re-executing SCVGridGen." )
+
+  call DCArgsOption(arg, StoA('-o', '--outputFile'), optGenFileName, valGenFileName, &
+    &         help="Specify the output grid file." )
+
+
+  call DCArgsDebug(arg)
+  call DCArgsHelp(arg)
+  call DCArgsStrict(arg)
+
+  if ( DCArgsNumber(arg) /= 2 ) then
+     call MessageNotify('E', 'SCVGridGen', 'Two aruguments must be specified. &
+          & First argument is the "glevel of icosahedral grid". &
+          & Second argument is the maximum number of iteration.')
+  else
+     call DCArgsGet(arg, argStr)
+     glevel = StoI( argStr(1) )
+     maxItrNum = StoI( argStr(2) )
+     if(associated(argStr)) deallocate(argStr)
+  end if
+
+  if( optGenFileName ) then
+     genGridFileName = valGenFileName
+  else
+     genGridFileName = cprintf( "grid-glevel%d.nc", i=(/ glevel /) )
+  end if
+
+  if( optLoadFileName ) then
+     reExecuteFlag = .true. 
+     loadGridFileName = valLoadFileName
+     call MessageNotify("M", "SCVGridGen", "Re-executing mode.. '%a' is used as Original grid data", ca=(/ loadGridFileName /))
+  else
+     reExecuteFlag = .false.
+  end if
+
+end subroutine argAnalysis
+
+subroutine loadGridData()
+  use netcdfDataReader_mod
+  
+  type(netcdfDataReader) :: reader
+
+  call netcdfDataReader_Init(reader, loadGridFileName, plMesh)
+  call netcdfDataReader_Final(reader)
+
+write(*,*) "listsize-",size(plMesh%CellPosList)
+
+end subroutine loadGridData
 
 subroutine checkGridQuality()
 
@@ -92,7 +194,6 @@ subroutine checkGridQuality()
      end do
 
      sigma%data%v_(1,i) = minval(dists(1:lfaceNum)) / maxval(dists(1:lfaceNum))
-!write(*,*) i, sum(dists(1:lfaceNum))/lfaceNum
   end do
 
   do ptId=1, ptNum
