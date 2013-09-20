@@ -12,7 +12,7 @@ module SimParameters_mod
   integer, parameter :: delTime       = 900
   integer, parameter :: endTime  = 2*24*3600
   integer, parameter :: endTStep = endTime / delTime 
-  integer, parameter :: outputIntrVal = 12*3600
+  integer, parameter :: outputIntrVal = 2*24*3600
   real(DP), parameter :: PI = acos(-1d0)
 
   character(STRING) :: gridFilePath = "../../tool/grid/grid-glevel5.nc"

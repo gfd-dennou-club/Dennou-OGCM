@@ -35,6 +35,7 @@ module moduleName
     character(TOKEN) :: units
     logical :: tempDataFlag = .false.
     integer :: vlayerNum
+    integer :: vHaloSize = 0
   end type FieldTypeName
 
   !
@@ -67,10 +68,6 @@ module moduleName
     module procedure funcNameSuffix(assignFDElemTypeArray)
   end interface assignment(=)
 
-!!$  interface assignment(:=)
-!!$    module procedure funcNameSuffix(assignForExpr)
-!!$  end interface assignment(:=)
-  
   interface operator(+)
     module procedure funcNameSuffix(addOptr1)
     module procedure funcNameSuffix(addOptr2)
@@ -127,13 +124,14 @@ module moduleName
 contains
 
 !
-subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units, vlayerNum)
+subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units, vlayerNum, vHaloSize)
   type(FieldTypeName), intent(inout) :: field
   type(PolyMesh), target, intent(in) :: mesh
   character(*), optional, intent(in) :: name
   character(*), optional, intent(in) :: long_name
   character(*), optional, intent(in) :: units
   integer, optional, intent(in) :: vlayerNum
+  integer, optional, intent(in) :: vHaloSize
 
   ! Work variables
   !
@@ -161,11 +159,13 @@ subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units, vlayerNum)
   else
      field%vlayerNum = mesh%vlayerNum
   end if
+  
+  if(present(vHaloSize)) field%vHaloSize = vHaloSize
 
   !
   select case( DataDefLoc )
     case (DATADEFLOC_SURFACE)
-       hdataSize = getFaceListSize(mesh)
+      hdataSize = getFaceListSize(mesh)
     case (DATADEFLOC_VOL)
       hdataSize = getCellListSize(mesh)
     case (DATADEFLOC_POINT)
@@ -174,7 +174,7 @@ subroutine funcNameSuffix(Init) (field, mesh, name, long_name, units, vlayerNum)
 
   !
   allocate(field%data)
-  call List_Init(field%data, field%vLayerNum, hdataSize)
+  call List_Init(field%data, field%vLayerNum, hdataSize, field%vHaloSize)
 !  write(*,*) field%name, "allocated..", ", hdataSize=", hdataSize, "vlayerNum=", field%vlayerNum
 
 end subroutine funcNameSuffix(Init)
@@ -224,7 +224,7 @@ subroutine funcNameSuffix(releaseDataRef) (field)
   
   if( refIs0 ) then
     call List_Final(field%data)
-    !write(*,*) "FieldName=", field%name
+    !write(*,*) "Delete data FieldName=", field%name
     !if( field%tempDataFlag ) write(*,*) "This object is a temporary data. ^"
     deallocate(field%data)
   end if
@@ -248,6 +248,8 @@ subroutine funcNameSuffix(assignFieldObj) (this, other)
   end if
 
   !
+  !write(*,*) "assign:", this%name, "=", other%name
+
   call funcNameSuffix(releaseDataRef) (this)
 
   this%data => other%data

@@ -26,7 +26,7 @@ program ogcm_main
   ! 局所変数
   ! Local variables
   !
-  integer :: endTimeStep
+  
   character(*), parameter :: PROGRAM_NAME = "ogcm_main"
 
   ! 実行文; Executable statement
@@ -90,7 +90,10 @@ contains
          & Constants_Init
     
     use GridSet_mod, only: &
-         & GridSet_Init
+         & GridSet_Init, fvmInfo
+
+    use fvCalculus_mod, only: &
+         & fvCalculus_Init
 
     use TemporalIntegSet_mod, only: &
          & TemporalIntegSet_Init
@@ -100,6 +103,12 @@ contains
 
     use DataFileSet_mod, only: &
          & DataFileSet_Init
+
+    use CGridFieldDataUtil_mod, only: &
+         & CGridFieldDataUtil_Init
+
+    use VGridFieldDataUtil_mod, only: &
+         & VGridFieldDataUtil_Init
 
     use GovernEqSolverDriver_mod, only: &
          & GovernEqSolverDriver_Init
@@ -130,6 +139,9 @@ contains
     call GridSet_Init(configNmlFile)
 
     !
+    call fvCalculus_Init(fvmInfo)
+
+    !
     call TemporalIntegSet_Init(configNmlFile)
 
     !
@@ -137,6 +149,12 @@ contains
 
     !
     call DataFileSet_Init(configNmlFile)
+
+    !
+    call CGridFieldDataUtil_Init()
+
+    !
+    call VGridFieldDataUtil_Init()
 
     !
     call GovernEqSolverDriver_Init()
@@ -156,6 +174,9 @@ contains
     use GridSet_mod, only: &
          & GridSet_Final
 
+    use fvCalculus_mod, only: &
+         & fvCalculus_Final
+
     use TemporalIntegSet_mod, only: &
          & TemporalIntegSet_Final
 
@@ -164,6 +185,12 @@ contains
 
     use DataFileSet_mod, only: &
          & DataFileSet_Final
+
+    use CGridFieldDataUtil_mod, only: &
+         & CGridFieldDataUtil_Final
+
+    use VGridFieldDataUtil_mod, only: &
+         & VGridFieldDataUtil_Final
 
     use GovernEqSolverDriver_mod, only: &
          & GovernEqSolverDriver_Final
@@ -184,6 +211,12 @@ contains
 
     !
     call GovernEqSolverDriver_Final()
+    
+    !
+    call VGridFieldDataUtil_Final()
+
+    !
+    call CGridFieldDataUtil_Final()
 
     !
     call TemporalIntegSet_Final()
@@ -193,6 +226,9 @@ contains
 
     !
     call VariableSet_Final()
+
+    !
+    call fvCalculus_Final()
 
     !
     call GridSet_Final()

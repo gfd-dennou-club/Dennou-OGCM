@@ -19,6 +19,7 @@ module moduleName
   type, public :: ListTypeName
      ListElemType, pointer :: v_(:,:) => null()
      integer :: refCount = 0
+     integer :: vHaloSize
   end type ListTypeName
 
   interface List_Init
@@ -53,13 +54,14 @@ contains
 
 !
 !
-subroutine funcNameSuffix(Init) (list, list_vsize, list_hsize)
+subroutine funcNameSuffix(Init) (list, list_vsize, list_hsize, vHaloSize)
   type(ListTypeName), intent(inout) :: list
   integer, intent(in) :: list_vsize, list_hsize
- 
+  integer, intent(in) :: vHaloSize
   call List_Final(list)
 
-  allocate(list%v_(list_vsize, list_hsize))
+  allocate(list%v_(1-vHaloSize:list_vsize+vHaloSize, list_hsize))
+  list%vHaloSize = vHaloSize
   list%refCount = 1
 
 end subroutine funcNameSuffix(Init)
@@ -93,7 +95,7 @@ pure function funcNameSuffix(getVListSize) (list) result(listSize)
   type(ListTypeName), intent(in) :: list
   integer :: listSize
 
-  listSize = size(list%v_, 1)
+  listSize = size(list%v_,1) - 2*list%vHaloSize
 
 end function funcNameSuffix(getVListSize)
 

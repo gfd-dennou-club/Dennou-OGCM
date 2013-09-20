@@ -39,6 +39,12 @@ module GridSet_mod
   type(PolyMesh), public, save :: plMesh  
   type(fvMeshInfo), public, save :: fvmInfo
   type(HexTriIcMesh), public, save :: htiMesh
+  integer, public, save :: CellNum
+  integer, public, save :: EdgeNum
+  integer, public, save :: VertexNum
+  integer, public, save :: vzLayerNum
+  integer, public, save :: vrLayerNum
+  integer, parameter, public :: VHaloSize = 1
 
   ! 非公開変数
   ! Private variables
@@ -53,6 +59,9 @@ contains
     !
     use Constants_mod, only: RPlanet
 
+    use PolyMesh_mod, only: &
+         & getCellListSize, getFaceListSize, getPointListSize
+
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlFileName
@@ -61,17 +70,17 @@ contains
     ! local variable
     !
     character(STRING) :: gridFilePath
-    integer :: vLayersNum
+
 
     ! 実行文; Executable statement
     !
 
     ! Read the path to grid data file from namelist.
-    call read_nmlData(configNmlFileName, gridFilePath, vLayersNum)
+    call read_nmlData(configNmlFileName, gridFilePath)
 
     ! Load grid data of from netcdf file. 
     ! If loading grid data succeed, a polyMesh object whose name is plMesh have read grid data.    
-    call constract_grid(gridFilePath, vLayersNum)
+    call constract_grid(gridFilePath)
     call HexTriIcMesh_Init(htiMesh, plMesh, RPlanet)
 
     ! Initialize some modules for finite volume method
@@ -79,6 +88,12 @@ contains
     call MessageNotify( 'M', module_name, "Initialize some modules for finite volume method..")
     call fvMeshInfo_Init(fvmInfo, plMesh, dualMeshFlag=.true.)
     call HexTriIcMesh_configfvMeshInfo(htiMesh, fvmInfo)
+
+    !
+    CellNum = getCellListSize(plMesh)
+    EdgeNum = getFaceListSize(plMesh)
+    VertexNum = getPointListSize(plMesh)
+    vrLayerNum = vzLayerNum + 1
 
   end subroutine GridSet_Init
 
@@ -93,7 +108,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine read_nmlData( configNmlFileName, &
-       & gridFilePath, vLayersNum )
+       & gridFilePath )
 
     ! モジュール引用; Use statement
     !
@@ -112,7 +127,6 @@ contains
     !
     character(*), intent(in) :: configNmlFileName
     character(STRING), intent(out) :: gridFilePath
-    integer, intent(out) :: vLayersNum
 
     ! 局所変数
     ! Local variables
@@ -127,7 +141,7 @@ contains
     ! NAMELIST group name
     !
     namelist /grid_nml/ &
-         & gridFilePath, vLayersNum
+         & gridFilePath, vzLayerNum
 
     ! 実行文; Executable statements
 
@@ -135,6 +149,7 @@ contains
     ! Default values settings
     !
     gridFilePath = ""
+    vzLayerNum    = 1
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -156,11 +171,11 @@ contains
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, '  gridFilePath        = %a', ca=(/ gridFilePath /))
-    call MessageNotify( 'M', module_name, '  vLayersNum          = %d', i=(/ vLayersNum /))
+    call MessageNotify( 'M', module_name, '  vzLayerNum          = %d', i=(/ vzLayerNum /))
 
   end subroutine read_nmlData
 
-  subroutine constract_Grid(gridFilePath, vLayersNum)
+  subroutine constract_Grid(gridFilePath)
 
     ! モジュール引用; Use statement
     !
@@ -171,7 +186,6 @@ contains
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: gridFilePath
-    integer, intent(in) :: vLayersNum
 
     ! 局所変数
     ! Local variables
@@ -188,7 +202,7 @@ contains
     call netcdfDataReader_Final(ncReader)
 
     call PolyMesh_Init(plMesh, &
-         & readPlMesh%pointPosList, readPlMesh%cellPosList, readPlMesh%faceList, readPlMesh%cellList, vLayersNum)
+         & readPlMesh%pointPosList, readPlMesh%cellPosList, readPlMesh%faceList, readPlMesh%cellList, vzLayerNum)
 
     call PolyMesh_Final(readPlMesh)
 

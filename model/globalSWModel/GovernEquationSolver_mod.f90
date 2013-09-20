@@ -124,21 +124,24 @@ function KEnergy(s_normalVel) result(KE)
   type(volScalarField) :: KE
   
   integer :: cellId, faceId
-  integer :: lfaceNum, faceNum
+  integer :: lfaceNum, faceNum, cellNum
   real(DP) :: s_localKE(getVLayerSize(plMesh), getFaceListSize(plMesh))
 
   call GeometricField_Init(KE, plMesh, "KE")
   KE%TempDataFlag = .true.
 
   faceNum = getFaceListSize(plMesh)
+  cellNum = getCellListSize(plMesh)
 
+  !$omp parallel do
   do faceId=1, faceNum
      s_localKE(:,faceId) = 0.25d0 * l2norm( fvmInfo%s_faceAreaVec%data%v_(1,faceId) ) &
           & * fvmInfo%s_dualMeshFaceArea%data%v_(1,FaceId) &
           & * s_normalVel%data%v_(:,FaceId)**2
   end do
 
-  do cellId=1, getCellListSize(plMesh)
+  !$omp parallel do private(lfaceNum)
+  do cellId=1, cellNum
      lfaceNum = plMesh%CellList(cellId)%faceNum
      KE%data%v_(:,cellId) = sum( s_localKE(:,fvmInfo%Cell_FaceId(1:lfaceNum, cellId)), 2)/ fvmInfo%v_CellVol%data%v_(:,cellId)
   end do
@@ -165,11 +168,13 @@ function PVFlux(v_h, s_normalVel) result(s_PVflux)
 
   ptNum = getPointListSize(plMesh)
 
+  !$omp parallel do private(geoPos, cellIds)
   do ptId=1, ptNum
      geoPos = CartToSphPos( plMesh%PointPosList(ptId) )
      p_planetVor%data%v_(1,ptId) = (2d0*Omega)*sin(geoPos%v_(2))
 
      cellIds(:) = fvmInfo%Point_CellId(1:3, ptId)
+    
      p_height%data%v_(:,ptId) = sum( &
           & (spread(R_iv(1:3,ptId),1,1)) * fvmInfo%v_cellVol%data%v_(:,cellIds(:)) * v_h%data%v_(:,cellIds(:)) &
           & , 2) / fvmInfo%p_dualMeshCellVol%data%v_(:, ptId)
@@ -185,7 +190,8 @@ function PVFlux(v_h, s_normalVel) result(s_PVflux)
   s_PVFlux%TempDataFlag = .true.
 
   faceNum = getFaceListSize(plMesh)
-                
+  
+  !$omp parallel do private(s_PV, s2_PV, s2_MomFlux, tmp, k, faceId2) 
   do faceId=1, faceNum
      s_PV(:) = 0.5d0*sum( p_PV%data%v_(:,fvmInfo%Face_PointId(1:2, faceId)), 2)
      tmp = 0d0

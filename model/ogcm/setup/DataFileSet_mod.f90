@@ -134,6 +134,10 @@ contains
     ! 実行文; Executable statement
     !
 
+    if( mod(CurrentTime, outputIntrval) /= 0 ) return 
+
+
+    call MessageNotify("M", module_name, "Output data of some field at %d [sec] ..", i=(/ int(CurrentTime) /))
     call netcdfDataWriter_write(dataWriter, zc_lyrThick)
     
     !

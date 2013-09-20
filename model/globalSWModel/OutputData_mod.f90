@@ -88,14 +88,11 @@ write(*,*) "max height=", At(v_h,maxId(2)), ":", RadToDegUnit(CartToSphPos(plmes
 
   p_zeta = curl(s_normalVel)
   v_div = div(s_normalVel)
-
-  if(tStep /= 0) then
-     call netcdfDataWriter_AdvanceTimeStep(ncWriter, dble(tstep*delTime) )
-  end if
   
   call netcdfDataWriter_write(ncWriter, v_h)
   call netcdfDataWriter_write(ncWriter, v_div)
   call netcdfDataWriter_write(ncWriter, p_zeta)
+  call netcdfDataWriter_AdvanceTimeStep(ncWriter, dble(tstep*delTime) )
 
 end subroutine OutputData
 

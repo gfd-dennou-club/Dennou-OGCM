@@ -11,7 +11,8 @@ module GovernEqSolverDriver_mod
   ! モジュール引用; Use statements
   !
   use HydroBouEqSolver_mod, only: &
-       & HydroBouEqSolver_Init, HydroBouEqSolver_Final
+       & HydroBouEqSolver_Init, HydroBouEqSolver_Final, &
+       & HydroBouEqSolver_AdvanceTime
 
   ! 宣言文; Declareration statements
   !
@@ -63,7 +64,8 @@ contains
     
     ! 実行文; Executable statement
     !
-    
+    call HydroBouEqSolver_AdvanceTime()
+
   end subroutine GovernEqSolverDriver_AdvanceTime
 
   !>

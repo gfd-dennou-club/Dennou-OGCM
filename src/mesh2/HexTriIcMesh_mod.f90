@@ -36,7 +36,7 @@ subroutine HexTriIcMesh_Init(mesh, pmesh, radius)
 
   if( present(radius) ) then
      mesh%radius = radius
-     if(mesh%internalGenFlag) call projectPosVecIntoSphere(mesh)
+     if(.not. mesh%internalGenFlag) call projectPosVecIntoSphere(mesh)
   end if
 
 end subroutine HexTriIcMesh_Init

@@ -20,9 +20,7 @@ module netcdfDataWriter_mod
     type(Mesh2_ncInfo) :: mesh2Info
     integer :: ncId
     integer :: rec_dimId
-    integer :: recCounter = 0
-    real(DP) :: initTime = 0d0
-
+    integer :: recCounter = 1
   end type netcdfDataWriter
 
   interface netcdfDataWriter_write
@@ -95,7 +93,7 @@ subroutine netcdfDataWriter_Regist(writer, &
 
   call check_nf90_status( nf90_enddef( writer%ncID ) )
   call netcdfDataWriter_writeGridData(writer)
-  call netcdfDataWriter_AdvanceTimeStep(writer, writer%initTime)
+  !call netcdfDataWriter_AdvanceTimeStep(writer, writer%initTime)
 
 end subroutine netcdfDataWriter_Regist
 
@@ -111,9 +109,9 @@ subroutine write_volScalarField(writer, v_scalar)
       & )
 
   call check_nf90_status( nf90_put_var( &
-       & writer%ncID, varid, v_scalar%data%v_(:,:), &
+       & writer%ncID, varid, v_scalar%data%v_(1:v_scalar%vLayerNum,:), &
        &  start=(/ 1, 1, writer%recCounter /), &
-       & count=(/ size(v_scalar%data%v_,1), size(v_scalar%data%v_,2), 1 /) ) &
+       & count=(/ v_scalar%vLayerNum, size(v_scalar%data%v_,2), 1 /) ) &
        & )
 
 end subroutine write_volScalarField
@@ -130,9 +128,9 @@ subroutine write_ptScalarField(writer, p_scalar)
       & )
 
   call check_nf90_status( nf90_put_var( &
-       & writer%ncID, varid, p_scalar%data%v_(:,:), &
+       & writer%ncID, varid, p_scalar%data%v_(1:p_scalar%vLayerNum,:), &
        &  start=(/ 1, 1, writer%recCounter /), &
-       & count=(/ size(p_scalar%data%v_,1), size(p_scalar%data%v_,2), 1 /) ) &
+       & count=(/ p_scalar%vLayerNum, size(p_scalar%data%v_,2), 1 /) ) &
        & )
 
 end subroutine write_ptScalarField
@@ -156,13 +154,12 @@ subroutine netcdfDataWriter_AdvanceTimeStep( writer, newStepTime )
       & nf90_inq_varid(writer%ncID, RECODE_NAME, varID) &
       & )
 
-  writer%recCounter = writer%recCounter + 1
-
   call check_nf90_status( nf90_put_var( &
        & writer%ncID, varid, (/ newStepTime /), &
        & start=(/ writer%recCounter /), count=(/ 1 /) ) &
  & )
 
+  writer%recCounter = writer%recCounter + 1
   
 end subroutine netcdfDataWriter_AdvanceTimeStep
 

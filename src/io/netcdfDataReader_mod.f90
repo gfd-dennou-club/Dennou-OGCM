@@ -51,7 +51,7 @@ subroutine netcdfDataReader_readvScalarData(reader, fieldName, field, range)
   character(*), intent(in), optional :: range
 
   call GeometricField_Init(field, reader%mesh, fieldName) 
-  call HistoryGet(reader%filePath, fieldName, field%data%v_(:,:), range=range)
+  call HistoryGet(reader%filePath, fieldName, field%data%v_(1:field%vLayerNum,:), range=range)
   call HistoryGetAttr(reader%filePath, fieldName, 'long_name', field%long_name)
   call HistoryGetAttr(reader%filePath, fieldName, 'units', field%units)
 
@@ -64,7 +64,7 @@ subroutine netcdfDataReader_readpScalarData(reader, fieldName, field, range)
   character(*), intent(in), optional :: range
 
   call GeometricField_Init(field, reader%mesh, fieldName) 
-  call HistoryGet(reader%filePath, fieldName, field%data%v_(:,:), range=range)
+  call HistoryGet(reader%filePath, fieldName, field%data%v_(1:field%vLayerNum,:), range=range)
   call HistoryGetAttr(reader%filePath, fieldName, 'long_name', field%long_name)
   call HistoryGetAttr(reader%filePath, fieldName, 'units', field%units)
 
