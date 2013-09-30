@@ -17,8 +17,8 @@ module VGridFieldDataUtil_mod
 
   use GridSet_mod, only: &
        & plMesh, fvmInfo, &
-       & CellNum, EdgeNum, VertexNum, &
-       & vzLayerNum, vrLayerNum, vHaloSize
+       & nCell, nEdge, nVertex, &
+       & nVzLyr, nVrLyr, vHaloSize
 
   use GeometricField_mod, only: &
        & volScalarField, surfaceScalarField, &
@@ -49,9 +49,15 @@ module VGridFieldDataUtil_mod
      module procedure delz_zc
   end interface delz
 
+  interface verticalInt
+     module procedure verticalInt_e
+     module procedure verticalInt_c
+  end interface verticalInt
+
   public :: VGridFieldDataUtil_Init, VGridFieldDataUtil_Final
   public :: r_z, z_r
   public :: delz
+  public :: verticalInt
 
   ! 非公開手続き
   ! Private procedure
@@ -102,12 +108,12 @@ contains
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(re_field, plMesh, "re_field", vLayerNum=vrLayerNum)
+    call GeometricField_Init(re_field, plMesh, "re_field", vLayerNum=nVrLyr)
     re_field%TempDataFlag = .true.
 
     !$omp parallel do
-    do e=1, EdgeNum
-       re_field%data%v_(1:vrLayerNum,e) = 0.5d0*( ze_field%data%v_(0:vzLayerNum,e) + ze_field%data%v_(1:vzLayerNum+1,e) )
+    do e=1, nEdge
+       re_field%data%v_(1:nVrLyr,e) = 0.5d0*( ze_field%data%v_(0:nVzLyr,e) + ze_field%data%v_(1:nVzLyr+1,e) )
     end do
 
     if(ze_field%TempDataFlag) call Release(ze_field)
@@ -133,12 +139,12 @@ contains
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(rc_field, plMesh, "rc_field", vLayerNum=vrLayerNum)
+    call GeometricField_Init(rc_field, plMesh, "rc_field", vLayerNum=nVrLyr)
     rc_field%TempDataFlag = .true.
 
     !$omp parallel do
-    do i=1, CellNum
-       rc_field%data%v_(1:vrLayerNum,i) = 0.5d0*( zc_field%data%v_(0:vzLayerNum,i) + zc_field%data%v_(1:vzLayerNum+1,i) )
+    do i=1, nCell
+       rc_field%data%v_(1:nVrLyr,i) = 0.5d0*( zc_field%data%v_(0:nVzLyr,i) + zc_field%data%v_(1:nVzLyr+1,i) )
     end do
 
     if(zc_field%TempDataFlag) call Release(zc_field)
@@ -163,12 +169,12 @@ contains
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(ze_field, plMesh, "ze_field", vLayerNum=vzLayerNum)
+    call GeometricField_Init(ze_field, plMesh, "ze_field", vLayerNum=nVzLyr)
     ze_field%TempDataFlag = .true.
 
     !$omp parallel do
-    do e=1, EdgeNum
-       ze_field%data%v_(1:vzLayerNum,e) = 0.5d0*( re_field%data%v_(1:vrLayerNum-1,e) + re_field%data%v_(2:vrLayerNum,e) )
+    do e=1, nEdge
+       ze_field%data%v_(1:nVzLyr,e) = 0.5d0*( re_field%data%v_(1:nVrLyr-1,e) + re_field%data%v_(2:nVrLyr,e) )
     end do
 
     if(re_field%TempDataFlag) call Release(re_field)
@@ -193,12 +199,12 @@ contains
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(zc_field, plMesh, "zc_field", vLayerNum=vzLayerNum)
+    call GeometricField_Init(zc_field, plMesh, "zc_field", vLayerNum=nVzLyr)
     zc_field%TempDataFlag = .true.
 
     !$omp parallel do
-    do i=1, CellNum
-       zc_field%data%v_(1:vzLayerNum,i) = 0.5d0*( rc_field%data%v_(1:vrLayerNum-1,i) + rc_field%data%v_(2:vrLayerNum,i) )
+    do i=1, nCell
+       zc_field%data%v_(1:nVzLyr,i) = 0.5d0*( rc_field%data%v_(1:nVrLyr-1,i) + rc_field%data%v_(2:nVrLyr,i) )
     end do
 
     if(rc_field%TempDataFlag) call Release(rc_field)
@@ -224,14 +230,14 @@ contains
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(rc_field, plMesh, "rc_field", vLayerNum=vrLayerNum)
+    call GeometricField_Init(rc_field, plMesh, "rc_field", vLayerNum=nVrLyr)
     rc_field%TempDataFlag = .true.
 
     !$omp parallel do
-    do i=1, CellNum
-       rc_field%data%v_(1:vrLayerNum,i) = &
-            & ( zc_field%data%v_(1:vzLayerNum+1,i) - zc_field%data%v_(0:vzLayerNum,i) )  &
-            & / ( 0.5d0*(zc_lyrThick%data%v_(1:vzLayerNum+1,i) + zc_lyrThick%data%v_(0:vzLayerNum,i)) )
+    do i=1, nCell
+       rc_field%data%v_(1:nVrLyr,i) = &
+            & ( zc_field%data%v_(0:nVzLyr,i) - zc_field%data%v_(1:nVzLyr+1,i) )  &
+            & / ( 0.5d0*(zc_lyrThick%data%v_(1:nVzLyr+1,i) + zc_lyrThick%data%v_(0:nVzLyr,i)) )
     end do
 
     if(zc_field%TempDataFlag) call Release(zc_field)
@@ -260,20 +266,104 @@ contains
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(re_field, plMesh, "rc_field", vLayerNum=vrLayerNum)
+    call GeometricField_Init(re_field, plMesh, "rc_field", vLayerNum=nVrLyr)
     re_field%TempDataFlag = .true.
 
     !$omp parallel do private(cellIds)
-    do e=1, EdgeNum
+    do e=1, nEdge
        cellIds(:) = fvmInfo%Face_CellId(1:2,e)
-       re_field%data%v_(1:vrLayerNum,e) = & 
-            & ( ze_field%data%v_(1:vzLayerNum+1,e) - ze_field%data%v_(0:vzLayerNum,e) ) &
-            & / sum( 0.5d0*(zc_lyrThick%data%v_(1:vzLayerNum+1, cellIds) + zc_lyrThick%data%v_(0:vzLayerNum, cellIds)), 2)
+       re_field%data%v_(1:nVrLyr,e) = & 
+            & ( ze_field%data%v_(0:nVzLyr,e) - ze_field%data%v_(1:nVzLyr+1,e) ) &
+            & / sum( 0.5d0*(zc_lyrThick%data%v_(1:nVzLyr+1, cellIds) + zc_lyrThick%data%v_(0:nVzLyr, cellIds)), 2)
     end do
 
     if(ze_field%TempDataFlag) call Release(ze_field)
 
   end function delz_ze
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
+  function verticalInt_e(ze_field, ze_lyrThick, avgFlag) result(e_field)
+    
+    ! 宣言文; Declaration statement
+    !
+    type(surfaceScalarField), intent(in) :: ze_field
+    type(surfaceScalarField), intent(in) :: ze_lyrThick
+    logical, optional, intent(in) :: avgFlag
+    type(surfaceScalarField) :: e_field
+    
+    ! 局所変数
+    ! Local variables
+    !
+    integer :: e
+    
+    ! 実行文; Executable statement
+    !
+
+    call GeometricField_Init(e_field, plMesh, "e_field", vLayerNum=1) 
+    e_field%TempDataFlag = .true.
+
+    if( present(avgFlag) .and. avgFlag ) then
+       !$omp parallel do
+       do e=1, nEdge
+          e_field%data%v_(1,e) = sum( ze_field%data%v_(1:nVzLyr,e)*ze_lyrThick%data%v_(1:nVzLyr,e) ) &
+               & / sum( ze_lyrThick%data%v_(1:nVzLyr,e) )
+       end do
+    else
+       !$omp parallel do
+       do e=1, nEdge
+          e_field%data%v_(1,e) = sum( ze_field%data%v_(1:nVzLyr,e)*ze_lyrThick%data%v_(1:nVzLyr,e) )
+       end do
+    end if
+
+    if( ze_field%TempDataFlag ) call Release(ze_field)
+    if( ze_lyrThick%TempDataFlag ) call Release(ze_lyrThick)
+
+  end function verticalInt_e
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
+  function verticalInt_c(zc_field, zc_lyrThick, avgFlag) result(c_field)
+    
+    ! 宣言文; Declaration statement
+    !
+    type(volScalarField), intent(in) :: zc_field
+    type(volScalarField), intent(in) :: zc_lyrThick
+    logical, optional, intent(in) :: avgFlag
+    type(volScalarField) :: c_field
+    
+    ! 局所変数
+    ! Local variables
+    !
+    integer :: c
+    
+    ! 実行文; Executable statement
+    !
+
+    call GeometricField_Init(c_field, plMesh, "e_field", vLayerNum=1) 
+    c_field%TempDataFlag = .true.
+
+    if( present(avgFlag) .and. avgFlag ) then
+       !$omp parallel do
+       do c=1, nCell
+          c_field%data%v_(1,c) = sum( zc_field%data%v_(1:nVzLyr,c)*zc_lyrThick%data%v_(1:nVzLyr,c) ) &
+               & / sum( zc_lyrThick%data%v_(1:nVzLyr,c) )
+       end do
+    else
+       !$omp parallel do
+       do c=1, nEdge
+          c_field%data%v_(1,c) = sum( zc_field%data%v_(1:nVzLyr,c)*zc_lyrThick%data%v_(1:nVzLyr,c) )
+       end do
+    end if
+
+    if( zc_field%TempDataFlag ) call Release(zc_field)
+    if( zc_lyrThick%TempDataFlag ) call Release(zc_lyrThick)
+
+  end function verticalInt_c
 
 
 

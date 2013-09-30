@@ -39,11 +39,11 @@ module GridSet_mod
   type(PolyMesh), public, save :: plMesh  
   type(fvMeshInfo), public, save :: fvmInfo
   type(HexTriIcMesh), public, save :: htiMesh
-  integer, public, save :: CellNum
-  integer, public, save :: EdgeNum
-  integer, public, save :: VertexNum
-  integer, public, save :: vzLayerNum
-  integer, public, save :: vrLayerNum
+  integer, public, save :: nCell
+  integer, public, save :: nEdge
+  integer, public, save :: nVertex
+  integer, public, save :: nVzLyr
+  integer, public, save :: nVrLyr
   integer, parameter, public :: VHaloSize = 1
 
   ! 非公開変数
@@ -90,10 +90,10 @@ contains
     call HexTriIcMesh_configfvMeshInfo(htiMesh, fvmInfo)
 
     !
-    CellNum = getCellListSize(plMesh)
-    EdgeNum = getFaceListSize(plMesh)
-    VertexNum = getPointListSize(plMesh)
-    vrLayerNum = vzLayerNum + 1
+    nCell = getCellListSize(plMesh)
+    nEdge = getFaceListSize(plMesh)
+    nVertex = getPointListSize(plMesh)
+    nVrLyr = nVzLyr + 1
 
   end subroutine GridSet_Init
 
@@ -141,7 +141,7 @@ contains
     ! NAMELIST group name
     !
     namelist /grid_nml/ &
-         & gridFilePath, vzLayerNum
+         & gridFilePath, nVzLyr
 
     ! 実行文; Executable statements
 
@@ -149,7 +149,7 @@ contains
     ! Default values settings
     !
     gridFilePath = ""
-    vzLayerNum    = 1
+    nVzLyr    = 1
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -170,8 +170,8 @@ contains
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
-    call MessageNotify( 'M', module_name, '  gridFilePath        = %a', ca=(/ gridFilePath /))
-    call MessageNotify( 'M', module_name, '  vzLayerNum          = %d', i=(/ vzLayerNum /))
+    call MessageNotify( 'M', module_name, '  gridFilePath    = %a', ca=(/ gridFilePath /))
+    call MessageNotify( 'M', module_name, '  nVzLyr          = %d', i=(/ nVzLyr /))
 
   end subroutine read_nmlData
 
@@ -202,7 +202,7 @@ contains
     call netcdfDataReader_Final(ncReader)
 
     call PolyMesh_Init(plMesh, &
-         & readPlMesh%pointPosList, readPlMesh%cellPosList, readPlMesh%faceList, readPlMesh%cellList, vzLayerNum)
+         & readPlMesh%pointPosList, readPlMesh%cellPosList, readPlMesh%faceList, readPlMesh%cellList, nVzLyr)
 
     call PolyMesh_Final(readPlMesh)
 

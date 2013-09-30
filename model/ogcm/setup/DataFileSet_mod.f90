@@ -19,6 +19,9 @@ module DataFileSet_mod
   use netcdfDataWriter_mod, only: &
        & netcdfDataWriter
 
+  use VariableSet_mod, only: &
+       & zc_lyrThickN
+
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -61,8 +64,6 @@ contains
 
     use Constants_mod, only: RPlanet
 
-    use VariableSet_mod, only: &
-         & zc_lyrThick
 
     ! 局所変数
     ! Local variable
@@ -83,7 +84,7 @@ contains
     call netcdfDataWriter_Init(dataWriter, outputFileName, plMesh)
     
     call netcdfDataWriter_writeGlobalAttr(dataWriter, "RPlanet", RPlanet)
-    call netcdfDataWriter_Regist(dataWriter, (/ zc_lyrThick /))
+    call netcdfDataWriter_Regist(dataWriter, (/ zc_lyrThickN /))
     
   end subroutine DataFileSet_Init
 
@@ -119,9 +120,6 @@ contains
     use TemporalIntegSet_mod, only: &
          & CurrentTime
 
-    use VariableSet_mod, only: &
-         & zc_lyrThick
-
     ! 宣言文; Declaration statement
     !
     
@@ -138,7 +136,7 @@ contains
 
 
     call MessageNotify("M", module_name, "Output data of some field at %d [sec] ..", i=(/ int(CurrentTime) /))
-    call netcdfDataWriter_write(dataWriter, zc_lyrThick)
+    call netcdfDataWriter_write(dataWriter, zc_lyrThickN)
     
     !
     call netcdfDataWriter_AdvanceTimeStep(dataWriter, CurrentTime)

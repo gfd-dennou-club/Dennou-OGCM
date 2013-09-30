@@ -254,6 +254,9 @@ subroutine funcNameSuffix(assignFieldObj) (this, other)
 
   this%data => other%data
   call incRef(this%data)
+  this%mesh => other%mesh
+  this%vlayerNum = other%vlayerNum
+  this%vHaloSize = other%vHaloSize
 
   if( other%tempDataFlag ) then
     call funcNameSuffix(releaseDataRef) (other)

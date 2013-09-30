@@ -20,8 +20,8 @@ module CGridFieldDataUtil_mod
 
   use GridSet_mod, only: &
        & plMesh, fvmInfo, &
-       & CellNum, EdgeNum, VertexNum, &
-       & vzLayerNum, vrLayerNum, vHaloSize
+       & nCell, nEdge, nVertex, &
+       & nVzLyr, nVrLyr, vHaloSize
 
   use fvCalculus_mod, only: &
        div, curl, grad, t_fv, n_fv
@@ -45,7 +45,7 @@ module CGridFieldDataUtil_mod
 
   public :: CGridFieldDataUtil_Init, CGridFieldDataUtil_Final
   public :: e_c
-  public :: CalcKineticEnergy, CalcPVFlux
+  public :: CalcKineticEnergy, CalcPVFlux, ToTangentVel
 
   ! 非公開手続き
   ! Private procedure
@@ -102,17 +102,18 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: e
+    integer :: e, lyrNum
     
     ! 実行文; Executable statement
     !
     
-    call GeometricField_Init(ze_field, plMesh, "ze_field")
+    lyrNum = zc_field%vLayerNum
+    call GeometricField_Init(ze_field, plMesh, "ze_field", vLayerNum=lyrNum)
     ze_field%TempDataFlag = .true.
 
     !$omp parallel do
-    do e=1, EdgeNum
-       ze_field%data%v_(1:vzLayerNum,e) = 0.5d0*sum(zc_field%data%v_(1:vzLayerNum,fvmInfo%Face_CellId(1:2,e)), 2)
+    do e=1, nEdge
+       ze_field%data%v_(1:lyrNum,e) = 0.5d0*sum(zc_field%data%v_(1:lyrNum,fvmInfo%Face_CellId(1:2,e)), 2)
     end do
 
     if(zc_field%TempDataFlag) call Release(zc_field)
@@ -130,24 +131,24 @@ contains
 
     integer :: cellId, faceId
     integer :: lfaceNum
-    real(DP) :: ze_localKE(vzLayerNum, EdgeNum)
+    real(DP) :: ze_localKE(nVzLyr, nEdge)
 
     call GeometricField_Init(zc_KE, plMesh, "KE")
     zc_KE%TempDataFlag = .true.
 
     !$omp parallel do
-    do faceId=1, EdgeNum
-       ze_localKE(1:vzLayerNum,faceId) = 0.25d0 * l2norm( fvmInfo%s_faceAreaVec%data%v_(1,faceId) ) &
+    do faceId=1, nEdge
+       ze_localKE(1:nVzLyr,faceId) = 0.25d0 * l2norm( fvmInfo%s_faceAreaVec%data%v_(1,faceId) ) &
             & * fvmInfo%s_dualMeshFaceArea%data%v_(1,FaceId) &
-            & * ze_normalVel%data%v_(1:vzLayerNum,FaceId)**2
+            & * ze_normalVel%data%v_(1:nVzLyr,FaceId)**2
     end do
 
     !$omp parallel do private(lfaceNum)
-    do cellId=1, CellNum
+    do cellId=1, nCell
        lfaceNum = plMesh%CellList(cellId)%faceNum
-       zc_KE%data%v_(1:vzLayerNum,cellId) = &
-            & sum( ze_localKE(1:vzLayerNum,fvmInfo%Cell_FaceId(1:lfaceNum, cellId)), 2) &
-            & / fvmInfo%v_CellVol%data%v_(1:vzLayerNum,cellId)
+       zc_KE%data%v_(1:nVzLyr,cellId) = &
+            & sum( ze_localKE(1:nVzLyr,fvmInfo%Cell_FaceId(1:lfaceNum, cellId)), 2) &
+            & / fvmInfo%v_CellVol%data%v_(1:nVzLyr,cellId)
     end do
 
   end function CalcKineticEnergy
@@ -170,7 +171,7 @@ contains
     type(PointScalarField) :: zv_PV
 
     integer :: faceId, faceId2, k, i
-    real(DP) :: weight, tmp(vzLayerNum), s2_MomFlux(vzLayerNum), s_PV(vzLayerNum), s2_PV(vzLayerNum)
+    real(DP) :: weight, tmp(nVzLyr), s2_MomFlux(nVzLyr), s_PV(nVzLyr), s2_PV(nVzLyr)
     integer :: ptId, cellIds(3), cellId
     type(Vector3d) :: geoPos
 
@@ -180,13 +181,13 @@ contains
     call GeometricField_Init(zv_height, plMesh, "p_height")
 
     !$omp parallel do private(geoPos, cellIds)
-    do ptId=1, VertexNum
+    do ptId=1, nVertex
        geoPos = CartToSphPos( plMesh%PointPosList(ptId) )
-       zv_planetVor%data%v_(1:vzLayerNum,ptId) = (2d0*Omega)*sin(geoPos%v_(2))
+       zv_planetVor%data%v_(1:nVzLyr,ptId) = (2d0*Omega)*sin(geoPos%v_(2))
 
        cellIds(:) = fvmInfo%Point_CellId(1:3, ptId)
 
-       forAll(k=1:vzLayerNum) &
+       forAll(k=1:nVzLyr) &
             & zv_height%data%v_(k,ptId) = &
             & sum( R_iv(1:3,ptId) * fvmInfo%v_cellVol%data%v_(k,cellIds(:)) * zc_h%data%v_(k,cellIds(:)) ) &
             & / fvmInfo%p_dualMeshCellVol%data%v_(k, ptId)
@@ -202,17 +203,17 @@ contains
     ze_PVFlux%TempDataFlag = .true.
 
     !$omp parallel do private(s_PV, s2_PV, s2_MomFlux, tmp, k, faceId2) 
-    do faceId=1, EdgeNum
-       s_PV(:) = 0.5d0*sum( zv_PV%data%v_(1:vzLayerNum,fvmInfo%Face_PointId(1:2, faceId)), 2)
+    do faceId=1, nEdge
+       s_PV(:) = 0.5d0*sum( zv_PV%data%v_(1:nVzLyr,fvmInfo%Face_PointId(1:2, faceId)), 2)
        tmp = 0d0
 
        do k=1, size(fvmInfo%Face_PairCellFaceId,1)
           faceId2 = fvmInfo%Face_PairCellFaceId(k, faceId)
           if( faceId2 == -1) exit;
 
-          s2_MomFlux(:) = 0.5d0*sum( zc_h%data%v_(1:vzLayerNum, fvmInfo%Face_CellId(1:2, faceId2)), 2) &
-               &           * ze_normalVel%data%v_(1:vzLayerNum, faceId2)
-          s2_PV(:) = 0.5d0*sum( zv_PV%data%v_(1:vzLayerNum, fvmInfo%Face_PointId(1:2, faceId2)), 2)
+          s2_MomFlux(:) = 0.5d0*sum( zc_h%data%v_(1:nVzLyr, fvmInfo%Face_CellId(1:2, faceId2)), 2) &
+               &           * ze_normalVel%data%v_(1:nVzLyr, faceId2)
+          s2_PV(:) = 0.5d0*sum( zv_PV%data%v_(1:nVzLyr, fvmInfo%Face_PointId(1:2, faceId2)), 2)
 
           tmp(:) =    tmp(:) &
                & + wt_ff(k,faceId) * l2norm( fvmInfo%s_faceAreaVec%data%v_(1,faceId2) ) * s2_MomFlux * 0.5d0*(s_PV + s2_PV) 
@@ -220,7 +221,7 @@ contains
 
        end do ! do while
 
-       ze_PVFlux%data%v_(1:vzLayerNum,faceId) = tmp(:) / fvmInfo%s_dualMeshFaceArea%data%v_(1,faceId)
+       ze_PVFlux%data%v_(1:nVzLyr,faceId) = tmp(:) / fvmInfo%s_dualMeshFaceArea%data%v_(1,faceId)
 
     end do
 
@@ -231,6 +232,49 @@ contains
     call GeometricField_Final(zv_PV)
 
   end function CalcPVFlux
+
+  function ToTangentVel(ze_normalVel) result(ze_tangentVel)
+
+    use SphericalCoord_mod, only: &
+         & CartToSphPos
+
+    use Constants_mod, only: &
+         & Omega
+
+    type(surfaceScalarField), intent(in) :: ze_normalVel
+    type(surfaceScalarField) :: ze_tangentVel
+
+    integer :: faceId, faceId2, k, i
+    real(DP) :: weight, tmp(nVzLyr)
+    integer :: ptId, cellIds(3), cellId
+
+
+    !
+    !
+
+    call GeometricField_Init(ze_tangentVel, plMesh, "ze_tangentVel")
+    ze_tangentVel%TempDataFlag = .true.
+
+    !$omp parallel do private(tmp, k, faceId2) 
+    do faceId=1, nEdge
+       tmp = 0d0
+
+       do k=1, size(fvmInfo%Face_PairCellFaceId,1)
+          faceId2 = fvmInfo%Face_PairCellFaceId(k, faceId)
+          if( faceId2 == -1) exit;
+
+          tmp(:) =    tmp(:)  + &
+               & wt_ff(k,faceId) * l2norm(fvmInfo%s_faceAreaVec%data%v_(1,faceId2)) * ze_normalVel%data%v_(1:nVzLyr, faceId2)
+
+       end do ! do while
+
+       ze_tangentVel%data%v_(1:nVzLyr,faceId) = tmp(:) / fvmInfo%s_dualMeshFaceArea%data%v_(1,faceId)
+    end do
+
+    !
+    !
+
+  end function ToTangentVel
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -250,7 +294,7 @@ contains
     integer :: m, n, k
     real(DP) :: areas(3)
     type(Vector3d) :: ptPos
-    real(DP) :: R_vi(MAX_CELL_FACE_NUM, CellNum)
+    real(DP) :: R_vi(MAX_CELL_FACE_NUM, nCell)
     integer :: startPtId, startlPtId, startlfaceId, t_fv2
     real(DP) :: lR_vi(MAX_CELL_FACE_NUM), ln_fv(MAX_CELL_FACE_NUM)
 
@@ -259,11 +303,11 @@ contains
 
     call MessageNotify('M', module_name, "prepare some data about weight required interpolation..")
 
-    allocate( R_iv(3, VertexNum) )
-    allocate( Wt_ff(MAX_CELL_FACE_NUM*2, EdgeNum) )
+    allocate( R_iv(3, nVertex) )
+    allocate( Wt_ff(MAX_CELL_FACE_NUM*2, nEdge) )
 
     R_vi = 0d0
-    do ptId=1, VertexNum
+    do ptId=1, nVertex
        ptPos = plMesh%PointPosList(ptId)
        cellIds = cshift(fvmInfo%Point_CellId(1:3,ptId), -1)
 
@@ -285,7 +329,7 @@ contains
     end do
 
     Wt_ff = 0d0
-    do faceId=1, EdgeNum   
+    do faceId=1, nEdge   
 
        k=2
        do m=1, 2

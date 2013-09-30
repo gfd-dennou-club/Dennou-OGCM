@@ -23,6 +23,7 @@ bin_PROGRAMS =
 
 noinst_LTLIBRARIES= libDOGCMDynamics.la 
 nodist_libDOGCMDynamics_la_SOURCES= \
+	HydroBouEqSolverRHS_mod.f90 \
 	HydroBouEqSolver_mod.f90
 
 

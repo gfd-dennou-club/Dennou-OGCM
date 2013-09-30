@@ -110,6 +110,9 @@ contains
     use VGridFieldDataUtil_mod, only: &
          & VGridFieldDataUtil_Init
 
+  use EOSDriver_mod, only: &
+       & EOSDriver_Init
+
     use GovernEqSolverDriver_mod, only: &
          & GovernEqSolverDriver_Init
 
@@ -157,6 +160,9 @@ contains
     call VGridFieldDataUtil_Init()
 
     !
+    call EOSDriver_Init()
+
+    !
     call GovernEqSolverDriver_Init()
 
   end subroutine ogcm_setup
@@ -192,6 +198,9 @@ contains
     use VGridFieldDataUtil_mod, only: &
          & VGridFieldDataUtil_Final
 
+    use EOSDriver_mod, only: &
+         & EOSDriver_Final
+
     use GovernEqSolverDriver_mod, only: &
          & GovernEqSolverDriver_Final
 
@@ -212,6 +221,9 @@ contains
     !
     call GovernEqSolverDriver_Final()
     
+    !
+    call EOSDriver_Final()
+
     !
     call VGridFieldDataUtil_Final()
 
