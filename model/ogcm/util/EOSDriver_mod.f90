@@ -102,7 +102,7 @@ contains
          volScalarField
 
     use GridSet_mod, only: &
-         & nCell, nVzLyr
+         & GridSet_getLocalMeshInfo, nVzLyr
 
     ! 宣言文; Declaration statement
     !
@@ -111,10 +111,12 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: i
+    integer :: i, nCell
     
     ! 実行文; Executable statement
     !
+    
+    call GridSet_getLocalMeshInfo(rho%mesh, nCell=nCell)
 
     !$omp parallel do
     do i=1, nCell

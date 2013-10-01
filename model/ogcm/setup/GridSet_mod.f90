@@ -32,16 +32,17 @@ module GridSet_mod
   ! Public procedures
   !
   public :: GridSet_Init, GridSet_Final
+  public :: GridSet_getLocalMesh, GridSet_getLocalMeshInfo
+  public :: GridSet_getLocalFVMInfo
 
   ! 公開変数
   ! Public variables
   !
-  type(PolyMesh), public, save :: plMesh  
-  type(fvMeshInfo), public, save :: fvmInfo
+  type(PolyMesh), public, save :: globalMesh
   type(HexTriIcMesh), public, save :: htiMesh
-  integer, public, save :: nCell
-  integer, public, save :: nEdge
-  integer, public, save :: nVertex
+  type(fvMeshInfo), public, save, allocatable, target :: fvmInfos(:)
+
+  integer, public, save :: nLocalPMesh
   integer, public, save :: nVzLyr
   integer, public, save :: nVrLyr
   integer, parameter, public :: VHaloSize = 1
@@ -70,7 +71,8 @@ contains
     ! local variable
     !
     character(STRING) :: gridFilePath
-
+    integer :: meshID
+    type(HexTriIcLocalMesh), pointer :: localMesh
 
     ! 実行文; Executable statement
     !
@@ -79,31 +81,83 @@ contains
     call read_nmlData(configNmlFileName, gridFilePath)
 
     ! Load grid data of from netcdf file. 
-    ! If loading grid data succeed, a polyMesh object whose name is plMesh have read grid data.    
+    ! If loading grid data succeed, a polyMesh object whose name is globalMesh have read grid data.    
     call constract_grid(gridFilePath)
-    call HexTriIcMesh_Init(htiMesh, plMesh, RPlanet)
+
+    nVrLyr = nVzLyr + 1
+    nLocalPMesh = 1
+    call HexTriIcMesh_Init(htiMesh, globalMesh, RPlanet, nLocalPMesh)
+
+    do meshID=1, nLocalPMesh
+       localMesh => HexTriIcMesh_getLocalMesh(htiMesh, meshID)
+       localMesh%localMeshId = meshId 
+       call PolyMesh_Init(localMesh%mesh, &
+            & globalMesh%pointPosList, globalMesh%cellPosList, globalMesh%faceList, globalMesh%cellList, nVzLyr)
+    end do
 
     ! Initialize some modules for finite volume method
     !
     call MessageNotify( 'M', module_name, "Initialize some modules for finite volume method..")
-    call fvMeshInfo_Init(fvmInfo, plMesh, dualMeshFlag=.true.)
-    call HexTriIcMesh_configfvMeshInfo(htiMesh, fvmInfo)
+
+    allocate( fvmInfos(nLocalPMesh) )
+    do meshID=1, nLocalPMesh
+       localMesh => HexTriIcMesh_getLocalMesh(htiMesh, meshID)
+       call fvMeshInfo_Init(fvmInfos(meshId), localMesh%mesh, dualMeshFlag=.true.)
+       call HexTriIcMesh_configfvMeshInfo(htiMesh, fvmInfos(meshId), meshId)
+    end do
 
     !
-    nCell = getCellListSize(plMesh)
-    nEdge = getFaceListSize(plMesh)
-    nVertex = getPointListSize(plMesh)
-    nVrLyr = nVzLyr + 1
 
   end subroutine GridSet_Init
 
   subroutine GridSet_Final()
 
-    call fvMeshInfo_Final(fvmInfo)
-    call HexTriIcMesh_Final(htiMesh)
-    call PolyMesh_Final(plMesh)
+    integer :: meshID
+    type(HexTriIcLocalMesh), pointer :: localMesh
 
+    
+    do meshID=1, nLocalPMesh
+       localMesh => HexTriIcMesh_getLocalMesh(htiMesh, meshID)
+       call PolyMesh_Final(localMesh%mesh)
+       call fvMeshInfo_Final(fvmInfos(meshID))
+    end do
+    deallocate(fvmInfos)
+
+    call HexTriIcMesh_Final(htiMesh)
+    call PolyMesh_Final(globalMesh)
+    
   end subroutine GridSet_Final
+
+  function GridSet_getLocalMesh( localMeshId ) result(plmesh)
+    integer, intent(in) :: localMeshId
+    type(HexTriIcLocalMesh), pointer :: lcMesh
+    type(PolyMesh), pointer :: plMesh
+
+    lcMesh => HexTriIcMesh_getLocalMesh(htiMesh, localMeshId)
+    plMesh => lcMesh%mesh
+
+  end function GridSet_getLocalMesh
+
+  function GridSet_getLocalFVMInfo( localMeshId ) result(fvm)
+    integer, intent(in) :: localMeshId
+
+    type(fvMeshInfo), pointer :: fvm
+
+    fvm => fvmInfos(localMeshId)
+
+  end function GridSet_getLocalFVMInfo
+
+  pure subroutine GridSet_getLocalMeshInfo( &
+       & mesh, nCell, nEdge, nVertex)
+
+    type(PolyMesh), intent(in) :: mesh
+    integer, intent(out), optional :: nCell, nEdge, nVertex
+
+    if(present(nCell))   nCell = getCellListSize(mesh)
+    if(present(nEdge))   nEdge = getFaceListSize(mesh)
+    if(present(nVertex)) nVertex = getPointListSize(mesh)
+
+  end subroutine GridSet_getLocalMeshInfo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -201,7 +255,7 @@ contains
     call netcdfDataReader_Init(ncReader, gridFilePath, readPlMesh)
     call netcdfDataReader_Final(ncReader)
 
-    call PolyMesh_Init(plMesh, &
+    call PolyMesh_Init(globalMesh, &
          & readPlMesh%pointPosList, readPlMesh%cellPosList, readPlMesh%faceList, readPlMesh%cellList, nVzLyr)
 
     call PolyMesh_Final(readPlMesh)

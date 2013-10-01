@@ -8,15 +8,35 @@ program ogcm_main
   use dc_message, only: &
        & MessageNotify
 
+  use fvCalculus_mod, only: &
+       & fvCalculus_Init, fvCalculus_Final
+
   use TemporalIntegSet_mod, only: &
        & CurrentTime, TotalIntegTime, &
        & TemporalIntegSet_AdvanceTime
 
+  use GridSet_mod, only: &
+         & globalMesh, &
+         & GridSet_getLocalMesh, GridSet_getLocalMeshInfo, nLocalPMesh, &
+         & GridSet_getLocalFVMInfo
+
+  use VariableSet_mod, only: &
+       & VariableSet
+
   use DataFileSet_mod, only: &
+       & DataFileSet, &
        & DataFileSet_OutputData
 
   use GovernEqSolverDriver_mod, only: &
        & GovernEqSolverDriver_AdvanceTime
+
+  use CGridFieldDataUtil_mod, only: &
+       & CGridFieldDataUtil, &
+       & CGridFieldDataUtil_Set
+
+  use VGridFieldDataUtil_mod, only: &
+       & VGridFieldDataUtil, &
+       & VGridFieldDataUtil_Set
 
   ! 宣言文; Declaration statement
   !
@@ -28,6 +48,13 @@ program ogcm_main
   !
   
   character(*), parameter :: PROGRAM_NAME = "ogcm_main"
+  
+  type(VariableSet), allocatable :: variables(:)
+  type(CGridFieldDataUtil), allocatable :: cGridUtils(:)
+  type(VGridFieldDataUtil), allocatable :: vGridUtils(:)
+  type(DataFileSet), allocatable :: datFiles(:)
+
+  integer :: lcMeshId
 
   ! 実行文; Executable statement
   ! 
@@ -44,7 +71,9 @@ program ogcm_main
   ! Set initial condition
   !***********************************
   
-  call DataFileSet_OutputData()
+  do lcMeshId=1, nLocalPMesh
+     call DataFileSet_OutputData( datFiles(lcMeshId), variables(lcMeshId) )
+  end do
 
   !***********************************
   ! The loop for temporal integration
@@ -56,13 +85,25 @@ program ogcm_main
   do while(CurrentTime < TotalIntegTime)
      
      !
-     call GovernEqSolverDriver_AdvanceTime()
-     
+     do lcMeshId=1, nLocalPMesh
+        call fvCalculus_Init( GridSet_getLocalFVMInfo(lcMeshId) )
+
+        call CGridFieldDataUtil_Set( cGridUtils(lcMeshId) )
+        call VGridFieldDataUtil_Set( vGridUtils(lcMeshId) )
+        call GovernEqSolverDriver_AdvanceTime( variables(lcMeshId), GridSet_getLocalMesh(lcMeshId) )
+
+        call fvCalculus_Final()
+     end do
+
      !
      call TemporalIntegSet_AdvanceTime()
 
      !
-     call DataFileSet_OutputData()
+     !
+     do lcMeshId=1, nLocalPMesh
+        call DataFileSet_OutputData( datFiles(lcMeshId), variables(lcMeshId) )
+     end do
+
   end do
 
   call MessageNotify("M", PROGRAM_NAME, "[==== Finish temporal integration ====]")
@@ -82,6 +123,9 @@ contains
     
     ! 引用文; Use statement
     !
+    use PolyMesh_mod, only: &
+         & PolyMesh
+
     use OptionParser_mod, only: &
          & OptionParser_Init, OptionParser_Final, &
          & OptionParser_getInfo
@@ -90,10 +134,7 @@ contains
          & Constants_Init
     
     use GridSet_mod, only: &
-         & GridSet_Init, fvmInfo
-
-    use fvCalculus_mod, only: &
-         & fvCalculus_Init
+         & GridSet_Init
 
     use TemporalIntegSet_mod, only: &
          & TemporalIntegSet_Init
@@ -110,8 +151,8 @@ contains
     use VGridFieldDataUtil_mod, only: &
          & VGridFieldDataUtil_Init
 
-  use EOSDriver_mod, only: &
-       & EOSDriver_Init
+    use EOSDriver_mod, only: &
+         & EOSDriver_Init
 
     use GovernEqSolverDriver_mod, only: &
          & GovernEqSolverDriver_Init
@@ -124,7 +165,7 @@ contains
     ! Local variables
     !
     character(STRING) :: configNmlFile
-    
+
     ! 実行文; Executable statement
     !
 
@@ -142,22 +183,17 @@ contains
     call GridSet_Init(configNmlFile)
 
     !
-    call fvCalculus_Init(fvmInfo)
-
-    !
     call TemporalIntegSet_Init(configNmlFile)
 
     !
-    call VariableSet_Init()
+    allocate( variables(nLocalPMesh), cGridUtils(nLocalPMesh), vGridUtils(nLocalPMesh), datFiles(nLocalPMesh) )
+    do lcMeshId=1, nLocalPMesh
+       call VariableSet_Init( variables(lcMeshId), GridSet_getLocalMesh(lcMeshId) )
+       call CGridFieldDataUtil_Init( cGridUtils(lcMeshId), GridSet_getLocalFVMInfo(lcMeshId) )
+       call VGridFieldDataUtil_Init( vGridUtils(lcMeshId), GridSet_getLocalFVMInfo(lcMeshId) )
+       call DataFileSet_Init(datFiles(lcMeshId), configNmlFile, GridSet_getLocalMesh(lcMeshId), variables(lcMeshId) )
+    end do
 
-    !
-    call DataFileSet_Init(configNmlFile)
-
-    !
-    call CGridFieldDataUtil_Init()
-
-    !
-    call VGridFieldDataUtil_Init()
 
     !
     call EOSDriver_Init()
@@ -178,10 +214,7 @@ contains
          & Constants_Final
 
     use GridSet_mod, only: &
-         & GridSet_Final
-
-    use fvCalculus_mod, only: &
-         & fvCalculus_Final
+         & GridSet_Final, nLocalPMesh
 
     use TemporalIntegSet_mod, only: &
          & TemporalIntegSet_Final
@@ -211,7 +244,7 @@ contains
     ! 局所変数
     ! Local variables
     !
-    
+
     
     ! 実行文; Executable statement
     !
@@ -225,22 +258,17 @@ contains
     call EOSDriver_Final()
 
     !
-    call VGridFieldDataUtil_Final()
-
-    !
-    call CGridFieldDataUtil_Final()
-
-    !
     call TemporalIntegSet_Final()
 
     !
-    call DataFileSet_Final()
+    do lcMeshId=1, nLocalPMesh
+       call VariableSet_Final( variables(lcMeshId) )
+       call CGridFieldDataUtil_Final( cGridUtils(lcMeshId) )
+       call VGridFieldDataUtil_Final( vGridUtils(lcMeshId) )
+       call DataFileSet_Final( datFiles(lcMeshId) )
+    end do
+    deallocate(variables, cGridUtils, vGridUtils, datFiles)
 
-    !
-    call VariableSet_Final()
-
-    !
-    call fvCalculus_Final()
 
     !
     call GridSet_Final()

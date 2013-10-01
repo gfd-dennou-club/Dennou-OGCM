@@ -29,6 +29,12 @@ module TemporalIntegSet_mod
   ! 公開変数
   ! Public variable
   !
+  integer, parameter, public :: nLongTimeLevel = 3
+  integer, save, public :: Bl, Nl, Al
+
+  integer, parameter, public :: nShortTimeLevel = 3
+  integer, save, public :: Bs, Ns, As
+
   real(DP), save, public :: DelTime
   integer, save, public :: SubCycleNum
   real(DP), save, public :: CurrentTime
@@ -68,6 +74,9 @@ contains
 
     currentTime = StartTime
     CurrentTimeStep = 1
+
+    Bl = 1; Nl = 2; Al = 3
+    Bs = 1; Ns = 2; As = 3
 
   end subroutine TemporalIntegSet_Init
 

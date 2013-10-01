@@ -28,6 +28,9 @@ module fvMeshInfo_mod
      integer, pointer :: Face_PointId(:,:) => null()
      integer, pointer :: Face_PairCellFaceId(:,:) => null()
      integer, pointer :: CellPoint_PairFaceId(:,:,:) => null()
+
+     integer, pointer :: n_fv(:,:)
+     integer, pointer :: t_fv(:,:)
     
      logical :: dualMeshFlag = .false.
 
@@ -69,6 +72,7 @@ subroutine fvMeshInfo_Init(fvMesh, mesh, dualMeshFlag)
   end if
 
   call set_ConectivityInfo(fvMesh)
+  call set_edgeNormalDirSign(fvMesh)
 
 end subroutine fvMeshInfo_Init
 
@@ -120,9 +124,11 @@ subroutine fvMeshInfo_Final(fvMesh)
   deallocate(fvMesh%Face_PairCellFaceId)
   deallocate(fvMesh%CellPoint_PairFaceId)
 
+  deallocate(fvMesh%n_fv, fvMesh%t_fv)
 end subroutine fvMeshInfo_Final
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 subroutine set_ConectivityInfo(fvm)
   type(fvMeshInfo), intent(inout), target :: fvm
@@ -269,5 +275,49 @@ subroutine set_ConectivityInfo(fvm)
   end do
 
 end subroutine set_ConectivityInfo
+
+subroutine set_edgeNormalDirSign(fvm)
+  type(fvMeshInfo), intent(inout), target :: fvm
+
+  type(PolyMesh), pointer :: mesh
+  integer :: cellNum, faceNum, lfaceNum, pointNum
+  integer :: cellId, ptId, faceId, lfaceId
+
+  mesh => fvm%mesh
+  cellNum = getCellListSize(mesh)
+  faceNum = getFaceListSize(mesh)
+  pointNum = getPointListSize(mesh)
+  
+  allocate( fvm%n_fv(6,cellNum) )
+  allocate( fvm%t_fv(6, pointNum) )
+
+  fvm%n_fv = 0
+  fvm%t_fv = 0
+  do cellId=1, cellNum
+     lfaceNum = mesh%cellList(cellId)%faceNum
+     
+     do lfaceId=1, lfaceNum
+        faceId = mesh%cellList(cellId)%faceIdList(lfaceId)
+        if( mesh%faceList(faceId)%ownCellId==cellId) then
+           fvm%n_fv(lfaceId, cellId) = 1
+        else
+           fvm%n_fv(lfaceId, cellId) = -1
+        end if
+     end do
+
+  end do
+
+  do ptId=1, pointNum
+     do lfaceId=1, 3!size(fvInfo%Point_FaceId,1)
+        faceID = fvm%Point_FaceId(lfaceId, ptId)
+        if(fvm%Face_PointId(2,faceId)==ptId) then
+           fvm%t_fv(lfaceId, ptId) = 1
+        else
+           fvm%t_fv(lfaceId, ptId) = -1
+        end if
+     end do
+  end do
+
+end subroutine set_edgeNormalDirSign
 
 end module fvMeshInfo_mod

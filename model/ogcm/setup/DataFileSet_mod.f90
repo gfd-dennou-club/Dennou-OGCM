@@ -16,11 +16,19 @@ module DataFileSet_mod
   use dc_message, only: &
        & MessageNotify
 
+  use PolyMesh_mod, only: &
+       & PolyMesh
+
   use netcdfDataWriter_mod, only: &
-       & netcdfDataWriter
+       & netcdfDataWriter, &
+       & netcdfDataWriter_Init, netcdfDataWriter_Final, &
+       & netcdfDataWriter_writeGlobalAttr, netcdfDataWriter_Regist, &
+       & netcdfDataWriter_write, &
+       & netcdfDataWriter_AdvanceTimeStep
+
 
   use VariableSet_mod, only: &
-       & zc_lyrThickN
+       & VariableSet
 
   ! 宣言文; Declareration statements
   !
@@ -30,99 +38,100 @@ module DataFileSet_mod
   ! 公開手続き
   ! Public procedure
   !
+
+  type, public :: DataFileSet
+     
+     type(netcdfDataWriter) :: dataWriter  
+     real(DP) :: outputIntrval
+
+  end type DataFileSet
+
   public :: DataFileSet_Init, DataFileSet_Final
   public :: DataFileSet_OutputData
 
   ! 非公開手続き
   ! Private procedure
   !
-  real(DP), public, save :: outputIntrval
 
   ! 非公開変数
   ! Private variable
   !
   character(*), parameter:: module_name = 'DataFileSet_mod' !< Module Name
   
-  type(netcdfDataWriter) :: dataWriter
 
 contains
 
   !>
   !!
   !!
-  subroutine DataFileSet_Init(configNmlFileName)
+  subroutine DataFileSet_Init(this, configNmlFileName, plMesh, var)
 
     ! モジュール引用; Use statement
     !
-    use netcdfDataWriter_mod, only: &
-         & netcdfDataWriter_Init, &
-         & netcdfDataWriter_writeGlobalAttr, &
-         & netcdfDataWriter_Regist
-
-    use GridSet_mod, only: &
-         & plMesh
 
     use Constants_mod, only: RPlanet
 
+    use TemporalIntegSet_mod, only: &
+         & Nl
+
+    ! 宣言文; Declaration statement
+    !
+    type(DataFileSet), intent(inout) :: this
+    character(*), intent(in) :: configNmlFileName
+    type(PolyMesh), intent(in) :: plMesh
+    type(VariableSet), intent(in) :: var
 
     ! 局所変数
     ! Local variable
     !
     character(STRING) :: outputFileName
 
-    ! 宣言文; Declaration statement
-    !
-    character(*), intent(in) :: configNmlFileName
 
     ! 実行文; Executable statements
     !
 
     !
-    call read_nmlData(configNmlFileName, outputFileName)
+    call read_nmlData(this, configNmlFileName, outputFileName)
     
     !
-    call netcdfDataWriter_Init(dataWriter, outputFileName, plMesh)
+    call netcdfDataWriter_Init(this%dataWriter, outputFileName, plMesh)
     
-    call netcdfDataWriter_writeGlobalAttr(dataWriter, "RPlanet", RPlanet)
-    call netcdfDataWriter_Regist(dataWriter, (/ zc_lyrThickN /))
+    call netcdfDataWriter_writeGlobalAttr(this%dataWriter, "RPlanet", RPlanet)
+    call netcdfDataWriter_Regist(this%dataWriter, (/ var%zc_lyrThick(Nl) /))
     
   end subroutine DataFileSet_Init
 
   !>
   !!
   !!
-  subroutine DataFileSet_Final()
+  subroutine DataFileSet_Final(this)
 
-    ! モジュール引用; Use statement
+
+    ! 宣言文; Declaration statement
     !
-    use netcdfDataWriter_mod, only: &
-         & netcdfDataWriter_Final
+    type(DataFileSet), intent(inout) :: this
 
     ! 実行文; Executable statements
     !
 
-    call netcdfDataWriter_Final(dataWriter)
+    call netcdfDataWriter_Final(this%dataWriter)
 
   end subroutine DataFileSet_Final
 
   !> @brief 
   !!
   !!
-  subroutine DataFileSet_OutputData()
+  subroutine DataFileSet_OutputData(this, var)
 
     ! モジュール引用; Use statement
     !
-
-    use netcdfDataWriter_mod, only: &
-         & netcdfDataWriter_write, &
-         & netcdfDataWriter_AdvanceTimeStep
-
     use TemporalIntegSet_mod, only: &
-         & CurrentTime
+         & CurrentTime, Nl
 
     ! 宣言文; Declaration statement
     !
-    
+    type(DataFileSet), intent(inout) :: this
+    type(VariableSet), intent(in) :: var
     
     ! 局所変数
     ! Local variables
@@ -132,21 +141,21 @@ contains
     ! 実行文; Executable statement
     !
 
-    if( mod(CurrentTime, outputIntrval) /= 0 ) return 
+    if( mod(CurrentTime, this%outputIntrval) /= 0 ) return 
 
 
     call MessageNotify("M", module_name, "Output data of some field at %d [sec] ..", i=(/ int(CurrentTime) /))
-    call netcdfDataWriter_write(dataWriter, zc_lyrThickN)
+    call netcdfDataWriter_write(this%dataWriter, var%zc_lyrThick(Nl))
     
     !
-    call netcdfDataWriter_AdvanceTimeStep(dataWriter, CurrentTime)
+    call netcdfDataWriter_AdvanceTimeStep(this%dataWriter, CurrentTime)
 
   end subroutine DataFileSet_OutputData
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 
-  subroutine read_nmlData( configNmlFileName, &
+  subroutine read_nmlData( this, configNmlFileName, &
        & outputFileName )
 
     ! モジュール引用; Use statement
@@ -164,6 +173,7 @@ contains
 
     ! 宣言文; Declaration statement
     !
+    type(DataFileSet), intent(inout) :: this
     character(*), intent(in) :: configNmlFileName
     character(STRING), intent(out) :: outputFileName
 
@@ -175,6 +185,8 @@ contains
 
     integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
                               ! IOSTAT of NAMELIST read
+
+    real(DP) :: outputIntrval
 
     ! NAMELIST 変数群
     ! NAMELIST group name
@@ -205,12 +217,13 @@ contains
        close( unit_nml )
     end if
 
+    this%outputIntrval = outputIntrval
 
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, '  outputFileName        = %a', ca=(/ outputFileName /))
-    call MessageNotify( 'M', module_name, '  outputIntrval        = %d [sec]', i=(/ int(outputIntrval) /))
+    call MessageNotify( 'M', module_name, '  outputIntrval        = %d [sec]', i=(/ int(this%outputIntrval) /))
 
   end subroutine read_nmlData
 

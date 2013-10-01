@@ -20,6 +20,9 @@ module HydroBouEqSolver_mod
   use SphericalCoord_mod, only: &
        & CartToSphPos
 
+  use PolyMesh_mod, only: &
+       & PolyMesh
+
   use GeometricField_mod, only: &
        & volScalarField, pointScalarField, surfaceScalarField, &
        & GeometricField_Init, GeometricField_Final, &
@@ -33,8 +36,7 @@ module HydroBouEqSolver_mod
        & Omega, Grav
 
   use GridSet_mod, only: &
-       & plMesh, fvmInfo, &
-       & nEdge, nCell, nVertex, &
+       & GridSet_getLocalMeshInfo, &
        & nVzLyr, nVrLyr, vHaloSize
 
   use EOSDriver_mod, only: &
@@ -47,17 +49,16 @@ module HydroBouEqSolver_mod
        & z_r, r_z, verticalInt
 
   use VariableSet_mod, only: &
-       & zc_lyrThickB, zc_lyrThickN, zc_lyrThickA, &
-       & ze_hNormVelB, ze_hNormVelN, ze_hNormVelA, &
-       & zc_TracersB, zc_TracersN, zc_TracersA, &
-       & SaltTracerID, PTempTracerID, TracerNum, &
-       & rc_vNormVel, zc_Dens, zc_Press, zc_ZMid, &
-       & c_SurfPress, c_totDepthBasic, zc_lyrThickBasic, &
+       & VariableSet, &
+       & SaltTracerID, PTempTracerID, TracerNum, &       
        & refDens
 
   use HydroBouEqSolverRHS_mod, only: &
        & HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final, &
        & calc_RHShNormVel, calc_RHSTracer, calc_RHSLyrThick
+
+  use BarotModeTimeFilter_mod, only: &
+       & BarotModeTimeFilter_Init, BarotModeTimeFilter_Final
 
   ! 宣言文; Declareration statements
   !
@@ -78,6 +79,8 @@ module HydroBouEqSolver_mod
   ! Private variable
   !
   character(*), parameter:: module_name = 'HydroBouEqSolver_mod' !< Module Name
+
+  type(PolyMesh), pointer :: mesh
 
   type(volScalarField) :: zc_lyrThickMl, zc_lyrThickBMl
   type(surfaceScalarField) :: ze_hNormVelMl
@@ -102,10 +105,14 @@ contains
   !>
   !!
   !!
-  subroutine HydroBouEqSolver_Init()
+  subroutine HydroBouEqSolver_Init(plMesh)
 
     ! モジュール引用; Use statement
     !
+
+    ! 宣言文; Declaration statement
+    !
+    type(PolyMesh), intent(in), target :: plMesh
 
     ! 局所変数
     ! Local variable
@@ -121,7 +128,7 @@ contains
     
     allocate( zc_TracersMl(TracerNum) )
     do n=1, TracerNum
-       call GeometricField_Init(zc_TracersMl(n), plMesh, trim(zc_TracersN(n)%name)//"Ml")
+       call GeometricField_Init(zc_TracersMl(n), plMesh, "zc_TracersMl", vHaloSize=vHaloSize)
     end do
 
     call GeometricField_Init(e_hMFluxTAvg1, plMesh, "e_hMFluxTAvg1", vLayerNum=1)
@@ -140,8 +147,11 @@ contains
 
     call GeometricField_Init(e_RHShNormVelMl, plMesh, "e_RHShNormVelMl", vLayerNum=1)
 
+    mesh => plMesh
+
     !
     call HydroBouEqSolverRHS_Init()
+    call BarotModeTimeFilter_Init()
 
   end subroutine HydroBouEqSolver_Init
 
@@ -161,6 +171,7 @@ contains
 
     !
     call HydroBouEqSolverRHS_Final()
+    call BarotModeTimeFilter_Final()
 
     call GeometricField_Final(zc_lyrThickMl)
     call GeometricField_Final(zc_lyrThickBMl)
@@ -186,19 +197,23 @@ contains
     call GeometricField_Final(c_surfHeightBs)
     call GeometricField_Final(c_surfHeightMs)
 
+    mesh => null()
+
   end subroutine HydroBouEqSolver_Final
 
   !> @brief 
   !!
   !!
-  subroutine HydroBouEqSolver_AdvanceTime()
+  subroutine HydroBouEqSolver_AdvanceTime(var)
     
     ! モジュール引用; Use statements
     !
+    use TemporalIntegSet_mod, only: &
+         & Al, Nl, Bl
 
     ! 宣言文; Declaration statement
     !
-    
+    type(VariableSet), intent(inout) :: var
     
     ! 局所変数
     ! Local variables
@@ -208,9 +223,15 @@ contains
     !
     
 
-    call AdvanceBarocStep( e_RHShNormVelMl )
-    call AdvanceBarotStep( e_RHShNormVelMl )
-    call FinalizeBarocStep()
+    call AdvanceBarocStep( e_RHShNormVelMl, var%ze_hNormVel(Al), &
+         & var%ze_hNormVel(Nl), var%ze_hNormVel(Bl), var%zc_lyrThick(Nl), var%zc_lyrThick(Bl), &
+         & var%zc_Tracers(:,Nl), var%zc_Tracers(:,Bl), &
+         & var%rc_vNormVel, var%zc_Dens, var%zc_Press, var%c_surfPress, var%zc_ZMid )
+!!$
+!!$    call AdvanceBarotStep( e_RHShNormVelMl, var%zc_Dens, var%c_totDepthBasic )
+!!$    
+!!$    call FinalizeBarocStep( var%ze_hNormVel(Al), var%zc_lyrThick(Al), var%zc_Tracers(:,Al), &
+!!$       & var%zc_lyrThick(Nl), var%zc_Tracers(:,Nl), var%rc_vNormVel, var%c_totDepthBasic, var%zc_lyrThickBasic )
 
 
   end subroutine HydroBouEqSolver_AdvanceTime
@@ -223,7 +244,9 @@ contains
   !> @brief 
   !!
   !!
-  subroutine AdvanceBarocStep(e_RHShNormVelMl)
+  subroutine AdvanceBarocStep( e_RHShNormVelMl, ze_hNormVelAl, &
+       & ze_hNormVelNl, ze_hNormVelBl, zc_lyrThickNl, zc_lyrThickBl, zc_TracersNl, zc_TracersBl, &
+       & rc_vNormVel, zc_Press, zc_Dens, c_surfPress, zc_ZMid )
 
     ! モジュール引用; Use statements
     !
@@ -233,6 +256,15 @@ contains
     ! 宣言文; Declaration statement
     !
     type(surfaceScalarField), intent(inout) :: e_RHShNormVelMl
+    type(surfaceScalarField), intent(inout) :: ze_hNormVelAl
+    type(surfaceScalarField), intent(in) :: ze_hNormVelNl, ze_hNormVelBl
+    type(volScalarField), intent(in) :: zc_lyrThickNl, zc_lyrThickBl
+    type(volScalarField), intent(in) :: zc_TracersNl(:), zc_TracersBl(:)
+    type(volScalarField), intent(inout) :: rc_vNormVel
+    type(volScalarField), intent(inout) :: zc_Dens
+    type(volScalarField), intent(inout) :: zc_Press
+    type(volScalarField), intent(in) :: c_surfPress
+    type(volScalarField), intent(in) :: zc_ZMid
 
 
     ! 局所変数
@@ -241,14 +273,17 @@ contains
     integer :: i
     integer :: e
     integer :: n
+    integer :: nCell, nEdge
 
     type(surfaceScalarField) :: ze_RHShNormVel
     type(volScalarField) :: zc_RHSlyrThick
     type(volScalarField) :: zc_RHSTracer
     type(surfaceScalarField) :: ze_massHFlux
-
+    
     ! 実行文; Executable statement
     !
+
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell, nEdge=nEdge)
 
     !******************************************************************
     ! Stage1: Predicotr update for the 3D momentum
@@ -258,29 +293,29 @@ contains
     ! Advance the 3D momentum to n+1/2
 
     call calc_RHShNormVel( ze_RHShNormVel, &
-         & ze_hNormVelN, rc_vNormVel, zc_lyrThickN, zc_ZMid, zc_Press, zc_Dens )
+         & ze_hNormVelNl, rc_vNormVel, zc_lyrThickNl, zc_ZMid, zc_Press, zc_Dens )
 
     !$omp parallel do
     do e=1, nEdge
        ze_hNormVelMl%data%v_(1:nVzLyr,e) = &
-            &   (5d-1 - 2d0*LFAM3_GAM)*ze_hNormVelA%data%v_(1:nVzLyr,e) &
-            & + (5d-1 + 2d0*LFAM3_GAM)*ze_hNormVelN%data%v_(1:nVzLyr,e) &
+            &   (5d-1 - 2d0*LFAM3_GAM)*ze_hNormVelBl%data%v_(1:nVzLyr,e) &
+            & + (5d-1 + 2d0*LFAM3_GAM)*ze_hNormVelNl%data%v_(1:nVzLyr,e) &
             & + ( 1d0 - 2d0*LFAM3_GAM)*DelTime*ze_RHShNormVel%data%v_(1:nVzLyr,e) 
     end do
-    
+
     !
     ! Advance  the thickness of vertical layers to n+1/2 with pseudo-compressible algorithm
 
-    ze_massHFlux = ze_hNormVelN*e_c(zc_lyrThickN)
+    ze_massHFlux = ze_hNormVelNl*e_c(zc_lyrThickNl)
     call calc_RHSLyrThick( zc_RHSlyrThick, &
        & ze_massHFlux, rc_vNormVel )
 
     !$omp parallel do
     do i=1, nCell
-       zc_lyrThickB%data%v_(1:nVzLyr,i) = zc_lyrThickN%data%v_(1:nVzLyr,i) &
+       zc_lyrThickBl%data%v_(1:nVzLyr,i) = zc_lyrThickNl%data%v_(1:nVzLyr,i) &
             & - (5d-1 - LFAM3_GAM)*DelTime*zc_RHSlyrThick%data%v_(1:nVzLyr,i)
 
-       zc_lyrThickMl%data%v_(1:nVzLyr,i) = zc_lyrThickN%data%v_(1:nVzLyr,i) &
+       zc_lyrThickMl%data%v_(1:nVzLyr,i) = zc_lyrThickNl%data%v_(1:nVzLyr,i) &
             & + (5d-1 -LFAM3_GAM)*DelTime*zc_RHSlyrThick%data%v_(1:nVzLyr,i)
     end do
 
@@ -295,14 +330,14 @@ contains
     do n=1, TracerNum
 
        call calc_RHSTracer( zc_RHSTracer, &
-            & zc_TracersN(n), ze_massHFlux, rc_vNormVel )
+            & zc_TracersNl(n), ze_massHFlux, rc_vNormVel )
 
       !$omp parallel do
        do i=1, nCell
           zc_TracersMl(n)%data%v_(1:nVzLyr,i) = &
-               &   (   (5d-1 - 2d0*LFAM3_GAM)*zc_TracersA(n)%data%v_(1:nVzLyr,i) &
-               &     + (5d-1 + 2d0*LFAM3_GAM)*zc_TracersN(n)%data%v_(1:nVzLyr,i) & 
-               &   )*zc_lyrThickB%data%v_(1:nVzLyr,i)                               &
+               &   (   (5d-1 - 2d0*LFAM3_GAM)*zc_TracersBl(n)%data%v_(1:nVzLyr,i) &
+               &     + (5d-1 + 2d0*LFAM3_GAM)*zc_TracersNl(n)%data%v_(1:nVzLyr,i) & 
+               &   )*zc_lyrThickBl%data%v_(1:nVzLyr,i)                               &
                & + (1d0 - 2d0*LFAM3_GAM)*DelTime*zc_RHSTracer%data%v_(1:nVzLyr,i)    &
                &   / zc_lyrThickMl%data%v_(1:nVzLyr,i)
        end do
@@ -316,14 +351,14 @@ contains
          & theta=zc_TracersMl(PTempTracerID), S=zc_TracersMl(SaltTracerID), p=zc_Press)
 
     call diagnosePress( zc_Press, &
-         & zc_Dens, zc_lyrThickMl)
+         & zc_Dens, zc_lyrThickMl, c_surfPress)
 
     call calc_RHShNormVel( ze_RHShNormVel, &
          & ze_hNormVelMl, rc_vNormVel, zc_lyrThickMl, zc_ZMid, zc_Press, zc_Dens )
 
     !$omp parallel do
     do e=1, nEdge
-       ze_hNormVelA%data%v_(1:nVzLyr,e) = ze_hNormVelN%data%v_(1:nVzLyr,e) &
+       ze_hNormVelAl%data%v_(1:nVzLyr,e) = ze_hNormVelNl%data%v_(1:nVzLyr,e) &
             & + DelTime*ze_RHShNormVel%data%v_(1:nVzLyr,e) 
     end do
 
@@ -344,7 +379,8 @@ contains
   !> @brief 
   !!
   !!
-  subroutine AdvanceBarotStep( e_RHShNormVelMl )
+  subroutine AdvanceBarotStep( &
+       & e_RHShNormVelMl, zc_Dens, c_totDepthBasic )
     
     ! モジュール引用; Use statements
     !
@@ -354,6 +390,8 @@ contains
     ! 宣言文; Declaration statement
     !
     type(surfaceScalarField), intent(in) :: e_RHShNormVelMl
+    type(volScalarField), intent(in) :: zc_Dens
+    type(volScalarField), intent(in) :: c_totDepthBasic
 
     ! 局所変数
     ! Local variables
@@ -371,6 +409,7 @@ contains
     integer :: e
     integer :: kz
     real(DP) :: tmp(nVzLyr)
+    integer :: nCell
 
     integer :: m
     integer :: mMax
@@ -379,14 +418,17 @@ contains
     real(DP), allocatable :: avgCoef2(:)
     type(Vector3d) :: geoPos
 
+
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(c_DensVAvg2, plMesh, "c_DensVAvg2", vLayerNum=1)
-    call GeometricField_Init(e_PressForce, plMesh, "e_PressForce", vLayerNum=1)
-    call GeometricField_Init(c_SurfHeightTmp, plMesh, "c_SurfHeightTmp", vLayerNum=1)
-    call GeometricField_Init(c_f, plMesh, "c_f", vLayerNum=1)
-    call GeometricField_Init(e_f, plMesh, "e_f", vLayerNum=1)
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell)
+
+    call GeometricField_Init(c_DensVAvg2, mesh, "c_DensVAvg2", vLayerNum=1)
+    call GeometricField_Init(e_PressForce, mesh, "e_PressForce", vLayerNum=1)
+    call GeometricField_Init(c_SurfHeightTmp, mesh, "c_SurfHeightTmp", vLayerNum=1)
+    call GeometricField_Init(c_f, mesh, "c_f", vLayerNum=1)
+    call GeometricField_Init(e_f, mesh, "e_f", vLayerNum=1)
  
     c_DensVAvg1 = verticalInt(zc_Dens, zc_lyrThickMl, avgFlag=.true.)
     
@@ -404,7 +446,7 @@ contains
             &         *( zc_Dens%data%v_(1:nVzLyr,i) + (rc_Dens%data%v_(1:nVzLyr,i) - rc_Dens%data%v_(2:nVzLyr+1,i))/6d0 ) &
             &    )
 
-       geoPos = CartToSphPos(plMesh%CellPosList(i))
+       geoPos = CartToSphPos(mesh%CellPosList(i))
        c_f%data%v_(1,i) = 2d0*Omega*sin(geoPos%v_(2))
     end do
     
@@ -484,7 +526,8 @@ contains
   !> @brief 
   !!
   !!
-  subroutine FinalizeBarocStep()
+  subroutine FinalizeBarocStep( ze_hNormVelA, zc_lyrThickA, zc_TracersA, &
+       & zc_lyrThickN, zc_TracersN, rc_vNormVel, c_totDepthBasic, zc_lyrThickBasic )
     
     ! モジュール引用; Use statements
     !
@@ -493,19 +536,29 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    
+    type(surfaceScalarField), intent(inout) :: ze_hNormVelA
+    type(volScalarField), intent(inout) :: zc_lyrThickA
+    type(volScalarField), intent(inout) :: zc_TracersA(:)
+    type(volScalarField), intent(in) :: zc_lyrThickN
+    type(volScalarField), intent(in) :: zc_TracersN(:)
+    type(volScalarField), intent(inout) :: rc_vNormVel
+    type(volScalarField), intent(in) :: c_totDepthBasic
+    type(volScalarField), intent(in) :: zc_lyrThickBasic
     
     ! 局所変数
     ! Local variables
     !
     integer :: i
     integer :: n
+    integer :: nCell
     type(volScalarField) :: zc_RHSTracer
     type(surfaceScalarField) :: ze_massHFluxMl
 
     ! 実行文; Executable statement
     !
     
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell)
+
     ! Stage 4
     !
 
@@ -554,12 +607,14 @@ contains
     !
     type(surfaceScalarField) :: e_correction
     integer :: e
+    integer :: nEdge
     real(DP) :: correction
 
     ! 実行文; Executable statement
     !
+    call GridSet_getLocalMeshInfo(mesh, nEdge=nEdge)
 
-    call GeometricField_Init(e_correction, plMesh, "e_correction", vLayerNum=1)
+    call GeometricField_Init(e_correction, mesh, "e_correction", vLayerNum=1)
     
     e_correction = e_hNormVel - verticalInt(ze_hNormVel, e_c(zc_lyrThick), avgFlag=.true.)
 
@@ -591,10 +646,12 @@ contains
     !
     type(volScalarField) :: zc_hdivMassFlux
     integer :: k, i
-    
+    integer :: nCell
+
     ! 実行文; Executable statement
     !
-    call GeometricField_Init(zc_hdivMassFlux, plMesh, "zc_hdivMassFlux")
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell)
+    call GeometricField_Init(zc_hdivMassFlux, mesh, "zc_hdivMassFlux")
     
     zc_hdivMassFlux = div(zc_lyrThick, ze_hNormVel)
     
@@ -615,14 +672,15 @@ contains
   !!
   !!
   subroutine diagnosePress( zc_Press, &
-       & zc_Dens, zc_lyrThick )
+       & zc_Dens, zc_lyrThick, c_surfPress )
     
     ! 宣言文; Declaration statement
     !
     type(volScalarField), intent(inout) :: zc_Press
     type(volScalarField), intent(in) :: zc_Dens
     type(volScalarField), intent(in) :: zc_lyrThick
-    
+    type(volScalarField), intent(in) :: c_surfPress
+
     ! 局所変数
     ! Local variables
     !
@@ -630,10 +688,12 @@ contains
     real(DP) :: r_Press(nVrLyr)
     integer :: kr
     integer :: i
+    integer :: nCell
 
     ! 実行文; Executable statement
     !
 
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell)
 
     rc_Dens = r_z(zc_Dens)
 

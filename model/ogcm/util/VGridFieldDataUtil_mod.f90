@@ -15,9 +15,14 @@ module VGridFieldDataUtil_mod
   use dc_message, only: &
        & MessageNotify
 
+  use PolyMesh_mod, only: &
+       & PolyMesh
+  
+  use fvMeshInfo_mod, only: &
+       & fvMeshInfo
+
   use GridSet_mod, only: &
-       & plMesh, fvmInfo, &
-       & nCell, nEdge, nVertex, &
+       & GridSet_getLocalMeshInfo, &
        & nVzLyr, nVrLyr, vHaloSize
 
   use GeometricField_mod, only: &
@@ -33,6 +38,10 @@ module VGridFieldDataUtil_mod
   ! 公開手続き
   ! Public procedure
   !
+  type, public :: VGridFieldDataUtil
+     type(PolyMesh), pointer :: mesh => null()
+     type(fvMeshInfo), pointer :: fvmInfo => null() 
+  end type VGridFieldDataUtil
 
   interface r_z
      module procedure rc_zc
@@ -55,6 +64,7 @@ module VGridFieldDataUtil_mod
   end interface verticalInt
 
   public :: VGridFieldDataUtil_Init, VGridFieldDataUtil_Final
+  public :: VGridFieldDataUtil_Set
   public :: r_z, z_r
   public :: delz
   public :: verticalInt
@@ -68,27 +78,62 @@ module VGridFieldDataUtil_mod
   !
   character(*), parameter:: module_name = 'VGridFieldDataUtil_mod' !< Module Name
 
+  type(VGridFieldDataUtil), pointer :: defaultUtilObj => null()
+
+
 contains
 
   !>
   !!
   !!
-  subroutine VGridFieldDataUtil_Init()
+  subroutine VGridFieldDataUtil_Init(this, fvmInfo)
+
+    ! 宣言文; Declaration statement
+    !
+    type(VGridFieldDataUtil), intent(inout) :: this
+    type(fvMeshInfo), intent(in), target :: fvmInfo
 
     ! 実行文; Executable statements
     !
+
+    this%fvmInfo => fvmInfo
+    this%mesh => fvmInfo%mesh
 
   end subroutine VGridFieldDataUtil_Init
 
   !>
   !!
   !!
-  subroutine VGridFieldDataUtil_Final()
+  subroutine VGridFieldDataUtil_Final(this)
+
+    ! 宣言文; Declaration statement
+    !
+    type(VGridFieldDataUtil), intent(inout) :: this
 
     ! 実行文; Executable statements
     !
 
   end subroutine VGridFieldDataUtil_Final
+
+  !> @brief 
+  !!
+  !!
+  subroutine VGridFieldDataUtil_Set(setUtilObj)
+    
+    ! 宣言文; Declaration statement
+    !
+    type(VGridFieldDataUtil), intent(in), target :: setUtilObj
+    
+    ! 実行文; Executable statement
+    !
+    
+    defaultUtilObj => setUtilObj
+
+#ifdef DEBUG
+    call MessageNotify("M", module_name, "Set default object used in the subroutines in this module.")
+#endif
+    
+  end subroutine VGridFieldDataUtil_Set
 
   !> @brief 
   !!
@@ -103,12 +148,22 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: e
-    
+    integer :: e, nEdge
+    type(PolyMesh), pointer :: mesh
+
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(re_field, plMesh, "re_field", vLayerNum=nVrLyr)
+#ifdef DEBUG
+    if( .not. associated(defaultUtilObj) ) &
+         & call MessageNotify("E", module_name, "Set the pointer of default object to actual object.")
+#endif
+
+
+    mesh => defaultUtilObj%mesh
+    call GridSet_getLocalMeshInfo(mesh, nEdge=nEdge)
+
+    call GeometricField_Init(re_field, mesh, "re_field", vLayerNum=nVrLyr)
     re_field%TempDataFlag = .true.
 
     !$omp parallel do
@@ -134,12 +189,21 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: i
+    integer :: i, nCell
+    type(PolyMesh), pointer :: mesh
     
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(rc_field, plMesh, "rc_field", vLayerNum=nVrLyr)
+#ifdef DEBUG
+    if( .not. associated(defaultUtilObj) ) &
+         & call MessageNotify("E", module_name, "Set the pointer of default object to actual object.")
+#endif
+
+    mesh => defaultUtilObj%mesh
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell)
+
+    call GeometricField_Init(rc_field, mesh, "rc_field", vLayerNum=nVrLyr)
     rc_field%TempDataFlag = .true.
 
     !$omp parallel do
@@ -164,12 +228,21 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: e
-    
+    integer :: e, nEdge
+    type(PolyMesh), pointer :: mesh
+
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(ze_field, plMesh, "ze_field", vLayerNum=nVzLyr)
+#ifdef DEBUG
+    if( .not. associated(defaultUtilObj) ) &
+         & call MessageNotify("E", module_name, "Set the pointer of default object to actual object.")
+#endif
+
+    mesh => defaultUtilObj%mesh
+    call GridSet_getLocalMeshInfo(mesh, nEdge=nEdge)
+
+    call GeometricField_Init(ze_field, mesh, "ze_field", vLayerNum=nVzLyr)
     ze_field%TempDataFlag = .true.
 
     !$omp parallel do
@@ -194,12 +267,21 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: i
-    
+    integer :: i, nCell
+    type(PolyMesh), pointer :: mesh
+        
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(zc_field, plMesh, "zc_field", vLayerNum=nVzLyr)
+#ifdef DEBUG
+    if( .not. associated(defaultUtilObj) ) &
+         & call MessageNotify("E", module_name, "Set the pointer of default object to actual object.")
+#endif
+
+    mesh => defaultUtilObj%mesh
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell)
+
+    call GeometricField_Init(zc_field, mesh, "zc_field", vLayerNum=nVzLyr)
     zc_field%TempDataFlag = .true.
 
     !$omp parallel do
@@ -225,12 +307,21 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: i
+    integer :: i, nCell
+    type(PolyMesh), pointer :: mesh
     
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(rc_field, plMesh, "rc_field", vLayerNum=nVrLyr)
+#ifdef DEBUG
+    if( .not. associated(defaultUtilObj) ) &
+         & call MessageNotify("E", module_name, "Set the pointer of default object to actual object.")
+#endif
+
+    mesh => defaultUtilObj%mesh
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell)
+
+    call GeometricField_Init(rc_field, mesh, "rc_field", vLayerNum=nVrLyr)
     rc_field%TempDataFlag = .true.
 
     !$omp parallel do
@@ -261,17 +352,28 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: e, cellIds(2)
-    
+    integer :: e, nEdge, cellIds(2)
+    type(PolyMesh), pointer :: mesh
+    type(fvMeshInfo), pointer :: fvm
+
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(re_field, plMesh, "rc_field", vLayerNum=nVrLyr)
+#ifdef DEBUG
+    if( .not. associated(defaultUtilObj) ) &
+         & call MessageNotify("E", module_name, "Set the pointer of default object to actual object.")
+#endif
+
+    mesh => defaultUtilObj%mesh
+    fvm => defaultUtilObj%fvmInfo
+    call GridSet_getLocalMeshInfo(mesh, nEdge=nEdge)
+
+    call GeometricField_Init(re_field, mesh, "rc_field", vLayerNum=nVrLyr)
     re_field%TempDataFlag = .true.
 
     !$omp parallel do private(cellIds)
     do e=1, nEdge
-       cellIds(:) = fvmInfo%Face_CellId(1:2,e)
+       cellIds(:) = fvm%Face_CellId(1:2,e)
        re_field%data%v_(1:nVrLyr,e) = & 
             & ( ze_field%data%v_(0:nVzLyr,e) - ze_field%data%v_(1:nVzLyr+1,e) ) &
             & / sum( 0.5d0*(zc_lyrThick%data%v_(1:nVzLyr+1, cellIds) + zc_lyrThick%data%v_(0:nVzLyr, cellIds)), 2)
@@ -297,12 +399,22 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: e
+    integer :: e, nEdge
+    type(PolyMesh), pointer :: mesh
+
     
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(e_field, plMesh, "e_field", vLayerNum=1) 
+#ifdef DEBUG
+    if( .not. associated(defaultUtilObj) ) &
+         & call MessageNotify("E", module_name, "Set the pointer of default object to actual object.")
+#endif
+
+    mesh => defaultUtilObj%mesh
+    call GridSet_getLocalMeshInfo(mesh, nEdge=nEdge)
+
+    call GeometricField_Init(e_field, mesh, "e_field", vLayerNum=1) 
     e_field%TempDataFlag = .true.
 
     if( present(avgFlag) .and. avgFlag ) then
@@ -339,12 +451,21 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: c
+    integer :: c, nCell, nEdge
+    type(PolyMesh), pointer :: mesh
     
     ! 実行文; Executable statement
     !
 
-    call GeometricField_Init(c_field, plMesh, "e_field", vLayerNum=1) 
+#ifdef DEBUG
+    if( .not. associated(defaultUtilObj) ) &
+         & call MessageNotify("E", module_name, "Set the pointer of default object to actual object.")
+#endif
+
+    mesh => defaultUtilObj%mesh
+    call GridSet_getLocalMeshInfo(mesh, nCell=nCell, nEdge=nEdge)
+
+    call GeometricField_Init(c_field, mesh, "e_field", vLayerNum=1) 
     c_field%TempDataFlag = .true.
 
     if( present(avgFlag) .and. avgFlag ) then

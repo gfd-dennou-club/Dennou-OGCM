@@ -33,62 +33,17 @@ module fvCalculus_mod
   public :: div, grad, curl
   public :: interpolate
 
-  integer, allocatable :: n_fv(:,:)
-  integer, allocatable :: t_fv(:,:)
-
-  public :: n_fv, t_fv
-
 contains
 subroutine fvCalculus_Init(fvmInfo_)
   type(fvMeshInfo), target, intent(in) :: fvmInfo_
 
-  integer :: cellNum, pointNum, faceNum, lfaceNum
-  integer :: cellId, faceId, lfaceId, ptId 
-  type(PolyMesh), pointer :: mesh
-
   fvmInfo => fvmInfo_
-  mesh => fvmInfo%mesh
-
-  cellNum = getCellListSize(mesh)
-  faceNum = getFaceListSize(mesh)
-  pointNum = getPointListSize(mesh)
-
-  allocate( n_fv(6,cellNum) )
-  allocate( t_fv(6, pointNum) )
-
-  n_fv = 0
-  t_fv = 0
-  do cellId=1, cellNum
-     lfaceNum = mesh%cellList(cellId)%faceNum
-     
-     do lfaceId=1, lfaceNum
-        faceId = mesh%cellList(cellId)%faceIdList(lfaceId)
-        if( mesh%faceList(faceId)%ownCellId==cellId) then
-           n_fv(lfaceId, cellId) = 1
-        else
-           n_fv(lfaceId, cellId) = -1
-        end if
-     end do
-
-  end do
-
-  do ptId=1, pointNum
-     do lfaceId=1, 3!size(fvInfo%Point_FaceId,1)
-        faceID = fvmInfo%Point_FaceId(lfaceId, ptId)
-        if(fvmInfo%Face_PointId(2,faceId)==ptId) then
-           t_fv(lfaceId, ptId) = 1
-        else
-           t_fv(lfaceId, ptId) = -1
-        end if
-     end do
-  end do
-
+  
 end subroutine fvCalculus_Init
 
 subroutine fvCalculus_Final()
 
   fvmInfo => null()
-  if(allocated(n_fv)) deallocate(n_fv)
 
 end subroutine fvCalculus_Final
 
@@ -152,7 +107,7 @@ function vdiv_surfNormVec( surfNormalVec ) result(v_div)
 
      forall(k=1:layerNum) &
           & v_div%data%v_(k,cellId) = &
-          & sum( n_fv(1:lfaceNum,cellId)*surfaceflux(k,fvmInfo%Cell_FaceId(1:lfaceNum,cellId))) &
+          & sum( fvmInfo%n_fv(1:lfaceNum,cellId)*surfaceflux(k,fvmInfo%Cell_FaceId(1:lfaceNum,cellId))) &
           & / fvmInfo%v_CellVol%data%v_(k, cellId)
   end do
 
@@ -194,7 +149,7 @@ function vdiv_volScalar_surfNormVec( volScalar, surfNormalVec) result(v_div)
      lfaceNum = mesh%cellList(cellId)%faceNum
      forall(k=1:layerNum) &
           & v_div%data%v_(k,cellId) = &
-          & sum( n_fv(1:lfaceNum,cellId)*surfaceflux(k,fvmInfo%Cell_FaceId(1:lfaceNum,cellId))) &
+          & sum( fvmInfo%n_fv(1:lfaceNum,cellId)*surfaceflux(k,fvmInfo%Cell_FaceId(1:lfaceNum,cellId))) &
           & / fvmInfo%v_CellVol%data%v_(k, cellId)
   end do
 
@@ -223,7 +178,7 @@ function pcurl_surfNormVec(surfNormalVec) result(p_curl)
      faceIds(:) = fvmInfo%Point_FaceId(1:3,ptId)
      forall(k=1:layerNum) &
           & p_curl%data%v_(k,ptId) = &
-          & sum( t_fv(1:3,ptId)*fvmInfo%s_dualMeshFaceArea%data%v_(1,faceIds) * surfNormalVec%data%v_(k,faceIds) ) &
+          & sum( fvmInfo%t_fv(1:3,ptId)*fvmInfo%s_dualMeshFaceArea%data%v_(1,faceIds) * surfNormalVec%data%v_(k,faceIds) ) &
           & / fvmInfo%p_dualMeshCellVol%data%v_(k,ptId)
 
   end do

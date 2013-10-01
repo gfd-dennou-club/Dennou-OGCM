@@ -25,7 +25,7 @@ module GovernEquationSolver_mod
   use fvMeshInfo_mod
 
   use fvCalculus_mod, only: &
-       div, curl, grad, t_fv, n_fv
+       div, curl, grad
 
   !
   !
@@ -285,10 +285,10 @@ subroutine prepairIntrpWeight()
 
         !
         lR_vi(1:lfaceNum) = cshift(R_vi(1:lfaceNum,cellId), startlPtId-1)
-        ln_fv(1:lfaceNum) = cshift(n_fv(1:lfaceNum,cellId), startlFaceId-1 )
+        ln_fv(1:lfaceNum) = cshift(fvmInfo%n_fv(1:lfaceNum,cellId), startlFaceId-1 )
         do lfaceId=1, 3
            if( fvmInfo%Point_FaceId(lfaceId,startPtId) == faceId) then
-              t_fv2 = t_fv(lfaceId, startPtId); exit
+              t_fv2 = fvmInfo%t_fv(lfaceId, startPtId); exit
            end if
         end do
 

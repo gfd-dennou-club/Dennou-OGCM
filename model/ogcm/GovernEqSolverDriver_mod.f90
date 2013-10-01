@@ -10,6 +10,11 @@ module GovernEqSolverDriver_mod
 
   ! モジュール引用; Use statements
   !
+  use PolyMesh_mod, only: &
+       & PolyMesh
+  
+  use VariableSet_mod, only: &
+       & VariableSet
 
   use HydroBouEqSolver_mod, only: &
        & HydroBouEqSolver_Init, HydroBouEqSolver_Final, &
@@ -45,18 +50,18 @@ contains
     ! 実行文; Executable statements
     !
 
-    call HydroBouEqSolver_Init()
 
   end subroutine GovernEqSolverDriver_Init
 
   !> @brief 
   !!
   !!
-  subroutine GovernEqSolverDriver_AdvanceTime()
+  subroutine GovernEqSolverDriver_AdvanceTime(variable, mesh)
     
     ! 宣言文; Declaration statement
     !
-
+    type(VariableSet), intent(inout) :: variable
+    type(PolyMesh), intent(in) :: mesh
     
     ! 局所変数
     ! Local variables
@@ -65,7 +70,9 @@ contains
     
     ! 実行文; Executable statement
     !
-    call HydroBouEqSolver_AdvanceTime()
+    call HydroBouEqSolver_Init(mesh)
+    call HydroBouEqSolver_AdvanceTime(variable)
+    call HydroBouEqSolver_Final()
 
   end subroutine GovernEqSolverDriver_AdvanceTime
 
@@ -76,8 +83,6 @@ contains
 
     ! 実行文; Executable statements
     !
-
-    call HydroBouEqSolver_Final()
 
   end subroutine GovernEqSolverDriver_Final
 

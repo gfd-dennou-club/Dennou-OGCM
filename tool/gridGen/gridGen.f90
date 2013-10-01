@@ -53,14 +53,14 @@ program gridGen
 
   if( reExecuteFlag ) then
      call loadGridData()
-     call HexTriIcMesh_Init(htiMesh, pMesh=plMesh)
+     call HexTriIcMesh_Init(htiMesh, globalMesh=plMesh)
   else
      call HexTriIcMesh_Init(htiMesh)
   end if
  
   call HexTriIcMesh_generate(htiMesh, glevel, maxItrNum)
 
-  call fvMeshInfo_Init(fvInfo, htiMesh%mesh)
+  call fvMeshInfo_Init(fvInfo, htiMesh%globalMesh)
   call HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
 
 
@@ -73,7 +73,7 @@ program gridGen
   !
 
   call MessageNotify("M",  "SCVGridGen", "* output grid data as a netcdf file ..")
-  call netcdfDataWriter_Init(ncwriter, genGridFileName, htiMesh%mesh)
+  call netcdfDataWriter_Init(ncwriter, genGridFileName, htiMesh%globalMesh)
   call netcdfDataWriter_writeGlobalAttr(ncWriter, "planetRadius", 1d0)
   call netcdfDataWriter_Regist(ncwriter, (/ fvInfo%v_CellVol /))
   call netcdfDataWriter_write(ncwriter, fvInfo%v_CellVol)
@@ -81,7 +81,7 @@ program gridGen
 
   if( outputVtkData ) then
   call MessageNotify("M",  "SCVGridGen", "* output grid data as a vtk data file  ..")
-     call vtkDataWriter_Init(vtkwriter, Replace(genGridFileName,".nc",".vtk"), htiMesh%mesh)
+     call vtkDataWriter_Init(vtkwriter, Replace(genGridFileName,".nc",".vtk"), htiMesh%globalMesh)
      call vtkDataWriter_Regist(vtkwriter, (/ fvInfo%v_CellVol /))
      call vtkDataWriter_write(vtkwriter)
      call vtkDataWriter_Final(vtkwriter)

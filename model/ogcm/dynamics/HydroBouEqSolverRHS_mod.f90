@@ -26,8 +26,7 @@ module HydroBouEqSolverRHS_mod
        & Omega, Grav
 
   use GridSet_mod, only: &
-       & plMesh, fvmInfo, &
-       & nEdge, nCell, nVertex, &
+       & GridSet_getLocalMeshInfo, &
        & nVzLyr, nVrLyr, vHaloSize
 
   use VariableSet_mod, only: &
@@ -90,9 +89,6 @@ contains
   subroutine calc_RHShNormVel( ze_RHShNormVel, &
        & ze_hNormVel, rc_vNormVel, zc_lyrThick, zc_ZMid, zc_Press, zc_Dens )
     
-    ! モジュール引用; Use statement
-    !
-
     ! 宣言文; Declaration statement
     !
     type(surfaceScalarField), intent(inout) :: ze_RHShNormVel
@@ -102,12 +98,6 @@ contains
     type(volScalarField), intent(in) :: zc_Zmid
     type(volScalarField), intent(in) :: zc_Press
     type(volScalarField), intent(in) :: zc_Dens
-
-    
-    ! 局所変数
-    ! Local variables
-    !
-    
     
     ! 実行文; Executable statement
     !
@@ -119,7 +109,8 @@ contains
          & (-1d0/refDens)*( grad(zc_Press)  + Grav*e_c(zc_Dens)*grad(zc_Zmid) ) &
          & - grad( CalcKineticEnergy(ze_hNormVel) ) &
          & - CalcPVFlux(zc_lyrThick, ze_hNormVel)   &
-         & - z_r( e_c(rc_vNormVel) * delz(ze_hNormVel, zc_lyrThick) )
+         & - z_r( e_c(rc_vNormVel) * delz(ze_hNormVel, zc_lyrThick) ) &
+         & - z_r(delz(ze_hNormVel, zc_lyrThick))
 
   end subroutine calc_RHShNormVel
 
@@ -138,13 +129,15 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: i
+    integer :: i, nCell
     
     ! 実行文; Executable statement
     !
-    
-    zc_RHSlyrThick = div(ze_massHFlux)
 
+    call GridSet_getLocalMeshInfo(ze_massHFlux%mesh, nCell=nCell)
+
+    zc_RHSlyrThick = div(ze_massHFlux)
+    
     !$omp parallel do
     do i=1, nCell
        zc_RHSlyrThick%data%v_(1:nVzLyr,i) = &
@@ -170,11 +163,14 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: i
+    integer :: i, nCell
     
     ! 実行文; Executable statement
     !
+
+    call GridSet_getLocalMeshInfo(ze_massHFlux%mesh, nCell=nCell)
     
+
     zc_RHSTracer = div( e_c(zc_Tracer)*ze_massHFlux )
 
     !$omp parallel do

@@ -31,7 +31,7 @@ program test_io_mod
   call HexTriIcMesh_Init(htiMesh)
   call HexTriIcMesh_generate(htiMesh, glevel, maxItrNum)
 
-  call fvMeshInfo_Init(fvInfo, htiMesh%mesh)
+  call fvMeshInfo_Init(fvInfo, htiMesh%globalMesh)
   call HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo)
 
 
@@ -40,14 +40,14 @@ program test_io_mod
   
   !
   write(*,*) "vtkDataWriter test.."
-  call vtkDataWriter_Init(writer, "data.vtk", htiMesh%mesh)
+  call vtkDataWriter_Init(writer, "data.vtk", htiMesh%globalMesh)
   call vtkDataWriter_Regist(writer, (/ fvInfo%v_CellVol /))
   call vtkDataWriter_write(writer)
   call vtkDataWriter_Final(writer)
 
   !
   write(*,*) "* netcdfDataWriter test.."
-  call netcdfDataWriter_Init(ncwriter, "data.nc", htiMesh%mesh)
+  call netcdfDataWriter_Init(ncwriter, "data.nc", htiMesh%globalMesh)
   call netcdfDataWriter_Regist(ncwriter, (/ fvInfo%v_CellVol /))
   call netcdfDataWriter_write(ncwriter, fvInfo%v_CellVol)
   call netcdfDataWriter_Final(ncwriter)
@@ -77,7 +77,7 @@ end subroutine setup
 subroutine dataCheck()
   integer :: i
 
-  do i=1, getCellListSize(htiMesh%mesh)
+  do i=1, getCellListSize(htiMesh%globalMesh)
      if( At(v_CellVol,i) /= At(fvInfo%v_CellVol,i) ) stop
   end do
 end subroutine dataCheck
