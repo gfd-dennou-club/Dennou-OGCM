@@ -39,6 +39,10 @@ module HydroBouEqSolver_mod
        & GridSet_getLocalMeshInfo, &
        & nVzLyr, nVrLyr, vHaloSize
 
+  use TemporalIntegSet_mod, only: &
+       & DelTime, SubCycleNum, &
+       & nShortTimeLevel
+
   use EOSDriver_mod, only: &
        & EOSDriver_Eval
 
@@ -60,6 +64,7 @@ module HydroBouEqSolver_mod
   use BarotModeTimeFilter_mod, only: &
        & BarotModeTimeFilter_Init, BarotModeTimeFilter_Final
 
+
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -69,7 +74,8 @@ module HydroBouEqSolver_mod
   ! Public procedure
   !
   public :: HydroBouEqSolver_Init, HydroBouEqSolver_Final
-  public :: HydroBouEqSolver_AdvanceTime
+  public :: HydroBouEqSolver_AdvanceTStep
+  public :: diagnosePress, diagnosevNormVel
 
   ! 非公開手続き
   ! Private procedure
@@ -88,14 +94,16 @@ module HydroBouEqSolver_mod
   type(surfaceScalarField) :: e_hMFluxTAvg1
   type(surfaceScalarField) :: e_hMFluxTAvg2
   type(volScalarField) :: c_surfHeightTAvg1
-  type(volScalarField) :: c_surfHeightAs, c_surfHeightNs, c_surfHeightBs, c_surfHeightMs
-  type(surfaceScalarField) :: e_hNormVelAs, e_hNormVelNs, e_hNormVelBs, e_hNormVelMs
+  type(volScalarField) :: c_surfHeight(nShortTimeLevel), c_surfHeightMs
+  type(surfaceScalarField) :: e_hNormVel(nShortTimeLevel), e_hNormVelMs
 
   type(surfaceScalarField) :: e_RHShNormVelMl
 
   real(DP), parameter :: LFAM3_GAM = 1d0/12d0
+  real(DP), parameter :: LFAM3_BETA = 0d0
+  real(DP), parameter :: LFAM3_EPS = 0d0
   real(DP), parameter :: GFB_AM3BETA = 0.281105d0
-  real(DP), parameter :: GFB_Delta = 0.614d0
+  real(DP), parameter :: GFB_DELTA = 0.614d0
   real(DP), parameter :: GFB_EPS = 0.013d0
   real(DP), parameter :: GFB_GAM = 0.088d0
   
@@ -118,6 +126,7 @@ contains
     ! Local variable
     !
     integer :: n
+    integer :: tl
 
     ! 実行文; Executable statements
     !
@@ -135,14 +144,12 @@ contains
     call GeometricField_Init(e_hMFluxTAvg2, plMesh, "e_hMFluxTAvg2", vLayerNum=1)
     call GeometricField_Init(c_surfHeightTAvg1, plMesh, "c_surfHeightTAvg1", vLayerNum=1)
 
-    call GeometricField_Init(e_hNormVelAs, plMesh, "e_hNormVelAs", vLayerNum=1)
-    call GeometricField_Init(e_hNormVelNs, plMesh, "e_hNormVelNs", vLayerNum=1)
-    call GeometricField_Init(e_hNormVelBs, plMesh, "e_hNormVelBs", vLayerNum=1)
-    call GeometricField_Init(e_hNormVelMs, plMesh, "e_hNormVelMs", vLayerNum=1)
+    do tl=1, nShortTimeLevel
+       call GeometricField_Init(e_hNormVel(tl), plMesh, "e_hNormVel", vLayerNum=1)
+       call GeometricField_Init(c_surfHeight(tl), plMesh, "c_surfHeight", vLayerNum=1)
+    end do
 
-    call GeometricField_Init(c_surfHeightAs, plMesh, "c_surfHeightAs", vLayerNum=1)
-    call GeometricField_Init(c_surfHeightNs, plMesh, "c_surfHeightNs", vLayerNum=1)
-    call GeometricField_Init(c_surfHeightBs, plMesh, "c_surfHeightBs", vLayerNum=1)
+    call GeometricField_Init(e_hNormVelMs, plMesh, "e_hNormVelMs", vLayerNum=1)
     call GeometricField_Init(c_surfHeightMs, plMesh, "c_surfHeightMs", vLayerNum=1)
 
     call GeometricField_Init(e_RHShNormVelMl, plMesh, "e_RHShNormVelMl", vLayerNum=1)
@@ -151,7 +158,7 @@ contains
 
     !
     call HydroBouEqSolverRHS_Init()
-    call BarotModeTimeFilter_Init()
+    call BarotModeTimeFilter_Init( DelTimeLong=DelTime, DelTimeShort=DelTime/dble(SubCycleNum) )
 
   end subroutine HydroBouEqSolver_Init
 
@@ -164,6 +171,7 @@ contains
     ! Local variable
     !
     integer :: n
+    integer :: tl
 
     ! 実行文; Executable statements
     !
@@ -186,16 +194,14 @@ contains
     call GeometricField_Final(e_hMFluxTAvg2)
     call GeometricField_Final(c_surfHeightTAvg1)
 
-    call GeometricField_Final(e_hNormVelAs)
-    call GeometricField_Final(e_hNormVelNs)
-    call GeometricField_Final(e_hNormVelBs)
+    do tl=1, nShortTimeLevel
+       call GeometricField_Final( e_hNormVel(tl) )
+       call GeometricField_Final( c_surfHeight(tl) )
+    end do
     call GeometricField_Final(e_hNormVelMs)
-    call GeometricField_Final(e_RHShNormVelMl)
-
-    call GeometricField_Final(c_surfHeightAs)
-    call GeometricField_Final(c_surfHeightNs)
-    call GeometricField_Final(c_surfHeightBs)
     call GeometricField_Final(c_surfHeightMs)
+
+    call GeometricField_Final(e_RHShNormVelMl)
 
     mesh => null()
 
@@ -204,7 +210,7 @@ contains
   !> @brief 
   !!
   !!
-  subroutine HydroBouEqSolver_AdvanceTime(var)
+  subroutine HydroBouEqSolver_AdvanceTStep(var)
     
     ! モジュール引用; Use statements
     !
@@ -227,16 +233,17 @@ contains
          & var%ze_hNormVel(Nl), var%ze_hNormVel(Bl), var%zc_lyrThick(Nl), var%zc_lyrThick(Bl), &
          & var%zc_Tracers(:,Nl), var%zc_Tracers(:,Bl), &
          & var%rc_vNormVel, var%zc_Dens, var%zc_Press, var%c_surfPress, var%zc_ZMid )
-!!$
-!!$    call AdvanceBarotStep( e_RHShNormVelMl, var%zc_Dens, var%c_totDepthBasic )
-!!$    
-!!$    call FinalizeBarocStep( var%ze_hNormVel(Al), var%zc_lyrThick(Al), var%zc_Tracers(:,Al), &
-!!$       & var%zc_lyrThick(Nl), var%zc_Tracers(:,Nl), var%rc_vNormVel, var%c_totDepthBasic, var%zc_lyrThickBasic )
 
+    call AdvanceBarotStep( e_RHShNormVelMl, var%zc_Dens, var%c_totDepthBasic )
+    
+    call FinalizeBarocStep( var%ze_hNormVel(Al), var%zc_lyrThick(Al), var%zc_Tracers(:,Al), &
+       & var%ze_hNormVel(Nl), var%ze_hNormVel(Bl), var%zc_lyrThick(Nl), var%zc_Tracers(:,Nl), &
+       & var%rc_vNormVel, var%c_totDepthBasic, var%zc_lyrThickBasic )
 
-  end subroutine HydroBouEqSolver_AdvanceTime
+    
+  end subroutine HydroBouEqSolver_AdvanceTStep
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -327,6 +334,11 @@ contains
     ! Stage2: Predicotr update for the tracers
     !*******************************************************************
 
+    ze_massHFlux = e_c(zc_lyrThickMl)*( &
+         &   (1d0 - 2d0*LFAM3_GAM)*ze_hNormVelNl &
+         & + LFAM3_BETA*(2d0*ze_hNormVelMl - 3d0*ze_hNormVelNl + ze_hNormVelAl) &
+         & )
+
     do n=1, TracerNum
 
        call calc_RHSTracer( zc_RHSTracer, &
@@ -384,8 +396,11 @@ contains
     
     ! モジュール引用; Use statements
     !
+    use BarotModeTimeFilter_mod, only: &
+         & nTotBarotStep, Am, Bm
+
     use TemporalIntegSet_mod, only: &
-         & DelTime, SubCycleNum
+         & TemporalIntegSet_AdvanceShortTStep, As, Ns, Bs
 
     ! 宣言文; Declaration statement
     !
@@ -412,10 +427,7 @@ contains
     integer :: nCell
 
     integer :: m
-    integer :: mMax
     real(DP) :: DelTimeShort
-    real(DP), allocatable :: avgCoef1(:)
-    real(DP), allocatable :: avgCoef2(:)
     type(Vector3d) :: geoPos
 
 
@@ -455,48 +467,41 @@ contains
 
     !
     DelTimeShort = DelTime/dble(SubCycleNum)
-    mMax = int(1.25d0*SubCycleNum)
-    allocate( avgCoef1(mMax), avgCoef2(mMax) )
 
-    call DeepCopy(e_hNormVelNs, e_hMFluxTAvg1)
-    call DeepCOpy(c_surfHeightNs, c_surfHeightTAvg1)
+    call DeepCopy(e_hNormVel(Ns), e_hMFluxTAvg1)
+    call DeepCOpy(c_surfHeight(Ns), c_surfHeightTAvg1)
 
-    e_hMFluxTAvg1 = 0d0
-    e_hMFluxTAvg2 = 0d0
+    e_hMFluxTAvg1 = 0d0; e_hMFluxTAvg2 = 0d0
     c_surfHeightTAvg1 = 0d0
 
-    do m=1, mMax
+    do m=1, nTotBarotStep
 
        e_totDepthMs = e_c(c_totDepthBasic + c_surfHeightMs)
-       c_surfHeightAs = c_surfHeightNs - DelTimeShort*div(e_totDepthMs*e_hNormVelMs)
+       c_surfHeight(As) = c_surfHeight(Ns) - DelTimeShort*div(e_totDepthMs*e_hNormVelMs)
        
-       c_SurfHeightTmp = GFB_EPS*c_surfHeightAs &
-            & + (1d0 - GFB_Delta - GFB_GAM - GFB_EPS)*c_surfHeightNs &
-            & + GFB_GAM*c_surfHeightBs + GFB_EPS*c_SurfHeightTmp
+       c_SurfHeightTmp = GFB_DELTA*c_surfHeight(As) &
+            & + (1d0 - GFB_DELTA - GFB_GAM - GFB_EPS)*c_surfHeight(Ns) &
+            & + GFB_GAM*c_surfHeight(Bs) + GFB_EPS*c_SurfHeightTmp
 
        call calc_pressForce(c_SurfHeightTmp)
-       e_totDepthAs = e_c(c_totDepthBasic + c_surfHeightAs)
-       e_hNormVelAs = ( &
-            &      e_c(c_surfHeightNs)*e_hNormVelNs &
+       e_totDepthAs = e_c( c_totDepthBasic + c_surfHeight(As) )
+       e_hNormVel(As) = ( &
+            &      e_c( c_surfHeight(Ns) )*e_hNormVel(Ns) &
             &    + DelTimeShort*( e_PressForce  + e_RHShNormVelMl - e_totDepthMs*e_f*ToTangentVel(e_hNormVelMs) ) &
             &  )/e_totDepthAs
 
-       e_hMFluxTAvg1 =  e_hMFluxTAvg1 + avgCoef1(m)*e_hNormVelAs*e_totDepthAs
-       e_hMFluxTAvg2 =  e_hMFluxTAvg2 + avgCoef2(m)*e_hNormVelMs*e_totDepthMs
-       c_surfHeightTAvg1 = c_surfHeightTAvg1 + avgCoef1(m)*c_surfHeightAs
+       e_hMFluxTAvg1 =  e_hMFluxTAvg1 + Am(m)*e_hNormVel(As)*e_totDepthAs
+       e_hMFluxTAvg2 =  e_hMFluxTAvg2 + Bm(m)*e_hNormVelMs*e_totDepthMs
+       c_surfHeightTAvg1 = c_surfHeightTAvg1 + Am(m)*c_surfHeight(As)
 
 
-       c_surfHeightMs = (1.5d0 + GFB_AM3BETA)*c_surfHeightAs - (0.5d0 + 2d0*GFB_AM3BETA)*c_surfHeightNs &
-            &         + GFB_AM3BETA*c_surfHeightBs
-       e_hNormVelMs = (1.5d0 + GFB_AM3BETA)*e_hNormVelAs - (0.5d0 + 2d0*GFB_AM3BETA)*e_hNormVelNs &
-            &         + GFB_AM3BETA*e_hNormVelBs
+       c_surfHeightMs = (1.5d0 + GFB_AM3BETA)*c_surfHeight(As) - (0.5d0 + 2d0*GFB_AM3BETA)*c_surfHeight(Ns) &
+            &         + GFB_AM3BETA*c_surfHeight(Bs)
+       e_hNormVelMs = (1.5d0 + GFB_AM3BETA)*e_hNormVel(As) - (0.5d0 + 2d0*GFB_AM3BETA)*e_hNormVel(Ns) &
+            &         + GFB_AM3BETA*e_hNormVel(Bs)
 
-       call DeepCopy(c_SurfHeightTmp, c_surfHeightBs)
-       call DeepCopy(c_surfHeightBs, c_surfHeightNs)
-       call DeepCopy(c_surfHeightNs, c_surfHeightAs)
-       call DeepCopy(e_hNormVelBs, e_hNormVelNs)
-       call DeepCopy(e_hNormVelNs, e_hNormVelAs)
-
+       call DeepCopy( c_SurfHeightTmp, c_surfHeight(Bs) )
+       call TemporalIntegSet_AdvanceShortTStep()
     end do
 
     !*******************************************************************
@@ -526,8 +531,9 @@ contains
   !> @brief 
   !!
   !!
-  subroutine FinalizeBarocStep( ze_hNormVelA, zc_lyrThickA, zc_TracersA, &
-       & zc_lyrThickN, zc_TracersN, rc_vNormVel, c_totDepthBasic, zc_lyrThickBasic )
+  subroutine FinalizeBarocStep( ze_hNormVelAl, zc_lyrThickAl, zc_TracersAl, &
+       & ze_hNormVelNl, ze_hNormVelBl, zc_lyrThickNl, zc_TracersNl, &
+       & rc_vNormVel, c_totDepthBasic, zc_lyrThickBasic )
     
     ! モジュール引用; Use statements
     !
@@ -536,11 +542,13 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    type(surfaceScalarField), intent(inout) :: ze_hNormVelA
-    type(volScalarField), intent(inout) :: zc_lyrThickA
-    type(volScalarField), intent(inout) :: zc_TracersA(:)
-    type(volScalarField), intent(in) :: zc_lyrThickN
-    type(volScalarField), intent(in) :: zc_TracersN(:)
+    type(surfaceScalarField), intent(inout) :: ze_hNormVelAl
+    type(volScalarField), intent(inout) :: zc_lyrThickAl
+    type(volScalarField), intent(inout) :: zc_TracersAl(:)
+    type(surfaceScalarField), intent(in) :: ze_hNormVelNl
+    type(surfaceScalarField), intent(in) :: ze_hNormVelBl
+    type(volScalarField), intent(in) :: zc_lyrThickNl
+    type(volScalarField), intent(in) :: zc_TracersNl(:)
     type(volScalarField), intent(inout) :: rc_vNormVel
     type(volScalarField), intent(in) :: c_totDepthBasic
     type(volScalarField), intent(in) :: zc_lyrThickBasic
@@ -552,7 +560,7 @@ contains
     integer :: n
     integer :: nCell
     type(volScalarField) :: zc_RHSTracer
-    type(surfaceScalarField) :: ze_massHFluxMl
+    type(surfaceScalarField) :: ze_massHFluxTmp
 
     ! 実行文; Executable statement
     !
@@ -566,27 +574,30 @@ contains
 
     !$omp parallel do
     do i=1, nCell
-       zc_lyrThickA%data%v_(1:nVzLyr,i) = zc_lyrThickBasic%data%v_(1:nVzLyr,i) &
+       zc_lyrThickAl%data%v_(1:nVzLyr,i) = zc_lyrThickBasic%data%v_(1:nVzLyr,i) &
             & * ( 1d0 + c_surfHeightTAvg1%data%v_(1,i)/c_totDepthBasic%data%v_(1,i) )
     end do
 
     !*
-    call adjust_hVelocity(ze_hNormVelA, e_hMFluxTAvg2, zc_lyrThickA)
+    call adjust_hVelocity(ze_hNormVelAl, e_hMFluxTAvg2, zc_lyrThickAl)
 
-    ze_massHFluxMl = ze_hNormVelMl*e_c(zc_lyrThickMl)
+    ze_massHFluxTmp = e_c(zc_lyrThickMl)*( &
+         &   (1d0 - LFAM3_EPS)*ze_hNormVelMl &
+         & + LFAM3_EPS*((0.5d0-LFAM3_GAM)*ze_hNormVelAl + (0.5d0+2d0*LFAM3_GAM)*ze_hNormVelNl - LFAM3_GAM*ze_hNormVelBl) &
+         & )
 
     do n=1, TracerNum
        call calc_RHSTracer( zc_RHSTracer, &
-            & zc_TracersMl(n), ze_massHFluxMl, rc_vNormVel )
+            & zc_TracersMl(n), ze_massHFluxTmp, rc_vNormVel )
 
-       zc_TracersA(n) = ( zc_TracersN(n)*zc_lyrThickN + DelTime*zc_RHSTracer )/zc_lyrThickA
+       zc_TracersAl(n) = ( zc_TracersNl(n)*zc_lyrThickNl + DelTime*zc_RHSTracer )/zc_lyrThickAl
     end do
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call GeometricField_Final(ze_massHFluxMl)
+    call GeometricField_Final(ze_massHFluxTmp)
     call GeometricField_Final(zc_RHSTracer)
 
   end subroutine FinalizeBarocStep
@@ -693,7 +704,7 @@ contains
     ! 実行文; Executable statement
     !
 
-    call GridSet_getLocalMeshInfo(mesh, nCell=nCell)
+    call GridSet_getLocalMeshInfo(zc_Press%mesh, nCell=nCell)
 
     rc_Dens = r_z(zc_Dens)
 

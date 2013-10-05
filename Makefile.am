@@ -2,7 +2,9 @@ SUBDIRS = src \
 	test \
 	tool \
 	model/globalSWModel \
-	model/ogcm
+	model/ogcm \
+	model/sogcm
+
 
 ACLOCAL_AMFLAGS = -I m4
 

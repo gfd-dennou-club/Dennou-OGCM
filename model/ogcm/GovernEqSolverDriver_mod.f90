@@ -18,7 +18,11 @@ module GovernEqSolverDriver_mod
 
   use HydroBouEqSolver_mod, only: &
        & HydroBouEqSolver_Init, HydroBouEqSolver_Final, &
-       & HydroBouEqSolver_AdvanceTime
+       & HydroBouEqSolver_AdvanceTStep
+
+  use HydroBouEqSolverSelfStart_mod, only: &
+       & HydroBouEqSolverSelfStart_Init, HydroBouEqSolverSelfStart_Final, &
+       & HydroBouEqSolverSelfStart_AdvanceTStep
 
   ! 宣言文; Declareration statements
   !
@@ -29,7 +33,7 @@ module GovernEqSolverDriver_mod
   ! Public procedure
   !
   public :: GovernEqSolverDriver_Init, GovernEqSolverDriver_Final
-  public :: GovernEqSolverDriver_AdvanceTime
+  public :: GovernEqSolverDriver_AdvanceTStep
 
   ! 非公開手続き
   ! Private procedure
@@ -56,8 +60,13 @@ contains
   !> @brief 
   !!
   !!
-  subroutine GovernEqSolverDriver_AdvanceTime(variable, mesh)
+  subroutine GovernEqSolverDriver_AdvanceTStep(variable, mesh)
     
+    ! モジュール引用; Use statement
+    !
+    use TemporalIntegSet_mod, only: &
+         & CurrentTimeStep
+
     ! 宣言文; Declaration statement
     !
     type(VariableSet), intent(inout) :: variable
@@ -70,11 +79,17 @@ contains
     
     ! 実行文; Executable statement
     !
-    call HydroBouEqSolver_Init(mesh)
-    call HydroBouEqSolver_AdvanceTime(variable)
-    call HydroBouEqSolver_Final()
+    if(CurrentTimeStep /= 1) then
+       call HydroBouEqSolver_Init(mesh)
+       call HydroBouEqSolver_AdvanceTStep(variable)
+       call HydroBouEqSolver_Final()
+    else
+       call HydroBouEqSolverSelfStart_Init(mesh)
+       call HydroBouEqSolverSelfStart_AdvanceTStep(variable)
+       call HydroBouEqSolverSelfStart_Final()
+    end if
 
-  end subroutine GovernEqSolverDriver_AdvanceTime
+  end subroutine GovernEqSolverDriver_AdvanceTStep
 
   !>
   !!

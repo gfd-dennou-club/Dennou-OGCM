@@ -13,7 +13,7 @@ program ogcm_main
 
   use TemporalIntegSet_mod, only: &
        & CurrentTime, TotalIntegTime, &
-       & TemporalIntegSet_AdvanceTime
+       & TemporalIntegSet_AdvanceLongTStep
 
   use GridSet_mod, only: &
          & globalMesh, &
@@ -28,7 +28,7 @@ program ogcm_main
        & DataFileSet_OutputData
 
   use GovernEqSolverDriver_mod, only: &
-       & GovernEqSolverDriver_AdvanceTime
+       & GovernEqSolverDriver_AdvanceTStep
 
   use CGridFieldDataUtil_mod, only: &
        & CGridFieldDataUtil, &
@@ -90,13 +90,13 @@ program ogcm_main
 
         call CGridFieldDataUtil_Set( cGridUtils(lcMeshId) )
         call VGridFieldDataUtil_Set( vGridUtils(lcMeshId) )
-        call GovernEqSolverDriver_AdvanceTime( variables(lcMeshId), GridSet_getLocalMesh(lcMeshId) )
+        call GovernEqSolverDriver_AdvanceTStep( variables(lcMeshId), GridSet_getLocalMesh(lcMeshId) )
 
         call fvCalculus_Final()
      end do
 
      !
-     call TemporalIntegSet_AdvanceTime()
+     call TemporalIntegSet_AdvanceLongTStep()
 
      !
      !

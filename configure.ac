@@ -144,6 +144,16 @@ DC_ARG_WITH([gtool5],
 DC_SET_LIBDIR_LIBNAME($ac_cv_lib_gtool5, gtool5_libdir, gtool5_libname)
 DC_SET_MODDIR($ac_cv_lib_gtool5, gtool5_moddir)
 
+#
+# * spml
+#
+DC_ARG_WITH([spml],
+            [spml library filename],
+            [ac_cv_lib_spml],
+  [AC_MSG_ERROR([specify spml library filename with --with-spml= option.])])
+DC_SET_LIBDIR_LIBNAME($ac_cv_lib_spml, spml_libdir, spml_libname)
+DC_SET_MODDIR($ac_cv_lib_spml, spml_moddir)
+
 
 #
 # * --enable-mpi
@@ -183,8 +193,8 @@ if test -n "$ac_cv_lib_netcdff"; then
    SYSLDFLAGS="-L$netcdff_libdir $SYSLDFLAGS"
    SYSLDLIBS="-l$netcdff_libname $SYSLDLIBS"
 fi
-SYSLDFLAGS="-L$gtool5_libdir $SYSLDFLAGS -L$netcdf_libdir"
-SYSLDLIBS="-l$gtool5_libname $SYSLDLIBS -l$netcdf_libname"
+SYSLDFLAGS="-L$spml_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdf_libdir"
+SYSLDLIBS="-l$spml_libname -l$gtool5_libname $SYSLDLIBS -l$netcdf_libname"
 SYSFFLAGS="$SYSFFLAGS $ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir "
 
 AC_SUBST(SYSLDLIBS)
@@ -214,6 +224,8 @@ AC_CONFIG_FILES([
 		 model/ogcm/setup/Makefile
 		 model/ogcm/util/Makefile
 		 model/ogcm/dynamics/Makefile
+		 model/sogcm/Makefile
+		 model/sogcm/setup/Makefile
  ])
 
 AC_OUTPUT

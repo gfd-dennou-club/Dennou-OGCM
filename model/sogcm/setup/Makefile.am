@@ -8,27 +8,22 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/fvm \
         $(MODPATHFLAG)$(srcdir)/../../../src/mesh2 \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
-        $(MODPATHFLAG)$(srcdir)/../setup \
-        $(MODPATHFLAG)$(srcdir)/../util \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
-	$(srcdir)/../../../src/io/libDQGModelIO.la \
 	$(srcdir)/../../../src/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 
 CLEANFILES = *$(MODEXT)
 
-bin_PROGRAMS = TimeFilterParams
+bin_PROGRAMS = 
 
-TimeFilterParams_SOURCES= \
-	TimeFilterParams.f90
-
-noinst_LTLIBRARIES= libDOGCMDynamics.la 
-nodist_libDOGCMDynamics_la_SOURCES= \
-	HydroBouEqSolverRHS_mod.f90 \
-	BarotModeTimeFilter_mod.f90 \
-	HydroBouEqSolver_mod.f90 \
-	HydroBouEqSolverSelfStart_mod.f90
-
+noinst_LTLIBRARIES= libDSOGCMSetup.la 
+nodist_libDSOGCMSetup_la_SOURCES= \
+	OptionParser_mod.f90 \
+	Constants_mod.f90 \
+	GridSet_mod.f90 \
+	TemporalIntegSet_mod.f90 \
+	VariableSet_mod.f90 \
+	DataFileSet_mod.f90
 
