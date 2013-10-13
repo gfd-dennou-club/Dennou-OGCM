@@ -16,8 +16,10 @@ module DataFileSet_mod
   use dc_message, only: &
        & MessageNotify
 
+  use gtool_historyauto
   use VariableSet_mod
 
+  
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -56,10 +58,14 @@ contains
     ! モジュール引用; Use statement
     !
 
-    use Constants_mod, only: RPlanet
+    use Constants_mod, only: RPlanet, PI
 
     use TemporalIntegSet_mod, only: &
-         & Nl
+         & Nl, StartTime, TotalIntegTime
+
+    use GridSet_mod, only: &
+         & iMax, jMax, kMax, &
+         & x_Lon, y_Lat
 
     ! 宣言文; Declaration statement
     !
@@ -79,7 +85,33 @@ contains
     call read_nmlData(this, configNmlFileName, outputFileName)
     
     !
-    
+    call HistoryAutoCreate( &                            ! ヒストリー作成
+         & title='OGCM Output',             &
+         & source='OGCM Output',    &
+         & institution='GFD_Dennou Club OGCM project',    &
+         & dims=(/'lon','lat','sig','t  '/), dimsizes=(/iMax,jMax,kMax+1,0/),       &
+         & longnames=(/'longitude','latitude ','sigma    ', 'time     '/),      &
+         & units=(/'degree_east ','degree_north','(1)         ', 'sec.        '/), &
+         & origin=StartTime, interval=this%outputIntrval, terminus=TotalIntegTime,          &
+         & namelist_filename=configNmlFileName )    
+
+    call HistoryAutoPutAxis('lon', x_Lon*180/PI)
+    call HistoryAutoAddAttr('lon', 'topology', 'circular')
+    call HistoryAutoAddAttr('lon', 'modulo', 360.0)
+    call HistoryAutoPutAxis('lat', y_Lat*180/PI)
+
+    call HistoryAutoAddVariable( &
+         varname='u', dims=(/'lon','lat','sig','t  '/), & 
+         longname='velocity(longitude) ', units='m/s')
+
+    call HistoryAutoAddVariable( &                  
+         varname='v', dims=(/'lon','lat','sig','t  '/), & 
+         longname='velocity(latitude) ', units='m/s')
+
+    call HistoryAutoAddVariable( &                  
+         varname='eta', dims=(/'lon','lat', 't  '/), & 
+         longname='surface height ', units='m')
+
   end subroutine DataFileSet_Init
 
   !>
@@ -95,6 +127,7 @@ contains
     ! 実行文; Executable statements
     !
 
+    call HistoryAutoClose()
 
   end subroutine DataFileSet_Final
 
@@ -124,6 +157,9 @@ contains
 
 
     call MessageNotify("M", module_name, "Output data of some field at %d [sec] ..", i=(/ int(CurrentTime) /))
+    call HistoryAutoPut(CurrentTime, "u", xyz_UN)
+    call HistoryAutoPut(CurrentTime, "v", xyz_VN)
+    call HistoryAutoPut(CurrentTime, "eta", xy_SurfHeightN)
 
   end subroutine DataFileSet_OutputData
 

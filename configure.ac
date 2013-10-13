@@ -145,6 +145,17 @@ DC_SET_LIBDIR_LIBNAME($ac_cv_lib_gtool5, gtool5_libdir, gtool5_libname)
 DC_SET_MODDIR($ac_cv_lib_gtool5, gtool5_moddir)
 
 #
+# * ispack
+#
+DC_ARG_WITH([ispack],
+            [ispack library filename],
+            [ac_cv_lib_ispack],
+  [AC_MSG_ERROR([specify ispack library filename with --with-ispack= option.])])
+DC_SET_LIBDIR_LIBNAME($ac_cv_lib_ispack, ispack_libdir, ispack_libname)
+DC_SET_MODDIR($ac_cv_lib_ispack, ispack_moddir)
+
+
+#
 # * spml
 #
 DC_ARG_WITH([spml],
@@ -193,9 +204,9 @@ if test -n "$ac_cv_lib_netcdff"; then
    SYSLDFLAGS="-L$netcdff_libdir $SYSLDFLAGS"
    SYSLDLIBS="-l$netcdff_libname $SYSLDLIBS"
 fi
-SYSLDFLAGS="-L$spml_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdf_libdir"
-SYSLDLIBS="-l$spml_libname -l$gtool5_libname $SYSLDLIBS -l$netcdf_libname"
-SYSFFLAGS="$SYSFFLAGS $ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir "
+SYSLDFLAGS="-L$spml_libdir -L$ispack_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdf_libdir"
+SYSLDLIBS="-l$spml_libname -l$ispack_libname -l$gtool5_libname $SYSLDLIBS -l$netcdf_libname"
+SYSFFLAGS="$SYSFFLAGS $ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir $ax_cv_fortran_modflag$spml_moddir"
 
 AC_SUBST(SYSLDLIBS)
 AC_SUBST(SYSLDFLAGS)
@@ -226,6 +237,9 @@ AC_CONFIG_FILES([
 		 model/ogcm/dynamics/Makefile
 		 model/sogcm/Makefile
 		 model/sogcm/setup/Makefile
+		 model/sogcm/util/Makefile
+		 model/sogcm/dynamics/Makefile
+		 model/sogcm/unit_test/Makefile
  ])
 
 AC_OUTPUT

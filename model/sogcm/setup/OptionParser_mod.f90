@@ -94,7 +94,7 @@ subroutine OptionParser_getInfo( &
   if( optNmlName ) then
      configNmlName = valNmlName
   else
-     configNmlName = "defalutConfig.nml"
+     configNmlName = "defaultConfig.nml"
   end if
 
 end subroutine OptionParser_getInfo

@@ -12,11 +12,13 @@ module GridSet_mod
   !
 
   use dc_types, only: &
-       & STRING
+       & STRING, DP
 
   use dc_message, only: &
        & MessageNotify
        
+  use wa_module, only: & 
+       & x_Lon, y_Lat
 
   !  use SimParameters_mod, only: gridFilePath, Radius
 
@@ -29,17 +31,25 @@ module GridSet_mod
   ! Public procedures
   !
   public :: GridSet_Init, GridSet_Final
+  public :: GridSet_construct
+
+  ! Cascade
+  public :: x_Lon, y_Lat
 
   ! 公開変数
   ! Public variables
   !
   integer, public, save :: kMax
+  integer, public, save :: tMax
   integer, parameter, public :: VHaloSize = 1
 
-  integer, public, save :: nMax
+  integer, public, save :: nMax, lMax
   integer, public, save :: iMax, jMax
   integer, public, save :: jMaxGlobe
   integer, public, save :: nLon
+
+  real(DP), public, save, allocatable :: xyz_Lon(:,:,:)
+  real(DP), public, save, allocatable :: xyz_Lat(:,:,:)
 
   ! 非公開変数
   ! Private variables
@@ -76,9 +86,43 @@ contains
 
   subroutine GridSet_Final()
 
-    
+    ! 実行文; Executable statement
+    !
+
+    deallocate(xyz_Lat, xyz_Lon)
+
   end subroutine GridSet_Final
 
+
+  !> @brief 
+  !!
+  !!
+  subroutine GridSet_construct()
+
+    !
+    !
+    use wa_module, only: &
+         xy_Lon, xy_Lat
+    
+    ! 宣言文; Declaration statement
+    !
+    
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+
+    allocate(xyz_Lon(0:iMax-1,1:jMax,0:kMax))
+    allocate(xyz_Lat(0:iMax-1,1:jMax,0:kMax))
+
+    xyz_Lon = spread(xy_Lon,3,kMax+1)
+    xyz_Lat = spread(xy_Lat,3,kMax+1)
+
+  end subroutine GridSet_construct
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -139,12 +183,14 @@ contains
        close( unit_nml )
     end if
 
-    iMax = nLat
-    jMaxGlobe = nLon
+    iMax = nLon
+    jMaxGlobe = nLat
     jMax = jMaxGlobe
     kMax = nZ
 
     nMax = ( iMax - 1 )/ 3
+    lMax = ( nMax + 1 )**2
+    tMax = kMax
 
     ! 印字 ; Print
     !
@@ -154,6 +200,8 @@ contains
     call MessageNotify( 'M', module_name, '    jMaxGlobe = %d', i = (/   jMaxGlobe /) )
     call MessageNotify( 'M', module_name, '    jMax        = %d', i = (/   jMax  /) )
     call MessageNotify( 'M', module_name, '    kMax        = %d', i = (/   kmax  /) )
+    call MessageNotify( 'M', module_name, '    lMax        = %d', i = (/   lmax  /) )
+    call MessageNotify( 'M', module_name, '    tMax        = %d', i = (/   tMax  /) )
 
 
   end subroutine read_nmlData

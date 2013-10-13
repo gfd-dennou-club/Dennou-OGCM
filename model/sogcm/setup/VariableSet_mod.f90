@@ -26,6 +26,7 @@ module VariableSet_mod
   ! Public procedure
   !
   public :: VariableSet_Init, VariableSet_Final
+  public :: VariableSet_AdvanceTStep
 
   ! 公開変数
   ! Public variable
@@ -36,6 +37,15 @@ module VariableSet_mod
   integer, public, save :: PTempTracerID
   real(DP), public, save :: refDens
 
+
+  real(DP), public, save, allocatable :: xyz_uA(:,:,:), xyz_uN(:,:,:), xyz_uB(:,:,:)
+  real(DP), public, save, allocatable :: xyz_vA(:,:,:), xyz_vN(:,:,:), xyz_vB(:,:,:)
+  real(DP), public, save, allocatable :: xyz_SigDot(:,:,:)
+  real(DP), public, save, allocatable :: xyz_PTempA(:,:,:), xyz_PTempN(:,:,:), xyz_PTempB(:,:,:)
+  real(DP), public, save, allocatable :: xyz_SaltA(:,:,:), xyz_SaltN(:,:,:), xyz_SaltB(:,:,:)
+  real(DP), public, save, allocatable :: xy_SurfHeightA(:,:), xy_SurfHeightN(:,:), xy_SurfHeightB(:,:)
+  real(DP), public, save, allocatable :: xy_totDepthBasic(:,:)
+  real(DP), public, save, allocatable :: xy_SurfPress(:,:)
 
   ! 非公開手続き
   ! Private procedure
@@ -59,7 +69,7 @@ contains
          & PolyMesh
 
     use GridSet_mod, only: &
-         & kMax
+         & iMax, jMax, kMax
 
     ! 宣言文; Declaration statement
     !
@@ -67,12 +77,18 @@ contains
     ! 局所変数
     ! Local variable
     !
-    integer :: n
-    integer :: tl
 
     ! 実行文; Executable statements
     !
 
+    call malloc3DVar(xyz_UA); call malloc3DVar(xyz_UN); call malloc3DVar(xyz_UB); 
+    call malloc3DVar(xyz_VA); call malloc3DVar(xyz_VN); call malloc3DVar(xyz_VB);
+    call malloc3DVar(xyz_SigDot)
+    call malloc3DVar(xyz_PTempA); call malloc3DVar(xyz_PTempN); call malloc3DVar(xyz_PTempB); 
+    call malloc3DVar(xyz_SaltA); call malloc3DVar(xyz_SaltN); call malloc3DVar(xyz_SaltB); 
+    call malloc2DVar(xy_SurfHeightA); call malloc2DVar(xy_SurfHeightN); call malloc2DVar(xy_SurfHeightB);
+    call malloc2DVar(xy_totDepthBasic)
+    call malloc2DVar(xy_SurfPress)
 
     !
     TracerNum = 2
@@ -80,6 +96,15 @@ contains
     PTempTracerID = 2
     
 
+  contains
+    subroutine malloc3DVar( var )
+      real(DP), intent(inout), allocatable :: var(:,:,:)
+      allocate( var(0:iMax-1, 1:jMax, 0:kMax) )
+    end subroutine malloc3DVar
+    subroutine malloc2DVar( var )
+      real(DP), intent(inout), allocatable :: var(:,:)
+      allocate( var(0:iMax-1, 1:jMax) )
+    end subroutine malloc2DVar
   end subroutine VariableSet_Init
 
   !>
@@ -97,12 +122,46 @@ contains
     ! 局所変数
     ! Local variable
     !
-    integer :: n, tl
     
     ! 実行文; Executable statements
     !
 
+    deallocate( xyz_UA, xyz_UN, xyz_UB )
+    deallocate( xyz_VA, xyz_VN, xyz_VB )
+    deallocate( xyz_SigDot )
+    deallocate( xyz_PTempA, xyz_PTempN, xyz_PTempB )
+    deallocate( xyz_SaltA, xyz_SaltN, xyz_SaltB )
+    deallocate( xy_SurfHeightA, xy_SurfHeightN, xy_SurfHeightB )
+    deallocate( xy_totDepthBasic )
+    deallocate( xy_SurfPress )
+
   end subroutine VariableSet_Final
+
+
+  !> @brief 
+  !!
+  !!
+  subroutine VariableSet_AdvanceTStep()
+    
+    ! 宣言文; Declaration statement
+    !
+    
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+
+    xyz_UB = xyz_UN; xyz_UN = xyz_UA; xyz_UA = 0d0
+    xyz_VB = xyz_VN; xyz_VN = xyz_VA; xyz_VA = 0d0
+    xyz_PTempB = xyz_PTempN; xyz_PTempN = xyz_PTempA; xyz_PTempA = 0d0
+    xyz_SaltB = xyz_SaltN; xyz_SaltN = xyz_SaltA; xyz_SaltA = 0d0
+    xy_SurfHeightB = xy_SurfHeightN; xy_SurfHeightN = xy_SurfHeightA; xy_SurfHeightA = 0d0
+
+  end subroutine VariableSet_AdvanceTStep
 
 end module VariableSet_mod
 
