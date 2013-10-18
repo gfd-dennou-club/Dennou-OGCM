@@ -6,7 +6,7 @@
 !! @author Kawai Yuta
 !!
 !!
-module Exp_W94_Case2_mod 
+module Exp_InternalGravWave_mod 
 
   ! モジュール引用; Use statements
   !
@@ -24,7 +24,7 @@ module Exp_W94_Case2_mod
   ! 公開手続き
   ! Public procedure
   !
-  public :: Exp_W94_Case2_Init, Exp_W94_Case2_Final
+  public :: Exp_InternalGravWave_Init, Exp_InternalGravWave_Final
   public :: SetInitCondition
 
   ! 非公開手続き
@@ -34,19 +34,29 @@ module Exp_W94_Case2_mod
   ! 非公開変数
   ! Private variable
   !
-  character(*), parameter:: module_name = 'Exp_W94_Case2_mod' !< Module Name
+  character(*), parameter:: module_name = 'Exp_InternalGravWave_mod' !< Module Name
 
 contains
 
   !>
   !!
   !!
-  subroutine Exp_W94_Case2_Init()
+  subroutine Exp_InternalGravWave_Init()
 
     ! 実行文; Executable statements
     !
 
-  end subroutine Exp_W94_Case2_Init
+  end subroutine Exp_InternalGravWave_Init
+
+  !>
+  !!
+  !!
+  subroutine Exp_InternalGravWave_Final()
+
+    ! 実行文; Executable statements
+    !
+
+  end subroutine Exp_InternalGravWave_Final
 
   !> @brief 
   !!
@@ -55,9 +65,13 @@ contains
     
     !
     !
-    use GridSet_mod, only: xyz_Lat
+    use GridSet_mod, only: &
+         & iMax, jMax, kMax, nMax, lMax, &
+         & xyz_Lat, xyz_Lon
 
     use VariableSet_mod
+
+    use SpmlUtil_mod
 
     ! 宣言文; Declaration statement
     !
@@ -67,31 +81,33 @@ contains
     ! Local variables
     !
     real(DP), parameter :: alpha = 0d0
-    real(DP) :: h0, u0
-    
+    real(DP) :: h0, u0, z
+    integer :: k
+    real(DP), parameter :: N2 = 1.5d-04 
+
     ! 実行文; Executable statement
     !
 
     call MessageNotify("M", module_name, "Set initial condition..")
 
-    h0 = 2.94d04 / Grav
-    u0 = 2d0*PI*RPlanet / (3600d0*24d0*12d0)
-
+    Omega = 0d0
+    h0 = 8d03
     xy_totDepthBasic = h0
-    xyz_UN = u0*cos(xyz_Lat)
-    xy_SurfHeightN = - (RPlanet*Omega*u0 + 0.5d0*u0**2) * sin(xyz_Lat(:,:,1))**2 / Grav
+    xy_SurfHeightN = 0d0
+
+    U0 = 0.000001d0
+    xyz_UN = - U0*sin(xyz_Lon) 
+    xyz_VN = - U0*sin(xyz_Lat)*cos(xyz_Lon)
+    
+    refDens = 1d0
+    refPTemp = 300d0
+    do k=0, kMax
+       z = h0*g_Sig(k)
+       xyz_UN(:,:,k) = xyz_UN(:,:,k)*cos(PI*z/h0)
+       xyz_VN(:,:,k) = xyz_VN(:,:,k)*cos(PI*z/h0)
+       z_PTempBasic(k) = refPTemp*N2/Grav*z
+    end do
 
   end subroutine setInitCondition
 
-  !>
-  !!
-  !!
-  subroutine Exp_W94_Case2_Final()
-
-    ! 実行文; Executable statements
-    !
-
-  end subroutine Exp_W94_Case2_Final
-
-end module Exp_W94_Case2_mod
-
+end module Exp_InternalGravWave_mod

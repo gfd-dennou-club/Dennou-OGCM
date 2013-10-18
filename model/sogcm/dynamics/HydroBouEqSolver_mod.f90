@@ -14,6 +14,9 @@ module HydroBouEqSolver_mod
   use dc_types, only: &
        & DP, STRING 
 
+  use dc_message, only: &
+       & MessageNotify
+
   use Constants_mod, only: &
        & Omega, Grav, RPlanet
 
@@ -31,7 +34,7 @@ module HydroBouEqSolver_mod
 
   use VariableSet_mod, only: &
        & SaltTracerID, PTempTracerID, TracerNum, &       
-       & refDens
+       & refDens, refPTemp
 
   use HydroBouEqSolverRHS_mod
 
@@ -40,6 +43,8 @@ module HydroBouEqSolver_mod
 !!$       & BarotModeTimeFilter_Init, BarotModeTimeFilter_Final
 
   use SpmlUtil_mod
+
+  use TemporalIntegUtil_mod
 
   ! 宣言文; Declareration statements
   !
@@ -51,6 +56,11 @@ module HydroBouEqSolver_mod
   !
   public :: HydroBouEqSolver_Init, HydroBouEqSolver_Final
   public :: HydroBouEqSolver_AdvanceTStep
+
+  integer, parameter, public :: timeIntMode_Euler = 1
+  integer, parameter, public :: timeIntMode_RK4 = 2
+  integer, parameter, public :: timeIntMode_LFTR = 3
+  integer, parameter, public :: timeIntMode_LFAM3 = 4
 
   ! 非公開手続き
   ! Private procedure
@@ -95,6 +105,7 @@ contains
     !
 
     call HydroBouEqSolverRHS_Init()
+    call TemporalIntegUtil_Init(iMax, jMax, kMax, lMax, tMax, DelTime)
 
   end subroutine HydroBouEqSolver_Init
 
@@ -113,6 +124,7 @@ contains
     !
 
     call HydroBouEqSolverRHS_Final()
+    call TemporalIntegUtil_Final()
 
     !
 
@@ -121,63 +133,198 @@ contains
   !> @brief 
   !!
   !!
-  subroutine HydroBouEqSolver_AdvanceTStep()
+  subroutine HydroBouEqSolver_AdvanceTStep(timeIntMode)
     
     ! モジュール引用; Use statements
     !
-    use TemporalIntegSet_mod, only: &
-         & Al, Nl, Bl, DelTime
 
     use VariableSet_mod, only: &
          & xyz_UB, xyz_UN, xyz_UA, &
          & xyz_VB, xyz_VN, xyz_VA, &
-         & xyz_PTempB, xyz_PTempN, xyz_PTempA, &
+         & xyz_PTempEddB, xyz_PTempEddN, xyz_PTempEddA, &
          & xyz_SaltB, xyz_SaltN, xyz_SaltA, &
          & xy_SurfHeightB, xy_SurfHeightN, xy_SurfHeightA, &
          & xy_SurfPress, xy_totDepthBasic, &
-         & xyz_SigDot
+         & xyz_SigDot, z_PTempBasic
 
-    use at_module, only: at_BoundariesGrid_NN
+    use at_module, only: &
+         & at_BoundariesGrid_NN, &
+         & at_BoundariesGrid_DD
     
     ! 宣言文; Declaration statement
     !
-    
+    integer, intent(in) :: timeIntMode
+
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_UrfN(0:iMax-1, jMax, 0:kMax)
-    real(DP) :: xyz_VrfN(0:iMax-1, jMax, 0:kMax)
-    real(DP) :: xyz_VorN(0:iMax-1, jMax, 0:kMax)
-    real(DP) :: xyz_DivN(0:iMax-1, jMax, 0:kMax)
-    real(DP) :: wt_VorA(lMax, 0:tMax)
-    real(DP) :: wt_DivA(lMax, 0:tMax)
-    real(DP) :: wt_PTempA(lMax, 0:tMax)
+    real(DP) :: xyz_CosLat(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_Urf(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_Vrf(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xy_SurfHeight(0:iMax-1, jMax)
+
+    real(DP), dimension(lMax, 0:tMax) :: wt_Vor, wt_VorN, wt_VorB, wt_VorRKTmp
+    real(DP), dimension(lMax, 0:tMax) :: wt_Div, wt_DivN, wt_DivB, wt_DivRKTmp
+    real(DP), dimension(lMax, 0:tMax) :: wt_PTempEdd, wt_PTempEddN, wt_PTempEddB, wt_PTempEddRKTmp
+
     real(DP) :: wz_Psi(lMax, 0:kMax)
     real(DP) :: wz_Chi(lMax, 0:kMax)
-    real(DP) :: xyz_GeoPotN(0:iMax-1, jMax, 0:kMax)
-    real(DP) :: xyz_DensEdd(0:iMax-1, jMax, 0:kMax)
-    real(DP) :: xyz_PressEdd(0:iMax-1, jMax, 0:kMax)
-    real(DP) :: wz_VorRHSN(lMax, 0:kMax)
-    real(DP) :: wz_DivRHSN(lMax, 0:kMax)
-    real(DP) :: wz_PTempRHSN(lMax, 0:kMax)
-    real(DP) :: w_SurfHeightRHSN(lMax)
-    real(DP) :: xy_totDepth(0:iMax-1, jMax)
+    real(DP) :: wz_VorRHS(lMax, 0:kMax)
+    real(DP) :: wz_DivRHS(lMax, 0:kMax)
+    real(DP) :: wz_PTempRHS(lMax, 0:kMax)
+    real(DP) :: w_SurfHeightRHS(lMax), xy_SurfHeightRKTmp(0:iMax-1,jMax)
 
-
+    integer :: Stage
+    integer :: nStage
+    logical :: isVarBUsed
     ! 実行文; Executable statement
     !
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
-    xyz_UrfN = xyz_UN*cos(xyz_Lat)
-    xyz_VrfN = xyz_VN*cos(xyz_Lat)
+    isVarBUsed = .false.
+    select case(timeIntMode)
+    case(timeIntMode_Euler)
+       nStage = 1
+    case(timeIntMode_RK4)
+       nStage = 4
+    case(timeIntMode_LFTR)
+       nStage = 2
+       isVarBUsed = .true.
+    case(timeIntMode_LFAM3)
+       nStage = 2
+       isVarBUsed = .true.
+    case default
+       call MessageNotify("E", module_name, "Specified id of temporal integrator is invalid")
+    end select
 
-    xyz_VorN = xyz_wz( wz_AlphaOptr_xyz(xyz_VrfN, -xyz_UrfN) )
-    xyz_DivN = xyz_wz( wz_AlphaOptr_xyz(xyz_UrfN,  xyz_VrfN) )
+    
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    xy_totDepth = xy_totDepthBasic + xy_SurfHeightN
-    xyz_SigDot  = diagnose_SigDot( xy_totDepth, xyz_UrfN, xyz_VrfN, xyz_DivN )
-    xyz_GeoPotN  = diagnose_GeoPot( xy_totDepth, xy_SurfHeightN )
+    xyz_CosLat = cos(xyz_Lat)
+    xyz_Urf = xyz_UN*xyz_CosLat; xyz_Vrf = xyz_VN*xyz_CosLat
+    wt_VorN = wt_wz( wz_AlphaOptr_xyz(xyz_Vrf, -xyz_Urf) )
+    wt_DivN = wt_wz( wz_AlphaOptr_xyz(xyz_Urf,  xyz_Vrf) )
+    wt_PTempEddN = wt_xyz(xyz_PTempEddN)
 
-    xyz_DensEdd = 0d0!
+    if( isVarBUsed ) then
+       wt_VorB = wt_wz( wz_AlphaOptr_xyz(xyz_VB*xyz_CosLat, -xyz_UB*xyz_CosLat) )
+       wt_DivB = wt_wz( wz_AlphaOptr_xyz(xyz_UB*xyz_CosLat,  xyz_VB*xyz_CosLat) )
+       wt_PTempEddB = wt_xyz(xyz_PTempEddB)
+    end if
+    
+    wt_Div = wt_DivN;  wt_Vor = wt_VorN
+    wt_PTempEdd = wt_PTempEddN
+    xy_SurfHeight = xy_SurfHeightN
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+    do Stage=1, nStage
+
+       call calc_GovernEqRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &
+            & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), &
+            & xy_SurfHeight )
+
+       select case(timeIntMode)
+       case(timeIntMode_Euler)
+          call timeInt_Euler()
+       case(timeIntMode_RK4)
+          call timeInt_RK4(Stage)
+       case(timeIntMode_LFTR)
+          call timeInt_LFTR(Stage)
+       case(timeIntMode_LFAM3)
+          call timeInt_LFAM3(Stage)
+       end select
+
+       call at_BoundariesGrid_NN(wt_Vor)
+       call at_BoundariesGrid_NN(wt_Div)
+       call at_BoundariesGrid_DD(wt_PTempEdd)
+
+       wz_Psi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
+       wz_Chi = wz_InvLapla2D_wz( wz_wt(wt_Div) )
+       xyz_Urf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
+       xyz_Vrf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Psi,  wz_Chi)
+    end do
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    xyz_UA = xyz_Urf / xyz_CosLat;  xyz_VA = xyz_Vrf / xyz_CosLat 
+    xyz_PTempEddA = xyz_wt(wt_PTempEdd)
+    xy_SurfHeightA = xy_SurfHeight
+
+    contains
+
+      subroutine timeInt_Euler()
+        wt_Vor = wt_timeIntEuler( wt_VorN, wt_wz(wz_VorRHS) )
+        wt_Div = wt_timeIntEuler( wt_DivN, wt_wz(wz_DivRHS) )
+        wt_PTempEdd = wt_timeIntEuler( wt_PTempEddN, wt_wz(wz_PTempRHS) )
+        xy_SurfHeight = xy_timeIntEuler( xy_SurfHeightN, xy_w(w_SurfHeightRHS) )
+      end subroutine timeInt_Euler
+
+      subroutine timeInt_RK4(RKStage)
+        integer, intent(in) :: RKStage
+        wt_Vor = wt_timeIntRK4( wt_VorN, wt_wz(wz_VorRHS), RKStage, wt_VorRKTmp )
+        wt_Div = wt_timeIntRK4( wt_DivN, wt_wz(wz_DivRHS), RKStage, wt_DivRKTmp )
+        wt_PTempEdd = wt_timeIntRK4( wt_PTempEddN, wt_wz(wz_PTempRHS), RKStage, wt_PTempEddRKTmp )
+        xy_SurfHeight = xy_timeIntRK4( xy_SurfHeightN, xy_w(w_SurfHeightRHS), RKStage, xy_SurfHeightRKTmp )
+      end subroutine timeInt_RK4
+
+      subroutine timeInt_LFTR(Stage)
+        integer, intent(in) :: Stage
+        wt_Vor = wt_timeIntLFTR( wt_VorN, wt_VorB, wt_wz(wz_VorRHS), Stage )
+        wt_Div = wt_timeIntLFTR( wt_DivN, wt_DivB, wt_wz(wz_DivRHS), Stage )
+        wt_PTempEdd = wt_timeIntLFTR( wt_PTempEddN, wt_PTempEddB, wt_wz(wz_PTempRHS), Stage )
+        xy_SurfHeight = xy_timeIntLFTR( xy_SurfHeightN, xy_SurfHeightB, xy_w(w_SurfHeightRHS), Stage )
+      end subroutine timeInt_LFTR
+
+      subroutine timeInt_LFAM3(Stage)
+        integer, intent(in) :: Stage
+        wt_Vor = wt_timeIntLFAM3( wt_VorN, wt_VorB, wt_wz(wz_VorRHS), Stage )
+        wt_Div = wt_timeIntLFAM3( wt_DivN, wt_DivB, wt_wz(wz_DivRHS), Stage )
+        wt_PTempEdd = wt_timeIntLFAM3( wt_PTempEddN, wt_PTempEddB, wt_wz(wz_PTempRHS), Stage )
+        xy_SurfHeight = xy_timeIntLFAM3( xy_SurfHeightN, xy_SurfHeightB, xy_w(w_SurfHeightRHS), Stage )
+      end subroutine timeInt_LFAM3
+
+  end subroutine HydroBouEqSolver_AdvanceTStep
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_GovernEqRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &
+       & xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, &
+       & xy_SurfHeight )
+    
+    !
+    !
+    use VariableSet_mod, only: &
+         & xy_totDepthBasic, z_PTempBasic, refDens, xy_SurfPress, xyz_SigDot
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(out), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+    real(DP), intent(out), dimension(lMax) :: w_SurfHeightRHS
+    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd
+    real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_SurfHeight
+
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: xyz_GeoPot(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_DensEdd(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_PressEdd(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xy_totDepth(0:iMax-1, jMax)    
+    
+    ! 実行文; Executable statement
+    !
+
+
+    xy_totDepth = xy_totDepthBasic! + xy_SurfHeightN
+    xyz_SigDot  = diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div )
+    xyz_GeoPot  = diagnose_GeoPot( xy_totDepth, xy_SurfHeight )
+
+    xyz_DensEdd = - refDens*xyz_PTempEdd/refPTemp !
 !!$    = EqState_JM95_Eval( &
 !!$         & theta=xyz_PTempN, s=xyz_SaltN, &
 !!$         & p=spread(xy_SurfPress,3,kMax+1) - RefDens*xyz_GeoPotN) &
@@ -185,68 +332,19 @@ contains
 
     xyz_PressEdd = diagnose_PressEdd( xy_totDepth, xyz_DensEdd )
 
-    call calc_VorEqDivEqRHS(wz_VorRHSN, wz_DivRHSN, &
-         & xyz_VorN, xyz_UrfN, xyz_VrfN, xy_SurfHeightN, xyz_DensEdd, xyz_PressEdd, xyz_GeoPotN, xyz_SigDot)
+    call calc_VorEqDivEqRHS(wz_VorRHS, wz_DivRHS, &
+         & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_PressEdd, xyz_GeoPot, xyz_SigDot)
+    call correct_vorEqRHSUnderRigidLid(wz_DivRHS, &
+         & xy_SurfPress, xyz_Div, DelTime)
 
-    call calc_TracerEqRHS(wz_PTempRHSN, &
-         & xyz_PTempN, xyz_UrfN, xyz_VrfN, xyz_DivN, xyz_SigDot )
+
+    call calc_TracerEqRHS(wz_PTempRHS, &
+         & xyz_PTempEdd + spread(spread(z_PTempBasic,1,jMax), 1, iMax), xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
     
-    call calc_SurfHeightRHS(w_SurfHeightRHSN, &
-         & xyz_UrfN, xyz_VrfN, xy_totDepth ) 
-
-    !
-    call wt_timeIntEuler_wt(wt_VorA, wt_xyz(xyz_VorN), wt_wz(wz_VorRHSN), DelTime)
-    call wt_timeIntEuler_wt(wt_DivA, wt_xyz(xyz_DivN), wt_wz(wz_DivRHSN), DelTime)
-    call wt_timeIntEuler_wt(wt_PTempA, wt_xyz(xyz_PTempN), wt_wz(wz_PTempRHSN), DelTime)
-    call timeInt_Euler3(xy_SurfHeightA, xy_SurfHeightN, xy_w(w_SurfHeightRHSN), DelTime)
-
-    !
-!!$    call at_BoundariesGrid_NN(wt_VorA)
-!!$    call at_BoundariesGrid_NN(wt_DivA)
-    call at_BoundariesGrid_NN(wt_PTempA)
-
-    wz_Psi = wz_InvLapla2D_wz( wz_wt(wt_VorA) )
-    wz_Chi = wz_InvLapla2D_wz( wz_wt(wt_DivA) )
-
-    xyz_UA = cos(xyz_Lat) * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
-    xyz_VA = cos(xyz_Lat) * xyz_AlphaOptr_wz(wz_Psi,  wz_Chi)
-    xyz_PTempA = xyz_wt(wt_PTempA)
-
-    contains
-      subroutine timeInt_Euler1(xyzA, xyzN, xyzRHSN, dt)
-        real(DP), intent(out) :: xyzA(0:iMax-1,jMax,0:kMax)
-        real(DP), intent(in) :: xyzN(0:iMax-1,jMax,0:kMax)
-        real(DP), intent(in) :: xyzRHSN(0:iMax-1,jMax,0:kMax)
-        real(DP), intent(in) :: dt
-
-        xyzA = xyzN + xyzRHSN*dt
-
-      end subroutine timeInt_Euler1
-
-
-      subroutine wt_timeIntEuler_wt(wtA, wtN, wtRHSN, dt)
-        real(DP), intent(out) :: wtA(lMax,0:tMax)
-        real(DP), intent(in) :: wtN(lMax,0:tMax)
-        real(DP), intent(in) :: wtRHSN(lMax,0:tMax)
-        real(DP), intent(in) :: dt
-
-        wtA = wtN + wtRHSN*dt
-      end subroutine wt_timeIntEuler_wt
-
-      subroutine timeInt_Euler3(xyA, xyN, xyRHSN, dt)
-        real(DP), intent(out) :: xyA(0:iMax-1,jMax)
-        real(DP), intent(in) :: xyN(0:iMax-1,jMax)
-        real(DP), intent(in) :: xyRHSN(0:iMax-1,jMax)
-        real(DP), intent(in) :: dt
-
-        xyA = xyN + xyRHSN*dt
-
-      end subroutine timeInt_Euler3
-
-
-  end subroutine HydroBouEqSolver_AdvanceTStep
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    call calc_SurfHeightRHS(w_SurfHeightRHS, &
+         & xyz_Urf, xyz_Vrf, xy_totDepth ) 
+    
+  end subroutine calc_GovernEqRHS
 
 
   function diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div ) result(xyz_SigDot)
@@ -277,19 +375,21 @@ contains
     xy_VrfHat = xy_IntSig_BtmToTop_xyz(xyz_Vrf)
     xy_DivHat = xy_IntSig_BtmToTop_xyz(xyz_Div)
 
-    xy_DtotDepthDLambda = xy_w(w_DivLambda_xy(xy_totDepth))
-    xy_DtotDepthDmu = xy_w(w_DivMu_xy(xy_totDepth))
+    xy_DtotDepthDLambda = 0d0!xy_w(w_DivLambda_xy(xy_totDepth))
+    xy_DtotDepthDmu =0d0! xy_w(w_DivMu_xy(xy_totDepth))
 
-    do k=1, kMax
+    do k=0, kMax
        sig = g_Sig(k)
        xyz_SigDot(:,:,k) = &
-            &   (1d0 + sig)*( &
-            &           (xy_UrfHat*xy_DtotDepthDLambda + xy_VrfHat*xy_DtotDepthDmu)/xy_totDepth &
-            &        +  xy_DivHat )  &
-            & - xyz_DivHatSig(:,:,k) &
-            & - (xyz_UrfHatSig(:,:,k)*xy_DtotDepthDLambda + xyz_VrfHatSig(:,:,k)*xy_DtotDepthDmu)/xy_totDepth 
+!!$            &   sig*( &
+!!$            &        (xy_UrfHat*xy_DtotDepthDLambda + xy_VrfHat*xy_DtotDepthDmu)/xy_totDepth &
+!!$            &     +  xy_DivHat )  &
+            & + xyz_DivHatSig(:,:,k) !&
+!!$            & + (xyz_UrfHatSig(:,:,k)*xy_DtotDepthDLambda + xyz_VrfHatSig(:,:,k)*xy_DtotDepthDmu)/xy_totDepth 
     end do
     
+    xyz_SigDot(:,:,kMax) = 0d0
+
   end function diagnose_SigDot
 
   function diagnose_PressEdd( xy_totDepth, xyz_DensEdd) result(xyz_PressEdd)
@@ -298,7 +398,7 @@ contains
     real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_PressEdd(0:iMax-1,jMax,0:kMax)
 
-    xyz_PressEdd = - Grav*spread(xy_totDepth,3,kMax+1)*xyz_IntSig_SigToTop_xyz(xyz_DensEdd)
+    xyz_PressEdd =  Grav*spread(xy_totDepth,3,kMax+1)*(xyz_IntSig_SigToTop_xyz(xyz_DensEdd))
 
   end function diagnose_PressEdd
 

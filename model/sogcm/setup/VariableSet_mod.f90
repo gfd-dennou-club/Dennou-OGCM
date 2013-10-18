@@ -35,17 +35,18 @@ module VariableSet_mod
   integer, public, save :: TracerNum
   integer, public, save :: SaltTracerID
   integer, public, save :: PTempTracerID
-  real(DP), public, save :: refDens
+  real(DP), public, save :: refDens, refPTemp
 
 
   real(DP), public, save, allocatable :: xyz_uA(:,:,:), xyz_uN(:,:,:), xyz_uB(:,:,:)
   real(DP), public, save, allocatable :: xyz_vA(:,:,:), xyz_vN(:,:,:), xyz_vB(:,:,:)
   real(DP), public, save, allocatable :: xyz_SigDot(:,:,:)
-  real(DP), public, save, allocatable :: xyz_PTempA(:,:,:), xyz_PTempN(:,:,:), xyz_PTempB(:,:,:)
+  real(DP), public, save, allocatable :: xyz_PTempEddA(:,:,:), xyz_PTempEddN(:,:,:), xyz_PTempEddB(:,:,:)
   real(DP), public, save, allocatable :: xyz_SaltA(:,:,:), xyz_SaltN(:,:,:), xyz_SaltB(:,:,:)
   real(DP), public, save, allocatable :: xy_SurfHeightA(:,:), xy_SurfHeightN(:,:), xy_SurfHeightB(:,:)
   real(DP), public, save, allocatable :: xy_totDepthBasic(:,:)
   real(DP), public, save, allocatable :: xy_SurfPress(:,:)
+  real(DP), public, save, allocatable :: z_PTempBasic(:)
 
   ! 非公開手続き
   ! Private procedure
@@ -84,11 +85,12 @@ contains
     call malloc3DVar(xyz_UA); call malloc3DVar(xyz_UN); call malloc3DVar(xyz_UB); 
     call malloc3DVar(xyz_VA); call malloc3DVar(xyz_VN); call malloc3DVar(xyz_VB);
     call malloc3DVar(xyz_SigDot)
-    call malloc3DVar(xyz_PTempA); call malloc3DVar(xyz_PTempN); call malloc3DVar(xyz_PTempB); 
+    call malloc3DVar(xyz_PTempEddA); call malloc3DVar(xyz_PTempEddN); call malloc3DVar(xyz_PTempEddB); 
     call malloc3DVar(xyz_SaltA); call malloc3DVar(xyz_SaltN); call malloc3DVar(xyz_SaltB); 
     call malloc2DVar(xy_SurfHeightA); call malloc2DVar(xy_SurfHeightN); call malloc2DVar(xy_SurfHeightB);
     call malloc2DVar(xy_totDepthBasic)
     call malloc2DVar(xy_SurfPress)
+    call malloc1DVar(z_PTempBasic)
 
     !
     TracerNum = 2
@@ -105,6 +107,10 @@ contains
       real(DP), intent(inout), allocatable :: var(:,:)
       allocate( var(0:iMax-1, 1:jMax) )
     end subroutine malloc2DVar
+    subroutine malloc1DVar( var )
+      real(DP), intent(inout), allocatable :: var(:)
+      allocate( var(0:kMax) )
+    end subroutine malloc1DVar
   end subroutine VariableSet_Init
 
   !>
@@ -129,7 +135,7 @@ contains
     deallocate( xyz_UA, xyz_UN, xyz_UB )
     deallocate( xyz_VA, xyz_VN, xyz_VB )
     deallocate( xyz_SigDot )
-    deallocate( xyz_PTempA, xyz_PTempN, xyz_PTempB )
+    deallocate( xyz_PTempEddA, xyz_PTempEddN, xyz_PTempEddB )
     deallocate( xyz_SaltA, xyz_SaltN, xyz_SaltB )
     deallocate( xy_SurfHeightA, xy_SurfHeightN, xy_SurfHeightB )
     deallocate( xy_totDepthBasic )
@@ -157,7 +163,7 @@ contains
 
     xyz_UB = xyz_UN; xyz_UN = xyz_UA; xyz_UA = 0d0
     xyz_VB = xyz_VN; xyz_VN = xyz_VA; xyz_VA = 0d0
-    xyz_PTempB = xyz_PTempN; xyz_PTempN = xyz_PTempA; xyz_PTempA = 0d0
+    xyz_PTempEddB = xyz_PTempEddN; xyz_PTempEddN = xyz_PTempEddA; xyz_PTempEddA = 0d0
     xyz_SaltB = xyz_SaltN; xyz_SaltN = xyz_SaltA; xyz_SaltA = 0d0
     xy_SurfHeightB = xy_SurfHeightN; xy_SurfHeightN = xy_SurfHeightA; xy_SurfHeightA = 0d0
 

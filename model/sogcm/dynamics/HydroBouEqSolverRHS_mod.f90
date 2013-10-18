@@ -41,6 +41,7 @@ module HydroBouEqSolverRHS_mod
   !
   public :: HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final
   public :: calc_VorEqDivEqRHS, calc_SurfHeightRHS, calc_TracerEqRHS
+  public :: correct_vorEqRHSUnderRigidLid
 
   ! 非公開手続き
   ! Private procedure
@@ -111,24 +112,25 @@ contains
     
     xyz_KinEngy = (xyz_Urf**2 + xyz_Vrf**2)/(2d0*cos(xyz_Lat)**2)
     xyz_AbsVor = xyz_Vor + 2d0*Omega*sin(xyz_Lat)
-    xyz_PressGradCoef = xyz_DensEdd/RefDens/RPlanet**2
+    xyz_PressGradCoef = xyz_DensEdd/RefDens/RPlanet
 
     wz_GeoPot = wz_xyz(xyz_GeoPot)
     wt_Urf = wt_xyz(xyz_Urf)
     wt_Vrf = wt_xyz(xyz_Vrf)
 
     xyz_A = &
-         &   xyz_AbsVor*xyz_Urf  !+ xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Vrf)) &
-!         & + xyz_PressGradCoef*xyz_GradMu_wz(wz_GeoPot)
+         &   xyz_AbsVor*xyz_Urf   + xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Vrf)) &
+         & + xyz_PressGradCoef*xyz_GradMu_wz(wz_GeoPot)
     xyz_B = &
-         &    xyz_AbsVor*xyz_Vrf !- xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Urf)) &
-!         &  - xyz_PressGradCoef*xyz_GradLambda_wz(wz_GeoPot)
+         &    xyz_AbsVor*xyz_Vrf - xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Urf)) &
+        &  - xyz_PressGradCoef*xyz_GradLambda_wz(wz_GeoPot)
 
-    wz_RHSVor = wz_AlphaOptr_xyz( xyz_A, xyz_B )
+    wz_RHSVor = - wz_AlphaOptr_xyz( xyz_A, xyz_B )
 
-    wz_RHSDiv =   wz_AlphaOptr_xyz( xyz_B, -xyz_A ) &
+    wz_RHSDiv = wz_AlphaOptr_xyz( xyz_B, -xyz_A ) &
          &      - wz_Lapla2D_wz(wz_xyz( &
-         &              xyz_KinEngy + Grav*spread(xy_SurfHeight,3,kMax+1) + xyz_PEdd/RefDens &
+         &             xyz_KinEngy + Grav*spread(xy_SurfHeight,3,kMax+1) &
+         &           + xyz_PEdd/RefDens &
          &        ))
 
   end subroutine calc_VorEqDivEqRHS
@@ -143,7 +145,8 @@ contains
 
     wz_RHSTracer =  &
          & - wz_AlphaOptr_xyz(xyz_Tracer*xyz_Urf, xyz_Tracer*xyz_Vrf) &
-         & + wz_xyz( xyz_Tracer*xyz_Div - xyz_SigDot*xyz_wt(wt_DSig_wt(wt_xyz(xyz_Tracer))) )
+         & + wz_xyz(   xyz_Tracer*xyz_Div & 
+         &           - xyz_SigDot*xyz_wt(wt_DSig_wt(wt_xyz(xyz_Tracer))) )
 
   end subroutine calc_TracerEqRHS
 
@@ -153,11 +156,43 @@ contains
     real(DP), intent(in) :: xyz_Vrf(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
 
-    w_RHSSurfHeight =  - w_AlphaOptr_xy( &
-         & xy_totDepth*xy_IntSig_BtmToTop_xyz(xyz_Urf), xy_totDepth*xy_IntSig_BtmToTop_xyz(xyz_Vrf) )
+    w_RHSSurfHeight =  0d0!- w_AlphaOptr_xy( &
+!         & xy_totDepth*xy_IntSig_BtmToTop_xyz(xyz_Urf), xy_totDepth*xy_IntSig_BtmToTop_xyz(xyz_Vrf) )
 
   end subroutine calc_SurfHeightRHS
 
+
+  !> @brief 
+  !!
+  !!
+  subroutine correct_vorEqRHSUnderRigidLid(wz_RHSDivEqN, &
+       & xy_SurfPress, xyz_DivN, dt )
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout) :: wz_RHSDivEqN(lMax, 0:kMax)
+    real(DP), intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
+    real(DP), intent(in) :: xyz_DivN(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: dt
+
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: w_CorrectTerm(lMax)
+    real(DP) :: xyz_tmp(0:iMax-1,jMax,0:kMax)
+    integer :: k
+
+    ! 実行文; Executable statement
+    !
+ 
+    w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_xyz(xyz_DivN/dt) )
+    xy_SurfPress = xy_w( w_InvLapla2D_w( w_CorrectTerm*RefDens ) )
+
+    do k=0,kMax
+       wz_RHSDivEqN(:,k) = wz_RHSDivEqN(:,k) + w_CorrectTerm
+    end do
+
+  end subroutine correct_vorEqRHSUnderRigidLid
 
 end module HydroBouEqSolverRHS_mod
 

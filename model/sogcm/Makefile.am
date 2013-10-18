@@ -1,4 +1,4 @@
-SUBDIRS = setup util dynamics unit_test
+SUBDIRS = util setup dynamics unit_test
 
 # util dynamics
 
@@ -32,6 +32,8 @@ bin_PROGRAMS += dsogcm
 dsogcm_SOURCES =\
 	GovernEqSolverDriver_mod.f90 \
 	experiment/Exp_W94_Case2_mod.f90 \
+	experiment/Exp_BarotRossbyWave_mod.f90 \
+	experiment/Exp_InternalGravWave_mod.f90 \
 	InitCond_mod.f90 \
 	ogcm_main.f90
 

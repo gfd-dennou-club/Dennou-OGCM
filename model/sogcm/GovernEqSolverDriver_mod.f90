@@ -12,7 +12,8 @@ module GovernEqSolverDriver_mod
   !
   use HydroBouEqSolver_mod, only: &
        & HydroBouEqSolver_Init, HydroBouEqSolver_Final, &
-       & HydroBouEqSolver_AdvanceTStep
+       & HydroBouEqSolver_AdvanceTStep, &
+       & timeIntMode_RK4, timeIntMode_LFTR, timeIntMode_LFAM3
 
   use EqState_JM95_mod, only: &
        & EqState_JM95_Init, EqState_JM95_Final
@@ -74,15 +75,16 @@ contains
     
     ! 実行文; Executable statement
     !
-!!$    if(CurrentTimeStep /= 1) then
-       call HydroBouEqSolver_Init()
-       call HydroBouEqSolver_AdvanceTStep()
-       call HydroBouEqSolver_Final()
-!!$    else
-!!$       call HydroBouEqSolverSelfStart_Init(mesh)
-!!$       call HydroBouEqSolverSelfStart_AdvanceTStep(variable)
-!!$       call HydroBouEqSolverSelfStart_Final()
-!!$    end if
+    call HydroBouEqSolver_Init()
+
+    if(CurrentTimeStep /= 1) then
+       call HydroBouEqSolver_AdvanceTStep(timeIntMode_LFAM3)!TR)
+    else
+       ! For first time step, RK4 which is self starting is used. 
+       call HydroBouEqSolver_AdvanceTStep(timeIntMode_RK4)
+    end if
+
+    call HydroBouEqSolver_Final()
 
   end subroutine GovernEqSolverDriver_AdvanceTStep
 

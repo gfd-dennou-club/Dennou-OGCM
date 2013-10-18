@@ -47,8 +47,9 @@ module SpmlUtil_mod
   public :: wz_DivLambda_xyz, wz_DivMu_xyz
   public :: xyz_GradLambda_wz, xyz_GradMu_wz
   public :: wz_Lapla2D_wz, wz_InvLapla2D_wz
+  public :: w_InvLapla2D_w
 
-  public :: xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz
+  public :: xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz, w_IntSig_BtmToTop_wz
 
   ! Cascade
   public :: w_DivLambda_xy, w_DivMu_xy
@@ -91,6 +92,7 @@ contains
     nm = nMax; lm = tMax;
     
     if( present(np) ) then
+       call MessageNotify("M", module_name, "The number of thread is %d", i=(/ np /))
        call wa_Initial(nMax, iMax, jMax, kMax+1, np)
     else
        call wa_Initial(nMax, iMax, jMax, kMax+1)
@@ -370,6 +372,28 @@ contains
 
     end function wz_InvLapla2D_wz
 
+
+    function w_InvLapla2D_w(w)
+      ! 入力スペクトルデータにラプラシアン
+      !
+      !     ▽^2 =   1/a^2 cos^2φ・∂^2/∂λ^2 
+      !            + 1/a^2 cosφ・∂/∂φ(cosφ∂/∂φ) 
+      ! 
+      ! の逆 ∇^-2 を作用する.
+      !
+      ! スペクトルデータのラプラシアンとは, 対応する格子点データに
+      ! ラプラシアンを作用させたデータのスペクトル変換のことである. 
+      !
+      real(8), dimension((nm+1)*(nm+1),0:km), intent(in) :: w
+      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
+
+      real(8), dimension((nm+1)*(nm+1))             :: w_InvLapla2D_w
+      !(out) ラプラシアンを作用された 2 次元スペクトルデータ
+
+      w_InvLapla2D_w = w_LaplaInv_w(w) * Radius**2
+
+    end function w_InvLapla2D_w
+
     !--------------- 鉛直積分計算 -----------------
 
     function xy_IntSig_BtmToTop_xyz(xyz) result(xy_Int)
@@ -380,11 +404,25 @@ contains
       integer :: k 
 
       xy_Int = 0d0
-      do k=1, km
-         xy_Int = xy_Int + sum(xyz(:,:,k)*g_Sig_WEIGHT(k))
+      do k=0, km
+         xy_Int = xy_Int + xyz(:,:,k)*g_Sig_WEIGHT(k)
       end do
 
     end function xy_IntSig_BtmToTop_xyz
+
+    function w_IntSig_BtmToTop_wz(wz) result(w_Int)
+
+      real(8), dimension((nm+1)*(nm+1),0:km), intent(in)   :: wz
+      real(8), dimension((nm+1)*(nm+1)) :: w_Int
+
+      integer :: k 
+
+      w_Int = 0d0
+      do k=0, km
+         w_Int = w_Int + wz(:,k)*g_Sig_WEIGHT(k)
+      end do
+
+    end function w_IntSig_BtmToTop_wz
 
     function xyz_IntSig_SigToTop_xyz(xyz) result(xyz_Int)
 
@@ -410,7 +448,7 @@ contains
       real(DP) :: tt_data(0:lm,0:lm)
       real(DP) :: TMat(0:lm,0:km)
       real(DP) :: TIntMat(0:km,0:lm)
-      real(DP) :: Sigk, theta
+      real(DP) :: Sigk, theta, tl
       integer :: k, t, k2
 
       allocate(vIntCoefMat(0:km,0:km))
@@ -422,21 +460,21 @@ contains
       TMat = ag_at(tt_data)
 
       do k=0, km
-         theta = PI*k/km
+         theta = PI*k/dble(km)
          Sigk = cos(theta)
          TIntMat(k,0) = 1d0 - Sigk
          TIntMat(k,1) = 0.5d0*(1d0 - Sigk**2)
 
-         do t=1, lm
-            TIntMat(k,t) = 0.5d0/(1d0-t**2) &
-                 & - 0.5d0*( cos((t+1)*theta)/dble(t+1) - cos((t-1)*theta)/dble(t-1))
+         do t=2, lm
+            TIntMat(k,t) = 1d0/(1d0-t**2) &
+                 & - 0.5d0*( cos((t+1)*theta)/dble(t+1) - cos((t-1)*theta)/dble(t-1) )
          end do
       end do
 
-      TIntMat(0,:) = 0.5d0*TIntMat(0,:)
-      TIntMat(lm,:) = 0.5d0*TIntMat(lm,:)
-
+      TIntMat = 2d0/km * 0.5d0*(SigMax - SigMin) * TIntMat
       vIntCoefMat = matmul(TIntMat, TMat)
+      vIntCoefMat(:,0) = 0.5d0*vIntCoefMat(:,0)
+      vIntCoefMat(:,km) = 0.5d0*vIntCoefMat(:,km)
 
     end subroutine construct_vIntCoefMat
 

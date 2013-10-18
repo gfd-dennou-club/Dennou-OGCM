@@ -67,6 +67,8 @@ contains
          & iMax, jMax, kMax, &
          & x_Lon, y_Lat
 
+    use SpmlUtil_mod, only: g_Sig
+
     ! 宣言文; Declaration statement
     !
     type(DataFileSet), intent(inout) :: this
@@ -99,6 +101,7 @@ contains
     call HistoryAutoAddAttr('lon', 'topology', 'circular')
     call HistoryAutoAddAttr('lon', 'modulo', 360.0)
     call HistoryAutoPutAxis('lat', y_Lat*180/PI)
+    call HistoryAutoPutAxis('sig', g_Sig)
 
     call HistoryAutoAddVariable( &
          varname='u', dims=(/'lon','lat','sig','t  '/), & 
@@ -108,9 +111,30 @@ contains
          varname='v', dims=(/'lon','lat','sig','t  '/), & 
          longname='velocity(latitude) ', units='m/s')
 
+
+    call HistoryAutoAddVariable( &
+         varname='Chi', dims=(/'lon','lat','sig','t  '/), & 
+         longname='velocity potential ', units='m2/s')
+
+    call HistoryAutoAddVariable( &
+         varname='Psi', dims=(/'lon','lat','sig','t  '/), & 
+         longname='stream function', units='m2/s')
+
     call HistoryAutoAddVariable( &                  
          varname='eta', dims=(/'lon','lat', 't  '/), & 
          longname='surface height ', units='m')
+
+    call HistoryAutoAddVariable( &                  
+         varname='PTempEdd', dims=(/'lon','lat', 'sig', 't  '/), & 
+         longname='eddy component of potential temperature ', units='K')
+
+    call HistoryAutoAddVariable( &                  
+         varname='SigDot', dims=(/'lon','lat', 'sig', 't  '/), & 
+         longname='vertical velocity in Sigma coordinate ', units='s-1')
+
+    call HistoryAutoAddVariable( &                  
+         varname='SurfPress', dims=(/'lon','lat', 't  '/), & 
+         longname='surface pressure ', units='Pa')
 
   end subroutine DataFileSet_Init
 
@@ -141,6 +165,12 @@ contains
     use TemporalIntegSet_mod, only: &
          & CurrentTime, Nl
 
+    use GridSet_mod, only: &
+         & iMax, jMax, kMax, lMax, &
+         & xyz_Lat
+
+    use SpmlUtil_mod
+
     ! 宣言文; Declaration statement
     !
     type(DataFileSet), intent(inout) :: this
@@ -149,7 +179,12 @@ contains
     ! Local variables
     !
     
-    
+    real(DP) :: wz_Vor(lMax, 0:kMax)
+    real(DP) :: wz_Div(lMax, 0:kMax)
+    real(DP) :: xyz_Psi(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_Chi(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_CosLat(0:iMax-1, jMax, 0:kMax)
+
     ! 実行文; Executable statement
     !
 
@@ -160,6 +195,17 @@ contains
     call HistoryAutoPut(CurrentTime, "u", xyz_UN)
     call HistoryAutoPut(CurrentTime, "v", xyz_VN)
     call HistoryAutoPut(CurrentTime, "eta", xy_SurfHeightN)
+    call HistoryAutoPut(CurrentTime, "PTempEdd", xyz_PTempEddN)
+    call HistoryAutoPut(CurrentTime, "SigDot", xyz_SigDot)
+    
+    xyz_CosLat = cos(xyz_Lat)
+    wz_Vor = wz_AlphaOptr_xyz(xyz_VN*xyz_CosLat, -xyz_UN*xyz_CosLat) 
+    wz_Div = wz_AlphaOptr_xyz(xyz_UN*xyz_CosLat,  xyz_VN*xyz_CosLat) 
+    xyz_Psi = xyz_wz( wz_InvLapla2D_wz( wz_Vor ) )
+    xyz_Chi = xyz_wz( wz_InvLapla2D_wz( wz_Div ) )
+    call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
+    call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
+    call HistoryAutoPut(CurrentTime, "SurfPress", xy_SurfPress)
 
   end subroutine DataFileSet_OutputData
 

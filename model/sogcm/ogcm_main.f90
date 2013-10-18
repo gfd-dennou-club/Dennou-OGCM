@@ -107,6 +107,10 @@ contains
     use GridSet_mod, only: &
          & GridSet_construct
 
+#ifdef _OPENMP
+    use omp_lib
+#endif
+
     ! 宣言文; Declaration statement
     !
     
@@ -115,6 +119,7 @@ contains
     ! Local variables
     !
     character(STRING) :: configNmlFile
+    integer :: nThread
 
     ! 実行文; Executable statement
     !
@@ -127,7 +132,19 @@ contains
 
     call TemporalIntegSet_Init(configNmlFile)
     call GridSet_Init(configNmlFile)
-    call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet)
+
+#ifdef _OPENMP
+    !$omp parallel 
+    !$omp single
+    nThread = omp_get_num_threads()
+    !$omp end single
+    !$omp end parallel
+
+    call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet, np=nThread)
+#else
+ 
+#endif
+
     call GridSet_construct()
 
     call VariableSet_Init()

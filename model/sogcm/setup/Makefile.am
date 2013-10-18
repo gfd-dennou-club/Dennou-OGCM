@@ -8,6 +8,7 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/fvm \
         $(MODPATHFLAG)$(srcdir)/../../../src/mesh2 \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
+        $(MODPATHFLAG)$(srcdir)/../util \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \

@@ -11,8 +11,11 @@ module InitCond_mod
   ! モジュール引用; Use statements
   !
 
-  use Exp_W94_Case2_mod, only: &
-       & SetInitCondition
+!!$  use Exp_W94_Case2_mod, only: &
+  use Exp_BarotRossbyWave_mod, only: &
+       & SetInitCondition 
+!!$  use Exp_InternalGravWave_mod, only: &
+!!$       & SetInitCondition
 
   ! 宣言文; Declareration statements
   !
@@ -55,7 +58,8 @@ contains
     !
     use VariableSet_mod, only: &
          & xyz_UN, xyz_VN, xyz_SigDot, &
-         & refDens
+         & xyz_PTempEddN, &
+         & refDens, refPTemp
 
     ! 宣言文; Declaration statement
     !
@@ -70,7 +74,9 @@ contains
     !
     
     xyz_UN = 0d0; xyz_VN = 0d0; xyz_SigDot = 0d0
+    xyz_PTempEddN = 0d0
     refDens = 1d0
+    refPTemp = 300d0
 
     call SetInitCondition()
 
