@@ -10,11 +10,13 @@ program ogcm_main
 
   use Constants_mod
   use TemporalIntegSet_mod
+  use BoundCondSet_mod
   use GridSet_mod
   use VariableSet_mod
   use DataFileSet_mod
-  use GovernEqSolverDriver_mod
+  use RestartDataFileSet_mod
 
+  use GovernEqSolverDriver_mod
   use InitCond_mod
 
   ! 宣言文; Declaration statement
@@ -47,6 +49,8 @@ program ogcm_main
   call InitCond_Init()
 
   call InitCond_Set()
+  call RestartDataFileSet_Input()
+
   call DataFileSet_OutputData(datFile)
   
   call InitCond_Final()
@@ -58,7 +62,7 @@ program ogcm_main
 
   call MessageNotify("M", PROGRAM_NAME, "[==== Start temporal integration ====]")
 
-  do while(CurrentTime < TotalIntegTime)
+  do while( .not. EndTemporalInteg() )
      
      !
      
@@ -74,6 +78,8 @@ program ogcm_main
      !
      
      call DataFileSet_OutputData(datFile)
+     call RestartDataFileSet_Output()
+
   end do
 
   call MessageNotify("M", PROGRAM_NAME, "[==== Finish temporal integration ====]")
@@ -131,6 +137,7 @@ contains
     call Constants_Init(configNmlFile)
 
     call TemporalIntegSet_Init(configNmlFile)
+    call BoundCondSet_Init(configNmlFile)
     call GridSet_Init(configNmlFile)
 
 #ifdef _OPENMP
@@ -149,6 +156,9 @@ contains
 
     call VariableSet_Init()
     call DataFileSet_Init(datFile, configNmlFile)
+    call RestartDataFileSet_Init(configNmlFile)
+
+    call GovernEqSolverDriver_Init()
 
   end subroutine ogcm_setup
 
@@ -172,10 +182,13 @@ contains
     ! 実行文; Executable statement
     !
 
+    call GovernEqSolverDriver_Final()
     call DataFileSet_Final(datFile)
+    call RestartDataFileSet_Final()
     call VariableSet_Final()
     call SpmlUtil_Final()
     call GridSet_Final() 
+    call BoundCondSet_Final()
     call TemporalIntegSet_Final()
     call Constants_Final()
 

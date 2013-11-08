@@ -25,6 +25,9 @@ nodist_libDSOGCMSetup_la_SOURCES= \
 	Constants_mod.f90 \
 	GridSet_mod.f90 \
 	TemporalIntegSet_mod.f90 \
+	BoundCondSet_mod.f90 \
 	VariableSet_mod.f90 \
-	DataFileSet_mod.f90
+	DataFileSet_mod.f90 \
+	RestartDataFileSet_mod.f90
+
 

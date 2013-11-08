@@ -51,6 +51,10 @@ module Constants_mod
                               ! 重力加速度. 
                               ! Gravitational acceleration
 
+  real(DP), public, save :: vDiffCoef
+  real(DP), public, save :: hDiffCoef  
+  real(DP), public, save :: RoughnessParamBottom
+
   ! 非公開手続き
   ! Private procedure
   !
@@ -104,7 +108,8 @@ contains
     ! NAMELIST group name
     !
     namelist /constants_nml/ &
-      & RPlanet, Omega, Grav
+      & RPlanet, Omega, Grav, vDiffCoef, hDiffCoef, &
+      & RoughnessParamBottom
 
     ! 実行文; Executable statements
 
@@ -114,6 +119,8 @@ contains
     RPlanet          = 6.371e6_DP
     Omega            = 2.0_DP * PI / ( 60.0_DP * 60.0_DP * 23.9345_DP )
     Grav             = 9.8_DP
+    vDiffCoef        = 0d0
+    hDiffCoef        = 0d0
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -137,6 +144,9 @@ contains
     call MessageNotify( 'M', module_name, '  RPlanet          = %f', d = (/ RPlanet          /) )
     call MessageNotify( 'M', module_name, '  Omega            = %f', d = (/ Omega            /) )
     call MessageNotify( 'M', module_name, '  Grav             = %f', d = (/ Grav             /) )
+    call MessageNotify( 'M', module_name, '  vDiffCoef        = %f', d = (/ vDiffCoef        /) )
+    call MessageNotify( 'M', module_name, '  hDiffCoef        = %f', d = (/ hDiffCoef        /) )
+    call MessageNotify( 'M', module_name, '  RoughnessParamBottom = %f', d = (/ RoughnessParamBottom  /) )
 
 end subroutine Constants_Init
 

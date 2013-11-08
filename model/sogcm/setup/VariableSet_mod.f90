@@ -45,8 +45,10 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xyz_SaltA(:,:,:), xyz_SaltN(:,:,:), xyz_SaltB(:,:,:)
   real(DP), public, save, allocatable :: xy_SurfHeightA(:,:), xy_SurfHeightN(:,:), xy_SurfHeightB(:,:)
   real(DP), public, save, allocatable :: xy_totDepthBasic(:,:)
-  real(DP), public, save, allocatable :: xy_SurfPress(:,:)
   real(DP), public, save, allocatable :: z_PTempBasic(:)
+  real(DP), public, save, allocatable :: xy_SurfPress(:,:)
+  real(DP), public, save, allocatable :: xy_WindStressU(:,:)
+  real(DP), public, save, allocatable :: xy_WindStressV(:,:)
 
   ! 非公開手続き
   ! Private procedure
@@ -89,15 +91,14 @@ contains
     call malloc3DVar(xyz_SaltA); call malloc3DVar(xyz_SaltN); call malloc3DVar(xyz_SaltB); 
     call malloc2DVar(xy_SurfHeightA); call malloc2DVar(xy_SurfHeightN); call malloc2DVar(xy_SurfHeightB);
     call malloc2DVar(xy_totDepthBasic)
-    call malloc2DVar(xy_SurfPress)
     call malloc1DVar(z_PTempBasic)
-
+    call malloc2DVar(xy_SurfPress)
+    call malloc2DVar(xy_WindStressU); call malloc2DVar(xy_WindStressV)
     !
     TracerNum = 2
     SaltTracerID = 1
     PTempTracerID = 2
     
-
   contains
     subroutine malloc3DVar( var )
       real(DP), intent(inout), allocatable :: var(:,:,:)
@@ -140,6 +141,7 @@ contains
     deallocate( xy_SurfHeightA, xy_SurfHeightN, xy_SurfHeightB )
     deallocate( xy_totDepthBasic )
     deallocate( xy_SurfPress )
+    deallocate( xy_WindStressU, xy_WindStressV )
 
   end subroutine VariableSet_Final
 

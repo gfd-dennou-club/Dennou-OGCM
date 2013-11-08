@@ -42,6 +42,7 @@ module SpmlUtil_mod
   public :: wt_DSig_wt, t_DSig_t, az_at, at_az
   public :: g_Sig
   public :: xyz_wt, wt_xyz, xyz_wz, wz_xyz, wz_wt, wt_wz
+  public :: xya_wa, wa_xya
 
   public :: wz_AlphaOptr_xyz, w_AlphaOptr_xy, xyz_AlphaOptr_wz
   public :: wz_DivLambda_xyz, wz_DivMu_xyz
@@ -72,6 +73,7 @@ module SpmlUtil_mod
   real(DP) :: Radius
   integer :: im, jm, km, nm, lm
   real(DP), allocatable :: vIntCoefMat(:,:)
+  real(DP), allocatable :: vDiffProcInvMat(:,:)
 
 contains
 
@@ -478,6 +480,5 @@ contains
 
     end subroutine construct_vIntCoefMat
 
- 
 end module SpmlUtil_mod
 

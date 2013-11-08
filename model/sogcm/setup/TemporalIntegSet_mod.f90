@@ -10,10 +10,14 @@ module TemporalIntegSet_mod
 
   ! モジュール引用; Use statements
   !
-  use dc_types, only: DP
+  use dc_types, only: &
+       & DP, TOKEN
 
   use dc_message, only: &
        & MessageNotify
+
+  use dc_calendar, only: &
+       & DC_CAL, DC_CAL_DATE
 
   ! 宣言文; Declareration statements
   !
@@ -24,6 +28,7 @@ module TemporalIntegSet_mod
   ! Public procedure
   !
   public :: TemporalIntegSet_Init, TemporalIntegSet_Final
+  public :: EndTemporalInteg
   public :: TemporalIntegSet_AdvanceLongTStep
   public :: TemporalIntegSet_AdvanceShortTStep
 
@@ -36,13 +41,32 @@ module TemporalIntegSet_mod
   integer, parameter, public :: nShortTimeLevel = 3
   integer, save, public :: Bs, Ns, As
 
+  !
+  integer, parameter, public :: timeIntMode_Euler = 1
+  integer, parameter, public :: timeIntMode_RK4 = 2
+  integer, parameter, public :: timeIntMode_LFTR = 3
+  integer, parameter, public :: timeIntMode_LFAM3 = 4
+
+
+  !
+
   real(DP), save, public :: DelTime
   integer, save, public :: SubCycleNum
   real(DP), save, public :: CurrentTime
-  real(DP), save, public :: StartTime
-  real(DP), save, public :: TotalIntegTime
+
+  real(DP), save, public :: RestartTime
+  real(DP), save, public :: EndTime
+
+  real(DP), save, public :: IntegTime
   integer, save, public :: CurrentTimeStep
   integer, save, public :: CurrentShortTimeStep
+  integer, save, public :: BarocTimeIntMode
+  logical, save, public :: isVarBUsed_BarocTimeInt
+  integer, save, public :: nStage_BarocTimeInt
+
+  type(DC_CAL_DATE), save, public :: InitDate
+  type(DC_CAL_DATE), save, public :: RestartDate
+  type(DC_CAL_DATE), save, public :: EndDate
 
   ! 非公開手続き
   ! Private procedure
@@ -52,6 +76,8 @@ module TemporalIntegSet_mod
   ! Private variable
   !
   character(*), parameter:: module_name = 'TemporalIntegSet_mod' !< Module Name
+
+  real(DP), save, public :: ProgMessageInterVal
 
 contains
 
@@ -74,7 +100,7 @@ contains
     ! Set DelTime, SubCycleNum by reading namelist. 
     call read_nmlData( configNmlFileName  )
 
-    currentTime = StartTime
+    currentTime = ReStartTime
     CurrentTimeStep = 1
     CurrentShortTimeStep = 1
 
@@ -95,13 +121,38 @@ contains
 
   !> @brief 
   !!
+  !! @return 
   !!
-  subroutine TemporalIntegSet_AdvanceLongTStep()
+  function EndTemporalInteg() result(ret)
     
     ! 宣言文; Declaration statement
     !
+    logical :: ret
+
+    ! 実行文; Executable statement
+    !
+
+    ret = (CurrentTime > EndTime)
     
+  end function EndTemporalInteg
+
+  !> @brief 
+  !!
+  !!
+  subroutine TemporalIntegSet_AdvanceLongTStep()
+
+    !
+    !
+    use dc_calendar, only: &
+         & DCCalCreate, DCCalDateCreate, &
+         & DCCalConvertByUnit, DCCalDateDifference, &
+         & DCCalDateInquire, DCCalDateEval
     
+    ! 宣言文; Declaration statement
+    !
+    type(DC_CAL_DATE) :: CurrentDate
+    character(TOKEN) :: InitDateStr, RestartDateStr, EndDateStr, CurrentDateStr
+
     ! 局所変数
     ! Local variables
     !
@@ -119,7 +170,17 @@ contains
     Nl = Al
     Al = oldBl
     
-    call MessageNotify( 'M', module_name, "Advance time step.. current time=%d [sec]", i=(/ int(CurrentTime) /)) 
+    if( mod(CurrentTime, ProgMessageInterVal) == 0 ) then
+       call DCCalDateEval(InitDate, CurrentTime, 'sec', date=CurrentDate)
+       call DCCalDateInquire(InitDateStr, date=InitDate)
+       call DCCalDateInquire(EndDateStr, date=EndDate)
+       call DCCalDateInquire(CurrentDateStr, date=CurrentDate)
+       call DCCalDateInquire(RestartDateStr, date=RestartDate)
+
+       call MessageNotify( 'M', module_name, "Current Date=%a [%a-%a (Restart Date %a)]", &
+            & ca=(/ CurrentDateStr,  InitDateStr, EndDateStr, RestartDateStr /))
+    end if
+
   end subroutine TemporalIntegSet_AdvanceLongTStep
 
   subroutine TemporalIntegSet_AdvanceShortTStep()
@@ -163,6 +224,11 @@ contains
     !
     use dc_types, only: STDOUT ! 標準出力の装置番号. Unit number of standard output
 
+    use dc_calendar, only: &
+         & DCCalCreate, DCCalDateCreate, &
+         & DCCalConvertByUnit, DCCalDateDifference, &
+         & DCCalDateInquire, DCCalDateEval
+
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlFileName
@@ -176,11 +242,33 @@ contains
     integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
     ! IOSTAT of NAMELIST read
 
+    character(TOKEN) :: barocTimeIntModeName
+
+    real(DP) :: DelTimeVal
+    character(TOKEN) :: DelTimeUnit
+    real(DP) :: IntegTimeVal
+    character(TOKEN) :: IntegTimeUnit
+    real(DP) :: RestartTimeVal
+    character(TOKEN) :: RestartTimeUnit
+    real(DP) :: ProgMessageIntVal
+    character(TOKEN) :: ProgMessageIntUnit
+
+    integer :: InitYear, InitMonth, InitDay, InitHour, InitMin
+    integer :: EndYear, EndMonth, EndDay, EndHour, EndMin
+    real(DP) :: InitSec, EndSec
+    character(TOKEN) :: InitDateStr, EndDateStr, RestartDateStr
+
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
     namelist /temporalInteg_nml/ &
-         & DelTIme, SubCycleNum, StartTime, TotalIntegTime
+         & barocTimeIntModeName, DelTimeVal, DelTimeUnit, &
+         & IntegTimeVal, IntegTimeUnit, &
+         & InitYear, InitMonth, InitDay, InitHour, InitMin, &
+         & EndYear, EndMonth, EndDay, EndHour, EndMin, &
+         & RestartTimeVal, RestartTimeUnit, &
+         & SubCycleNum, &
+         & ProgMessageIntVal, ProgMessageIntUnit
 
     ! 実行文; Executable statements
 
@@ -189,8 +277,16 @@ contains
     !
     DelTIme     = 100d0
     SubCycleNum = 2
-    StartTime  = 0d0
-    TotalIntegTime  = DelTime
+    
+    RestartTimeVal  = 0d0
+    RestartTimeUnit = 'sec'
+    IntegTimeVal  = -1d0
+    IntegTimeUnit  = 'sec'
+
+    InitYear=2000; InitMonth=1; InitDay=1; InitHour=0; InitMin=0; InitSec=0d0;
+    EndYear=2000; EndMonth=1; EndDay=2; EndHour=0; EndMin=0; EndSec=0d0;
+
+    ProgMessageIntVal = -1d0
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -207,14 +303,73 @@ contains
        close( unit_nml )
     end if
 
+    select case(barocTimeIntModeName)
+       case('timeIntMode_Euler')
+          barocTimeIntMode = timeIntMode_Euler
+          isVarBUsed_BarocTimeInt = .false.
+          nStage_BarocTimeInt = 1
+       case('timeIntMode_LFTR')
+          barocTimeIntMode = timeIntMode_LFTR
+          isVarBUsed_BarocTimeInt = .true.
+          nStage_BarocTimeInt = 2
+       case('timeIntMode_LFAM3')
+          barocTimeIntMode = timeIntMode_LFAM3
+          isVarBUsed_BarocTimeInt = .true.
+          nStage_BarocTimeInt = 2
+       case('timeIntMode_RK4')
+          barocTimeIntMode = timeIntMode_RK4
+          isVarBUsed_BarocTimeInt = .false.
+          nStage_BarocTimeInt = 4
+       case default
+          call MessageNotify( "E", module_name, &
+               & "Specified name of temporal integration method '%a' is invalid", ca=(/barocTimeIntModeName/) )  
+    end select
+    
+
+    !
+    !
+    call DCCalCreate(cal_type='Gregorian')
+
+    DelTime = DCCalConvertByUnit(DelTimeVal, DelTimeUnit, 'sec')
+    RestartTime = DCCalConvertByUnit(RestartTimeVal, RestartTimeUnit, 'sec')
+
+    call DCCalDateCreate(InitYear, InitMonth, InitDay, InitHour, InitMin, InitSec, &
+         & InitDate ) !(out)
+
+    call DCCalDateEval(InitDate, RestartTimeVal, RestartTimeUnit, date=RestartDate)
+
+    if( IntegTimeVal > 0d0 ) then
+       call DCCalDateEval(RestartDate, IntegTimeVal, IntegTimeUnit, date=EndDate)
+    else
+       call DCCalDateCreate(EndYear, EndMonth, EndDay, EndHour, EndMin, EndSec, &
+            & EndDate ) !(out)
+    end if
+
+    IntegTime = DCCalDateDifference(RestartDate, EndDate)
+    EndTime = RestartTime + IntegTime
+
+    !
+    !
+    if( ProgMessageIntVal < 0.0 ) then
+       ProgMessageInterVal = 1d-02*IntegTime
+    else
+       ProgMessageInterVal = DCCalConvertByUnit(ProgMessageIntVal, ProgMessageIntUnit, 'sec')
+    end if
 
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
-    call MessageNotify( 'M', module_name, '  DelTime              = %f [sec]', d=(/ DelTime /))
+    call MessageNotify( 'M', module_name, '  BarocTimeIntMode     = %a', ca=(/ barocTimeIntModeName /))
+    call MessageNotify( 'M', module_name, '  DelTime              = %f [%c]', d=(/ DelTimeVal /), c1=trim(DelTimeUnit) )
     call MessageNotify( 'M', module_name, '  SubCycleNum          = %d [time]', i=(/ SubCycleNum /))
-    call MessageNotify( 'M', module_name, '  StartTime            = %f [sec]', d=(/ StartTime /))
-    call MessageNotify( 'M', module_name, '  TotalIntegTime       = %f [sec]', d=(/ TotalIntegTime /))
+    call MessageNotify( 'M', module_name, '  RestartTime          = %f [%c]', d=(/ RestartTimeVal /), c1=trim(RestartTimeUnit) )
+    call MessageNotify( 'M', module_name, '  IntegTime            = %f [sec]', d=(/ IntegTime /))
+
+    call DCCalDateInquire(InitDateStr, date=InitDate)
+    call DCCalDateInquire(EndDateStr, date=EndDate)
+    call DCCalDateInquire(RestartDateStr, date=RestartDate)
+    call MessageNotify( 'M', module_name, '  TimeIntegPeriod      = %a - %a', ca=(/InitDateStr, EndDateStr/)) 
+    call MessageNotify( 'M', module_name, '  Init/RestartDate     = %c', c1=RestartDateStr )
 
   end subroutine read_nmlData
 

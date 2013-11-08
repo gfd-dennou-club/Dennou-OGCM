@@ -32,3 +32,7 @@ check_PROGRAMS += test_SpmlUtil_mod
 test_SpmlUtil_mod_SOURCES =\
 	SpmlUtil_mod_test.f90
 
+check_PROGRAMS += test_HydroBousEqVDiffProc_mod
+test_HydroBousEqVDiffProc_mod_SOURCES =\
+	HydroBousEqVDiffProc_mod_test.f90
+

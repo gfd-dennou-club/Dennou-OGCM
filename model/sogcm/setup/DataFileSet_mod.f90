@@ -61,7 +61,7 @@ contains
     use Constants_mod, only: RPlanet, PI
 
     use TemporalIntegSet_mod, only: &
-         & Nl, StartTime, TotalIntegTime
+         & Nl, RestartTime, IntegTime, EndTime
 
     use GridSet_mod, only: &
          & iMax, jMax, kMax, &
@@ -94,7 +94,7 @@ contains
          & dims=(/'lon','lat','sig','t  '/), dimsizes=(/iMax,jMax,kMax+1,0/),       &
          & longnames=(/'longitude','latitude ','sigma    ', 'time     '/),      &
          & units=(/'degree_east ','degree_north','(1)         ', 'sec.        '/), &
-         & origin=StartTime, interval=this%outputIntrval, terminus=TotalIntegTime,          &
+         & origin=RestartTime, interval=this%outputIntrval, terminus=EndTime,          &
          & namelist_filename=configNmlFileName )    
 
     call HistoryAutoPutAxis('lon', x_Lon*180/PI)
@@ -115,6 +115,10 @@ contains
     call HistoryAutoAddVariable( &
          varname='Chi', dims=(/'lon','lat','sig','t  '/), & 
          longname='velocity potential ', units='m2/s')
+
+    call HistoryAutoAddVariable( &
+         varname='Div', dims=(/'lon','lat','sig','t  '/), & 
+         longname='divergence ', units='s-1')
 
     call HistoryAutoAddVariable( &
          varname='Psi', dims=(/'lon','lat','sig','t  '/), & 
@@ -205,6 +209,7 @@ contains
     xyz_Chi = xyz_wz( wz_InvLapla2D_wz( wz_Div ) )
     call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
     call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
+    call HistoryAutoPut(CurrentTime, "Div", xyz_wz(wz_Div))
     call HistoryAutoPut(CurrentTime, "SurfPress", xy_SurfPress)
 
   end subroutine DataFileSet_OutputData
@@ -264,7 +269,7 @@ contains
     !
     if ( trim(configNmlFileName) /= '' ) then
        call MessageNotify( 'M', module_name, "reading namelist '%a'", ca=(/ configNmlFileName /))
-       call FileOpen( unit_nml, &          ! (out)
+       call FileOpen( unit_nml, &             ! (out)
             & configNmlFileName, mode = 'r' ) ! (in)
 
        rewind( unit_nml )

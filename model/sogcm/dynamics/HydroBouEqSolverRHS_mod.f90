@@ -40,8 +40,10 @@ module HydroBouEqSolverRHS_mod
   ! Public procedure
   !
   public :: HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final
-  public :: calc_VorEqDivEqRHS, calc_SurfHeightRHS, calc_TracerEqRHS
-  public :: correct_vorEqRHSUnderRigidLid
+  public :: calc_VorEqDivEqInvisRHS, calc_VorEqDivEqDiffRHS
+  public :: calc_TracerEqInvisRHS, calc_TracerEqDiffRHS
+  public :: calc_SurfHeightRHS
+  public :: correct_DivEqRHSUnderRigidLid
 
   ! 非公開手続き
   ! Private procedure
@@ -75,11 +77,13 @@ contains
   end subroutine HydroBouEqSolverRHS_Final
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   !> @brief 
   !!
   !!
-  subroutine calc_VorEqDivEqRHS(wz_RHSVor, wz_RHSDiv, &
-       & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_PEdd, xyz_GeoPot, xyz_SigDot)
+  subroutine calc_VorEqDivEqInvisRHS(wz_RHSVor, wz_RHSDiv, &
+       & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_PEdd, xyz_GeoPot, xyz_SigDot &
+       & )
     
 
     ! 宣言文; Declaration statement
@@ -94,7 +98,7 @@ contains
     real(DP), intent(in) :: xyz_PEdd(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_GeoPot(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_SigDot(0:iMax-1,jMax,0:kMax)
-    
+
     ! 局所変数
     ! Local variables
     !
@@ -133,9 +137,43 @@ contains
          &           + xyz_PEdd/RefDens &
          &        ))
 
-  end subroutine calc_VorEqDivEqRHS
+  end subroutine calc_VorEqDivEqInvisRHS
 
-  subroutine calc_TracerEqRHS( wz_RHSTracer, xyz_Tracer, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
+  !> @brief 
+  !!
+  !!
+  subroutine calc_VorEqDivEqDiffRHS(wz_RHSVor, wz_RHSDiv, &
+       & wz_Vor, wz_Div, Ah, &
+       & overwrite )
+    
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout) :: wz_RHSVor(lMax, 0:kMax)
+    real(DP), intent(inout) :: wz_RHSDiv(lMax, 0:kMax)
+    real(DP), intent(in) :: wz_Vor(lMax,0:kMax)
+    real(DP), intent(in) :: wz_Div(lMax,0:kMax)
+    real(DP), intent(in) :: Ah
+    logical, optional, intent(in) :: overWrite
+    
+    ! 局所変数
+    ! Local variables
+    !
+
+
+    ! 実行文; Executable statement
+    !
+    
+    if( present(overwrite) .and. overwrite ) then
+       wz_RHSVor = 0d0; wz_RHSDiv = 0d0
+    end if
+
+    wz_RHSVor = wz_RHSVor + Ah * wz_Lapla2D_wz(wz_Vor) 
+    wz_RHSDiv = wz_RHSDiv + Ah * wz_Lapla2D_wz(wz_Div) 
+
+  end subroutine calc_VorEqDivEqDiffRHS
+
+  subroutine calc_TracerEqInvisRHS( wz_RHSTracer, xyz_Tracer, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
     real(DP), intent(out) :: wz_RHSTracer(lMax, 0:kMax)
     real(DP), intent(in) :: xyz_Tracer(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_Urf(0:iMax-1,jMax,0:kMax)
@@ -148,7 +186,39 @@ contains
          & + wz_xyz(   xyz_Tracer*xyz_Div & 
          &           - xyz_SigDot*xyz_wt(wt_DSig_wt(wt_xyz(xyz_Tracer))) )
 
-  end subroutine calc_TracerEqRHS
+  end subroutine calc_TracerEqInvisRHS
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_TracerEqDiffRHS(wz_RHSTracer, &
+       & wz_Tracer, Ah, &
+       & overwrite )
+    
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout) :: wz_RHSTracer(lMax, 0:kMax)
+    real(DP), intent(in) :: wz_Tracer(lMax,0:kMax)
+    real(DP), intent(in) :: Ah
+    logical, optional, intent(in) :: overWrite
+    
+    ! 局所変数
+    ! Local variables
+    !
+
+
+    ! 実行文; Executable statement
+    !
+    
+    if( present(overwrite) .and. overwrite ) then
+       wz_RHSTracer = 0d0
+    end if
+
+    wz_RHSTracer = wz_RHSTracer + Ah * wz_Lapla2D_wz(wz_Tracer) 
+
+  end subroutine calc_TracerEqDiffRHS
+
 
   subroutine calc_SurfHeightRHS( w_RHSSurfHeight, xyz_Urf, xyz_Vrf, xy_totDepth )
     real(DP), intent(out) :: w_RHSSurfHeight(lMax)
@@ -165,14 +235,14 @@ contains
   !> @brief 
   !!
   !!
-  subroutine correct_vorEqRHSUnderRigidLid(wz_RHSDivEqN, &
-       & xy_SurfPress, xyz_DivN, dt )
+  subroutine correct_DivEqRHSUnderRigidLid(wz_RHSDivEqN, &
+       & xy_SurfPress, wz_DivN, dt )
     
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: wz_RHSDivEqN(lMax, 0:kMax)
     real(DP), intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyz_DivN(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: wz_DivN(lMax,0:kMax)
     real(DP), intent(in) :: dt
 
     ! 局所変数
@@ -185,14 +255,14 @@ contains
     ! 実行文; Executable statement
     !
  
-    w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_xyz(xyz_DivN/dt) )
+    w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_DivN/dt )
     xy_SurfPress = xy_w( w_InvLapla2D_w( w_CorrectTerm*RefDens ) )
 
     do k=0,kMax
        wz_RHSDivEqN(:,k) = wz_RHSDivEqN(:,k) + w_CorrectTerm
     end do
 
-  end subroutine correct_vorEqRHSUnderRigidLid
+  end subroutine correct_DivEqRHSUnderRigidLid
 
 end module HydroBouEqSolverRHS_mod
 
