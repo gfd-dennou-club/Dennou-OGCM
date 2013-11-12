@@ -1,0 +1,183 @@
+%
+% Dennou-SOGCM
+%
+%   2013/05/30  海洋モデル 定式化
+%               河合　佑太
+%
+% style  Setting             %%%%%%%%
+% フォント: 12point (最大), 片面印刷
+\documentclass[a4j,12pt,openbib,oneside]{jreport}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%             Package Include            %%%%%%%%
+
+\usepackage{ascmac}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{Dennou6}		% 電脳スタイル ver 6
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%            PageStyle Setting           %%%%%%%%
+\pagestyle{DAmyheadings}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%        Title and Auther Setting        %%%%%%%%
+%%
+%%  [ ] はヘッダに書き出される.
+%%  { } は表題 (\maketitle) に書き出される.
+
+\Dtitle{Dennou-SOGCM}   % 変更不可
+\Dauthor{河合佑太}        % 担当者の名前
+\Ddate{2013/11/14}        % 変更日時 (毎回変更すること)
+\Dfile{formulatiom.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%   Set Counter (chapter, section etc. ) %%%%%%%%
+\setcounter{chapter}{1}    % 章番号
+\setcounter{section}{1}    % 節番号
+\setcounter{subsection}{1}    % 節番号
+\setcounter{equation}{1}   % 式番号
+\setcounter{page}{1}     % 必ず開始ページは明記する
+\setcounter{figure}{0}     % 図番号
+\setcounter{table}{0}      % 表番号
+%\setcounter{footnote}{0}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%        Counter Output Format           %%%%%%%%
+\def\thechapter{\arabic{chapter}}
+\def\thesection{\arabic{chapter}.\arabic{section}}
+\def\thesubsection{\arabic{chapter}.\arabic{section}.\alph{subsection}}
+\def\theequation{\arabic{chapter}.\arabic{section}.\arabic{equation}}
+\def\thepage{\arabic{page}}
+\def\thefigure{\arabic{chapter}.\arabic{section}.\arabic{figure}}
+\def\thetable{\arabic{chapter}.\arabic{section}.\arabic{table}}
+\def\thefootnote{*\arabic{footnote}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%        Dennou-Style Definition         %%%%%%%%
+
+%% 改段落時の空行設定
+\Dparskip      % 改段落時に一行空行を入れる
+%\Dnoparskip    % 改段落時に一行空行を入れない
+
+%% 改段落時のインデント設定
+\Dparindent    % 改段落時にインデントする
+%\Dnoparindent  % 改段落時にインデントしない
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Macro defined by author
+\def\univec#1{ \hat{ \Dvect{\rm #1}} }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%             Text Start                 %%%%%%%%
+\begin{document}
+\chapter{定式化}    % 章の始めからの場合はこのコマンドを使用する
+\section{基礎方程式と境界条件}      % 節の始めからの場合はこのコマンドを使用する
+\markright{\arabic{chapter}.\arabic{section}  定式化 } %  節の題名を書き込むこと
+基礎方程式は, 静水圧近似とブジネスク近似を施したプリミティブ方程式である. 
+本節では, まずデカルト座標系における基礎方程式を記述することにする. 
+%%
+\begin{align}
+\shortintertext{水平方向の運動方程式}
+  \DP{\Dvect{v}}{t} + \Dvect{v} \cdot \nabla_H \Dvect{v} + w\DP{\Dvect{v}}{z} + f \univec{k} \times \Dvect{v} 
+ =& - \nabla_H \Phi + \mathscr{F}_{\Dvect{v}} + \mathscr{D}_{\Dvect{v}}, \label{hmotion_Eq} \\
+%%
+\shortintertext{温位の輸送方程式}
+   \DP{\Theta}{t} + \Dvect{v}\cdot\nabla_H\Theta + w\DP{\Theta}{z} 
+ =& \mathscr{F}_\Theta + \mathscr{D}_\Theta, \label{ptemp_Eq} \\
+%%
+\shortintertext{塩分の輸送方程式}
+   \DP{S}{t} + \Dvect{v}\cdot\nabla_H S + w\DP{S}{z} 
+ =& \mathscr{F}_S + \mathscr{D}_S, \label{salt_Eq} \\
+%%
+\shortintertext{状態方程式}
+  \rho =& \rho(\Theta, S, p), \label{state_Eq} \\
+%%
+\shortintertext{静水圧平衡の式}
+  \DP{\Phi}{z} =& - \dfrac{\rho'}{\rho_0} g, \label{hydrostatic_Eq} \\
+%%
+\shortintertext{連続の式}
+  \nabla_H \cdot \Dvect{v} + \DP{w}{z} =& 0 \label{continious_Eq}. 
+\end{align}
+%%
+ここで, $\Dvect{v}$は水平速度ベクトル, $w$は鉛直速度, 
+$\rho_0$は参照密度, $\rho$は現場密度(density in situ), $\rho'(=\rho-\rho_0)$は密度の変動成分, 
+$\Theta$は温位, 
+$S$は塩分, $p$は圧力, $\Phi(=p/\rho_0)$は動圧である. 
+また, $\{ \mathscr{F}_{\Dvect{v}}, \mathscr{F}_\theta, \mathscr{F}_S \}$は強制項, 
+$\{ \mathscr{D}_{\Dvect{v}}, \mathscr{D}_\theta, \mathscr{D}_S \}$は拡散項である. 
+$g$は重力加速度, $\nabla_H$は水平微分演算子, $\univec{k}$は鉛直単位ベクトルである. 
+
+ブジネスク近似を用いるときには, 運動方程式における密度の変化は, 
+鉛直方向の運動方程式における浮力の寄与を除いて無視される. 
+さらに静水圧平衡近似を適用する場合には, 
+(\ref{hydrostatic_Eq})で示されるように, 鉛直圧力勾配は浮力項とバランスすることもまた仮定する. 
+最後に, 連続の式として非圧縮流体に対する連続の式(\ref{continious_Eq})を用いる. 
+
+\subsubsection*{鉛直方向の境界条件}
+次に, 系の上端である海面の自由表面($z=h(x,y,t)$)と, 下端である海底($z=-H(x,y)$)において,  
+方程式(\ref{hmotion_Eq})-(\ref{salt_Eq})に課される境界条件を示す. 
+ここで, $h=h(x,y,t)$は自由表面の水位, $H=H(x,y)$は運動のないときの深さである. 
+
+海面($z=h$)における運動学的境界条件は, 
+\begin{equation}
+  \DP{h}{t} = 0, 
+\end{equation}
+あるいは, 
+\begin{equation}
+ w = \DP{h}{t} + \Dvect{v} \cdot \nabla_H h, 
+\end{equation}
+力学的境界条件は, 
+\begin{equation}
+ A_v \DP{\Dvect{v}}{z} = \dfrac{\Dvect{\tau}_{z_T}}{\rho_0} 
+\end{equation}
+である. 
+ここで, $A_v$は運動量に対する鉛直方向の渦粘性係数, 
+$\Dvect{\tau}_{z_T} = ({\tau_{z_T}}^{(x)}, {\tau_{z_T}}^{(y)})$は海面で課される応力である. 
+なお, 非粘性流体では, 応力なし条件$\DP{\Dvect{v}}{z}=0$を課す.   
+次に, $z=h$における熱的境界条件および塩分の境界条件は, 
+\begin{equation}
+ K_v \DP{\Theta}{z} = Q_\Theta, \;\;\;\;
+ K_v \DP{S}{z} = Q_S
+\end{equation}
+である. ここで, $K_v$は鉛直方向の渦拡散係数であり, 
+$Q_T, Q_S$. 
+
+
+
+同様に, 海底($z=-H$)における境界条件は, 
+運動学的境界条件は, 
+\begin{equation}
+ w = - \Dvect{v} \cdot \nabla_H H, 
+\end{equation}
+力学的境界条件は, 
+\begin{equation}
+ A_v \DP{\Dvect{v}}{z} = \dfrac{\Dvect{\tau}^{z_B}}{\rho_0} 
+\end{equation}
+である. 
+ここで, 
+$\Dvect{\tau}^{z_B} = ({\tau^{z_B}}_{x}, {\tau^{z_B}}_{y})$は海底で課される応力である. 
+非粘性流体では, 応力なし条件$\DP{\Dvect{v}}{z}=0$を課す.   
+次に, $z=h$における熱的境界条件および塩分の境界条件は, 
+\begin{equation}
+ K_v \DP{\Theta}{z} = Q_\Theta, \;\;\;\;
+ K_v \DP{S}{z} = Q_S
+\end{equation}
+である. ここで, $K_v$は鉛直方向の渦拡散係数である.
+
+\subsubsection*{水平方向の境界条件}
+
+\subsection{鉛直座標変換}
+%自由表面や海底地形を取り扱う鉛直方向の
+
+%\newpage
+%\input{pedlosky20130912_appendix}
+\end{document}
+
+%%
+%%%%%%%%              Text End                  %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
