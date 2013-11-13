@@ -213,17 +213,32 @@ contains
             & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), &
             & xy_SurfHeight )
 
+
        if(timeIntMode == timeIntMode_LFAM3 ) then
-          if(Stage==2) &
-               & call calc_GovernEqDiffRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
-               & wz_wt(wt_VorN), wz_wt(wt_DivN), wz_wt(wt_PTempEdd) )
+          if(Stage==2) then
+             call calc_GovernEqDiffRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
+                  wz_wt(wt_VorN), wz_wt(wt_DivN), wz_wt(wt_PTempEddN) )
+
+             !write(*,*) "Stage=", Stage
+             call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
+                  & xy_SurfPress, wz_wt(wt_DivN), xy_totDepthBasic, vDiffCoef, DelTime)
+
+          else
+             !write(*,*) "Stage=", Stage
+             call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
+                  & xy_SurfPress, wz_wt(wt_DivB), xy_totDepthBasic, vDiffCoef, DelTime*2)
+          end if
+
        else 
           call calc_GovernEqDiffRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
                & wz_wt(wt_Vor), wz_wt(wt_Div), wz_wt(wt_PTempEdd) )
+          write(*,*) "Stage=", Stage
+          call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
+               & xy_SurfPress, wz_wt(wt_Div), xy_totDepthBasic, vDiffCoef, DelTime)
+
        end if
 
-       call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
-            & xy_SurfPress, wz_wt(wt_Div), DelTime)
+
 
        select case(timeIntMode)
        case(timeIntMode_Euler)
@@ -236,10 +251,8 @@ contains
           call timeInt_LFAM3(Stage)
        end select
 
-
-       call at_BoundariesGrid_ND(wt_Vor)
-       call at_BoundariesGrid_ND(wt_Div)
-       call at_BoundariesGrid_NN(wt_PTempEdd)
+       !
+       call apply_boundaryConditions(wt_Vor, wt_Div, wt_PTempEdd)
 
        if( Stage == nStage_BarocTimeInt ) then
           call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &
@@ -332,7 +345,7 @@ contains
     xyz_SigDot  = diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div )
     xyz_GeoPot  = diagnose_GeoPot( xy_totDepth, xy_SurfHeight )
 
-    xyz_DensEdd = - refDens*xyz_PTempEdd/refPTemp !
+    xyz_DensEdd = - refDens*(2d-04*xyz_PTempEdd)!refDens*xyz_PTempEdd/refPTemp !
 !!$    = EqState_JM95_Eval( &
 !!$         & theta=xyz_PTempN, s=xyz_SaltN, &
 !!$         & p=spread(xy_SurfPress,3,kMax+1) - RefDens*xyz_GeoPotN) &
@@ -372,6 +385,8 @@ contains
     ! Local variables
     !
     real(DP) :: Ah
+    real(DP) :: wz_totPTempEdd(lMax,0:kMax)
+    integer :: k
 
     ! 実行文; Executable statement
     !
@@ -379,6 +394,9 @@ contains
     call calc_VorEqDivEqDiffRHS(wz_VorRHS, wz_DivRHS, &
          & wz_Vor, wz_Div, hDiffCoef )
 
+!!$    do k=0,kMax
+!!$       wz_totPTempEdd(:,k) = w_xy( xy_w(wz_PTempEdd(:,k)) + z_PTempBasic(k) )
+!!$    end do
     call calc_TracerEqDiffRHS(wz_PTempRHS, &
          & wz_PTempEdd, hDiffCoef)
 
@@ -454,6 +472,58 @@ contains
     end do
 
   end function diagnose_GeoPot
+
+
+  !> @brief 
+  !!
+  !!
+  subroutine apply_boundaryConditions( &
+       & wt_Vor, wt_Div, wt_PTempEdd )
+    
+    ! モジュール引用; Use statements
+    !
+    use VariableSet_mod, only: &
+         & xy_WindStressU, xy_WindStressV, xy_totDepthBasic, &
+         & RefDens
+
+    use at_module, only: &
+         & at_BoundariesGrid_NN, &
+         & at_BoundariesGrid_DD, &
+         & at_BoundariesGrid_ND
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout) :: wt_Vor(lMax, 0:tMax)
+    real(DP), intent(inout) :: wt_Div(lMax, 0:tMax)
+    real(DP), intent(inout) :: wt_PTempEdd(lMax, 0:tMax)
+
+    
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: bcWork(lMax,2)
+    real(DP) :: xy_CosLat(0:iMax-1,jMax)
+    
+    ! 実行文; Executable statement
+    !
+    
+
+    xy_CosLat = cos(xyz_Lat(:,:,1))
+
+    bcWork(:,1) = &
+         & w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat) &
+         & /(RefDens*vDiffCoef)
+    bcWork(:,2) = 0d0
+    call at_BoundariesGrid_ND(wt_Vor, bcWork)
+
+    bcWork(:,1) = &
+         & w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat) &
+         & /(RefDens*vDiffCoef)
+    call at_BoundariesGrid_ND(wt_Div, bcWork)
+
+    call at_BoundariesGrid_NN(wt_PTempEdd)
+
+  end subroutine apply_boundaryConditions
 
 end module HydroBouEqSolver_mod
 

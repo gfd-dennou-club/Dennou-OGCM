@@ -236,14 +236,14 @@ contains
   !!
   !!
   subroutine correct_DivEqRHSUnderRigidLid(wz_RHSDivEqN, &
-       & xy_SurfPress, wz_DivN, dt )
+       & xy_SurfPress, wz_DivN, xy_totDepth, Av, dt )
     
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: wz_RHSDivEqN(lMax, 0:kMax)
     real(DP), intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
-    real(DP), intent(in) :: wz_DivN(lMax,0:kMax)
-    real(DP), intent(in) :: dt
+    real(DP), intent(in) :: wz_DivN(lMax,0:kMax), xy_totDepth(0:iMax-1,jMax)
+    real(DP), intent(in) :: Av, dt
 
     ! 局所変数
     ! Local variables
@@ -251,12 +251,33 @@ contains
     real(DP) :: w_CorrectTerm(lMax)
     real(DP) :: xyz_tmp(0:iMax-1,jMax,0:kMax)
     integer :: k
+    real(DP) :: wz_Av_DSig_Div(lMax,0:kMax)
+    
+    real(DP) :: xyz_Av_DSig_Div(0:iMax-1,jMax,0:kMax)
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Div, xyz_RHSDiv
+    real(DP) :: xy_Correct(0:iMax-1,jMax)
+    real(DP) :: xy_DivSig(0:iMax-1,jMax), xy_RHSDivSig(0:iMax-1,jMax)
 
     ! 実行文; Executable statement
     !
- 
-    w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_DivN/dt )
-    xy_SurfPress = xy_w( w_InvLapla2D_w( w_CorrectTerm*RefDens ) )
+
+    wz_Av_Dsig_Div = Av*wz_wt( &
+         & wt_DSig_wt(wt_xyz(xyz_wz(wz_DivN)/spread(xy_totDepth**2,3,kMax+1))) )
+    w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_DivN/dt ) &
+         &          + wz_Av_DSig_Div(:,kMax)
+
+    xy_SurfPress = - xy_w( w_InvLapla2D_w( w_CorrectTerm*RefDens ) )
+
+!!$    xyz_Av_DSig_Div = xyz_wz(wz_Av_DSig_Div)
+!!$    xy_Correct = xy_w(w_CorrectTerm)
+!!$    xyz_Div = xyz_wz(wz_DivN)
+!!$    xyz_RHSDiv = xyz_wz(wz_RHSDivEqN)
+!!$    xy_DivSig = xy_IntSig_BtmToTop_xyz(xyz_Div)
+!!$    xy_RHSDivSig = xy_IntSig_BtmToTop_xyz(xyz_wz(wz_RHSDivEqN))
+!!$write(*,'(13(1x,e12.5),a,13(1x,e12.5),a,e12.5)') xyz_RHSDiv(1,16,0:12), "*", xyz_Div(1,16,0:12)/dt, &
+!!$     & "*", -xyz_Av_DSig_Div(1,16,kMax) !xy_DivSig(1,:)
+!!$write(*,'(3(1x,e12.5))') xy_Correct(1,16), xy_RHSDivSig(1,16), xy_DivSig(1,16)/dt
+!!$write(*,*) '-----'
 
     do k=0,kMax
        wz_RHSDivEqN(:,k) = wz_RHSDivEqN(:,k) + w_CorrectTerm

@@ -107,9 +107,11 @@ contains
     !
     real(DP) :: xyz_Work(0:iMax-1,jMax,0:kMax)
     real(DP),dimension(iMax*jMax,0:kMax) :: workRHS
-    integer :: l
+    integer :: l, k
     real(DP) :: xy_CosLat(0:iMax-1,jMax)
     character :: BCKindUpper, BCKindBottom
+    real(dp) :: xy_DivSig(0:iMax-1,jMax)
+    real(dp) :: xyz_Div(0:iMax-1,jMax,0:kMax)
 
     ! 実行文; Executable statement
     !
@@ -159,6 +161,10 @@ contains
        xyz_Work(:,:,kMax) = 0d0
     end if
     wt_Div = solve(xyz_Work)
+!!$    xyz_Div = xyz_wt(wt_Div)
+!!$    xy_DivSig = xy_IntSig_BtmToTop_xyz(xyz_Div)
+!!$    forAll(k=0:kMax) xyz_Div(:,:,k) = xyz_Div(:,:,k) - xy_DivSig
+!!$    wt_Div = wt_xyz(xyz_Div)
 
     call construct_vDiffProcMat(Av, dt, xy_totDepth, 'N', 'N')
     xyz_Work = xyz_wt(wt_PTempEdd)

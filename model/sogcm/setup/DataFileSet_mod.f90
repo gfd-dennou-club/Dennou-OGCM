@@ -124,6 +124,10 @@ contains
          varname='Psi', dims=(/'lon','lat','sig','t  '/), & 
          longname='stream function', units='m2/s')
 
+    call HistoryAutoAddVariable( &
+         varname='Vor', dims=(/'lon','lat','sig','t  '/), & 
+         longname='vorcity', units='s-1')
+
     call HistoryAutoAddVariable( &                  
          varname='eta', dims=(/'lon','lat', 't  '/), & 
          longname='surface height ', units='m')
@@ -210,6 +214,7 @@ contains
     call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
     call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
     call HistoryAutoPut(CurrentTime, "Div", xyz_wz(wz_Div))
+    call HistoryAutoPut(CurrentTime, "Vor", xyz_wz(wz_Vor))
     call HistoryAutoPut(CurrentTime, "SurfPress", xy_SurfPress)
 
   end subroutine DataFileSet_OutputData

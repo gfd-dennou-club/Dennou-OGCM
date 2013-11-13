@@ -72,12 +72,14 @@
 %% Macro defined by author
 \def\univec#1{ \hat{ \Dvect{\rm #1}} }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%             Text Start                 %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%             Text Start                 %%%%%%%%
 \begin{document}
 \chapter{定式化}    % 章の始めからの場合はこのコマンドを使用する
-\section{基礎方程式と境界条件}      % 節の始めからの場合はこのコマンドを使用する
-\markright{\arabic{chapter}.\arabic{section}  定式化 } %  節の題名を書き込むこと
+\section{基礎方程式と境界条件} % 節の始めからの場合はこのコマンドを使用する
+\markright{\arabic{chapter}.\arabic{section}  定式化 } %  節の題名
+
+\subsection{基礎方程式}
 基礎方程式は, 静水圧近似とブジネスク近似を施したプリミティブ方程式である. 
 本節では, まずデカルト座標系における基礎方程式を記述することにする. 
 %%
@@ -118,61 +120,146 @@ $g$は重力加速度, $\nabla_H$は水平微分演算子, $\univec{k}$は鉛直
 (\ref{hydrostatic_Eq})で示されるように, 鉛直圧力勾配は浮力項とバランスすることもまた仮定する. 
 最後に, 連続の式として非圧縮流体に対する連続の式(\ref{continious_Eq})を用いる. 
 
-\subsubsection*{鉛直方向の境界条件}
-次に, 系の上端である海面の自由表面($z=h(x,y,t)$)と, 下端である海底($z=-H(x,y)$)において,  
+\subsection{鉛直方向の境界条件}
+次に, 系の上端である海面の自由表面($z=\eta(x,y,t)$)と, 下端である海底($z=-H(x,y)$)において,  
 方程式(\ref{hmotion_Eq})-(\ref{salt_Eq})に課される境界条件を示す. 
-ここで, $h=h(x,y,t)$は自由表面の水位, $H=H(x,y)$は運動のないときの深さである. 
+ここで, $\eta=\eta(x,y,t)$は自由表面の水位, $H=H(x,y)$は運動のないときの深さである. 
 
-海面($z=h$)における運動学的境界条件は, 
+剛体の海底($z=-H$)において, 底面を横切る流れが存在しないために, 
+%%
+\begin{equation*}
+  w= - \Dvect{v}\cdot\nabla H
+\end{equation*}
+%%
+を課す. 
+また, 自由表面($z=\eta$)では, 運動学的境界条件
+%%
 \begin{equation}
-  \DP{h}{t} = 0, 
+ w = \DD{\eta}{t} - (P-E)
 \end{equation}
-あるいは, 
+%%
+を課す. 
+ここで, $P-E$は降水量から蒸発量を差し引いた淡水フラックスである. 
+非圧縮流体に対する連続の式(\ref{continious_Eq})を流体層の厚さに渡って積分し,  
+上端・下端において上の鉛直速度の境界条件を用いれば, 
+自由表面に対する方程式
+%%
 \begin{equation}
- w = \DP{h}{t} + \Dvect{v} \cdot \nabla_H h, 
+ \DP{\eta}{t} + \nabla \cdot \left[ (\eta+H) <\Dvect{v}> \right] = P-E
 \end{equation}
-力学的境界条件は, 
+%%
+を得る. 
+ただし, $<\Dvect{v}>$は深さ平均した水平速度ベクトルであり, 
+その深さ平均とは
+%%
 \begin{equation}
- A_v \DP{\Dvect{v}}{z} = \dfrac{\Dvect{\tau}_{z_T}}{\rho_0} 
+ <(\;\;)> \equiv \int_{z=-H}^{z=\eta} (\;\;) dz
 \end{equation}
-である. 
-ここで, $A_v$は運動量に対する鉛直方向の渦粘性係数, 
-$\Dvect{\tau}_{z_T} = ({\tau_{z_T}}^{(x)}, {\tau_{z_T}}^{(y)})$は海面で課される応力である. 
-なお, 非粘性流体では, 応力なし条件$\DP{\Dvect{v}}{z}=0$を課す.   
-次に, $z=h$における熱的境界条件および塩分の境界条件は, 
-\begin{equation}
- K_v \DP{\Theta}{z} = Q_\Theta, \;\;\;\;
- K_v \DP{S}{z} = Q_S
-\end{equation}
-である. ここで, $K_v$は鉛直方向の渦拡散係数であり, 
-$Q_T, Q_S$. 
+%%
+と定義される. 
 
+次に上端下端における力学的境界条件は, ???.
 
+最後に, 上端下端における熱や塩分に対する境界条件は, ???.
 
-同様に, 海底($z=-H$)における境界条件は, 
-運動学的境界条件は, 
+\subsubsection*{剛体表面(Rigid-lid)近似}
+
+\subsection{水平方向の境界条件}
+
+\section{鉛直座標変換}
+海洋の数値モデリングでは, 自由表面や海底地形などの効果を取り扱うために,
+さまざまな鉛直座標が用いられる. 
+本モデルでもまたこれらの効果を取り入れるために, 高度座標系($z$座標系)を鉛直座標変換する. 
+その準備としてまず基礎方程式の鉛直座標を一般座標に変換することから始める. 
+
+\subsection{一般鉛直座標変換}
+基礎方程式を高度座標系$z$から一般鉛直座標$\xi$に変換するために,  
+%%
 \begin{equation}
- w = - \Dvect{v} \cdot \nabla_H H, 
+ z= z(x,y,\xi,t), \;\;\; \xi = \xi(x,y,z,t)  
 \end{equation}
-力学的境界条件は, 
-\begin{equation}
- A_v \DP{\Dvect{v}}{z} = \dfrac{\Dvect{\tau}^{z_B}}{\rho_0} 
-\end{equation}
-である. 
+%%
+なる座標変換を行う. 
+
+いくつかの座標変換の規則を用いることにより, 
+$\xi$系における基礎方程式
+%%
+\begin{align}
+  \DP{\Dvect{v}}{t} + \Dvect{v} \cdot \nabla_\xi \Dvect{v} + \dot{\xi} \DP{\Dvect{v}}{\xi} + f \univec{k} \times \Dvect{v} 
+ =& - \nabla_\xi \Phi + \dfrac{\rho'}{\rho_0} \nabla_\xi (gz) 
+  + \mathscr{F}_{\Dvect{v}} + \mathscr{D}_{\Dvect{v}}, \label{hmotion_Eq_genCoord} \\
+%%
+   \DP{\Theta}{t} + \Dvect{v}\cdot\nabla_\xi\Theta + \dot{\xi} \DP{\Theta}{\xi} 
+ =& \mathscr{F}_\Theta + \mathscr{D}_\Theta, \label{ptemp_Eq_genCoord} \\
+%%
+   \DP{S}{t} + \Dvect{v}\cdot\nabla_\xi S + \dot{\xi}\DP{S}{\xi} 
+ =& \mathscr{F}_S + \mathscr{D}_S, \label{salt_Eq_genCoord} \\
+%%
+  \DP{\Phi}{\xi} =& - \dfrac{\rho'}{\rho_0} \DP{(gz)}{\xi}, \label{hydrostatic_Eq_genCoord} \\
+%%
+  \DP{z_\xi}{t} + \nabla_\xi \cdot (z_\xi \Dvect{v}) + \DP{}{z}(z_\xi \dot{\xi}) =& 0 \label{continious_Eq_genCoord}. 
+\end{align}
+%%
+が得られる. 
 ここで, 
-$\Dvect{\tau}^{z_B} = ({\tau^{z_B}}_{x}, {\tau^{z_B}}_{y})$は海底で課される応力である. 
-非粘性流体では, 応力なし条件$\DP{\Dvect{v}}{z}=0$を課す.   
-次に, $z=h$における熱的境界条件および塩分の境界条件は, 
+%%
+\begin{align*}
+ z_\xi = \DP{z}{\xi}, \;\;\;\;\;
+ \dot{\xi} = \DD{\xi}{t}
+\end{align*}
+%%
+と定義する. 
+また, $\nabla_\xi$は等$\xi$面における水平微分演算子である. 
+
+\subsection{$\sigma$座標系}
+本モデルでは, 自由表面と地形の効果を取り入れるために, 
+次に定義される鉛直座標系($\sigma$系)を用いる. 
+また, 鉛直離散化には chevyshev 多項式によるスペクトル変換法を用いるので, 
+その際に必要な鉛直座標のリスケールもまた行う. 
+
+今, $\sigma$系と$z$系の間の座標変換は, 
+%%
 \begin{equation}
- K_v \DP{\Theta}{z} = Q_\Theta, \;\;\;\;
- K_v \DP{S}{z} = Q_S
+ \sigma(x,y,z,t) =　\dfrac{z - \zeta(x,y,t)}{\zeta(x,y,t) + H(x,y)} 
 \end{equation}
-である. ここで, $K_v$は鉛直方向の渦拡散係数である.
+%%
+と定義する. 
+このとき, モデル上端は$\sigma=0$, 下端は$\sigma=-1$となる. 
+また, $\sigma$系の基礎方程式は, 
+%%
+\begin{align}
+  \DP{\Dvect{v}}{t} + \Dvect{v} \cdot \nabla_\sigma \Dvect{v} + \dot{\sigma} \DP{\Dvect{v}}{\xi} + f \univec{k} \times \Dvect{v} 
+ =& - \nabla_\sigma \Phi + \dfrac{\rho'}{\rho_0} \nabla_\sigma (gz) 
+  + \mathscr{F}_{\Dvect{v}} + \mathscr{D}_{\Dvect{v}}, \label{hmotion_Eq_SigCoord} \\
+%%
+   \DP{\Theta}{t} + \Dvect{v}\cdot\nabla_\sigma\Theta + \dot{\sigma} \DP{\Theta}{\sigma} 
+ =& \mathscr{F}_\Theta + \mathscr{D}_\Theta, \label{ptemp_Eq_SigCoord} \\
+%%
+   \DP{S}{t} + \Dvect{v}\cdot\nabla_\sigma S + \dot{\xi}\DP{S}{\sigma} 
+ =& \mathscr{F}_S + \mathscr{D}_S, \label{salt_Eq_SigCoord} \\
+%%
+  \DP{\Phi}{\sigma} =& - \dfrac{\rho'}{\rho_0} gD, \label{hydrostatic_Eq_SigCoord} \\
+%%
+  \DP{\zeta}{t} + \nabla_\sigma \cdot (D \Dvect{v}) + \DP{}{z}(D \dot{\sigma}) =& 0 \label{continious_Eq_SigCoord}. 
+\end{align}
+%%
+と書かれる. 
+ここで, $D(=\zeta+H)$は自由表面の水位も含めた流体層の厚さである. 
 
-\subsubsection*{水平方向の境界条件}
-
-\subsection{鉛直座標変換}
-%自由表面や海底地形を取り扱う鉛直方向の
+さらに, $z$系における鉛直方向の境界条件は, $\sigma$系において次のように
+書きかえられる. 
+海底($\sigma=-1$)および海面($\sigma=0$)における運動学的境界条件は, 
+それぞれ
+%%
+\begin{equation}
+ \dot{\sigma} = 0 \;\;\;\;\;\;\;\;\;\; {\rm at} \;\; \sigma=-1,
+\end{equation}
+\begin{equation}
+ \dot{\sigma} = (P-E)/D \;\;\;\;\;     {\rm at} \;\; \sigma=0
+\end{equation}
+となる. 
+一方, 力学的境界条件は, ???.
+また, 熱と塩分に対する境界条件は, ???.
 
 %\newpage
 %\input{pedlosky20130912_appendix}
