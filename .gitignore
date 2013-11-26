@@ -22,3 +22,11 @@ configure
 
 # Executable files
 test/advTest
+
+# data file
+*.nc
+*.vtk
+
+# tex temporary files
+*.aux
+*.log

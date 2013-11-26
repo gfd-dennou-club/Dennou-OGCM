@@ -239,6 +239,7 @@ AC_CONFIG_FILES([
 		 model/sogcm/setup/Makefile
 		 model/sogcm/util/Makefile
 		 model/sogcm/dynamics/Makefile
+		 model/sogcm/experiment/Makefile
 		 model/sogcm/unit_test/Makefile
  ])
 

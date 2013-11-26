@@ -1,7 +1,7 @@
 %
 % Dennou-SOGCM
 %
-%   2013/05/30  海洋モデル 定式化
+%   2013/11/12  海洋モデル 定式化
 %               河合　佑太
 %
 % style  Setting             %%%%%%%%
@@ -220,7 +220,7 @@ $\xi$系における基礎方程式
 今, $\sigma$系と$z$系の間の座標変換は, 
 %%
 \begin{equation}
- \sigma(x,y,z,t) =　\dfrac{z - \zeta(x,y,t)}{\zeta(x,y,t) + H(x,y)} 
+ \sigma(x,y,z,t) =　\dfrac{z - \eta(x,y,t)}{\eta(x,y,t) + H(x,y)} 
 \end{equation}
 %%
 と定義する. 
@@ -235,12 +235,12 @@ $\xi$系における基礎方程式
    \DP{\Theta}{t} + \Dvect{v}\cdot\nabla_\sigma\Theta + \dot{\sigma} \DP{\Theta}{\sigma} 
  =& \mathscr{F}_\Theta + \mathscr{D}_\Theta, \label{ptemp_Eq_SigCoord} \\
 %%
-   \DP{S}{t} + \Dvect{v}\cdot\nabla_\sigma S + \dot{\xi}\DP{S}{\sigma} 
+   \DP{S}{t} + \Dvect{v}\cdot\nabla_\sigma S + \dot{\sigma}\DP{S}{\sigma} 
  =& \mathscr{F}_S + \mathscr{D}_S, \label{salt_Eq_SigCoord} \\
 %%
   \DP{\Phi}{\sigma} =& - \dfrac{\rho'}{\rho_0} gD, \label{hydrostatic_Eq_SigCoord} \\
 %%
-  \DP{\zeta}{t} + \nabla_\sigma \cdot (D \Dvect{v}) + \DP{}{z}(D \dot{\sigma}) =& 0 \label{continious_Eq_SigCoord}. 
+  \DP{\zeta}{t} + \nabla_\sigma \cdot (D \Dvect{v}) + \DP{}{\sigma}(D \dot{\sigma}) =& 0 \label{continious_Eq_SigCoord}. 
 \end{align}
 %%
 と書かれる. 
@@ -248,7 +248,7 @@ $\xi$系における基礎方程式
 
 さらに, $z$系における鉛直方向の境界条件は, $\sigma$系において次のように
 書きかえられる. 
-海底($\sigma=-1$)および海面($\sigma=0$)における運動学的境界条件は, 
+海底および海面における運動学的境界条件は, 
 それぞれ
 %%
 \begin{equation}

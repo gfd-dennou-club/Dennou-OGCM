@@ -1,4 +1,4 @@
-SUBDIRS = util setup dynamics unit_test
+SUBDIRS = util setup dynamics experiment unit_test
 
 # util dynamics
 
@@ -17,6 +17,7 @@ AM_FCFLAGS = \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
+	$(srcdir)/experiment/libDSOGCMExp.la \
 	$(srcdir)/dynamics/libDSOGCMDynamics.la \
 	$(srcdir)/setup/libDSOGCMSetup.la \
 	$(srcdir)/util/libDSOGCMUtil.la \
@@ -31,10 +32,6 @@ bin_PROGRAMS =
 bin_PROGRAMS += dsogcm 
 dsogcm_SOURCES =\
 	GovernEqSolverDriver_mod.f90 \
-	experiment/Exp_W94_Case2_mod.f90 \
-	experiment/Exp_BarotRossbyWave_mod.f90 \
-	experiment/Exp_InternalGravWave_mod.f90 \
-	experiment/Exp_WindDrivenCirculation_mod.f90 \
 	InitCond_mod.f90 \
 	ogcm_main.f90
 
