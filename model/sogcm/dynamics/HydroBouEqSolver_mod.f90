@@ -336,6 +336,12 @@ contains
     real(DP) :: xyz_DensEdd(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xyz_PressEdd(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xy_totDepth(0:iMax-1, jMax)    
+    real(DP) :: xyz_PTemp(0:iMax-1, jMax, 0:kMax)
+
+    real(DP), parameter :: Cp = 3986d0
+    real(DP), parameter :: BetaT = 1.67d-04
+    real(DP), parameter :: T0 = 283d0
+    real(DP) :: H_T
 
     ! 実行文; Executable statement
     !
@@ -345,7 +351,10 @@ contains
     xyz_SigDot  = diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div )
     xyz_GeoPot  = diagnose_GeoPot( xy_totDepth, xy_SurfHeight )
 
-    xyz_DensEdd = - refDens*(2d-04*xyz_PTempEdd)!refDens*xyz_PTempEdd/refPTemp !
+    xyz_PTemp = xyz_PTempEdd + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
+    H_T = Grav/(BetaT*Cp)
+
+    xyz_DensEdd = - refDens*( BetaT*(xyz_PTemp*exp( (xyz_GeoPot/Grav)/H_T  ) - T0 ) )!refDens*xyz_PTempEdd/refPTemp !
 !!$    = EqState_JM95_Eval( &
 !!$         & theta=xyz_PTempN, s=xyz_SaltN, &
 !!$         & p=spread(xy_SurfPress,3,kMax+1) - RefDens*xyz_GeoPotN) &
@@ -357,7 +366,7 @@ contains
          & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_PressEdd, xyz_GeoPot, xyz_SigDot)
 
     call calc_TracerEqInvisRHS(wz_PTempRHS, &
-         & xyz_PTempEdd + spread(spread(z_PTempBasic,1,jMax), 1, iMax), xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
+         & xyz_PTemp, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
     
     call calc_SurfHeightRHS(w_SurfHeightRHS, &
          & xyz_Urf, xyz_Vrf, xy_totDepth ) 

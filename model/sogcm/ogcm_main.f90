@@ -27,12 +27,12 @@ program ogcm_main
   ! 局所変数
   ! Local variables
   !
-  
+
   character(*), parameter :: PROGRAM_NAME = "ogcm_main"
   type(DataFileSet) :: datFile
 
   ! 実行文; Executable statement
-  ! 
+  !
 
   call MessageNotify("M", PROGRAM_NAME, "Start..")
 
@@ -45,38 +45,38 @@ program ogcm_main
   !***********************************
   ! Set initial condition
   !***********************************
-  
+
   call InitCond_Init()
 
   call InitCond_Set()
   call RestartDataFileSet_Input()
 
   call DataFileSet_OutputData(datFile)
-  
+
   call InitCond_Final()
-  
+
   !***********************************
   ! The loop for temporal integration
   !************************************
-  
+
 
   call MessageNotify("M", PROGRAM_NAME, "[==== Start temporal integration ====]")
 
   do while( .not. EndTemporalInteg() )
-     
+
      !
-     
+
      call GovernEqSolverDriver_AdvanceTStep()
 
-     
+
 
      !
      call TemporalIntegSet_AdvanceLongTStep()
      call VariableSet_AdvanceTStep()
-     
+
      !
      !
-     
+
      call DataFileSet_OutputData(datFile)
      call RestartDataFileSet_Output()
 
@@ -85,7 +85,7 @@ program ogcm_main
   call MessageNotify("M", PROGRAM_NAME, "[==== Finish temporal integration ====]")
 
   !*************************************
-  ! Finalize 
+  ! Finalize
   !*************************************
 
   call ogcm_finalize()
@@ -94,7 +94,7 @@ program ogcm_main
 
 
 contains
-  !> @brief 
+  !> @brief
   !!
   !!
   subroutine ogcm_setup()
@@ -119,8 +119,8 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    
-    
+
+
     ! 局所変数
     ! Local variables
     !
@@ -141,7 +141,7 @@ contains
     call GridSet_Init(configNmlFile)
 
 #ifdef _OPENMP
-    !$omp parallel 
+    !$omp parallel
     !$omp single
     nThread = omp_get_num_threads()
     !$omp end single
@@ -149,7 +149,7 @@ contains
 
     call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet, np=nThread)
 #else
- 
+
 #endif
 
     call GridSet_construct()
@@ -162,23 +162,23 @@ contains
 
   end subroutine ogcm_setup
 
-  !> @brief 
+  !> @brief
   !!
   !!
   subroutine ogcm_finalize()
 
     use SpmlUtil_mod, only: &
          SpmlUtil_Final
-    
+
     ! 宣言文; Declaration statement
     !
-    
-    
+
+
     ! 局所変数
     ! Local variables
     !
-    
-    
+
+
     ! 実行文; Executable statement
     !
 
@@ -187,7 +187,7 @@ contains
     call RestartDataFileSet_Final()
     call VariableSet_Final()
     call SpmlUtil_Final()
-    call GridSet_Final() 
+    call GridSet_Final()
     call BoundCondSet_Final()
     call TemporalIntegSet_Final()
     call Constants_Final()
