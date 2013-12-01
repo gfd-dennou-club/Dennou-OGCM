@@ -147,9 +147,11 @@ contains
     !$omp end single
     !$omp end parallel
 
+    call MessageNotify('M', PROGRAM_NAME, "Execute as Thread Parallel Mode..")
     call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet, np=nThread)
 #else
-
+    call MessageNotify('M', PROGRAM_NAME, "Execute as Serial  Mode..")
+    call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet)
 #endif
 
     call GridSet_construct()

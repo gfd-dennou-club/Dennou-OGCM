@@ -133,15 +133,17 @@ contains
     ! 実行文; Executable statements
     !
 
-    deallocate( xyz_UA, xyz_UN, xyz_UB )
-    deallocate( xyz_VA, xyz_VN, xyz_VB )
-    deallocate( xyz_SigDot )
-    deallocate( xyz_PTempEddA, xyz_PTempEddN, xyz_PTempEddB )
-    deallocate( xyz_SaltA, xyz_SaltN, xyz_SaltB )
-    deallocate( xy_SurfHeightA, xy_SurfHeightN, xy_SurfHeightB )
-    deallocate( xy_totDepthBasic )
-    deallocate( xy_SurfPress )
-    deallocate( xy_WindStressU, xy_WindStressV )
+    if( allocated(xyz_UA) ) then
+       deallocate( xyz_UA, xyz_UN, xyz_UB )
+       deallocate( xyz_VA, xyz_VN, xyz_VB )
+       deallocate( xyz_SigDot )
+       deallocate( xyz_PTempEddA, xyz_PTempEddN, xyz_PTempEddB )
+       deallocate( xyz_SaltA, xyz_SaltN, xyz_SaltB )
+       deallocate( xy_SurfHeightA, xy_SurfHeightN, xy_SurfHeightB )
+       deallocate( xy_totDepthBasic )
+       deallocate( xy_SurfPress )
+       deallocate( xy_WindStressU, xy_WindStressV )
+    end if
 
   end subroutine VariableSet_Final
 

@@ -89,7 +89,8 @@ contains
     ! 実行文; Executable statement
     !
 
-    deallocate(xyz_Lat, xyz_Lon)
+    if(allocated(xyz_Lat)) &
+         & deallocate(xyz_Lat, xyz_Lon)
 
   end subroutine GridSet_Final
 
@@ -101,8 +102,9 @@ contains
 
     !
     !
-    use wa_module, only: &
-         xy_Lon, xy_Lat
+    use SpmlUtil_mod, only: &
+        & isSpmlUtilInitialzed=>isInitialzed, &
+        & xy_Lon, xy_Lat
     
     ! 宣言文; Declaration statement
     !
@@ -115,6 +117,10 @@ contains
     
     ! 実行文; Executable statement
     !
+
+    if( .not. isSpmlUtilInitialzed() ) &
+         & call MessageNotify('E', module_name, &
+         &  "GridSet_construct is called before SpmlUtil_mod is initialized.")
 
     allocate(xyz_Lon(0:iMax-1,1:jMax,0:kMax))
     allocate(xyz_Lat(0:iMax-1,1:jMax,0:kMax))

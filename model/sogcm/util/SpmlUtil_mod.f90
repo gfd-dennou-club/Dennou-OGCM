@@ -38,6 +38,7 @@ module SpmlUtil_mod
   ! Public procedure
   !
   public :: SpmlUtil_Init, SpmlUtil_Final
+  public :: isInitialzed
   public :: w_xy, xy_w
   public :: wt_DSig_wt, t_DSig_t, az_at, at_az
   public :: g_Sig
@@ -54,8 +55,8 @@ module SpmlUtil_mod
 
   ! Cascade
   public :: w_DivLambda_xy, w_DivMu_xy
-
-
+  public :: xy_Lon, xy_Lat
+  
 
   ! 非公開手続き
   ! Private procedure
@@ -74,6 +75,8 @@ module SpmlUtil_mod
   integer :: im, jm, km, nm, lm
   real(DP), allocatable :: vIntCoefMat(:,:)
   real(DP), allocatable :: vDiffProcInvMat(:,:)
+
+  logical :: initalizedFlag = .false.
 
 contains
 
@@ -108,7 +111,8 @@ contains
     call construct_vIntCoefMat()
 
     call MessageNotify("M", module_name, "SpmlUtil_mod have been initialized.")
-    
+    initalizedFlag = .true.
+
   end subroutine SpmlUtil_Init
 
   !>
@@ -122,6 +126,18 @@ contains
     deallocate(vIntCoefMat)
 
   end subroutine SpmlUtil_Final
+
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
+  logical function isInitialzed() 
+    ! 実行文; Executable statement
+    !
+    isInitialzed = initalizedFlag
+  end function isInitialzed
+
 
   !--------------- 基本変換 -----------------
 
