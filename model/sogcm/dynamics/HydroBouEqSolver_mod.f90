@@ -352,7 +352,7 @@ contains
     xyz_GeoPot  = diagnose_GeoPot( xy_totDepth, xy_SurfHeight )
 
     xyz_PTemp = xyz_PTempEdd + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
-    H_T = Grav/(BetaT*Cp)
+    H_T = Cp/(BetaT*Grav) !Grav/abdemos(BetaT*Cp)
 
     xyz_DensEdd = - refDens*( BetaT*(xyz_PTemp*exp( (xyz_GeoPot/Grav)/H_T  ) - T0 ) )!refDens*xyz_PTempEdd/refPTemp !
 !!$    = EqState_JM95_Eval( &

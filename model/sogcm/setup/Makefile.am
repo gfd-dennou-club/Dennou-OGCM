@@ -31,3 +31,5 @@ nodist_libDSOGCMSetup_la_SOURCES= \
 	RestartDataFileSet_mod.f90
 
 
+GridSet_mod.f90: \
+	../util/SpmlUtil_mod.o

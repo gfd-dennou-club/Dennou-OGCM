@@ -129,7 +129,7 @@ contains
          longname='vorcity', units='s-1')
 
     call HistoryAutoAddVariable( &                  
-         varname='eta', dims=(/'lon','lat', 't  '/), & 
+         varname='Eta', dims=(/'lon','lat', 't  '/), & 
          longname='surface height ', units='m')
 
     call HistoryAutoAddVariable( &                  
@@ -142,7 +142,11 @@ contains
 
     call HistoryAutoAddVariable( &                  
          varname='SurfPress', dims=(/'lon','lat', 't  '/), & 
-         longname='surface pressure ', units='Pa')
+         longname='surface(barotropic) pressure ', units='Pa')
+
+    call HistoryAutoAddVariable( &                  
+         varname='BarocPress', dims=(/'lon','lat', 'sig', 't  '/), & 
+         longname='baroclinic pressure ', units='Pa')
 
   end subroutine DataFileSet_Init
 
@@ -179,6 +183,8 @@ contains
 
     use SpmlUtil_mod
 
+    use DiagnoseUtil_mod
+
     ! 宣言文; Declaration statement
     !
     type(DataFileSet), intent(inout) :: this
@@ -192,6 +198,10 @@ contains
     real(DP) :: xyz_Psi(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xyz_Chi(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xyz_CosLat(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xy_totDepth(0:iMax-1, jMax)    
+    real(DP) :: xyz_GeoPot(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_PressBaroc(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_DensEdd(0:iMax-1, jMax, 0:kMax)
 
     ! 実行文; Executable statement
     !
@@ -199,23 +209,32 @@ contains
     if( mod(CurrentTime, this%outputIntrval) /= 0 ) return 
 
 
+    xy_totDepth = xy_totDepthBasic + xy_SurfHeightN
+
     call MessageNotify("M", module_name, "Output data of some field at %d [sec] ..", i=(/ int(CurrentTime) /))
     call HistoryAutoPut(CurrentTime, "u", xyz_UN)
     call HistoryAutoPut(CurrentTime, "v", xyz_VN)
-    call HistoryAutoPut(CurrentTime, "eta", xy_SurfHeightN)
+    call HistoryAutoPut(CurrentTime, "Eta", xy_SurfHeightN)
     call HistoryAutoPut(CurrentTime, "PTempEdd", xyz_PTempEddN)
-    call HistoryAutoPut(CurrentTime, "SigDot", xyz_SigDot)
     
     xyz_CosLat = cos(xyz_Lat)
     wz_Vor = wz_AlphaOptr_xyz(xyz_VN*xyz_CosLat, -xyz_UN*xyz_CosLat) 
     wz_Div = wz_AlphaOptr_xyz(xyz_UN*xyz_CosLat,  xyz_VN*xyz_CosLat) 
     xyz_Psi = xyz_wz( wz_InvLapla2D_wz( wz_Vor ) )
     xyz_Chi = xyz_wz( wz_InvLapla2D_wz( wz_Div ) )
+    xyz_SigDot = Diagnose_SigDot( xy_totDepth, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xyz_wz(wz_Div) )
+    xyz_GeoPot = Diagnose_GeoPot( xy_totDepth, xy_SurfHeightN )
+    xyz_DensEdd = Diagnose_DensEdd( xyz_PTempEddN, xyz_GeoPot, z_PTempBasic, refDens )
+    xyz_PressBaroc = Diagnose_PressBaroc(xy_totDepth, xyz_DensEdd)
+write(*,*) xyz_PressBaroc(1,15,:)
+
     call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
     call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
     call HistoryAutoPut(CurrentTime, "Div", xyz_wz(wz_Div))
     call HistoryAutoPut(CurrentTime, "Vor", xyz_wz(wz_Vor))
     call HistoryAutoPut(CurrentTime, "SurfPress", xy_SurfPress)
+    call HistoryAutoPut(CurrentTime, "SigDot", xyz_SigDot)
+    call HistoryAutoPut(CurrentTime, "BarocPress", xyz_PressBaroc)
 
   end subroutine DataFileSet_OutputData
 

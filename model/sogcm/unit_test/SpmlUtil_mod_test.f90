@@ -64,17 +64,20 @@ contains
     theta = PI*(1d0 + g_Sig)
     do m=1,5
        do k=0, kMax
-          val(:,:,k) = cos(m*theta(k))
-          checkVal(:,:,k) = -sin(m*theta(k))/(m*PI)
+!!$          val(:,:,k) = cos(m*theta(k))
+!!$          checkVal(:,:,k) = -sin(m*theta(k))/(m*PI)
+          val(:,:,k) = sin(m*theta(k))
+          checkVal(:,:,k) = (cos(m*theta(k)) - cos(m*PI))/(m*PI)
        end do
        intVal = xyz_IntSig_SigToTop_xyz(val)
 
        l2norm = abs(sum(intVal - checkVal))/dble(iMax*jMax*(kMax+1))       
        message=CPrintf("xyz_IntSig_SigToTop_xyz: mode num %d: l2norm %f", i=(/m*2/), d=(/l2norm/))
 
-!!$do k=0,kMax
-!!$   write(*,*) "k=",k,intVal(10,10,k), checkVal(10,10,k)
-!!$end do
+
+do k=0,kMax
+   write(*,*) "k=",k, ": theta=", theta(k), "val=", val(10,10,k), ": integral ",  intVal(10,10,k), checkVal(10,10,k)
+end do
        call  AssertLessThan(message=message, answer=1d-10, check=l2norm)
     end do
 
