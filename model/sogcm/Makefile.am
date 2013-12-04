@@ -14,6 +14,7 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/setup \
         $(MODPATHFLAG)$(srcdir)/util \
         $(MODPATHFLAG)$(srcdir)/dynamics \
+        $(MODPATHFLAG)$(srcdir)/experiment \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
@@ -35,3 +36,9 @@ dsogcm_SOURCES =\
 	InitCond_mod.f90 \
 	ogcm_main.f90
 
+bin_PROGRAMS += diagVar
+diagVar_SOURCES =\
+	tool/DiagVarSet_mod.f90 \
+	tool/DiagVarEval_mod.f90 \
+	tool/DiagVarFileSet_mod.f90 \
+	tool/diagVar_main.f90

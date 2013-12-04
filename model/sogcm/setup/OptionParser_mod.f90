@@ -26,6 +26,7 @@ module OptionParser_mod
   ! 公開変数
   ! Public variables
   !
+  character(*), parameter, public :: DEFAULT_CONFIG_NML = "defaultConfig.nml"
 
   ! 非公開変数
   ! Private variables
@@ -59,7 +60,7 @@ end subroutine OptionParser_Final
 !!
 !!
 subroutine OptionParser_getInfo( &
-     & configNmlName )
+     & configNmlName, defaultConfigNml )
   
   ! モジュール引用; Use statement
   !
@@ -69,8 +70,9 @@ subroutine OptionParser_getInfo( &
   !
   ! 宣言文; Declaration statement
   !
-  character(STRING), intent(out) :: configNmlName
-  
+  character(*), intent(out) :: configNmlName
+  character(*), intent(in), optional :: defaultConfigNml
+
   ! 局所変数
   ! Local variables
   !
@@ -94,7 +96,15 @@ subroutine OptionParser_getInfo( &
   if( optNmlName ) then
      configNmlName = valNmlName
   else
-     configNmlName = "defaultConfig.nml"
+
+     ! If defaultConfigNml is presented, 
+     ! configNmlName is set it. 
+     if( present(defaultConfigNml) ) then
+        configNmlName = defaultConfigNml
+     else
+        configNmlName = DEFAULT_CONFIG_NML
+     end if
+
   end if
 
 end subroutine OptionParser_getInfo
