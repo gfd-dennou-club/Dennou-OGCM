@@ -30,7 +30,7 @@ module DiagnoseUtil_mod
   !
   public :: DiagnoseUtil_Init, DiagnoseUtil_Final
   public :: Diagnose_SigDot, Diagnose_PressBaroc, Diagnose_GeoPot
-  public :: Diagnose_DensEdd
+
 
   ! 非公開手続き
   ! Private procedure
@@ -133,26 +133,5 @@ contains
     end do
 
   end function diagnose_GeoPot
-
-  function diagnose_DensEdd( xyz_PTempEdd, xyz_GeoPot, z_PTempBasic, refDens ) result(xyz_DensEdd)
-
-    real(DP), intent(in) :: xyz_PTempEdd(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_GeoPot(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: z_PTempBasic(0:kMax)
-    real(DP) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: refDens
-
-    real(DP), parameter :: Cp = 3986d0
-    real(DP), parameter :: BetaT = 1.67d-04
-    real(DP), parameter :: T0 = 283d0
-    real(DP) :: H_T
-    real(DP) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
-
-    xyz_PTemp = xyz_PTempEdd + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
-    H_T = Cp/(BetaT*Grav)!Grav/(BetaT*Cp)
-write(*,*) "H_T=",H_T
-    xyz_DensEdd = - refDens*( BetaT*(xyz_PTemp*exp( (xyz_GeoPot/Grav)/H_T  ) - T0 ) )
-
-  end function diagnose_DensEdd
 
 end module DiagnoseUtil_mod

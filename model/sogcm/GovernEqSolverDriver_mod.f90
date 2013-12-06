@@ -10,12 +10,15 @@ module GovernEqSolverDriver_mod
 
   ! モジュール引用; Use statements
   !
+  use GovernEqSet_mod, only: &
+       & EOSType
+
   use HydroBouEqSolver_mod, only: &
        & HydroBouEqSolver_Init, HydroBouEqSolver_Final, &
        & HydroBouEqSolver_AdvanceTStep
 
-  use EqState_JM95_mod, only: &
-       & EqState_JM95_Init, EqState_JM95_Final
+  use EOSDriver_mod, only: &
+       & EOSDriver_Init, EOSDriver_Final
 
 !!$  use HydroBouEqSolverSelfStart_mod, only: &
 !!$       & HydroBouEqSolverSelfStart_Init, HydroBouEqSolverSelfStart_Final, &
@@ -51,7 +54,7 @@ contains
     ! 実行文; Executable statements
     !
 
-    call EqState_JM95_Init()
+    call EOSDriver_Init(EOSType)
     call HydroBouEqSolver_Init()
 
   end subroutine GovernEqSolverDriver_Init
@@ -97,8 +100,8 @@ contains
     ! 実行文; Executable statements
     !
 
-    call EqState_JM95_Final()
     call HydroBouEqSolver_Final()
+    call EOSDriver_Final()
 
   end subroutine GovernEqSolverDriver_Final
 

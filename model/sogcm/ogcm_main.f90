@@ -15,6 +15,7 @@ program ogcm_main
   use VariableSet_mod
   use DataFileSet_mod
   use RestartDataFileSet_mod
+  use GovernEqSet_mod
 
   use GovernEqSolverDriver_mod
   use InitCond_mod
@@ -159,6 +160,7 @@ contains
     call VariableSet_Init()
     call DataFileSet_Init(datFile, configNmlFile)
     call RestartDataFileSet_Init(configNmlFile)
+    call GovernEqSet_Init(configNmlFile)
 
     call GovernEqSolverDriver_Init()
 

@@ -55,6 +55,13 @@ module Constants_mod
   real(DP), public, save :: hDiffCoef  
   real(DP), public, save :: RoughnessParamBottom
 
+  real(DP), public, save :: RefDens    
+  real(DP), public, save :: RefTemp    
+  real(DP), public, save :: Cp0         
+  real(DP), public, save :: ThermalExpanCoef 
+
+
+
   ! 非公開手続き
   ! Private procedure
   !
@@ -119,8 +126,15 @@ contains
     RPlanet          = 6.371e6_DP
     Omega            = 2.0_DP * PI / ( 60.0_DP * 60.0_DP * 23.9345_DP )
     Grav             = 9.8_DP
+
     vDiffCoef        = 0d0
     hDiffCoef        = 0d0
+
+    RefDens          = 1.023d03
+    RefTemp          = 283d0
+    Cp0              = 3986d0
+    ThermalExpanCoef = 1.67d-04
+    
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -147,6 +161,11 @@ contains
     call MessageNotify( 'M', module_name, '  vDiffCoef        = %f', d = (/ vDiffCoef        /) )
     call MessageNotify( 'M', module_name, '  hDiffCoef        = %f', d = (/ hDiffCoef        /) )
     call MessageNotify( 'M', module_name, '  RoughnessParamBottom = %f', d = (/ RoughnessParamBottom  /) )
+    call MessageNotify( 'M', module_name, '  RefDens           = %f', d=(/ RefDens /) )
+    call MessageNotify( 'M', module_name, '  RefTemp           = %f', d=(/ RefTemp /) )
+    call MessageNotify( 'M', module_name, '  Cp0               = %f', d=(/ Cp0 /) )
+    call MessageNotify( 'M', module_name, '  ThermalExpanCoef  = %f', d=(/ ThermalExpanCoef /) )
+        
 
 end subroutine Constants_Init
 

@@ -10,7 +10,6 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../src/fvm \
         $(MODPATHFLAG)$(srcdir)/../../src/mesh2 \
         $(MODPATHFLAG)$(srcdir)/../../src/io \
-        $(MODPATHFLAG)$(srcdir)/../ogcm/util \
         $(MODPATHFLAG)$(srcdir)/setup \
         $(MODPATHFLAG)$(srcdir)/util \
         $(MODPATHFLAG)$(srcdir)/dynamics \
@@ -35,6 +34,7 @@ dsogcm_SOURCES =\
 	GovernEqSolverDriver_mod.f90 \
 	InitCond_mod.f90 \
 	ogcm_main.f90
+
 
 bin_PROGRAMS += diagVar
 diagVar_SOURCES =\

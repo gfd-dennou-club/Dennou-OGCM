@@ -34,8 +34,12 @@ module HydroBouEqSolver_mod
        & timeIntMode_Euler, timeIntMode_LFTR, timeIntMode_LFAM3, &
        & timeIntMode_RK4
 
-  use EqState_JM95_mod, only: &
-       & EqState_JM95_Eval
+  use GovernEqSet_mod, only: &
+       & EOSType, &
+       & EOSTYPE_LINEAR, EOSTYPE_JM95
+
+  use EOSDriver_mod, only: &
+       & EOSDriver_Eval
 
 
   use VariableSet_mod, only: &
@@ -174,6 +178,7 @@ contains
     real(DP), dimension(lMax, 0:tMax) :: wt_Vor, wt_VorN, wt_VorB, wt_VorRKTmp
     real(DP), dimension(lMax, 0:tMax) :: wt_Div, wt_DivN, wt_DivB, wt_DivRKTmp
     real(DP), dimension(lMax, 0:tMax) :: wt_PTempEdd, wt_PTempEddN, wt_PTempEddB, wt_PTempEddRKTmp
+    real(DP), dimension(lMax, 0:tMax) :: wt_Salt, wt_SaltN, wt_SaltB, wt_SaltRKTmp
 
     real(DP) :: wz_Psi(lMax, 0:kMax)
     real(DP) :: wz_Chi(lMax, 0:kMax)
@@ -194,15 +199,18 @@ contains
     wt_VorN = wt_wz( wz_AlphaOptr_xyz(xyz_Vrf, -xyz_Urf) )
     wt_DivN = wt_wz( wz_AlphaOptr_xyz(xyz_Urf,  xyz_Vrf) )
     wt_PTempEddN = wt_xyz(xyz_PTempEddN)
+    wt_SaltN = wt_xyz(xyz_SaltN)
 
     if( isVarBUsed_BarocTimeInt ) then
        wt_VorB = wt_wz( wz_AlphaOptr_xyz(xyz_VB*xyz_CosLat, -xyz_UB*xyz_CosLat) )
        wt_DivB = wt_wz( wz_AlphaOptr_xyz(xyz_UB*xyz_CosLat,  xyz_VB*xyz_CosLat) )
        wt_PTempEddB = wt_xyz(xyz_PTempEddB)
+       wt_SaltB = wt_xyz(xyz_SaltB)
     end if
     
     wt_Div = wt_DivN;  wt_Vor = wt_VorN
     wt_PTempEdd = wt_PTempEddN
+    wt_Salt = wt_SaltN
     xy_SurfHeight = xy_SurfHeightN
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -210,7 +218,7 @@ contains
     do Stage=1, nStage_BarocTimeInt
 
        call calc_GovernEqInvisRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &
-            & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), &
+            & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), xyz_wt(wt_Salt), &
             & xy_SurfHeight )
 
 
@@ -314,7 +322,7 @@ contains
   !!
   !!
   subroutine calc_GovernEqInvisRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &
-       & xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, &
+       & xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, xyz_Salt, &
        & xy_SurfHeight )
     
     !
@@ -326,7 +334,7 @@ contains
     !
     real(DP), intent(out), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
     real(DP), intent(out), dimension(lMax) :: w_SurfHeightRHS
-    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd
+    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, xyz_Salt
     real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_SurfHeight
 
     ! 局所変数
@@ -338,27 +346,17 @@ contains
     real(DP) :: xy_totDepth(0:iMax-1, jMax)    
     real(DP) :: xyz_PTemp(0:iMax-1, jMax, 0:kMax)
 
-    real(DP), parameter :: Cp = 3986d0
-    real(DP), parameter :: BetaT = 1.67d-04
-    real(DP), parameter :: T0 = 283d0
-    real(DP) :: H_T
-
     ! 実行文; Executable statement
     !
-
 
     xy_totDepth = xy_totDepthBasic! + xy_SurfHeightN
     xyz_SigDot  = diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div )
     xyz_GeoPot  = diagnose_GeoPot( xy_totDepth, xy_SurfHeight )
 
     xyz_PTemp = xyz_PTempEdd + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
-    H_T = Cp/(BetaT*Grav) !Grav/abdemos(BetaT*Cp)
 
-    xyz_DensEdd = - refDens*( BetaT*(xyz_PTemp*exp( (xyz_GeoPot/Grav)/H_T  ) - T0 ) )!refDens*xyz_PTempEdd/refPTemp !
-!!$    = EqState_JM95_Eval( &
-!!$         & theta=xyz_PTempN, s=xyz_SaltN, &
-!!$         & p=spread(xy_SurfPress,3,kMax+1) - RefDens*xyz_GeoPotN) &
-!!$         & - RefDens
+    call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
+         & theta=xyz_PTemp, S=xyz_Salt, p=-RefDens*xyz_GeoPot )     ! (in)
 
     xyz_PressEdd = diagnose_PressEdd( xy_totDepth, xyz_DensEdd )
 
@@ -367,6 +365,9 @@ contains
 
     call calc_TracerEqInvisRHS(wz_PTempRHS, &
          & xyz_PTemp, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
+
+!!$    call calc_TracerEqInvisRHS(wz_SaltRHS, &
+!!$         & xyz_Salt, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
     
     call calc_SurfHeightRHS(w_SurfHeightRHS, &
          & xyz_Urf, xyz_Vrf, xy_totDepth ) 

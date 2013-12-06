@@ -185,6 +185,9 @@ contains
 
     use DiagnoseUtil_mod
 
+    use EOSDriver_mod, only: &
+         & EOSDriver_Eval
+
     ! 宣言文; Declaration statement
     !
     type(DataFileSet), intent(inout) :: this
@@ -202,6 +205,7 @@ contains
     real(DP) :: xyz_GeoPot(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xyz_PressBaroc(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xyz_DensEdd(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_PTemp(0:iMax-1, jMax, 0:kMax)
 
     ! 実行文; Executable statement
     !
@@ -223,10 +227,13 @@ contains
     xyz_Psi = xyz_wz( wz_InvLapla2D_wz( wz_Vor ) )
     xyz_Chi = xyz_wz( wz_InvLapla2D_wz( wz_Div ) )
     xyz_SigDot = Diagnose_SigDot( xy_totDepth, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xyz_wz(wz_Div) )
-    xyz_GeoPot = Diagnose_GeoPot( xy_totDepth, xy_SurfHeightN )
-    xyz_DensEdd = Diagnose_DensEdd( xyz_PTempEddN, xyz_GeoPot, z_PTempBasic, refDens )
+
+    xyz_PTemp = xyz_PTempEddN + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
+    xyz_GeoPot = Diagnose_GeoPot( xy_totDepth, xy_SurfHeightN ) 
+    call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
+         & theta=xyz_PTemp, S=xyz_SaltN, p=-RefDens*xyz_GeoPot )     ! (in)
+
     xyz_PressBaroc = Diagnose_PressBaroc(xy_totDepth, xyz_DensEdd)
-write(*,*) xyz_PressBaroc(1,15,:)
 
     call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
     call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
