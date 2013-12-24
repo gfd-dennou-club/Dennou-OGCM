@@ -1,0 +1,23 @@
+#+TITLE: ³¤¿å¤Î¾õÂÖÊýÄø¼°(Jacket and McDougall, 1995)¤Î²Ä»ë²½
+#+AUTHOR: KAWAI Yuta
+#+LANGUAGE: ja
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+
+
+* ¿Þ
+
+** °µÎÏ¸ÇÄê(²£¼´: ±öÊ¬, ½Ä¼´: ²¹°Ì)
+
+#+CAPTION: º¸¤«¤é p=0,1000,2000,3000,4000,5000 [dbar].
+| [[file:./fig/dens_press_0.png][file:./fig/dens_press_0_thumb.png]]  | [[file:./fig/dens_press_100.png][file:./fig/dens_press_100_thumb.png]] | [[file:./fig/dens_press_200.png][file:./fig/dens_press_200_thumb.png]] | [[file:./fig/dens_press_300.png][file:./fig/dens_press_300_thumb.png]] | [[file:./fig/dens_press_400.png][file:./fig/dens_press_400_thumb.png]] | [[file:./fig/dens_press_500.png][file:./fig/dens_press_500_thumb.png]] |
+
+** ²¹°Ì¸ÇÄê(²£¼´: °µÎÏ, ½Ä¼´: ±öÊ¬)
+
+#+CAPTION: º¸¤«¤é \theta=0,10,20,30,40 [¡î]
+| [[file:./fig/dens_ptemp_0.png][file:./fig/dens_ptemp_0_thumb.png]]   | [[file:./fig/dens_ptemp_10.png][file:./fig/dens_ptemp_10_thumb.png]] | [[file:./fig/dens_ptemp_20.png][file:./fig/dens_ptemp_20_thumb.png]] | [[file:./fig/dens_ptemp_30.png][file:./fig/dens_ptemp_30_thumb.png]] | [[file:./fig/dens_ptemp_40.png][file:./fig/dens_ptemp_40_thumb.png]] |
+
+** ±öÊ¬¸ÇÄê(²£¼´: °µÎÏ, ½Ä¼´: ²¹°Ì)
+
+#+CAPTION: º¸¤«¤é \theta=0,10,20,30,40 [psu]
+| [[file:./fig/dens_sal_0.png][file:./fig/dens_sal_0_thumb.png]]       | [[file:./fig/dens_sal_10.png][file:./fig/dens_sal_10_thumb.png]]     | [[file:./fig/dens_sal_20.png][file:./fig/dens_sal_20_thumb.png]]     | [[file:./fig/dens_sal_30.png][file:./fig/dens_sal_30_thumb.png]]     | [[file:./fig/dens_sal_40.png][file:./fig/dens_sal_40_thumb.png]]     |

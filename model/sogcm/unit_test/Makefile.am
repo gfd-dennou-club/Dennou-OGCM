@@ -13,12 +13,14 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../util \
         $(MODPATHFLAG)$(srcdir)/../dynamics \
+        $(MODPATHFLAG)$(srcdir)/../../ogcm/util \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
 	$(srcdir)/../dynamics/libDSOGCMDynamics.la \
 	$(srcdir)/../setup/libDSOGCMSetup.la \
 	$(srcdir)/../util/libDSOGCMUtil.la \
+	$(srcdir)/../../ogcm/util/libDOGCMUtil.la \
 	$(srcdir)/../../../src/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 
@@ -36,3 +38,8 @@ check_PROGRAMS += test_HydroBousEqVDiffProc_mod
 test_HydroBousEqVDiffProc_mod_SOURCES =\
 	HydroBousEqVDiffProc_mod_test.f90
 
+check_PROGRAMS += test_EOS_mod
+test_EOS_mod_SOURCES =\
+	EOS_mod_test.f90
+
+EOS_mod_test.f90: ./../../ogcm/util/EqState_JM95_mod.o
