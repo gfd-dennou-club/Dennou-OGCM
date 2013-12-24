@@ -14,7 +14,7 @@ module Exp_InternalGravWave_mod
   use dc_message
 
   use Constants_mod, only: &
-       & Grav, PI, RPlanet, Omega
+       & Grav, PI, RPlanet, Omega, RefTemp
 
   ! 宣言文; Declareration statements
   !
@@ -90,7 +90,6 @@ contains
 
     call MessageNotify("M", module_name, "Set initial condition..")
 
-    Omega = 0d0
     h0 = 8d03
     xy_totDepthBasic = h0
     xy_SurfHeightN = 0d0
@@ -99,13 +98,11 @@ contains
     xyz_UN = - U0*sin(xyz_Lon) 
     xyz_VN = - U0*sin(xyz_Lat)*cos(xyz_Lon)
     
-    refDens = 1d0
-    refPTemp = 300d0
     do k=0, kMax
        z = h0*g_Sig(k)
        xyz_UN(:,:,k) = xyz_UN(:,:,k)*cos(PI*z/h0)
        xyz_VN(:,:,k) = xyz_VN(:,:,k)*cos(PI*z/h0)
-       z_PTempBasic(k) = refPTemp*N2/Grav*z
+       z_PTempBasic(k) = refTemp + refTemp*N2/Grav*z
     end do
 
   end subroutine setInitCondition

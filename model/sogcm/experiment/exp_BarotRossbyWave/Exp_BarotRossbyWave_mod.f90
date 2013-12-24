@@ -14,7 +14,7 @@ module Exp_BarotRossbyWave_mod
   use dc_message
 
   use Constants_mod, only: &
-       & Grav, PI, RPlanet, Omega
+       & Grav, PI, RPlanet, Omega, RefTemp
 
   ! 宣言文; Declareration statements
   !
@@ -82,7 +82,7 @@ contains
     !
     real(DP), parameter :: alpha = 0d0
     real(DP) :: h0, u0
-    
+
     ! 実行文; Executable statement
     !
 
@@ -94,9 +94,12 @@ contains
     xy_SurfHeightN = 0d0
 
     U0 = 0.000001d0
-    xyz_UN = U0*sin(xyz_Lat)*cos(xyz_Lon)
-    xyz_VN = -U0*sin(xyz_Lon) 
     
+    xyz_UN =   U0*sin(xyz_Lat)*cos(xyz_Lon)
+    xyz_VN = - U0*sin(xyz_Lon)
+
+    z_PTempBasic = RefTemp
+
   end subroutine setInitCondition
 
 end module Exp_BarotRossbyWave_mod

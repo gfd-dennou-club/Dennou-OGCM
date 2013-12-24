@@ -63,6 +63,7 @@ contains
 
     call MessageNotify('M', module_name, &
          & "Set RefDens=%f, RefTemp=%f, ThermalExpanCoef=%f, Cp0=%f", d=(/refDens,T0,BetaT,Cp0/) )
+
   end subroutine EqState_Linear_Init
 
   !>

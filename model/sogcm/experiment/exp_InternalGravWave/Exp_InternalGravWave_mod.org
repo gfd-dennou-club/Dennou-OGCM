@@ -1,0 +1,41 @@
+#+TITLE: 内部重力波の伝播テスト
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+
+* 概要
+
+  
+* 実験設定
+
+  | 実験名 | 東西波数(m) | 南北波数(n)　 |
+  |--------+-------------+---------------|
+  | exp1   | 1           |   1           |
+
+
+
+** 各実験で共通な設定
+
+- 解像度
+ - T21L20
+
+- 時間積分
+ - 時間スキーム: 
+ - 時間ステップ:
+
+- 状態方程式
+  - Linear
+
+- 境界条件
+  - 上端・下端: 
+
+** 結果
+
+- 発散 
+
+  - [[file:./exp1_result/xy_Psi_0-144.gif][中層における流線関数の時間発展アニメーション]]
+  - 上端, 下端における赤道上の流線関数の時間発展
+
+    #+CAPTION: 上端(左図), 下端(右図)
+    | [[file:./exp1_result/xt_Psi_SeaBtm.jpg][file:./exp1_result/xt_Psi_SeaSurf_thumb.png]]  |   [[file:./exp1_result/xt_Psi_SeaBtm.jpg][file:./exp1_result/xt_Psi_SeaBtm_thumb.png]]  |

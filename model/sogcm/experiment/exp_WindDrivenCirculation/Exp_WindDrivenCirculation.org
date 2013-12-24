@@ -1,0 +1,49 @@
+#+TITLE: 水惑星の海洋における理想化された風成循環の数値実験
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+
+* 概要
+  水惑星設定(陸・地形なし)の静止した海洋に対して, 東西一様な海面応力場を与え, 
+  どのような循環が駆動されるかをシミュレーションする. 
+
+  地球では偏西風や貿易風の海面応力によって, エクマン層を介して循環が駆動される. 
+  
+* 実験設定
+
+** 各実験の設定の違い
+
+  | 実験名 | 海面応力場                    | 解像度　 |   |
+  |--------+-------------------------------+----------+---|
+  | exp0   | 簡単な解析関数で表す          | T21L20   |   |
+  | exp1   | Marshall, /et al/ (2007) の Fig.3 | T21L20   |   |
+  | exp2   | Marshall, /et al/ (2007) の Fig.3 | T21L30   |   |
+
+
+** 各実験で共通な設定
+
+- 計算領域について
+
+  計算領域は, 全球的に広がる水深 5.3 km の海洋である. 
+  海底地形や陸は存在しない.  
+
+   
+　
+* exp0: 理想的な海面応力場を与えた場合の結果
+  
+
+* exp1: Marshall et al(2007) の Fig.3 の海面応力場を与えた場合
+
+** 結果
+- 応力: [ [[file:./exp1_result/windStressLon.png][海面]] ]
+
+- 東西流速: [ [[./exp1_result/yz_u_0-2540.gif][南北断面]], [[./exp1_result/xy_u_SeaSurf.png][海面]], [[./exp1_result/xy_u_SeaBtm.png][海底]] ]
+
+- 南北流速: [ [[./exp1_result/yz_v_0-2540.gif][南北断面]], [[./exp1_result/xy_v_SeaSurf.png][海面]], [[./exp1_result/xy_v_SeaBtm.png][海底]] ]
+
+- 圧力: [ [[./exp1_result/yz_Press_0-2540.gif][南北断面]], [[./exp1_result/xy_Press_SeaSurf.png][海面]], [[./exp1_result/xy_Press_SeaBtm.png][海底]] ]
+
+- 温位(偏差): [ [[./exp1_result/yz_PTempEdd_0-2540.gif][南北断面]] ]
+
+* exp2: exp1 と同じ実験設定で, 鉛直方向の格子点数を増やした場合

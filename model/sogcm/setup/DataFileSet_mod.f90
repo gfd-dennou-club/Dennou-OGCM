@@ -17,6 +17,8 @@ module DataFileSet_mod
        & MessageNotify
 
   use gtool_historyauto
+
+  use Constants_mod
   use VariableSet_mod
 
   

@@ -19,7 +19,8 @@ module HydroBouEqSolver_mod
 
   use Constants_mod, only: &
        & Omega, Grav, RPlanet, &
-       & hDiffCoef, vDiffCoef
+       & hDiffCoef, vDiffCoef, &
+       & RefDens
 
   use GridSet_mod, only: &
        & iMax, jMax, kMax, lMax, nMax, tMax, &
@@ -43,8 +44,7 @@ module HydroBouEqSolver_mod
 
 
   use VariableSet_mod, only: &
-       & SaltTracerID, PTempTracerID, TracerNum, &       
-       & refDens, refPTemp
+       & SaltTracerID, PTempTracerID, TracerNum
 
   use HydroBouEqSolverRHS_mod
   use HydroBouEqSolverVDiffProc_mod
@@ -328,7 +328,7 @@ contains
     !
     !
     use VariableSet_mod, only: &
-         & xy_totDepthBasic, z_PTempBasic, refDens, xy_SurfPress, xyz_SigDot
+         & xy_totDepthBasic, z_PTempBasic, xy_SurfPress, xyz_SigDot
 
     ! 宣言文; Declaration statement
     !
@@ -383,7 +383,7 @@ contains
     !
     !
     use VariableSet_mod, only: &
-         & xy_totDepthBasic, z_PTempBasic, refDens, xy_SurfPress, xyz_SigDot
+         & xy_totDepthBasic, z_PTempBasic, xy_SurfPress, xyz_SigDot
 
     ! 宣言文; Declaration statement
     !
@@ -493,13 +493,11 @@ contains
     ! モジュール引用; Use statements
     !
     use VariableSet_mod, only: &
-         & xy_WindStressU, xy_WindStressV, xy_totDepthBasic, &
-         & RefDens
+         & xy_WindStressU, xy_WindStressV, xy_totDepthBasic
 
-    use at_module, only: &
-         & at_BoundariesGrid_NN, &
-         & at_BoundariesGrid_DD, &
-         & at_BoundariesGrid_ND
+    use BoundCondSet_mod, only: &
+         & DynBC_Surface, DynBC_Bottom, &
+         & DynBCTYPE_NoSlip, DynBCTYPE_Slip
 
     ! 宣言文; Declaration statement
     !
@@ -511,27 +509,43 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: bcWork(lMax,2)
     real(DP) :: xy_CosLat(0:iMax-1,jMax)
-    
+    character :: BtmBCType_HVel
+
     ! 実行文; Executable statement
     !
     
+    if( DynBC_Bottom == DynBCTYPE_NoSlip ) then
+       BtmBCType_HVel = 'D'
+    else
+       BtmBCType_HVel = 'N'
+    end if
 
-    xy_CosLat = cos(xyz_Lat(:,:,1))
+    if ( DynBC_Surface == DynBCTYPE_NoSlip ) then
+       xy_CosLat = cos(xyz_Lat(:,:,1))
+       call apply_ZBoundaryCond( wt_Vor, &
+            & 'N', BtmBCType_HVel, &
+            & w_SurfBCWork = &
+            &   w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat)/(RefDens*vDiffCoef) &
+            & )
 
-    bcWork(:,1) = &
-         & w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat) &
-         & /(RefDens*vDiffCoef)
-    bcWork(:,2) = 0d0
-    call at_BoundariesGrid_ND(wt_Vor, bcWork)
+       call apply_ZBoundaryCond( wt_Div, &
+            & 'N', BtmBCType_HVel, &
+            & w_SurfBCWork = &
+            &   w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat)/(RefDens*vDiffCoef) &
+            & )
 
-    bcWork(:,1) = &
-         & w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat) &
-         & /(RefDens*vDiffCoef)
-    call at_BoundariesGrid_ND(wt_Div, bcWork)
+    else
+       call apply_ZBoundaryCond(wt_Vor, &
+            & 'N', BtmBCType_HVel )
 
-    call at_BoundariesGrid_NN(wt_PTempEdd)
+       call apply_ZBoundaryCond(wt_Div, &
+            & 'N', BtmBCType_HVel )
+    end if
+
+    call apply_ZBoundaryCond(wt_PTempEdd, &
+         & 'D', 'D' )
+!         & 'N', 'N' )
 
   end subroutine apply_boundaryConditions
 

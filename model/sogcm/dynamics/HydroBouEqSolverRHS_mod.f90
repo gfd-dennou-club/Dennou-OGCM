@@ -15,18 +15,11 @@ module HydroBouEqSolverRHS_mod
        & DP, STRING 
 
   use Constants_mod, only: &
-       & Omega, Grav, RPlanet
+       & Omega, Grav, RPlanet, RefDens
 
   use GridSet_mod, only: &
        & iMax, jMax, kMax, lMax, nMax, tMax, &
        & xyz_Lat, xyz_Lon
-
-  use EqState_JM95_mod, only: &
-       & EqState_JM95_Eval
-
-  use VariableSet_mod, only: &
-       & refDens
-
 
   use SpmlUtil_mod
 

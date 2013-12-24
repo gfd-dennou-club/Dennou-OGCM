@@ -27,7 +27,10 @@ module SpmlUtil_mod
        & at_Initial, &
        & g_Sig => g_X, g_Sig_WEIGHT => g_X_WEIGHT, &
        & at_az => at_ag, az_at => ag_at, &
-       & t_DSig_t => t_Dx_t, at_DSig_at => at_Dx_at
+       & t_DSig_t => t_Dx_t, at_DSig_at => at_Dx_at, &
+       & at_BoundariesGrid_NN, at_BoundariesGrid_DD, &
+       & at_BoundariesGrid_ND, at_BoundariesGrid_DN
+
 
   ! 宣言文; Declareration statements
   !
@@ -52,6 +55,8 @@ module SpmlUtil_mod
   public :: w_InvLapla2D_w
 
   public :: xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz, w_IntSig_BtmToTop_wz
+
+  public :: apply_ZBoundaryCond
 
   ! Cascade
   public :: w_DivLambda_xy, w_DivMu_xy
@@ -457,6 +462,57 @@ contains
       end do
 
     end function xyz_IntSig_SigToTop_xyz
+
+
+    !> @brief 
+    !!
+    !!
+    subroutine apply_ZBoundaryCond( wt_field, SurfBCType, BtmBCType, w_SurfBCWork, w_BtmBCWork )
+      
+      ! 宣言文; Declaration statement
+      !
+      real(DP), intent(inout) :: wt_field((nm+1)*(nm+1), 0:lm)
+      character, intent(in) :: SurfBCType
+      character, intent(in) :: BtmBCType
+      real(DP), intent(in), optional :: w_SurfBCWork((nm+1)*(nm+1))
+      real(DP), intent(in), optional :: w_BtmBCWork((nm+1)*(nm+1))
+
+      
+      ! 局所変数
+      ! Local variables
+      !
+      real(DP) :: bcWork(size(wt_field,1), 2)
+      
+      ! 実行文; Executable statement
+      !
+
+      if( present(w_SurfBCWork) ) then
+         bcWork(:,1) = w_SurfBCWork
+      else
+         bcWork(:,1) = 0d0
+      end if
+
+      if( present(w_BtmBCWork) ) then
+         bcWork(:,2) = w_BtmBCWork
+      else
+         bcWork(:,2) = 0d0
+      end if
+      
+      select case(SurfBCType//BtmBCType)
+      case('DD')
+         call at_BoundariesGrid_DD(wt_field, bcWork)
+      case('DN')
+         call at_BoundariesGrid_DN(wt_field, bcWork)
+      case('ND')
+         call at_BoundariesGrid_ND(wt_field, bcWork)
+      case('NN')
+         call at_BoundariesGrid_NN(wt_field, bcWork)
+      case default
+         call MessageNotify('E', module_name, &
+              & "The specified boundary condition for bottom boundary is invalid.")
+      end select
+
+    end subroutine apply_ZBoundaryCond
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     

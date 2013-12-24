@@ -35,8 +35,6 @@ module VariableSet_mod
   integer, public, save :: TracerNum
   integer, public, save :: SaltTracerID
   integer, public, save :: PTempTracerID
-  real(DP), public, save :: refDens, refPTemp
-
 
   real(DP), public, save, allocatable :: xyz_uA(:,:,:), xyz_uN(:,:,:), xyz_uB(:,:,:)
   real(DP), public, save, allocatable :: xyz_vA(:,:,:), xyz_vN(:,:,:), xyz_vB(:,:,:)

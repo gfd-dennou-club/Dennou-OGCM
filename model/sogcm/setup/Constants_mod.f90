@@ -115,6 +115,7 @@ contains
     ! NAMELIST group name
     !
     namelist /constants_nml/ &
+      & RefDens, RefTemp, ThermalExpanCoef, Cp0, &
       & RPlanet, Omega, Grav, vDiffCoef, hDiffCoef, &
       & RoughnessParamBottom
 

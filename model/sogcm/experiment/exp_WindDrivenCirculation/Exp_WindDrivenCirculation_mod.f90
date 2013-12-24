@@ -14,7 +14,7 @@ module Exp_WindDrivenCirculation_mod
   use dc_message
 
   use Constants_mod, only: &
-       & Grav, PI, RPlanet, Omega
+       & Grav, PI, RPlanet, Omega, RefDens
 
   ! 宣言文; Declareration statements
   !
@@ -96,12 +96,6 @@ contains
     xy_SurfHeightN = 0d0
 
     
-    
-    refDens = 1000.0d0
-    refPTemp = 288.543d0
-
-    
-
     xy_WindStressU = construct_WindStressU()
     xy_WindStressV = 0d0
 
