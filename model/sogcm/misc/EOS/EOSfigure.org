@@ -6,6 +6,7 @@
 
 
 * 図
+以下のグラフは, JM95 の状態方程式から求めた密度の偏差(実際の密度 - 1000 kg m^{-3}) $\sigma$ を示している. 
 
 ** 圧力固定(横軸: 塩分, 縦軸: 温位)
 
@@ -19,5 +20,5 @@
 
 ** 塩分固定(横軸: 圧力, 縦軸: 温位)
 
-#+CAPTION: 左から \theta=0,10,20,30,40 [psu]
+#+CAPTION: 左から S=0,10,20,30,40 [psu]
 | [[file:./fig/dens_sal_0.png][file:./fig/dens_sal_0_thumb.png]]       | [[file:./fig/dens_sal_10.png][file:./fig/dens_sal_10_thumb.png]]     | [[file:./fig/dens_sal_20.png][file:./fig/dens_sal_20_thumb.png]]     | [[file:./fig/dens_sal_30.png][file:./fig/dens_sal_30_thumb.png]]     | [[file:./fig/dens_sal_40.png][file:./fig/dens_sal_40_thumb.png]]     |
