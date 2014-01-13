@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
 <title>順圧ロスビー波の伝播テスト</title>
-<!-- 2013-12-24 火 13:39 -->
+<!-- 2014-01-13 月 15:39 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Kawai Yuta" />
@@ -149,17 +149,14 @@ for the JavaScript code in this tag.
 <div id="text-table-of-contents">
 <ul>
 <li><a href="#sec-1">1. 概要</a></li>
-<li><a href="#sec-2">2. 実験設定</a>
+<li><a href="#sec-2">2. 定式化</a></li>
+<li><a href="#sec-3">3. 実験設定</a>
 <ul>
-<li><a href="#sec-2-1">2.1. 各実験の設定の違い</a></li>
-<li><a href="#sec-2-2">2.2. 各実験で共通な設定</a></li>
+<li><a href="#sec-3-1">3.1. 各実験で共通な設定</a></li>
+<li><a href="#sec-3-2">3.2. 実験間で異なる設定</a></li>
 </ul>
 </li>
-<li><a href="#sec-3">3. exp1: m=1, n=1</a>
-<ul>
-<li><a href="#sec-3-1">3.1. 結果</a></li>
-</ul>
-</li>
+<li><a href="#sec-4">4. 計算結果</a></li>
 </ul>
 </div>
 </div>
@@ -169,25 +166,42 @@ for the JavaScript code in this tag.
 <h2 id="sec-1"><span class="section-number-2">1</span> 概要</h2>
 <div class="outline-text-2" id="text-1">
 <p>
-非粘性で, 一定の温位を持つ順圧場を考えよう. 
+回転系において, 基本場に対してポテンシャル渦度の水平勾配が存在するとき, 水平方向に変位する流体粒子には復元力が働き, 
+<b>ロスビー波</b> が発生する. 
+本数値実験では, ポテンシャル渦度の南北勾配が存在する順圧的な基本場に対して微小振幅の初期擾乱を与えることにより, 
+順圧ロスビー波の伝播をシミュレーションする. 
+そして, 計算された波の位相速度を, 支配方程式の線形近似から得られた位相速度と比較し, 
+モデルの実装の妥当性を確認する. 
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 定式化</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+非粘性な回転系において, 一定の温位を持つ順圧場(物理場が鉛直方向に依存しない場合)を考えよう. 
 このとき, 支配方程式系は流れ関数だけを使ってかける. 
 すなわち, 流れ場の時間発展は, 渦度方程式 
 </p>
 
 \begin{equation}
-  \dfrac{\partial \nabla_H^2 \psi}{\partial t}
-  = - \dfrac{1}{a^2} J(\psi, f+\nabla^2_H \psi) 
+  \dfrac{\partial}{\partial t} \nabla_H^2 \psi
+  = - \dfrac{1}{a^2 \cos{\phi}} \left[ 
+        \dfrac{\partial \psi}{\partial \lambda} \dfrac{\partial }{\partial \phi} 
+        - \dfrac{\partial \psi}{\partial \phi} \dfrac{\partial }{\partial \lambda} 
+      \right] ( f + \nabla^2_H \psi ) 
 \end{equation}
 
 <p>
 によって記述される. 
-ここで, $&psi;$は流線関数である. 
-回転系特有の波である(順圧)ロスビー波は, この方程式の解の一つである. 
+ここで, \(\psi\) は流線関数である. 
+回転系特有の波である <b>(順圧)ロスビー波</b> はこの方程式の解の一つである. 
 今, 
 </p>
 
 \begin{equation}
- \psi = Y_n^m e^{-i\omega t}
+ \psi = Y_n^m e^{i \omega t}
 \end{equation}
 
 <p>
@@ -195,7 +209,7 @@ for the JavaScript code in this tag.
 </p>
 
 \begin{equation}
-  \dfrac{\omega}{m} = -\dfrac{2\Omega}{n(n+1)}
+  \omega = - \dfrac{2\Omega m}{n(n+1)}
 \end{equation}
 
 <p>
@@ -203,44 +217,12 @@ for the JavaScript code in this tag.
 </p>
 </div>
 </div>
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2"><span class="section-number-2">2</span> 実験設定</h2>
-<div class="outline-text-2" id="text-2">
-</div><div id="outline-container-sec-2-1" class="outline-3">
-<h3 id="sec-2-1"><span class="section-number-3">2.1</span> 各実験の設定の違い</h3>
-<div class="outline-text-3" id="text-2-1">
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-
-
-<colgroup>
-<col  class="left" />
-
-<col  class="right" />
-
-<col  class="right" />
-</colgroup>
-<thead>
-<tr>
-<th scope="col" class="left">実験名</th>
-<th scope="col" class="right">東西波数(m)</th>
-<th scope="col" class="right">南北波数(n)　</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="left">exp1</td>
-<td class="right">1</td>
-<td class="right">1</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-
-
-<div id="outline-container-sec-2-2" class="outline-3">
-<h3 id="sec-2-2"><span class="section-number-3">2.2</span> 各実験で共通な設定</h3>
-<div class="outline-text-3" id="text-2-2">
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> 実験設定</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> 各実験で共通な設定</h3>
+<div class="outline-text-3" id="text-3-1">
 <ul class="org-ul">
 <li>解像度
 <ul class="org-ul">
@@ -251,9 +233,7 @@ for the JavaScript code in this tag.
 
 <li>時間積分
 <ul class="org-ul">
-<li>時間スキーム: 
-</li>
-<li>時間ステップ:
+<li>時間スキーム: LFAM3
 </li>
 </ul>
 </li>
@@ -267,54 +247,226 @@ for the JavaScript code in this tag.
 
 <li>境界条件
 <ul class="org-ul">
-<li>上端・下端: 
+<li>上端・下端では滑り壁条件 
 </li>
 </ul>
+\begin{equation}
+  w = 0, 
+\end{equation}
+
+\begin{equation}
+  \dfrac{\partial u}{\partial z} = \dfrac{\partial v}{\partial z} = 0
+\end{equation}
+
+<p>
+を課す. 
+</p>
 </li>
-</ul>
-</div>
-</div>
-</div>
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3"><span class="section-number-2">3</span> exp1: m=1, n=1</h2>
-<div class="outline-text-2" id="text-3">
-</div><div id="outline-container-sec-3-1" class="outline-3">
-<h3 id="sec-3-1"><span class="section-number-3">3.1</span> 結果</h3>
-<div class="outline-text-3" id="text-3-1">
+
+<li>パラメータ
 <ul class="org-ul">
-<li>流線関数 
+<li>惑星半径:     6.371 &times; 10<sup>6</sup> [m]
+</li>
+<li>自転角速度:    7.292115 &times; 10<sup>-5</sup> [s<sup>-1</sup>]
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> 実験間で異なる設定</h3>
+<div class="outline-text-3" id="text-3-2">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;1:</span> 各実験のパラメータ設定. m:東西波数, n:全波数, T(=2&pi;/&omega;):線形論による波の周期[hour], &Delta; t:時間スッテプ幅[min].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">実験名</th>
+<th scope="col" class="right">m</th>
+<th scope="col" class="right">n</th>
+<th scope="col" class="right">T [hr]</th>
+<th scope="col" class="right">&Delta; t [min]</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">exp1</td>
+<td class="right">1</td>
+<td class="right">1</td>
+<td class="right">24</td>
+<td class="right">30</td>
+</tr>
+
+<tr>
+<td class="left">exp2</td>
+<td class="right">1</td>
+<td class="right">2</td>
+<td class="right">72</td>
+<td class="right">90</td>
+</tr>
+
+<tr>
+<td class="left">exp3</td>
+<td class="right">2</td>
+<td class="right">2</td>
+<td class="right">36</td>
+<td class="right">90</td>
+</tr>
+</tbody>
+</table>
 
 <ul class="org-ul">
-<li><a href="./exp1_result/xy_Psi_0-144.gif">中層における流線関数の時間発展アニメーション</a>
+<li>時間ステップ幅
+<ul class="org-ul">
+<li>クラーン数が 0.5 以下となるように選ぶ. すなわち \(\Delta t \leq 0.5 \times {\rm min}(\Delta x_{\rm min} / cx_{\rm wave}, \Delta y_{\rm min} / cy_{\rm wave})\). 
+<ul class="org-ul">
+<li>ただし, \(cx_{\rm wave} = \omega/(2\pi m/a) = a/(mT), cy_{\rm wave} = \omega/(2\pi n/a) = a/(nT)\).
 </li>
-<li>上端, 下端における赤道上の流線関数の時間発展
+<li>水平解像度 T21 に対して \(\Delta x_{\rm min} \sim 300\) [km], \(\Delta y_{\rm min} \sim 500\) [km] である.  
+</li>
+</ul>
+</li>
+</ul>
+</li>
+
+<li>その他の詳細な設定
+<ul class="org-ul">
+<li>namelist: <a href="./exp1_config.nml">exp1</a>, <a href="./exp2_config.nml">exp2</a> <a href="./exp3_config.nml">exp3</a>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> 計算結果</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>初期の流れ関数場
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;1:</span> 上端(左図), 下端(右図)</caption>
+
 
 <colgroup>
 <col  class="left" />
 
 <col  class="left" />
+
+<col  class="left" />
 </colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">実験名</th>
+<th scope="col" class="left">初期の流れ関数(上端) (t=0,sig=0)</th>
+<th scope="col" class="left">初期の流れ関数(下端) (t=0,sig=-1)</th>
+</tr>
+</thead>
 <tbody>
 <tr>
-<td class="left"><a href="./exp1_result/xt_Psi_SeaBtm.jpg"><img src="./exp1_result/xt_Psi_SeaSurf_thumb.png" alt="xt_Psi_SeaSurf_thumb.png" /></a></td>
-<td class="left"><a href="./exp1_result/xt_Psi_SeaBtm.jpg"><img src="./exp1_result/xt_Psi_SeaBtm_thumb.png" alt="xt_Psi_SeaBtm_thumb.png" /></a></td>
+<td class="left">exp1</td>
+<td class="left"><a href="./exp1_result/xy_Psi_SeaSurf_init.jpg"><img src="./exp1_result/xy_Psi_SeaSurf_init_thumb.png" alt="xy_Psi_SeaSurf_init_thumb.png" /></a></td>
+<td class="left"><a href="./exp1_result/xy_Psi_SeaBtm_init.jpg"><img src="./exp1_result/xy_Psi_SeaBtm_init_thumb.png" alt="xy_Psi_SeaBtm_init_thumb.png" /></a></td>
+</tr>
+
+<tr>
+<td class="left">exp2</td>
+<td class="left"><a href="./exp2_result/xy_Psi_SeaSurf_init.jpg"><img src="./exp2_result/xy_Psi_SeaSurf_init_thumb.png" alt="xy_Psi_SeaSurf_init_thumb.png" /></a></td>
+<td class="left"><a href="./exp2_result/xy_Psi_SeaBtm_init.jpg"><img src="./exp2_result/xy_Psi_SeaBtm_init_thumb.png" alt="xy_Psi_SeaBtm_init_thumb.png" /></a></td>
+</tr>
+
+<tr>
+<td class="left">exp3</td>
+<td class="left"><a href="./exp3_result/xy_Psi_SeaSurf_init.jpg"><img src="./exp3_result/xy_Psi_SeaSurf_init_thumb.png" alt="xy_Psi_SeaSurf_init_thumb.png" /></a></td>
+<td class="left"><a href="./exp3_result/xy_Psi_SeaBtm_init.jpg"><img src="./exp3_result/xy_Psi_SeaBtm_init_thumb.png" alt="xy_Psi_SeaBtm_init_thumb.png" /></a></td>
 </tr>
 </tbody>
 </table>
 </li>
 </ul>
+
+
+<ul class="org-ul">
+<li>流れ関数の時間発展
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">実験名</th>
+<th scope="col" class="left">アニメーション(中層) (sig=-0.5)</th>
+<th scope="col" class="left">流れ関数(上端)</th>
+<th scope="col" class="left">流れ関数(下端)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">exp1</td>
+<td class="left"><a href="./exp1_result/xy_Psi_anim_0-72.gif"><img src="./exp1_result/xy_Psi_anim_0-72_thumb.png" alt="xy_Psi_anim_0-72_thumb.png" /></a></td>
+<td class="left"><a href="./exp1_result/t_Psi_SeaSurf.jpg"><img src="./exp1_result/t_Psi_SeaSurf_thumb.png" alt="t_Psi_SeaSurf_thumb.png" /></a> (lat=0,lon=0,sig=0)</td>
+<td class="left"><a href="./exp1_result/t_Psi_SeaBtm.jpg"><img src="./exp1_result/t_Psi_SeaBtm_thumb.png" alt="t_Psi_SeaBtm_thumb.png" /></a> (lat=0,lon=0,sig=-1)</td>
+</tr>
+
+<tr>
+<td class="left">exp2</td>
+<td class="left"><a href="./exp2_result/xy_Psi_anim_0-192.gif"><img src="./exp2_result/xy_Psi_anim_0-192_thumb.png" alt="xy_Psi_anim_0-192_thumb.png" /></a></td>
+<td class="left"><a href="./exp2_result/t_Psi_SeaSurf.jpg"><img src="./exp2_result/t_Psi_SeaSurf_thumb.png" alt="t_Psi_SeaSurf_thumb.png" /></a> (lat=45,lon=0,sig=0)</td>
+<td class="left"><a href="./exp2_result/t_Psi_SeaBtm.jpg"><img src="./exp2_result/t_Psi_SeaBtm_thumb.png" alt="t_Psi_SeaBtm_thumb.png" /></a> (lat=45,lon=0,sig=-1)</td>
+</tr>
+
+<tr>
+<td class="left">exp3</td>
+<td class="left"><a href="./exp3_result/xy_Psi_anim_0-96.gif"><img src="./exp3_result/xy_Psi_anim_0-96_thumb.png" alt="xy_Psi_anim_0-96_thumb.png" /></a></td>
+<td class="left"><a href="./exp3_result/t_Psi_SeaSurf.jpg"><img src="./exp3_result/t_Psi_SeaSurf_thumb.png" alt="t_Psi_SeaSurf_thumb.png" /></a> (lat=0,lon=0,sig=0)</td>
+<td class="left"><a href="./exp3_result/t_Psi_SeaBtm.jpg"><img src="./exp3_result/t_Psi_SeaBtm_thumb.png" alt="t_Psi_SeaBtm_thumb.png" /></a> (lat=0,lon=0,sig=-1)</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>備考
+<ul class="org-ul">
+<li>exp1: \(m=1,n=1, T=24 {\rm [hour]}\)
+</li>
+<li>exp2: \(m=1,n=2, T=36 {\rm [hour]}\)
+</li>
+<li>exp3: \(m=2,n=2, T=72 {\rm [hour]}\)
+</li>
+</ul>
 </li>
 </ul>
 </div>
 </div>
 </div>
-</div>
 <div id="postamble" class="status">
 <p class="author">&#33879;&#32773;: Kawai Yuta</p>
-<p class="date">Created: 2013-12-24 火 13:39</p>
+<p class="date">Created: 2014-01-13 月 15:39</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

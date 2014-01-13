@@ -3,17 +3,98 @@
 #+LANGUAGE: ja
 #+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LATEX_HEADER:\usepackage{bm}
+#  +OPTIONS: tex:dvipng
 
 * 概要
 
-  
+流体が安定成層していて鉛直方向に変位した流体粒子が浮力振動を起こすとき, 
+流体内部において *内部重力波* が存在できる. 
+本数値実験では, 内部重力波(ただし, 水平波長の長波極限)が発生できる基本場に対して微小振幅の初期擾乱を与えることにより, 
+内部重力波の伝播をシミュレーションする. 
+そして, 計算された波の位相速度を, 支配方程式の線形近似から得られた位相速度と比較し, 
+モデルの実装の妥当性を確認する. 
+
+* 定式化
+
+本モデルで使われている支配方程式において, この波は以下のように記述される. 
+
+** 支配方程式
+
+非粘性かつ非回転な系を考えることにして, 支配方程式の静力学ブシネスク方程式を線形化すれば,  
+
+\begin{align}
+  \dfrac{\partial {\bf u}}{\partial t} &= - \nabla_H (p^\prime / \rho_0), \label{eq:horiEOM} \\ 
+  \dfrac{\partial (p^\prime/\rho_0)}{\partial z} &= - (\rho^\prime/\rho_0) g, \label{eq:hydrostatic} \\
+  \nabla_H \cdot {\bf u} + \dfrac{\partial w}{\partial z} &= 0, \label{eq:continious} \\
+  \dfrac{\partial \theta^\prime}{\partial t} & = - w \dfrac{\partial \Theta}{\partial z}, \label{eq:thermodyn} \\ 
+  \rho &= \rho(\theta, p) \label{eq:EOS}
+\end{align}
+
+である. 
+ここで, 大文字は変数の基本場成分( $z$ のみに依存), $()^\prime$ は摂動成分であることを示す. 
+ただし, 流速の基本場はゼロである. 
+
+ここでは, 状態方程式として線形の近似式
+
+\begin{equation}
+  \rho(\theta, p) = \rho_0 \left[ 1 
+                     - \beta_T \theta^\prime + \left( \dfrac{\gamma}{\rho_0 c_s^2} - \dfrac{T_0 \beta_T^2}{\rho_0 c_{p}} \right)p  
+                    \right] 
+ \label{eq:linearEOS}
+\end{equation}
+
+を使う. 
+ここで, $\beta_T$ は熱膨張率, $c_s$ は音速, $c_p$ は定圧比熱である. 
+これらのパラメータに海洋の典型的な値を用いるとき, 
+運動の鉛直スケールが密度スケールハイト(約 200 km)よりずっと大きい限り, 
+上の状態方程式において圧力依存性を無視することができる. 
+本実験では鉛直領域の幅を $D = 10$ km と取ることにし, 
+以下の分散関係式の導出において状態方程式の圧力依存性を無視することにする. 
+
+** 分散関係式の導出
+
+はじめに運動方程式の両辺に対して水平発散, 鉛直微分, 時間微分を順番に作用させて, 
+それから連続の式と静水圧平衡の式を用いて $\nabla_H \cdot \bf{u}$ と　$(p^\prime/\rho_0)$ を消去すれば,  
+
+\begin{equation}
+  \dfrac{\partial^2}{\partial t^2} \dfrac{\partial^2 w}{\partial z^2}  
+  =  - g \nabla_H^2 \dfrac{\partial}{\partial t} (\rho^\prime/\rho_0) 
+\end{equation}
+
+となる. 
+次に, 圧力依存性を無視した状態方程式を用いて右辺の密度摂動を温位摂動に置き換える.  
+さらに, 熱力学方程式を使って温位摂動の時間微分を消去すれば, $w$ だけを使って書かれた方程式
+
+\begin{equation}
+  \dfrac{\partial^2}{\partial t^2} \dfrac{\partial^2 w}{\partial z^2}  
+  =  N^2 \nabla_H^2 w  
+\end{equation}
+
+が得られる. 
+ただし, 
+
+\begin{equation}
+  N^2 = g \beta_T \dfrac{d \Theta}{dz}
+\end{equation}
+
+とおいた. 
+
+今, 上の方程式の解の形式として, 
+
+$$
+ w = Y_n^m \sin{(l \pi z/D)} e^{-i \omega t}
+$$
+
+を仮定する. 
+このとき, 次の分散関係式を得る. 
+
+\begin{equation}
+  \omega^2 = \dfrac{n(n+1)}{a^2 l^2 \pi^2/D^2 } N^2
+\end{equation}
+
+
 * 実験設定
-
-  | 実験名 | 東西波数(m) | 南北波数(n)　 |
-  |--------+-------------+---------------|
-  | exp1   | 1           |   1           |
-
-
 
 ** 各実験で共通な設定
 
@@ -21,21 +102,102 @@
  - T21L20
 
 - 時間積分
- - 時間スキーム: 
- - 時間ステップ:
+ - 時間スキーム: LFAM3
+ - 時間ステップ: 40 min
 
 - 状態方程式
   - Linear
+  - 熱膨張係数: 1.67 \times 10^{-4} [K^{-1}]
+  - 比熱: 3986 [J kg^{-1} K^{-1}]
+  - 参照温度: 283 [K]
+  - 参照音速: 1490 [m s^{-1}]
 
 - 境界条件
-  - 上端・下端: 
+  - 上端・下端において, 滑り壁条件 
+  
+  \begin{equation}
+    w = 0, 
+  \end{equation}
 
-** 結果
+  \begin{equation}
+    \dfrac{\partial u}{\partial z} = \dfrac{\partial v}{\partial z} = 0
+  \end{equation}
 
-- 発散 
+  および熱的な境界条件
 
-  - [[file:./exp1_result/xy_Psi_0-144.gif][中層における流線関数の時間発展アニメーション]]
-  - 上端, 下端における赤道上の流線関数の時間発展
+  \begin{equation}
+    \theta^\prime = 0 
+  \end{equation}
 
-    #+CAPTION: 上端(左図), 下端(右図)
-    | [[file:./exp1_result/xt_Psi_SeaBtm.jpg][file:./exp1_result/xt_Psi_SeaSurf_thumb.png]]  |   [[file:./exp1_result/xt_Psi_SeaBtm.jpg][file:./exp1_result/xt_Psi_SeaBtm_thumb.png]]  |
+  を課す. 
+
+- パラメータ
+  - 惑星半径:     6.371 \times 10^6 [m]
+  - 自転角速度:    7.292115 \times 10^{-5} [s^{-1}]
+  - 鉛直方向の領域幅: 10 [km]
+  - 深さ $D$: 5.0 [km] (一定)
+
+  
+** 実験間で異なる設定
+
+#+CAPTION: 各実験のパラメータ設定. N:ブラント・バイサラ振動数[s^{-1}], m:東西波数, n:全波数, l:鉛直モード数, T(=2\pi/\omega):線形論による波の周期[days], \Delta t:時間スッテプ幅[hour]. 
+  | 実験名 | N [s^{-1}]         | m | n | l | T [days]         | \Delta t [hr]   |
+  |--------+--------------------+---+---+---+------------------+-----------------|
+  | exp1   | 1.0 \times 10^{-2} | 1 | 1 | 1 | 20.6             |              4  |
+  | exp2   | 1.0 \times 10^{-2} | 1 | 2 | 1 | 11.9             |              2  |
+  | exp3   | 1.0 \times 10^{-2} | 2 | 2 | 1 | 11.9             |              4  |
+  | exp4   | 1.0 \times 10^{-2} | 1 | 1 | 2 | 41.2             |              6  |
+  | exp5   | 1.0 \times 10^{-3} | 1 | 1 | 1 | 205.8            |             24  |
+
+
+- ブラント・バイサラ振動数 $N$
+  - 海洋で典型的な値[fn:typicalN] (1 \times 10^{-2} ~ 1 \times 10^{-3} [s^{-1}]) を使う. 
+  
+[fn:typicalN] http://oceanworld.tamu.edu/resources/ocng_textbook/chapter08/chapter08_04.htm
+
+
+- 時間ステップ幅
+  - クラーン数が 0.2 以下となるように選ぶ. すなわち $\Delta t \leq 0.2 \times {\rm min}(\Delta x_{\rm min} / cx_{\rm wave}, \Delta y_{\rm min} / cy_{\rm wave})$. 
+    - ただし, $cx_{\rm wave} = \omega/(2\pi m/a) = a/(mT), cy_{\rm wave} = \omega/(2\pi n/a) = a/(nT)$.
+    - 水平解像度 T21 に対して $\Delta x_{\rm min} \sim 300$ [km], $\Delta y_{\rm min} \sim 500$ [km] である.  
+
+- その他の詳細な設定
+ - namelist: [[file:./exp1_config.nml][exp1]], [[file:./exp2_config.nml][exp2]], [[file:./exp3_config.nml][exp3]], [[file:./exp4_config.nml][exp4]], [[file:./exp5_config.nml][exp5]]
+
+
+* 計算結果
+
+
+- 初期の発散場
+
+  | 実験名 | 水平分布(上端) (t=0,sig=0)                       | 鉛直分布(赤道上) (t=0,lat=0 or 45)     |
+  |--------+--------------------------------------------------+-------------------------------------------------|
+  | exp1   | [[file:./exp1_result/xy_Div_SeaSurf_init.jpg][file:./exp1_result/xy_Div_SeaSurf_init_thumb.png]] | [[file:./exp1_result/xz_Div_lat0_init.jpg][file:./exp1_result/xz_Div_lat0_init_thumb.png]]        |
+  | exp2   | [[file:./exp2_result/xy_Div_SeaSurf_init.jpg][file:./exp2_result/xy_Div_SeaSurf_init_thumb.png]] | [[file:./exp2_result/xz_Div_lat45_init.jpg][file:./exp2_result/xz_Div_lat45_init_thumb.png]] (lat=45) |
+  | exp3   | [[file:./exp3_result/xy_Div_SeaSurf_init.jpg][file:./exp3_result/xy_Div_SeaSurf_init_thumb.png]] | [[file:./exp3_result/xz_Div_lat0_init.jpg][file:./exp3_result/xz_Div_lat0_init_thumb.png]]        |
+  | exp4   | [[file:./exp4_result/xy_Div_SeaSurf_init.jpg][file:./exp4_result/xy_Div_SeaSurf_init_thumb.png]] | [[file:./exp4_result/xz_Div_lat0_init.jpg][file:./exp4_result/xz_Div_lat0_init_thumb.png]]        |
+  | exp5   | [[file:./exp5_result/xy_Div_SeaSurf_init.jpg][file:./exp5_result/xy_Div_SeaSurf_init_thumb.png]] | [[file:./exp5_result/xz_Div_lat0_init.jpg][file:./exp5_result/xz_Div_lat0_init_thumb.png]]        |
+
+
+
+- 水平発散および鉛直速度 $\dot{\sigma}$ の時間発展
+
+  | 実験名 | 鉛直速度のアニメーション(lat=0 or 45)                                                  | 鉛直速度(lat=0 or 45,lon=180)                                                                                 | 水平発散(lat=0 or 45,lon=180)                                                                         |
+  |--------+----------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------|
+  | exp1   | [[file:./exp1_result/xz_SigDot_anim_0-42.gif][file:./exp1_result/xz_SigDot_anim_0-42_thumb.png]] | [[file:./exp1_result/tz_SigDot_lat0lon180.jpg][file:./exp1_result/tz_SigDot_lat0lon180_thumb.png]]            | [[file:./exp1_result/tz_Div_lat0lon180.jpg][file:./exp1_result/tz_Div_lat0lon180_thumb.png]]          |
+  | exp2   | [[file:./exp2_result/xz_SigDot_anim_0-24.gif][file:./exp2_result/xz_SigDot_anim_0-24_thumb.png]] (lat=45)                                                                              | [[file:./exp2_result/tz_SigDot_lat45lon180.jpg][file:./exp2_result/tz_SigDot_lat45lon180_thumb.png]] (lat=45) | [[file:./exp2_result/tz_Div_lat0lon180.jpg][file:./exp2_result/tz_Div_lat0lon180_thumb.png]] (lat=45) |
+  | exp3   | [[file:./exp3_result/xz_SigDot_anim_0-24.gif][file:./exp3_result/xz_SigDot_anim_0-24_thumb.png]]                                                                                       | [[file:./exp3_result/tz_SigDot_lat0lon180.jpg][file:./exp3_result/tz_SigDot_lat0lon180_thumb.png]]            | [[file:./exp3_result/tz_Div_lat0lon180.jpg][file:./exp3_result/tz_Div_lat0lon180_thumb.png]]          |
+  | exp4   | [[file:./exp4_result/xz_SigDot_anim_0-90.gif][file:./exp4_result/xz_SigDot_anim_0-90_thumb.png]]                                                                                       | [[file:./exp4_result/tz_SigDot_lat0lon180.jpg][file:./exp4_result/tz_SigDot_lat0lon180_thumb.png]]            | [[file:./exp4_result/tz_Div_lat0lon180.jpg][file:./exp4_result/tz_Div_lat0lon180_thumb.png]]          |
+  | exp5   | [[file:./exp5_result/xz_SigDot_anim_0-420.gif][file:./exp5_result/xz_SigDot_anim_0-420_thumb.png]]                                                                                     | [[file:./exp5_result/tz_SigDot_lat0lon180.jpg][file:./exp5_result/tz_SigDot_lat0lon180_thumb.png]]            | [[file:./exp5_result/tz_Div_lat0lon180.jpg][file:./exp5_result/tz_Div_lat0lon180_thumb.png]]          |
+
+
+ - 備考
+  - exp1: $N=1.0 \times 10^{-2} {\rm [s^{-1}]}, m=1,n=1,l=1, T=20.6 {\rm [days]}$
+  - exp2: $N=1.0 \times 10^{-2} {\rm [s^{-1}]}, m=1,n=2,l=1, T=11.9 {\rm [days]}$
+  - exp3: $N=1.0 \times 10^{-2} {\rm [s^{-1}]}, m=2,n=2,l=1, T=11.9 {\rm [days]}$
+  - exp4: $N=1.0 \times 10^{-2} {\rm [s^{-1}]}, m=1,n=1,l=2, T=41.2 {\rm [days]}$
+  - exp5: $N=1.0 \times 10^{-3} {\rm [s^{-1}]}, m=1,n=1,l=1, T=205.8 {\rm [days]}$
+
+
+
+  

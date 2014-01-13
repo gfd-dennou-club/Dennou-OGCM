@@ -16,13 +16,6 @@ module InitCond_mod
        & xyz_PTempEddN, &
        & xy_WindStressU, xy_WindStressV
 
-!!$  use Exp_W94_Case2_mod, only: &
-!!$  use Exp_BarotRossbyWave_mod, only: &
-!!$       & SetInitCondition 
-  use Exp_InternalGravWave_mod, only: &
-       & SetInitCondition
-!!$  use Exp_WindDrivenCirculation_mod, only: &
-!!$       & SetInitCondition
 
   ! 宣言文; Declareration statements
   !
@@ -62,7 +55,7 @@ contains
   !> @brief 
   !!
   !!
-  subroutine InitCond_Set()
+  subroutine InitCond_Set(SetExpInitCondition)
     
     !
     !
@@ -70,7 +63,11 @@ contains
     ! 宣言文; Declaration statement
     !
     
-    
+    interface 
+       subroutine setExpInitCondition
+       end subroutine setExpInitCondition
+    end interface
+
     ! 局所変数
     ! Local variables
     !
@@ -81,7 +78,7 @@ contains
 
     
 
-    call SetInitCondition()
+    call SetExpInitCondition()
 
   end subroutine InitCond_Set
 

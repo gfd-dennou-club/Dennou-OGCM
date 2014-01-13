@@ -17,11 +17,9 @@ module SpmlUtil_mod
 
   use wa_module
 
-  use wa_module, only: &
-       & xyz_GradLambda_wz => xya_GradLambda_wa, &
-       & xyz_GradMu_wz => xya_GradMu_wa, &
-       & wz_DivLambda_xyz => wa_DivLambda_xya, &
-       & wz_DivMu_xyz => wa_DivMu_xya
+!!$  use wa_module, only: &
+!!$       & wz_DivLambda_xyz => wa_DivLambda_xya, &
+!!$       & wz_DivMu_xyz => wa_DivMu_xya
 
   use at_module, only: &
        & at_Initial, &
@@ -49,8 +47,6 @@ module SpmlUtil_mod
   public :: xya_wa, wa_xya
 
   public :: wz_AlphaOptr_xyz, w_AlphaOptr_xy, xyz_AlphaOptr_wz
-  public :: wz_DivLambda_xyz, wz_DivMu_xyz
-  public :: xyz_GradLambda_wz, xyz_GradMu_wz
   public :: wz_Lapla2D_wz, wz_InvLapla2D_wz
   public :: w_InvLapla2D_w
 
@@ -59,6 +55,7 @@ module SpmlUtil_mod
   public :: apply_ZBoundaryCond
 
   ! Cascade
+  public :: xya_GradLon_wa, xya_GradLambda_wa, xya_GradLat_wa, xya_GradMu_wa
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: xy_Lon, xy_Lat
   
@@ -242,36 +239,6 @@ contains
 
     end function wt_DSig_wt
 
-
-    function xyz_GradLon_wt(wt)
-      !
-      ! スペクトルデータに勾配型経度微分 1/acosφ・∂/∂λ
-      ! を作用させる.
-      !
-      real(8), dimension((nm+1)*(nm+1),0:lm), intent(in) :: wt
-      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
-
-      real(8), dimension(0:im-1,1:jm,0:km)   :: xyz_GradLon_wt
-      !(out) 勾配型経度微分を作用された 2 次元スペクトルデータ
-
-      xyz_GradLon_wt = xya_GradLon_wa(wz_wt(wt))/Radius
-
-    end function xyz_GradLon_wt
-
-    function xyz_GradLat_wt(wt) 
-      !
-      ! スペクトルデータに勾配型経度微分 1/a ∂/∂φ を作用させる.
-      !
-      real(8), dimension((nm+1)*(nm+1),0:lm), intent(in) :: wt
-      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
-
-      real(8), dimension(0:im-1,1:jm,0:km)    :: xyz_GradLat_wt
-      !(out) 勾配型緯度微分を作用された 2 次元スペクトルデータ
-
-      xyz_GradLat_wt = xya_GradLat_wa(wz_wt(wt))/Radius
-
-    end function xyz_GradLat_wt
-
     function wt_DivLon_xyz(xyz)
       ! 
       ! 格子点データに発散型経度微分 1/acosφ・∂/∂λ を作用させた
@@ -312,7 +279,7 @@ contains
       real(8), dimension((nm+1)*(nm+1),0:km)       :: wz_AlphaOptr_xyz
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
-      wz_AlphaOptr_xyz = ( wz_DivLambda_xyz(xyz_A) + wz_DivMu_xyz(xyz_B) )/Radius
+      wz_AlphaOptr_xyz = ( wa_DivLambda_xya(xyz_A) + wa_DivMu_xya(xyz_B) )/Radius
 
     end function wz_AlphaOptr_xyz
 
@@ -348,7 +315,7 @@ contains
       real(DP) :: xyz_CosLat(0:im-1,jm,0:km)
       
       xyz_CosLat = cos(spread(xy_Lat,3,km+1))
-      xyz_AlphaOptr_wz = ( xyz_GradLambda_wz(wz_A) + xyz_GradMu_wz(wz_B) )/ (Radius*xyz_CosLat**2)
+      xyz_AlphaOptr_wz = ( xya_GradLambda_wa(wz_A) + xya_GradMu_wa(wz_B) )/ (Radius*xyz_CosLat**2)
 
     end function xyz_AlphaOptr_wz
 

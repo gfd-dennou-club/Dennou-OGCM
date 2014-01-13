@@ -58,6 +58,7 @@ module Constants_mod
   real(DP), public, save :: RefDens    
   real(DP), public, save :: RefTemp    
   real(DP), public, save :: Cp0         
+  real(DP), public, save :: RefSoundSpeed
   real(DP), public, save :: ThermalExpanCoef 
 
 
@@ -115,7 +116,7 @@ contains
     ! NAMELIST group name
     !
     namelist /constants_nml/ &
-      & RefDens, RefTemp, ThermalExpanCoef, Cp0, &
+      & RefDens, RefTemp, ThermalExpanCoef, RefSoundSpeed, Cp0, &
       & RPlanet, Omega, Grav, vDiffCoef, hDiffCoef, &
       & RoughnessParamBottom
 
@@ -131,9 +132,10 @@ contains
     vDiffCoef        = 0d0
     hDiffCoef        = 0d0
 
-    RefDens          = 1.023d03
+    RefDens          = 1.027d03
     RefTemp          = 283d0
     Cp0              = 3986d0
+    RefSoundSpeed    = 1490d0
     ThermalExpanCoef = 1.67d-04
     
 
@@ -165,6 +167,7 @@ contains
     call MessageNotify( 'M', module_name, '  RefDens           = %f', d=(/ RefDens /) )
     call MessageNotify( 'M', module_name, '  RefTemp           = %f', d=(/ RefTemp /) )
     call MessageNotify( 'M', module_name, '  Cp0               = %f', d=(/ Cp0 /) )
+    call MessageNotify( 'M', module_name, '  RefSoundSpeed     = %f', d=(/ RefSoundSpeed /) )
     call MessageNotify( 'M', module_name, '  ThermalExpanCoef  = %f', d=(/ ThermalExpanCoef /) )
         
 

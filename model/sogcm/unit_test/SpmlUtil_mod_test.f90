@@ -19,8 +19,9 @@ program SpmlUtil_mod_test
   call GridSet_construct()
 
 
-  call check_xy_IntSig_BtmToTop_xyz
-  call check_xyz_IntSig_SigToTop_xyz
+!  call check_xy_IntSig_BtmToTop_xyz
+!  call check_xyz_IntSig_SigToTop_xyz
+  call check_spectral_expand_limit
 
   call SpmlUtil_Final()
   call GridSet_Final() 
@@ -82,5 +83,39 @@ end do
     end do
 
   end subroutine check_xyz_IntSig_SigToTop_xyz
+
+  subroutine check_spectral_expand_limit
+
+    use at_module
+
+    real(DP) :: xyz_oriField(0:iMax-1,jMax,0:kMax), xyz_field(0:iMax-1,jMax,0:kMax)    
+    real(DP) :: xyz_intSig(0:iMax-1,jMax,0:kMax), z_intSig_ana(0:kmax)
+    real(DP) :: lb   !< Nondimensional characteristic length of boundary layer
+    integer :: i
+
+    do i=5,1,-1
+
+    
+       lb = abs( g_Sig(i) )
+       xyz_oriField(1,1,:) = exp( g_Sig/lb ) - exp(- (g_Sig + 1d0)/lb )
+!!$       xyz_orifield = 0d0
+!!$       xyz_orifield(:,:,0) = 1d0; xyz_orifield(:,:,kMax)=-1d0
+       write(*,*) "=========="
+       write(*,*) "* blyrLength:", lb
+       write(*,*) xyz_orifield(1,1,:)
+!!$       write(*,*) "* Difference between z_field and one after g_t(t_g(z_field))"
+!!$       xyz_field(1,1,:) = g_t(t_g(xyz_oriField(1,1,:)))
+!!$       write(*,*) xyz_field(1,1,:)
+       write(*,*) "Integ:", sum(g_x_weight*xyz_orifield(1,1,:))
+       xyz_intSig = xyz_IntSig_SigToTop_xyz(xyz_orifield)
+       z_intSig_ana = lb*((1d0+exp(-1d0/lb))-(exp(g_Sig/lb)+exp(-(g_Sig+1d0)/lb)))
+!!$       write(*,*) "IntSig", xyz_intSig(1,1,:)
+       write(*,*) "IntSig RMS Error", &
+            & sqrt( sum( ( xyz_intSig(1,1,:) -  z_intSig_ana )**2 ) )/kMax
+    end do
+  
+write(*,*) "g_Sig:", g_Sig
+
+  end subroutine check_spectral_expand_limit
 
 end program SpmlUtil_mod_test

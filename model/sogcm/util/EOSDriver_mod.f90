@@ -73,7 +73,7 @@ contains
     select case(EOSType)
     case(EOSTYPE_LINEAR)
        call EqState_Linear_Init( & 
-            & refDens_=RefDens, T0_=RefTemp, BetaT_=ThermalExpanCoef, Cp0_=Cp0 )
+            & refDens_=RefDens, refTemp_=RefTemp, BetaT_=ThermalExpanCoef, Cp0_=Cp0, Cs0_=RefSoundSpeed  )
     case(EOSTYPE_JM95)
        call EqState_JM95_Init()
     end select

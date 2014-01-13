@@ -99,7 +99,7 @@ contains
     real(DP) :: xyz_B(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_KinEngy(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_AbsVor(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_PressGradCoef(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_GeoPotGradCoef(0:iMax-1,jMax,0:kMax)
     real(DP) :: wz_GeoPot(lMax, 0:kMax)
     real(DP) :: wt_Urf(lMax,0:tMax)
     real(DP) :: wt_Vrf(lMax,0:tMax)
@@ -109,7 +109,7 @@ contains
     
     xyz_KinEngy = (xyz_Urf**2 + xyz_Vrf**2)/(2d0*cos(xyz_Lat)**2)
     xyz_AbsVor = xyz_Vor + 2d0*Omega*sin(xyz_Lat)
-    xyz_PressGradCoef = xyz_DensEdd/RefDens/RPlanet
+    xyz_GeoPotGradCoef = xyz_DensEdd/(RefDens*RPlanet)
 
     wz_GeoPot = wz_xyz(xyz_GeoPot)
     wt_Urf = wt_xyz(xyz_Urf)
@@ -117,10 +117,10 @@ contains
 
     xyz_A = &
          &   xyz_AbsVor*xyz_Urf   + xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Vrf)) &
-         & + xyz_PressGradCoef*xyz_GradMu_wz(wz_GeoPot)
+         & + xyz_GeoPotGradCoef*xya_GradMu_wa(wz_GeoPot)
     xyz_B = &
          &    xyz_AbsVor*xyz_Vrf - xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Urf)) &
-        &  - xyz_PressGradCoef*xyz_GradLambda_wz(wz_GeoPot)
+        &  - xyz_GeoPotGradCoef*xya_GradLambda_wa(wz_GeoPot)
 
     wz_RHSVor = - wz_AlphaOptr_xyz( xyz_A, xyz_B )
 

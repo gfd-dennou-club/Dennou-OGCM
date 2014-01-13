@@ -1,0 +1,72 @@
+/
+&grid_nml
+ nLat = 32, 
+ nLon = 64, 
+ nZ = 20
+/
+/
+&temporalInteg_nml
+  barocTimeIntModeName = 'timeIntMode_LFAM3'
+  DelTimeVal = 2,          !
+  DelTimeUnit = 'hour',
+  ReStartTimeVal = 0.0, 
+  ReStartTimeUnit = 'min', 
+!  InitYear=2013, InitMonth=1, InitDay=1, InitHour=0, InitMin=0,
+!  EndYear =2013, EndMonth =1, EndDay =30, EndHour=0, EndMin=0,
+  IntegTimeVal  = 24.0,
+  IntegTimeUnit  = 'day'
+  ProgMessageIntVal = 12.0,
+  ProgMessageIntUnit = 'hour',
+/
+/&numexp_nml
+ BruntVaisFreq = 1e-02,          ! $ N $ [s].
+                                 ! Brunt-Vaisala Frequency
+ m = 1,                          ! The number of zonal mode (zonal wave number, m of spherical harmonics Y^m_n)
+ n = 2,                          ! Total wave number (n of spherical harmonics Y^m_n)
+ l = 1,                          ! The number of vertical mode
+/
+/
+&boundaryCondition_nml
+  KinBCSurface = 'Rigid',
+  DynBCSurface = 'Slip',
+  DynBCBottom  = 'Slip',
+/
+/
+&dataFile_nml
+  outputFileName = 'data.nc'
+  outputIntrval  =  43200.0
+/
+&gtool_historyauto_nml
+  IntValue = 0.5,             ! 出力間隔の数値
+  IntUnit = 'day',             ! 出力間隔の単位 !  
+  FilePrefix = 'exp2_result/Run1_k20_',
+/
+&gtool_historyauto_nml
+  Name = 'SurfPress, BarocPress, PTempEdd, SigDot, u, v, Div',  ! 出力変数
+/
+&restartFile_nml
+ OutputFileName = 'exp2_result/Run1_restart.nc', 
+ InputFileName  = '',!Run1_restart.nc, 
+ IntValue = 365.0, 
+ IntUnit = 'day'
+/
+&governEq_nml
+  EOSTypeName='EOS_LINEAR'
+/
+&constants_nml
+  RPlanet          = 6.371e06,
+                                ! $ a $ [m].
+                                ! 惑星半径.
+                                ! Radius of planet
+  Omega             = 0.0,
+                                ! $ \Omega $ [s-1].
+                                ! 回転角速度.
+                                ! Angular velocity
+  Grav              = 9.79764,
+                                ! $ g $ [m s-2].
+                                ! 重力加速度.
+                                ! Gravitational acceleration
+ vDiffCoef   = 0.0, 
+ hDiffCoef   = 0.0,
+ RoughnessParamBottom = 0.01,	
+/

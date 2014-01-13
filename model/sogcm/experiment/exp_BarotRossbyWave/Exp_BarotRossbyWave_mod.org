@@ -3,43 +3,51 @@
 #+LANGUAGE: ja
 #+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+# +OPTIONS: tex:dvipng
 
 
 * 概要
-  非粘性で, 一定の温位を持つ順圧場を考えよう. 
+
+回転系において, 基本場に対してポテンシャル渦度の水平勾配が存在するとき, 水平方向に変位する流体粒子には復元力が働き, 
+*ロスビー波* が発生する. 
+本数値実験では, ポテンシャル渦度の南北勾配が存在する順圧的な基本場に対して微小振幅の初期擾乱を与えることにより, 
+順圧ロスビー波の伝播をシミュレーションする. 
+そして, 計算された波の位相速度を, 支配方程式の線形近似から得られた位相速度と比較し, 
+モデルの実装の妥当性を確認する. 
+
+
+* 定式化
+
+  非粘性な回転系において, 一定の温位を持つ順圧場(物理場が鉛直方向に依存しない場合)を考えよう. 
   このとき, 支配方程式系は流れ関数だけを使ってかける. 
   すなわち, 流れ場の時間発展は, 渦度方程式 
 
   \begin{equation}
-    \dfrac{\partial \nabla_H^2 \psi}{\partial t}
-    = - \dfrac{1}{a^2} J(\psi, f+\nabla^2_H \psi) 
+    \dfrac{\partial}{\partial t} \nabla_H^2 \psi
+    = - \dfrac{1}{a^2 \cos{\phi}} \left[ 
+          \dfrac{\partial \psi}{\partial \lambda} \dfrac{\partial }{\partial \phi} 
+          - \dfrac{\partial \psi}{\partial \phi} \dfrac{\partial }{\partial \lambda} 
+        \right] ( f + \nabla^2_H \psi ) 
   \end{equation}
 
   によって記述される. 
-  ここで, $\psi$は流線関数である. 
-  回転系特有の波である(順圧)ロスビー波は, この方程式の解の一つである. 
+  ここで, $\psi$ は流線関数である. 
+  回転系特有の波である *(順圧)ロスビー波* はこの方程式の解の一つである. 
   今, 
   
   \begin{equation}
-   \psi = Y_n^m e^{-i\omega t}
+   \psi = Y_n^m e^{i \omega t}
   \end{equation}
 
   の形式の解を仮定し, これを渦度方程式に代入すれば, 順圧ロスビー波の分散関係
   
   \begin{equation}
-    \dfrac{\omega}{m} = -\dfrac{2\Omega}{n(n+1)}
+    \omega = - \dfrac{2\Omega m}{n(n+1)}
   \end{equation}
   
   が得られる. 
   
 * 実験設定
-
-** 各実験の設定の違い
-
-  | 実験名 | 東西波数(m) | 南北波数(n)　 |
-  |--------+-------------+---------------|
-  | exp1   | 1           |   1           |
-
 
 
 ** 各実験で共通な設定
@@ -48,25 +56,69 @@
  - T21L20
 
 - 時間積分
- - 時間スキーム: 
- - 時間ステップ:
+ - 時間スキーム: LFAM3
 
 - 状態方程式
   - Linear
 
 - 境界条件
-  - 上端・下端: 
+  - 上端・下端では滑り壁条件 
+  
+  \begin{equation}
+    w = 0, 
+  \end{equation}
 
-* exp1: m=1, n=1
+  \begin{equation}
+    \dfrac{\partial u}{\partial z} = \dfrac{\partial v}{\partial z} = 0
+  \end{equation}
 
-** 結果
+  を課す. 
 
-- 流線関数 
+- パラメータ
+  - 惑星半径:     6.371 \times 10^6 [m]
+  - 自転角速度:    7.292115 \times 10^{-5} [s^{-1}]
 
-  - [[file:./exp1_result/xy_Psi_0-144.gif][中層における流線関数の時間発展アニメーション]]
-  - 上端, 下端における赤道上の流線関数の時間発展
 
-    #+CAPTION: 上端(左図), 下端(右図)
-    | [[file:./exp1_result/xt_Psi_SeaBtm.jpg][file:./exp1_result/xt_Psi_SeaSurf_thumb.png]]  |   [[file:./exp1_result/xt_Psi_SeaBtm.jpg][file:./exp1_result/xt_Psi_SeaBtm_thumb.png]]  |
+** 実験間で異なる設定
+
+#+CAPTION: 各実験のパラメータ設定. m:東西波数, n:全波数, T(=2\pi/\omega):線形論による波の周期[hour], \Delta t:時間スッテプ幅[min]. 
+  | 実験名 | m | n | T [hr] | \Delta t [min] |
+  |--------+---+---+--------+----------------|
+  | exp1   | 1 | 1 |     24 |             30 |
+  | exp2   | 1 | 2 |     72 |             90 |
+  | exp3   | 2 | 2 |     36 |             90 |
+
+- 時間ステップ幅
+  - クラーン数が 0.5 以下となるように選ぶ. すなわち $\Delta t \leq 0.5 \times {\rm min}(\Delta x_{\rm min} / cx_{\rm wave}, \Delta y_{\rm min} / cy_{\rm wave})$. 
+    - ただし, $cx_{\rm wave} = \omega/(2\pi m/a) = a/(mT), cy_{\rm wave} = \omega/(2\pi n/a) = a/(nT)$.
+    - 水平解像度 T21 に対して $\Delta x_{\rm min} \sim 300$ [km], $\Delta y_{\rm min} \sim 500$ [km] である.  
+
+- その他の詳細な設定
+ -  namelist: [[file:./exp1_config.nml][exp1]], [[file:./exp2_config.nml][exp2]] [[file:./exp3_config.nml][exp3]]
+
+* 計算結果
+
+- 初期の流れ関数場
+
+  | 実験名 | 初期の流れ関数(上端) (t=0,sig=0)                                                            | 初期の流れ関数(下端) (t=0,sig=-1)                                                       |
+  |--------+------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------|
+  | exp1   | [[file:./exp1_result/xy_Psi_SeaSurf_init.jpg][file:./exp1_result/xy_Psi_SeaSurf_init_thumb.png]] | [[file:./exp1_result/xy_Psi_SeaBtm_init.jpg][file:./exp1_result/xy_Psi_SeaBtm_init_thumb.png]]      |
+  | exp2   | [[file:./exp2_result/xy_Psi_SeaSurf_init.jpg][file:./exp2_result/xy_Psi_SeaSurf_init_thumb.png]] | [[file:./exp2_result/xy_Psi_SeaBtm_init.jpg][file:./exp2_result/xy_Psi_SeaBtm_init_thumb.png]] |
+  | exp3   | [[file:./exp3_result/xy_Psi_SeaSurf_init.jpg][file:./exp3_result/xy_Psi_SeaSurf_init_thumb.png]] | [[file:./exp3_result/xy_Psi_SeaBtm_init.jpg][file:./exp3_result/xy_Psi_SeaBtm_init_thumb.png]]      |
+
+
+- 流れ関数の時間発展
+
+  | 実験名 | アニメーション(中層) (sig=-0.5)                                                    | 流れ関数(上端)                                                                                            | 流れ関数(下端)                                                                                           |
+  |--------+------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------|
+  | exp1   | [[file:./exp1_result/xy_Psi_anim_0-72.gif][file:./exp1_result/xy_Psi_anim_0-72_thumb.png]]      | [[file:./exp1_result/t_Psi_SeaSurf.jpg][file:./exp1_result/t_Psi_SeaSurf_thumb.png]] (lat=0,lon=0,sig=0)  | [[file:./exp1_result/t_Psi_SeaBtm.jpg][file:./exp1_result/t_Psi_SeaBtm_thumb.png]] (lat=0,lon=0,sig=-1)  |
+  | exp2   | [[file:./exp2_result/xy_Psi_anim_0-192.gif][file:./exp2_result/xy_Psi_anim_0-192_thumb.png]]           | [[file:./exp2_result/t_Psi_SeaSurf.jpg][file:./exp2_result/t_Psi_SeaSurf_thumb.png]] (lat=45,lon=0,sig=0) | [[file:./exp2_result/t_Psi_SeaBtm.jpg][file:./exp2_result/t_Psi_SeaBtm_thumb.png]] (lat=45,lon=0,sig=-1) |
+  | exp3   | [[file:./exp3_result/xy_Psi_anim_0-96.gif][file:./exp3_result/xy_Psi_anim_0-96_thumb.png]]      | [[file:./exp3_result/t_Psi_SeaSurf.jpg][file:./exp3_result/t_Psi_SeaSurf_thumb.png]] (lat=0,lon=0,sig=0)  | [[file:./exp3_result/t_Psi_SeaBtm.jpg][file:./exp3_result/t_Psi_SeaBtm_thumb.png]] (lat=0,lon=0,sig=-1)  |
+
+
+ - 備考
+  - exp1: $m=1,n=1, T=24 {\rm [hour]}$
+  - exp2: $m=1,n=2, T=36 {\rm [hour]}$
+  - exp3: $m=2,n=2, T=72 {\rm [hour]}$
 
 

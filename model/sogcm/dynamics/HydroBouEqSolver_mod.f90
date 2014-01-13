@@ -240,7 +240,7 @@ contains
        else 
           call calc_GovernEqDiffRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
                & wz_wt(wt_Vor), wz_wt(wt_Div), wz_wt(wt_PTempEdd) )
-          write(*,*) "Stage=", Stage
+!          write(*,*) "Stage=", Stage
           call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
                & xy_SurfPress, wz_wt(wt_Div), xy_totDepthBasic, vDiffCoef, DelTime)
 

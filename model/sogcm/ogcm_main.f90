@@ -18,6 +18,20 @@ program ogcm_main
   use GovernEqSet_mod
 
   use GovernEqSolverDriver_mod
+
+!!$  use Exp_W94_Case2_mod, only: &
+!!$  use Exp_BarotRossbyWave_mod, only: &
+!!$       & Exp_Init => Exp_BarotRossbyWave_Init, &
+!!$       & Exp_Final => Exp_BarotRossbyWave_Final, &
+!!$       & Exp_SetInitCond => SetInitCondition 
+  use Exp_InternalGravWave_mod, only: &
+       & Exp_Init => Exp_InternalGravWave_Init, &
+       & Exp_Final => Exp_InternalGravWave_Final, &
+       & Exp_SetInitCond => SetInitCondition
+!!$  use Exp_WindDrivenCirculation_mod, only: &
+!!$       & SetInitCondition
+
+
   use InitCond_mod
 
   ! 宣言文; Declaration statement
@@ -49,7 +63,7 @@ program ogcm_main
 
   call InitCond_Init()
 
-  call InitCond_Set()
+  call InitCond_Set(Exp_SetInitCond)
   call RestartDataFileSet_Input()
 
   call DataFileSet_OutputData(datFile)
@@ -164,6 +178,9 @@ contains
 
     call GovernEqSolverDriver_Init()
 
+    ! 
+    call Exp_Init(configNmlFile)
+
   end subroutine ogcm_setup
 
   !> @brief
@@ -186,6 +203,7 @@ contains
     ! 実行文; Executable statement
     !
 
+    call Exp_Final()
     call GovernEqSolverDriver_Final()
     call DataFileSet_Final(datFile)
     call RestartDataFileSet_Final()
