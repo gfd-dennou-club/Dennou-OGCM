@@ -24,12 +24,15 @@ program ogcm_main
 !!$       & Exp_Init => Exp_BarotRossbyWave_Init, &
 !!$       & Exp_Final => Exp_BarotRossbyWave_Final, &
 !!$       & Exp_SetInitCond => SetInitCondition 
-  use Exp_InternalGravWave_mod, only: &
-       & Exp_Init => Exp_InternalGravWave_Init, &
-       & Exp_Final => Exp_InternalGravWave_Final, &
+!!$  use Exp_InternalGravWave_mod, only: &
+!!$       & Exp_Init => Exp_InternalGravWave_Init, &
+!!$       & Exp_Final => Exp_InternalGravWave_Final, &
+!!$       & Exp_SetInitCond => SetInitCondition
+  
+  use Exp_WindDrivenCirculation_mod, only: &
+       & Exp_Init => Exp_WindDrivenCirculation_Init, &
+       & Exp_Final => Exp_WindDrivenCirculation_Final, &
        & Exp_SetInitCond => SetInitCondition
-!!$  use Exp_WindDrivenCirculation_mod, only: &
-!!$       & SetInitCondition
 
 
   use InitCond_mod

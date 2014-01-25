@@ -12,7 +12,7 @@ module VariableSet_mod
   !
 
   use dc_types, only: &
-       & DP, STRING 
+       & DP, STRING, TOKEN 
 
   use TemporalIntegSet_mod, only: &
        & nLongTimeLevel
@@ -47,6 +47,19 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_SurfPress(:,:)
   real(DP), public, save, allocatable :: xy_WindStressU(:,:)
   real(DP), public, save, allocatable :: xy_WindStressV(:,:)
+
+  character(TOKEN), public, parameter :: VARSET_KEY_U = 'U'
+  character(TOKEN), public, parameter :: VARSET_KEY_V = 'V'
+  character(TOKEN), public, parameter :: VARSET_KEY_PTEMPEDD = 'PTempEdd'
+  character(TOKEN), public, parameter :: VARSET_KEY_SALT = 'Salt'
+  character(TOKEN), public, parameter :: VARSET_KEY_SURFHEIGHT = 'SurfHeight'
+
+  character(TOKEN), public, parameter :: VARSET_KEY_SIGDOT = 'SigDot'
+  character(TOKEN), public, parameter :: VARSET_KEY_SURFPRESS = 'SurfPress'
+  character(TOKEN), public, parameter :: VARSET_KEY_BAROCPRESS = 'BarocPress'
+
+  character(TOKEN), public, parameter :: VARSET_KEY_TOTDEPTHBASIC = 'TotDepthBasic'
+  character(TOKEN), public, parameter :: VARSET_KEY_PTEMPBASIC = 'PTempBasic'
 
   ! 非公開手続き
   ! Private procedure

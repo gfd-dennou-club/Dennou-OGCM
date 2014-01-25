@@ -122,6 +122,24 @@ contains
          varname='Press', dims=(/'lon','lat','sig','t  '/), & 
          longname='pressure deviation from RefDens*Grav*z', units='Pa')
 
+    call HistoryAutoAddVariable( &
+         varname='TEnAvg', dims=(/'t  '/), & 
+         longname='global mean of total energy', units='J*m-3')
+
+    call HistoryAutoAddVariable( &
+         varname='KEnAvg', dims=(/'t  '/), & 
+         longname='global mean of kinetic energy', units='J*m-3')
+
+    call HistoryAutoAddVariable( &
+         varname='PEnAvg', dims=(/'t  '/), & 
+         longname='global mean of potential energy', units='J*m-3')
+
+    call HistoryAutoAddVariable( &
+         varname='IEnAvg', dims=(/'t  '/), & 
+         longname='global mean of internal energy', units='J*m-3')
+
+
+
     call HistoryAutoAllVarFix()
 
   end subroutine DiagVarFileSet_Init
@@ -145,7 +163,7 @@ contains
   !> @brief 
   !!
   !!
-  subroutine DiagVarFileSet_OutputVar(CurrentTime, varName, var2D, var3D)
+  subroutine DiagVarFileSet_OutputVar(CurrentTime, varName, varScalar, var1D, var2D, var3D)
 
     ! モジュール引用; Use statement
     !
@@ -159,6 +177,8 @@ contains
     !
     real(DP), intent(in) :: CurrentTime
     character(*), intent(in) :: varName
+    real(DP), intent(in), optional :: varScalar
+    real(DP), intent(in), optional :: var1D(:)
     real(DP), intent(in), optional :: var2D(:,:)
     real(DP), intent(in), optional :: var3D(:,:,:)
 
@@ -171,8 +191,14 @@ contains
     !
 
 
-    call MessageNotify("M", module_name, "Output data of some field at %d [sec] ..", i=(/ int(CurrentTime) /))
- 
+    call MessageNotify("M", module_name, "Output data of field '%c' at %d [sec] ..", c1=varName, i=(/ int(CurrentTime) /))
+
+    if(present(varScalar)) &
+         call HistoryAutoPut(CurrentTime, varName, varScalar)
+    
+    if(present(var1D)) &
+         call HistoryAutoPut(CurrentTime, varName, var1D)
+
     if(present(var2D)) &
          call HistoryAutoPut(CurrentTime, varName, var2D)
 

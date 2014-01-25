@@ -333,13 +333,15 @@ contains
     DelTime = DCCalConvertByUnit(DelTimeVal, DelTimeUnit, 'sec')
     RestartTime = DCCalConvertByUnit(RestartTimeVal, RestartTimeUnit, 'sec')
 
-    call DCCalDateCreate(InitYear, InitMonth, InitDay, InitHour, InitMin, InitSec, &
+    call DCCalDateCreate( InitYear, InitMonth, InitDay, InitHour, InitMin, InitSec, &
          & InitDate ) !(out)
 
-    call DCCalDateEval(InitDate, RestartTimeVal, RestartTimeUnit, date=RestartDate)
+    call DCCalDateEval( InitDate, RestartTimeVal, RestartTimeUnit, &
+         & date=RestartDate) !(out)
 
     if( IntegTimeVal > 0d0 ) then
-       call DCCalDateEval(RestartDate, IntegTimeVal, IntegTimeUnit, date=EndDate)
+       call DCCalDateEval( RestartDate, IntegTimeVal, IntegTimeUnit, &
+            & date=EndDate) !(out)
     else
        call DCCalDateCreate(EndYear, EndMonth, EndDay, EndHour, EndMin, EndSec, &
             & EndDate ) !(out)

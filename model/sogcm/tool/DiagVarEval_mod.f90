@@ -18,13 +18,15 @@ module DiagVarEval_mod
   
 
   use Constants_mod, only: &
-       & RPlanet, Grav
+       & RPlanet, Grav, RefDens
 
   use GridSet_mod, only: &
        & iMax, jMax, kMax, &
        & xyz_Lat, xyz_Lon
 
   use SpmlUtil_mod
+
+  use DiagnoseUtil_mod
 
   ! 宣言文; Declareration statements
   !
@@ -35,7 +37,8 @@ module DiagVarEval_mod
   ! Public procedure
   !
   public :: DiagVarEval_Init, DiagVarEval_Final
-  public :: eval_Vor, eval_Div, eval_totPress
+  public :: eval_Vor, eval_Div, eval_totPress, eval_DensEdd
+  public :: eval_potentialEnergyAvg, eval_kineticEnergyAvg
 
   ! 非公開手続き
   ! Private procedure
@@ -45,12 +48,6 @@ module DiagVarEval_mod
   ! Private variable
   !
   character(*), parameter:: module_name = 'DiagVarEval_mod' !< Module Name
-
-real(DP), parameter :: Cp = 3986d0
-real(DP), parameter :: BetaT = 1.67d-04
-real(DP), parameter :: T0 = 283d0
-real(DP), parameter :: RefDens = 1d03
-real(DP) :: H_T
 
 contains
 
@@ -62,6 +59,8 @@ contains
     ! 実行文; Executable statements
     !
 
+    call DiagnoseUtil_Init()
+
   end subroutine DiagVarEval_Init
 
   !>
@@ -71,6 +70,8 @@ contains
 
     ! 実行文; Executable statements
     !
+
+    call DiagnoseUtil_Final()
 
   end subroutine DiagVarEval_Final
 
@@ -82,8 +83,8 @@ contains
     
     ! 宣言文; Declaration statement
     !
-    real(DP) :: xyz_u(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_v(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_u(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_v(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax)
 
     
@@ -109,8 +110,8 @@ contains
     
     ! 宣言文; Declaration statement
     !
-    real(DP) :: xyz_u(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_v(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_u(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_v(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_Vor(0:iMax-1,jMax,0:kMax)
 
     ! 実行文; Executable statement
@@ -125,12 +126,39 @@ contains
   !!
   !! @return 
   !!
+  function eval_DensEdd(xyz_PTemp, xyz_Salt, xyz_totPress) result(xyz_DensEdd)
+    
+    use EOSDriver_mod, only: EOSDriver_Eval
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_totPress(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
+
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+    call EOSDriver_Eval( rhoEdd=xyz_DensEdd, &           !(out)
+         & theta=xyz_PTemp, S=xyz_Salt, p=xyz_totPress )  !(in)
+
+  end function eval_DensEdd
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
   function eval_totPress(xy_surfPress, xyz_barocPress) result(xyz_totPress)
     
     ! 宣言文; Declaration statement
     !
-    real(DP) :: xy_surfPress(0:iMax-1,jMax)
-    real(DP) :: xyz_barocPress(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xy_surfPress(0:iMax-1,jMax)
+    real(DP), intent(in) :: xyz_barocPress(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_totPress(0:iMax-1,jMax,0:kMax)
 
     !
@@ -145,5 +173,56 @@ contains
        xyz_totPress(:,:,k) = xy_surfPress(:,:) + xyz_barocPress(:,:,k)
     end do
   end function eval_totPress
+
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
+  function eval_kineticEnergyAvg(xyz_u, xyz_v) result(KEAvg)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: xyz_u(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_v(0:iMax-1,jMax,0:kMax)
+    real(DP) :: KEAvg
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+    
+    KEAvg = RefDens*AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyz_u**2 + xyz_v**2) )
+
+  end function eval_kineticEnergyAvg
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
+  function eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth) result(PEAvg)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    real(DP) :: PEAvg
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    ! 実行文; Executable statement
+    !
+    
+    PEAvg = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
+                      xyz_DensEdd * Diagnose_GeoPot(xy_totDepth) &
+            & ))
+
+
+  end function eval_potentialEnergyAvg
 
 end module DiagVarEval_mod

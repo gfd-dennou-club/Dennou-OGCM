@@ -4,9 +4,18 @@ program diagVar_main
   use dc_message
 
   use Constants_mod
+  use TemporalIntegSet_mod, only: &
+       & TemporalIntegSet_Init, TemporalIntegSet_Final, &
+       & RestartTime
+
   use GridSet_mod
   use SpmlUtil_mod
-  use VariableSet_mod
+
+  use GovernEqSet_mod, only: &
+       & GovernEqSet_Init, GovernEqSet_Final, &
+       & EOSType
+
+  use EOSDriver_mod
 
   use DiagVarSet_mod
   use DiagVarFileSet_mod
@@ -52,10 +61,10 @@ program diagVar_main
   EndTimeSec = DCCalConvertByUnit(ogcm_outputTime(size(ogcm_outputTime)), ogcm_gthsInfo%intUnit, "sec")
   TimeIntSec = DCCalConvertByUnit(diagVar_gthsInfo%intValue, diagVar_gthsInfo%intUnit, 'sec')
 
-  CurrentTimeSec = 0
+  CurrentTimeSec = RestartTime
   do while(CurrentTimeSec <= EndTimeSec)
-     call MessageNotify('M', PROGRAM_NAME, &
-          & "%f [sec]..", d=(/CurrentTimeSec/) )
+     call MessageNotify('M', PROGRAM_NAME, "%f [%c]..", &
+          & d=(/ DCCalConvertByUnit(CurrentTimeSec, 'sec', ogcm_gthsInfo%intUnit) /), c1=trim(ogcm_gthsInfo%intUnit) )
 
      call diagnose_outputVariables()
 
@@ -79,10 +88,12 @@ contains
          & OptionParser_Init, OptionParser_Final, &
          & OptionParser_GetInfo
 
+    use VariableSet_mod, only: VariableSet_Init
  
 #ifdef _OPENMP
     use omp_lib
 #endif
+
 
     ! 宣言文; Declaration statement
     !
@@ -112,7 +123,10 @@ contains
     call readOgcmNml(ogcmConfigNmlFile)
 
     call Constants_Init(ogcmConfigNmlFile)
+    call TemporalIntegSet_Init(ogcmConfigNmlFile)
     call GridSet_Init(ogcmConfigNmlFile)
+    call GovernEqSet_Init(ogcmConfigNmlFile)
+    call EOSDriver_Init(EOSType)
 
 #ifdef _OPENMP
     !$omp parallel
@@ -147,7 +161,11 @@ contains
   !!
   !!
   subroutine shutdown()
-    
+
+    ! モジュール引用
+    ! Use statements
+    use VariableSet_mod, only: VariableSet_Final
+
     ! 宣言文; Declaration statement
     !
     
@@ -166,9 +184,13 @@ contains
 
     if( associated(diagVarsName) ) deallocate(diagVarsName)
     if( associated(ogcmOutputVarsName) ) deallocate(ogcmOutputVarsName)
+
+    call EOSDriver_Final()
+    call GovernEqSet_Final()
     call VariableSet_Final()
     call SpmlUtil_Final()
     call GridSet_Final()
+    call TemporalIntegSet_Final()
     call Constants_Final()
 
   end subroutine shutdown
@@ -361,6 +383,16 @@ contains
     ! モジュール引用; Use statement
     !
     use dc_string, only: CPrintf
+    
+    use VariableSet_mod, only: &
+         & VARSET_KEY_U, VARSET_KEY_V, VARSET_KEY_SURFPRESS, VARSET_KEY_BAROCPRESS, VARSET_KEY_SURFHEIGHT, VARSET_KEY_PTEMPEDD, &
+         & VARSET_KEY_PTEMPBASIC, VARSET_KEY_TOTDEPTHBASIC, &
+         & xyz_UN, xyz_VN, xy_SurfPress, xy_SurfHeightN, xyz_PTempEddN, xyz_SaltN, &
+         & z_PTempBasic, xy_totDepthBasic
+
+    use DiagVarSet_mod, only: &
+         & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_TotPress, &
+         & xyz_DensEdd, xy_totDepth
 
     ! 宣言文; Declaration statement
     !
@@ -371,22 +403,40 @@ contains
     integer :: varID
     character(STRING) :: rangeStr
     real(DP) :: CurrentTime
-    real(DP) :: xyz_BarocPress(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_Press(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
+    character(*), parameter :: NCEXT =".nc"
+    integer :: k
 
     ! 実行文; Executable statement
     !
     
     CurrentTime = DCCalConvertByUnit(CurrentTimeSec, 'sec', ogcm_gthsInfo%intUnit)
     rangeStr = CPrintf('t=%f', d=(/ currentTime /))
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "u.nc", &
-         & 'u', xyz_UN, range=rangeStr )
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "v.nc", &
-         & 'v', xyz_VN, range=rangeStr )
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "SurfPress.nc", &
-         & 'SurfPress', xy_SurfPress, range=rangeStr )
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "BarocPress.nc", &
-         & 'BarocPress', xyz_BarocPress, range=rangeStr )
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_U // NCEXT, &
+         & VARSET_KEY_U, xyz_UN, range=rangeStr )
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_V // NCEXT, &
+         & VARSET_KEY_V, xyz_VN, range=rangeStr )
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_SURFPRESS // NCEXT, &
+         & VARSET_KEY_SURFPRESS, xy_SurfPress, range=rangeStr )
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_BAROCPRESS // NCEXT, &
+         & VARSET_KEY_BAROCPRESS, xyz_BarocPress, range=rangeStr )
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_PTEMPEDD // NCEXT, &
+         & VARSET_KEY_PTEMPEDD, xyz_PTempEddN, range=rangeStr )
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_PTEMPBASIC // NCEXT, &
+         & VARSET_KEY_PTEMPBASIC, z_PTempBasic, range=rangeStr )
+!!$    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "totDepthBasic.nc", &
+!!$         & 'totDepthBasic', xy_totDepthBasic, range=rangeStr )
+!!$    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "SurfHeight.nc", &
+!!$         & 'SurfHeight', xy_SurfHeightN, range=rangeStr )
+
+    xyz_SaltN = 0d0
+    xy_totDepth = 5.2d03 !xy_SurfHeightN + xy_totDepthBasic
+
+    forAll(k=0:kMax) xyz_PTemp(:,:,k) = z_PTempBasic(k) + xyz_PTempEddN(:,:,k)
+    xyz_totPress = eval_totPress(xy_SurfPress, xyz_BarocPress)
+    xyz_DensEdd = eval_DensEdd(xyz_PTemp, xyz_SaltN, xyz_totPress)
 
     do varID=1, size(diagVarsName)
        select case(diagVarsName(varID))
@@ -396,9 +446,15 @@ contains
           case(DVARKEY_VOR)
              xyz_Vor = eval_Vor(xyz_UN, xyz_VN)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_Vor, var3D=xyz_Vor)
-          case (DVARKEY_PRESS)
-             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PRESS, &
-                  & var3D= eval_totPress(xy_SurfPress, xyz_BarocPress) )
+          case (DVARKEY_TOTPRESS)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_TOTPRESS, var3D=xyz_totPress )
+          case (DVARKEY_KEAVG)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_KEAVG, &
+                  & varScalar=eval_kineticEnergyAvg(xyz_UN, xyz_VN) )
+          case (DVARKEY_PEAVG)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PEAVG, &
+                  & varScalar=eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth) )
+
        end select
     end do
 

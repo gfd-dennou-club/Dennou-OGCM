@@ -59,6 +59,7 @@ module SpmlUtil_mod
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: xy_Lon, xy_Lat
   
+  public :: AvrLonLat_xy
 
   ! 非公開手続き
   ! Private procedure

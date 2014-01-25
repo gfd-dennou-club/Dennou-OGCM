@@ -35,16 +35,23 @@ module Exp_WindDrivenCirculation_mod
   ! Private variable
   !
   character(*), parameter:: module_name = 'Exp_WindDrivenCirculation_mod' !< Module Name
+  integer :: expCaseNum
 
 contains
 
   !>
   !!
   !!
-  subroutine Exp_WindDrivenCirculation_Init()
+  subroutine Exp_WindDrivenCirculation_Init(configNmlFile)
+    
+    ! 宣言文; Declare statements
+    !
+    character(*), intent(in) :: configNmlFile
 
     ! 実行文; Executable statements
     !
+
+    call read_expConfig(configNmlFile)
 
   end subroutine Exp_WindDrivenCirculation_Init
 
@@ -142,6 +149,68 @@ contains
     end function eval_PTempBasic
 
   end subroutine setInitCondition
+
+  !> @brief 
+  !!
+  !!
+  subroutine read_expConfig(configNmlFileName)
+
+    ! モジュール引用; Use statement
+    !
+
+    ! ファイル入出力補助
+    ! File I/O support
+    !
+    use dc_iounit, only: FileOpen
+
+    ! 種別型パラメタ
+    ! Kind type parameter
+    !
+    use dc_types, only: STDOUT ! 標準出力の装置番号. Unit number of standard output
+    
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: configNmlFileName
+
+    ! 局所変数
+    ! Local variables
+    !
+    integer:: unit_nml        ! NAMELIST ファイルオープン用装置番号. 
+    ! Unit number for NAMELIST file open
+
+    integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
+    ! IOSTAT of NAMELIST read
+ 
+    ! NAMELIST 変数群
+    ! NAMELIST group name
+    !
+    namelist /numexp_nml/ &
+         & expCaseNum
+
+    ! 実行文; Executable statement
+    !
+
+    ! NAMELIST からの入力
+    ! Input from NAMELIST
+    !
+    if ( trim(configNmlFileName) /= '' ) then
+       call MessageNotify( 'M', module_name, "reading namelist '%a'", ca=(/ configNmlFileName /))
+       call FileOpen( unit_nml, &          ! (out)
+            & configNmlFileName, mode = 'r' ) ! (in)
+
+       rewind( unit_nml )
+       read( unit_nml, &                  ! (in)
+            & nml = numexp_nml, &         ! (out)
+            & iostat = iostat_nml )       ! (out)
+       close( unit_nml )
+    end if
+
+    ! 印字 ; Print
+    !
+    call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
+
+    
+  end subroutine read_expConfig
 
 end module Exp_WindDrivenCirculation_mod
 

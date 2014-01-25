@@ -19,6 +19,7 @@ module DiagVarSet_mod
   use GridSet_mod, only: &
        & iMax, jMax, kMax
 
+
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -33,13 +34,19 @@ module DiagVarSet_mod
   ! Public variable
   !
   real(DP), dimension(:,:,:), allocatable, public :: &
-       & xyz_Div, xyz_Vor, xyz_PressBaroc, xyz_Press
+       & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_TotPress, xyz_DensEdd
+
+  real(DP), dimension(:,:), allocatable, public :: &
+       & xy_totDepth
 
   character(*), parameter, public :: DVARKEY_VOR = 'Vor'
   character(*), parameter, public :: DVARKEY_DIV = 'Div'
-  character(*), parameter, public :: DVARKEY_PRESSBAROC = 'PressBaroc'
-  character(*), parameter, public :: DVARKEY_PRESS = 'Press'
-  character(*), parameter, public :: DVARKEY_DENS = 'DENS'
+  character(*), parameter, public :: DVARKEY_TOTPRESS = 'TotPress'
+  character(*), parameter, public :: DVARKEY_DENSEDD = 'DensEdd'
+  character(*), parameter, public :: DVARKEY_TEAVG = 'TEnAvg'
+  character(*), parameter, public :: DVARKEY_KEAVG = 'KEnAvg'
+  character(*), parameter, public :: DVARKEY_PEAVG = 'PEnAvg'
+  character(*), parameter, public :: DVARKEY_IEAVG = 'IEnAvg'
 
   ! 非公開手続き
   ! Private procedure
@@ -69,7 +76,11 @@ contains
 
     ! 実行文; Executable statements
     !
-    
+    allocate(xy_totDepth(0:iMax-1,jMax))
+    allocate(xyz_BarocPress(0:iMax-1,jMax,0:kMax))
+    allocate(xyz_TotPress(0:iMax-1,jMax,0:kMax))
+    allocate(xyz_DensEdd(0:iMax-1,jMax,0:kMax))
+
     do varID=1, size(diagVarsName)
        write(*,*) diagVarsName(varID)
 
@@ -78,10 +89,12 @@ contains
              allocate( xyz_Div(0:iMax-1,jMax,0:kMax) )
           case( DVARKEY_VOR )
              allocate( xyz_Vor(0:iMax-1,jMax,0:kMax) )
-          case( DVARKEY_PRESSBAROC )
-             allocate( xyz_PressBaroc(0:iMax-1,jMax,0:kMax) )
-          case( DVARKEY_PRESS )
-             allocate( xyz_Press(0:iMax-1,jMax,0:kMax) )
+          case ( DVARKEY_TOTPRESS )
+          case ( DVARKEY_DENSEDD ) 
+          case ( DVARKEY_TEAVG )
+          case ( DVARKEY_KEAVG )
+          case ( DVARKEY_PEAVG )
+          case ( DVARKEY_IEAVG )
           case Default
              call MessageNotify('E', module_name, &
                   & "The name of specified diagnostic variable '%c'is invalid.", c1=trim(diagVarsName(varID)) )
@@ -97,10 +110,11 @@ contains
     ! 実行文; Executable statements
     !
 
+    deallocate( xy_totDepth ) 
     if( allocated(xyz_Div) ) deallocate(xyz_Div)
     if( allocated(xyz_Vor) ) deallocate(xyz_Vor)
-    if( allocated(xyz_PressBaroc) ) deallocate(xyz_PressBaroc)
-    if( allocated(xyz_Press) ) deallocate(xyz_Press)
+    if( allocated(xyz_BarocPress) ) deallocate(xyz_BarocPress)
+    if( allocated(xyz_totPress) ) deallocate(xyz_totPress)
 
 
   end subroutine DiagVarSet_Final

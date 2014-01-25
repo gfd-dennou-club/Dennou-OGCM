@@ -119,17 +119,16 @@ contains
 
   end function diagnose_PressBaroc
 
-  function diagnose_GeoPot( xy_totDepth, xy_SurfHeight ) result(xyz_GeoPot)
+  function diagnose_GeoPot( xy_totDepth ) result(xyz_GeoPot)
 
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_SurfHeight(0:iMax-1,jMax)
     real(DP) :: xyz_GeoPot(0:iMax-1,jMax,0:kMax)
 
     integer :: k
 
     !$omp parallel do
     do k=1, kMax
-       xyz_GeoPot(:,:,k) = g_Sig(k)*xy_totDepth + xy_SurfHeight
+       xyz_GeoPot(:,:,k) = Grav*( g_Sig(k)*xy_totDepth )
     end do
 
   end function diagnose_GeoPot

@@ -105,12 +105,13 @@ contains
     call HistoryAutoPutAxis('lat', y_Lat*180/PI)
     call HistoryAutoPutAxis('sig', g_Sig)
 
+    
     call HistoryAutoAddVariable( &
-         varname='u', dims=(/'lon','lat','sig','t  '/), & 
+         varname=VARSET_KEY_U, dims=(/'lon','lat','sig','t  '/), & 
          longname='velocity(longitude) ', units='m/s')
 
     call HistoryAutoAddVariable( &                  
-         varname='v', dims=(/'lon','lat','sig','t  '/), & 
+         varname=VARSET_KEY_V, dims=(/'lon','lat','sig','t  '/), & 
          longname='velocity(latitude) ', units='m/s')
 
 
@@ -131,23 +132,23 @@ contains
          longname='vorcity', units='s-1')
 
     call HistoryAutoAddVariable( &                  
-         varname='Eta', dims=(/'lon','lat', 't  '/), & 
+         varname=VARSET_KEY_SurfHeight, dims=(/'lon','lat', 't  '/), & 
          longname='surface height ', units='m')
 
     call HistoryAutoAddVariable( &                  
-         varname='PTempEdd', dims=(/'lon','lat', 'sig', 't  '/), & 
+         varname=VARSET_KEY_PTEMPEDD, dims=(/'lon','lat', 'sig', 't  '/), & 
          longname='eddy component of potential temperature ', units='K')
 
     call HistoryAutoAddVariable( &                  
-         varname='SigDot', dims=(/'lon','lat', 'sig', 't  '/), & 
+         varname=VARSET_KEY_SIGDOT, dims=(/'lon','lat', 'sig', 't  '/), & 
          longname='vertical velocity in Sigma coordinate ', units='s-1')
 
     call HistoryAutoAddVariable( &                  
-         varname='SurfPress', dims=(/'lon','lat', 't  '/), & 
+         varname=VARSET_KEY_SURFPRESS, dims=(/'lon','lat', 't  '/), & 
          longname='surface(barotropic) pressure ', units='Pa')
 
     call HistoryAutoAddVariable( &                  
-         varname='BarocPress', dims=(/'lon','lat', 'sig', 't  '/), & 
+         varname=VARSET_KEY_BAROCPRESS, dims=(/'lon','lat', 'sig', 't  '/), & 
          longname='baroclinic pressure ', units='Pa')
 
   end subroutine DataFileSet_Init
@@ -218,10 +219,10 @@ contains
     xy_totDepth = xy_totDepthBasic + xy_SurfHeightN
 
     call MessageNotify("M", module_name, "Output data of some field at %d [sec] ..", i=(/ int(CurrentTime) /))
-    call HistoryAutoPut(CurrentTime, "u", xyz_UN)
-    call HistoryAutoPut(CurrentTime, "v", xyz_VN)
-    call HistoryAutoPut(CurrentTime, "Eta", xy_SurfHeightN)
-    call HistoryAutoPut(CurrentTime, "PTempEdd", xyz_PTempEddN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_U, xyz_UN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_V, xyz_VN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHEIGHT, xy_SurfHeightN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_PTEMPEDD, xyz_PTempEddN)
     
     xyz_CosLat = cos(xyz_Lat)
     wz_Vor = wz_AlphaOptr_xyz(xyz_VN*xyz_CosLat, -xyz_UN*xyz_CosLat) 
@@ -231,7 +232,7 @@ contains
     xyz_SigDot = Diagnose_SigDot( xy_totDepth, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xyz_wz(wz_Div) )
 
     xyz_PTemp = xyz_PTempEddN + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
-    xyz_GeoPot = Diagnose_GeoPot( xy_totDepth, xy_SurfHeightN ) 
+    xyz_GeoPot = Diagnose_GeoPot( xy_totDepth ) 
     call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
          & theta=xyz_PTemp, S=xyz_SaltN, p=-RefDens*xyz_GeoPot )     ! (in)
 
@@ -241,9 +242,9 @@ contains
     call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
     call HistoryAutoPut(CurrentTime, "Div", xyz_wz(wz_Div))
     call HistoryAutoPut(CurrentTime, "Vor", xyz_wz(wz_Vor))
-    call HistoryAutoPut(CurrentTime, "SurfPress", xy_SurfPress)
-    call HistoryAutoPut(CurrentTime, "SigDot", xyz_SigDot)
-    call HistoryAutoPut(CurrentTime, "BarocPress", xyz_PressBaroc)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFPRESS, xy_SurfPress)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SIGDOT, xyz_SigDot)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_BAROCPRESS, xyz_PressBaroc)
 
   end subroutine DataFileSet_OutputData
 

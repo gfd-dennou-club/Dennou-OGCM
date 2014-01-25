@@ -327,6 +327,9 @@ contains
     
     !
     !
+    use DiagnoseUtil_mod, only: &
+         & Diagnose_SigDot, Diagnose_PressBaroc, Diagnose_GeoPot
+
     use VariableSet_mod, only: &
          & xy_totDepthBasic, z_PTempBasic, xy_SurfPress, xyz_SigDot
 
@@ -350,15 +353,15 @@ contains
     !
 
     xy_totDepth = xy_totDepthBasic! + xy_SurfHeightN
-    xyz_SigDot  = diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div )
-    xyz_GeoPot  = diagnose_GeoPot( xy_totDepth, xy_SurfHeight )
+    xyz_SigDot  = Diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div )
+    xyz_GeoPot  = Diagnose_GeoPot( xy_totDepth )
 
     xyz_PTemp = xyz_PTempEdd + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
 
     call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
          & theta=xyz_PTemp, S=xyz_Salt, p=-RefDens*xyz_GeoPot )     ! (in)
 
-    xyz_PressEdd = diagnose_PressEdd( xy_totDepth, xyz_DensEdd )
+    xyz_PressEdd = Diagnose_PressBaroc( xy_totDepth, xyz_DensEdd )
 
     call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
          & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_PressEdd, xyz_GeoPot, xyz_SigDot)
@@ -411,78 +414,6 @@ contains
          & wz_PTempEdd, hDiffCoef)
 
   end subroutine calc_GovernEqDiffRHS
-
-  function diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div ) result(xyz_SigDot)
-
-
-    real(DP), intent(in) :: xy_totDepth(0:iMax-1, jMax)
-    real(DP), intent(in) :: xyz_Urf(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Vrf(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_SigDot(0:iMax-1,jMax,0:kMax)
-
-    integer :: k
-    real(DP) :: xyz_UrfHatSig(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_VrfHatSig(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_DivHatSig(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xy_UrfHat(0:iMax-1,jMax)
-    real(DP) :: xy_VrfHat(0:iMax-1,jMax)
-    real(DP) :: xy_DivHat(0:iMax-1,jMax)
-    real(DP) :: sigWeight
-    real(DP) :: xy_DtotDepthDmu(0:iMax-1,jMax)
-    real(DP) :: xy_DtotDepthDLambda(0:iMax-1,jMax)
-    real(DP) :: sig
-
-    xyz_UrfHatSig = xyz_IntSig_SigToTop_xyz(xyz_Urf)
-    xyz_VrfHatSig = xyz_IntSig_SigToTop_xyz(xyz_Vrf)
-    xyz_DivHatSig = xyz_IntSig_SigToTop_xyz(xyz_Div)
-    xy_UrfHat = xy_IntSig_BtmToTop_xyz(xyz_Urf)
-    xy_VrfHat = xy_IntSig_BtmToTop_xyz(xyz_Vrf)
-    xy_DivHat = xy_IntSig_BtmToTop_xyz(xyz_Div)
-
-    xy_DtotDepthDLambda = 0d0!xy_w(w_DivLambda_xy(xy_totDepth))
-    xy_DtotDepthDmu =0d0! xy_w(w_DivMu_xy(xy_totDepth))
-    
-    !$omp parallel do private(sig)
-    do k=0, kMax
-       sig = g_Sig(k)
-       xyz_SigDot(:,:,k) = &
-!!$            &   sig*( &
-!!$            &        (xy_UrfHat*xy_DtotDepthDLambda + xy_VrfHat*xy_DtotDepthDmu)/xy_totDepth &
-!!$            &     +  xy_DivHat )  &
-            & + xyz_DivHatSig(:,:,k) !&
-!!$            & + (xyz_UrfHatSig(:,:,k)*xy_DtotDepthDLambda + xyz_VrfHatSig(:,:,k)*xy_DtotDepthDmu)/xy_totDepth 
-    end do
-    
-    xyz_SigDot(:,:,kMax) = 0d0
-
-  end function diagnose_SigDot
-
-  function diagnose_PressEdd( xy_totDepth, xyz_DensEdd) result(xyz_PressEdd)
-
-    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_PressEdd(0:iMax-1,jMax,0:kMax)
-
-    xyz_PressEdd =  Grav*spread(xy_totDepth,3,kMax+1)*(xyz_IntSig_SigToTop_xyz(xyz_DensEdd))
-
-  end function diagnose_PressEdd
-
-  function diagnose_GeoPot( xy_totDepth, xy_SurfHeight ) result(xyz_GeoPot)
-
-    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_SurfHeight(0:iMax-1,jMax)
-    real(DP) :: xyz_GeoPot(0:iMax-1,jMax,0:kMax)
-
-    integer :: k
-
-    !$omp parallel do
-    do k=1, kMax
-       xyz_GeoPot(:,:,k) = g_Sig(k)*xy_totDepth + xy_SurfHeight
-    end do
-
-  end function diagnose_GeoPot
-
 
   !> @brief 
   !!
@@ -544,8 +475,8 @@ contains
     end if
 
     call apply_ZBoundaryCond(wt_PTempEdd, &
-         & 'D', 'D' )
-!         & 'N', 'N' )
+!!$         & 'D', 'D' )
+         & 'N', 'N' )
 
   end subroutine apply_boundaryConditions
 
