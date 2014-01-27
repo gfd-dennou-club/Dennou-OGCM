@@ -1,6 +1,7 @@
 program SpmlUtil_mod_test
   
   use dc_types
+  use dc_message
   use Constants_mod
   use GridSet_mod
   use SpmlUtil_mod
@@ -10,6 +11,10 @@ program SpmlUtil_mod_test
   implicit none
 
   character(*), parameter :: configNmlFile = "defaultConfig.nml"
+  integer :: nMode
+  integer :: lyrDivId
+  real(DP) :: lyrLen
+  real(DP) :: lyrLenRatio(6) = (/ 2d0, 1d0, 0.5d0, 0.25d0, 0.1d0, 0.05d0 /)
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -18,10 +23,28 @@ program SpmlUtil_mod_test
   call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet)
   call GridSet_construct()
 
+  call MessageNotify("M", "SpmlUtil_mod_test", "= WaveFunc")
+  do nMode=1, 5
+     call check_xy_IntSig_BtmToTop_xyz( &
+          & eval_func1_intBtmToTop, check_intfunc1_intBtmToTop, dble(nMode) )
+  end do
+  do nMode=1, 8
+     call check_xyz_IntSig_SigToTop_xyz( &
+          & eval_func1_intSigToTop, check_intfunc1_intSigToTop, dble(nMode), CPrintf("waveFunc_%d.dat",i=(/nMode/)) )
+  end do
 
-!  call check_xy_IntSig_BtmToTop_xyz
-!  call check_xyz_IntSig_SigToTop_xyz
-  call check_spectral_expand_limit
+  call MessageNotify("M", "SpmlUtil_mod_test", "= ExpFunc")
+  do lyrDivId=1, size(lyrLenRatio)
+     lyrLen = lyrLenRatio(lyrDivId)/dble(kMax)
+     call check_xy_IntSig_BtmToTop_xyz( &
+          & eval_func2_intBtmToTop, check_intfunc2_intBtmToTop, dble(lyrDivId) )
+  end do
+  do lyrDivId=1,size(lyrLenRatio)
+
+     lyrLen = lyrLenRatio(lyrDivId)/dble(kMax)
+     call check_xyz_IntSig_SigToTop_xyz( &
+          & eval_func2_intSigToTop, check_intfunc2_intSigToTop, dble(lyrDivId), CPrintf("expFunc_%d.dat",i=(/lyrDivId/)) )
+  end do
 
   call SpmlUtil_Final()
   call GridSet_Final() 
@@ -29,93 +52,159 @@ program SpmlUtil_mod_test
 
 contains
 
-  subroutine check_xy_IntSig_BtmToTop_xyz
-    real(DP) :: val(0:iMax-1,jMax,0:kMax)
-    real(DP) :: intVal(0:iMax-1,jMax)
+  !***************************************
+  !* type1 
+  !***************************************
 
-    integer :: k, m
-    real(DP) :: theta(0:kMax), l2norm
+  pure function eval_func1_intBtmToTop(sig) result(val)
+
+    real(DP), intent(in) :: sig
+    real(DP) :: val
+
+    val = cos(nMode*PI*(1d0 + sig))    
+  end function eval_func1_intBtmToTop
+  
+  pure function check_intfunc1_intBtmToTop() result(val)
+    real(DP) :: val
+    val = sin(nMode*PI)
+  end function check_intfunc1_intBtmToTop
+
+  pure function eval_func1_intSigToTop(sig) result(val)
+    real(DP), intent(in) :: sig
+    real(DP) :: val
+
+    val = cos(nMode*PI*(1d0 + sig))    
+  end function eval_func1_intSigToTop
+  
+  pure function check_intfunc1_intSigToTop(sig) result(val)
+    real(DP), intent(in) :: sig
+    real(DP) :: val
+    val = -sin(nMode*PI*(1d0 + sig))/(nMode*PI)
+  end function check_intfunc1_intSigToTop
+
+  !***************************************
+  !* type2 
+  !***************************************
+
+  pure function eval_func2_intBtmToTop(sig) result(val)
+
+    real(DP), intent(in) :: sig
+    real(DP) :: val
+    val = exp(sig/lyrLen) - exp(-(1d0+sig)/lyrLen)
+  end function eval_func2_intBtmToTop
+  
+  pure function check_intfunc2_intBtmToTop() result(val)
+    real(DP) :: val
+    val = 0d0
+  end function check_intfunc2_intBtmToTop
+
+  pure function eval_func2_intSigToTop(sig) result(val)
+    real(DP), intent(in) :: sig
+    real(DP) :: val
+
+    val = exp(sig/lyrLen) - exp(-(1d0+sig)/lyrLen)
+  end function eval_func2_intSigToTop
+  
+  pure function check_intfunc2_intSigToTop(sig) result(val)
+    real(DP), intent(in) :: sig
+    real(DP) :: val
+
+    val = lyrLen*(1d0 - exp(sig/lyrLen) + exp(-1d0/lyrLen) - exp(-(1d0+sig)/lyrLen) )
+  end function check_intfunc2_intSigToTop
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
+
+  subroutine check_xy_IntSig_BtmToTop_xyz(eval_func, check_intfunc, param)
+
+    interface
+       pure function eval_func(sig) result(val)
+         use dc_types
+         real(DP), intent(in) :: sig
+         real(DP) :: val
+       end function eval_func
+       pure function check_intfunc() result(val)
+         use dc_types
+         real(DP) :: val
+       end function check_intfunc
+    end interface
+
+    real(DP), intent(in) :: param
+
+    real(DP) :: val(0:iMax-1,jMax,0:kMax)
+    integer :: k
+    real(DP) :: l2norm
     character(STRING) :: message
-    real(DP) :: checkVal
+    real(DP) :: intVal(0:iMax-1,jMax), ansVal
  
-    theta = PI*(1d0 + g_Sig)
-    do m=1,5
-       do k=0, kMax
-          val(:,:,k) = cos(m*theta(k))
-       end do
-       intVal = xy_IntSig_BtmToTop_xyz(val)
-       checkVal = sin(m*PI)
-       l2norm = abs(sum(intVal - checkVal))/dble(iMax*jMax)
-       message=CPrintf("xy_IntSig_BtmToTop_xyz: mode num=%d: l2norm=%f", i=(/m*2/), d=(/ l2norm /))
-       call  AssertLessThan(message=message, &
-            & answer=5d-10, check=l2norm)
+    do k=0, kMax
+       val(:,:,k) = eval_func(g_Sig(k))
     end do
-    
+    intVal = xy_IntSig_BtmToTop_xyz(val)
+    l2norm = abs(intVal(1,1) - check_intfunc())
+    message=CPrintf("xy_IntSig_BtmToTop_xyz: param=%f, l2norm=%f", d=(/ param, l2norm /))
+    call  AssertLessThan(message=message, &
+         & answer=5d-10, check=l2norm)
 
   end subroutine check_xy_IntSig_BtmToTop_xyz
 
-  subroutine check_xyz_IntSig_SigToTop_xyz
+  subroutine check_xyz_IntSig_SigToTop_xyz(eval_func, check_intfunc, param, outputFileName)
+
+    interface
+       pure function eval_func(sig) result(val)
+         use dc_types
+         real(DP), intent(in) :: sig
+         real(DP) :: val
+       end function eval_func
+       pure function check_intfunc(sig) result(val)
+         use dc_types
+         real(DP), intent(in) :: sig
+         real(DP) :: val
+       end function check_intfunc
+    end interface
+    real(DP), intent(in) :: param
+    character(*), optional :: outputFileName
+
     real(DP) :: val(0:iMax-1,jMax,0:kMax)
     real(DP) :: intVal(0:iMax-1,jMax, 0:kMax)
     real(DP) :: checkVal(0:iMax-1,jMax, 0:kMax)
     integer :: k, m
     real(DP) :: theta(0:kMax), l2norm
     character(STRING) :: message
- 
+
     theta = PI*(1d0 + g_Sig)
-    do m=1,5
-       do k=0, kMax
-!!$          val(:,:,k) = cos(m*theta(k))
-!!$          checkVal(:,:,k) = -sin(m*theta(k))/(m*PI)
-          val(:,:,k) = sin(m*theta(k))
-          checkVal(:,:,k) = (cos(m*theta(k)) - cos(m*PI))/(m*PI)
-       end do
-       intVal = xyz_IntSig_SigToTop_xyz(val)
 
-       l2norm = abs(sum(intVal - checkVal))/dble(iMax*jMax*(kMax+1))       
-       message=CPrintf("xyz_IntSig_SigToTop_xyz: mode num %d: l2norm %f", i=(/m*2/), d=(/l2norm/))
-
-
-do k=0,kMax
-   write(*,*) "k=",k, ": theta=", theta(k), "val=", val(10,10,k), ": integral ",  intVal(10,10,k), checkVal(10,10,k)
-end do
-       call  AssertLessThan(message=message, answer=1d-10, check=l2norm)
+    do k=0, kMax
+       val(:,:,k) = eval_func(g_Sig(k))
+       checkVal(:,:,k) = check_intfunc(g_Sig(k))
     end do
+    intVal = xyz_IntSig_SigToTop_xyz(val)
+
+    l2norm = abs(sum(intVal - checkVal))/dble(iMax*jMax*(kMax+1))       
+    message=CPrintf("xyz_IntSig_SigToTop_xyz: param %f, l2norm %f", d=(/param, l2norm/))
+
+
+!!$do k=0,kMax
+!!$   write(*,*) "k=",k, ": theta=", theta(k), "val=", val(10,10,k), ": integral ",  intVal(10,10,k), checkVal(10,10,k)
+!!$end do
+
+    !
+    
+    if (present(outputFileName)) then
+       call MessageNotify("M", "SpmlUtil_mod_test", "Output error data..")
+       open(10, file=trim(outputFileName), status="replace")
+       do k=0,kMax
+          write(10,'(5E15.5e4)') g_Sig(k), eval_func(g_Sig(k)), intVal(1,1,k), checkVal(1,1,k), & 
+               & sqrt( (intVal(1,1,k) - checkVal(1,1,k))**2 )
+       end do
+       close(10)
+    end if
+
+    !
+    call  AssertLessThan(message=message, answer=1d-0, check=l2norm)
+
 
   end subroutine check_xyz_IntSig_SigToTop_xyz
-
-  subroutine check_spectral_expand_limit
-
-    use at_module
-
-    real(DP) :: xyz_oriField(0:iMax-1,jMax,0:kMax), xyz_field(0:iMax-1,jMax,0:kMax)    
-    real(DP) :: xyz_intSig(0:iMax-1,jMax,0:kMax), z_intSig_ana(0:kmax)
-    real(DP) :: lb   !< Nondimensional characteristic length of boundary layer
-    integer :: i
-
-    do i=5,1,-1
-
-    
-       lb = abs( g_Sig(i) )
-       xyz_oriField(1,1,:) = exp( g_Sig/lb ) - exp(- (g_Sig + 1d0)/lb )
-!!$       xyz_orifield = 0d0
-!!$       xyz_orifield(:,:,0) = 1d0; xyz_orifield(:,:,kMax)=-1d0
-       write(*,*) "=========="
-       write(*,*) "* blyrLength:", lb
-       write(*,*) xyz_orifield(1,1,:)
-!!$       write(*,*) "* Difference between z_field and one after g_t(t_g(z_field))"
-!!$       xyz_field(1,1,:) = g_t(t_g(xyz_oriField(1,1,:)))
-!!$       write(*,*) xyz_field(1,1,:)
-       write(*,*) "Integ:", sum(g_x_weight*xyz_orifield(1,1,:))
-       xyz_intSig = xyz_IntSig_SigToTop_xyz(xyz_orifield)
-       z_intSig_ana = lb*((1d0+exp(-1d0/lb))-(exp(g_Sig/lb)+exp(-(g_Sig+1d0)/lb)))
-!!$       write(*,*) "IntSig", xyz_intSig(1,1,:)
-       write(*,*) "IntSig RMS Error", &
-            & sqrt( sum( ( xyz_intSig(1,1,:) -  z_intSig_ana )**2 ) )/kMax
-    end do
-  
-write(*,*) "g_Sig:", g_Sig
-
-  end subroutine check_spectral_expand_limit
 
 end program SpmlUtil_mod_test

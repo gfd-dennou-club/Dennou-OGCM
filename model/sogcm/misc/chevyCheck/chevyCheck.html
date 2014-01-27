@@ -3,8 +3,8 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
-<title>海水の状態方程式(Jacket and McDougall, 1995)の可視化</title>
-<!-- 2014-01-13 月 20:18 -->
+<title>風成循環計算における ChevyShev 多項式展開についての考察</title>
+<!-- 2014-01-23 木 15:11 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="KAWAI Yuta" />
@@ -133,148 +133,74 @@ for the JavaScript code in this tag.
  }
 /*]]>*///-->
 </script>
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
-<script type="text/javascript"> </script>
-<script type="text/x-mathjax-config">
-   MathJax.Hub.Config({
-    TeX: { equationNumbers: { autoNumber: "AMS" } }
-    });
-</script>
 </head>
 <body>
 <div id="content">
-<h1 class="title">海水の状態方程式(Jacket and McDougall, 1995)の可視化</h1>
+<h1 class="title">風成循環計算における ChevyShev 多項式展開についての考察</h1>
 <div id="table-of-contents">
 <h2>&#30446;&#27425;</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#sec-1">1. 図</a>
+<li><a href="#sec-1">1. はじめに</a></li>
+<li><a href="#sec-2">2. 検証方法について</a>
 <ul>
-<li><a href="#sec-1-1">1.1. 圧力固定(横軸: 塩分, 縦軸: 温位)</a></li>
-<li><a href="#sec-1-2">1.2. 温位固定(横軸: 圧力, 縦軸: 塩分)</a></li>
-<li><a href="#sec-1-3">1.3. 塩分固定(横軸: 圧力, 縦軸: 温位)</a></li>
+<li><a href="#sec-2-1">2.1. ケース 1</a></li>
+<li><a href="#sec-2-2">2.2. ケース 2</a></li>
 </ul>
 </li>
-<li><a href="#sec-2">2. 補足</a>
-<ul>
-<li><a href="#sec-2-1">2.1. 塩分の定義について</a></li>
-</ul>
-</li>
+<li><a href="#sec-3">3. 検証結果</a></li>
+<li><a href="#sec-4">4. 参考文献, 参考リンク</a></li>
 </ul>
 </div>
 </div>
-
 
 <div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1"><span class="section-number-2">1</span> 図</h2>
+<h2 id="sec-1"><span class="section-number-2">1</span> はじめに</h2>
 <div class="outline-text-2" id="text-1">
 <p>
-以下のグラフは, JM95 の状態方程式から求めた密度の偏差(実際の密度 - 1000 kg m<sup>-3</sup>) \(\sigma\) を示している. 
+現在開発中の海洋モデルの定式化では, 物理場の鉛直方向の変化は Chevychev 多項式に基づいて関数展開される.  
+しかし, 風成循環のテスト計算で見られるように, 
+鉛直格子点数が足りず海面や海底近傍の境界層を解像できない場合には, 
+明瞭なギブス振動が内部領域の物理場に現れる. 
 </p>
-</div>
 
-<div id="outline-container-sec-1-1" class="outline-3">
-<h3 id="sec-1-1"><span class="section-number-3">1.1</span> 圧力固定(横軸: 塩分, 縦軸: 温位)</h3>
-<div class="outline-text-3" id="text-1-1">
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;1:</span> 左から p=0,1000,2000,3000,4000,5000 [dbar].</caption>
+<p>
+ギブス振動の問題に対する対処は, 安直には鉛直格子点数を増やせばよい. 
+実際, 境界層を十分に解像できる鉛直格子点数の計算では, ギブス振動は消失する. 
+注意すべくは, 高解像度計算と標準解像度計算の結果を比較すると, 
+循環の強度は鉛直解像度に依存してもちろん変化するが, 循環パターンには大きな影響をもたらさないことである. 
+したがって, 風成循環の計算では, このギブス振動の問題が最低次の循環パターンに重大な影響を与えないことが推測される. 
+</p>
 
-<colgroup>
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-</colgroup>
-<tbody>
-<tr>
-<td class="left"><a href="./fig/dens_press_0.png"><img src="./fig/dens_press_0_thumb.png" alt="dens_press_0_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_press_100.png"><img src="./fig/dens_press_100_thumb.png" alt="dens_press_100_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_press_200.png"><img src="./fig/dens_press_200_thumb.png" alt="dens_press_200_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_press_300.png"><img src="./fig/dens_press_300_thumb.png" alt="dens_press_300_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_press_400.png"><img src="./fig/dens_press_400_thumb.png" alt="dens_press_400_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_press_500.png"><img src="./fig/dens_press_500_thumb.png" alt="dens_press_500_thumb.png" /></a></td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div id="outline-container-sec-1-2" class="outline-3">
-<h3 id="sec-1-2"><span class="section-number-3">1.2</span> 温位固定(横軸: 圧力, 縦軸: 塩分)</h3>
-<div class="outline-text-3" id="text-1-2">
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;2:</span> 左から &theta;=0,10,20,30,40 [℃]</caption>
-
-<colgroup>
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-</colgroup>
-<tbody>
-<tr>
-<td class="left"><a href="./fig/dens_ptemp_0.png"><img src="./fig/dens_ptemp_0_thumb.png" alt="dens_ptemp_0_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_ptemp_10.png"><img src="./fig/dens_ptemp_10_thumb.png" alt="dens_ptemp_10_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_ptemp_20.png"><img src="./fig/dens_ptemp_20_thumb.png" alt="dens_ptemp_20_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_ptemp_30.png"><img src="./fig/dens_ptemp_30_thumb.png" alt="dens_ptemp_30_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_ptemp_40.png"><img src="./fig/dens_ptemp_40_thumb.png" alt="dens_ptemp_40_thumb.png" /></a></td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div id="outline-container-sec-1-3" class="outline-3">
-<h3 id="sec-1-3"><span class="section-number-3">1.3</span> 塩分固定(横軸: 圧力, 縦軸: 温位)</h3>
-<div class="outline-text-3" id="text-1-3">
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;3:</span> 左から S=0,10,20,30,40 [psu]</caption>
-
-<colgroup>
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-
-<col  class="left" />
-</colgroup>
-<tbody>
-<tr>
-<td class="left"><a href="./fig/dens_sal_0.png"><img src="./fig/dens_sal_0_thumb.png" alt="dens_sal_0_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_sal_10.png"><img src="./fig/dens_sal_10_thumb.png" alt="dens_sal_10_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_sal_20.png"><img src="./fig/dens_sal_20_thumb.png" alt="dens_sal_20_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_sal_30.png"><img src="./fig/dens_sal_30_thumb.png" alt="dens_sal_30_thumb.png" /></a></td>
-<td class="left"><a href="./fig/dens_sal_40.png"><img src="./fig/dens_sal_40_thumb.png" alt="dens_sal_40_thumb.png" /></a></td>
-</tr>
-</tbody>
-</table>
-</div>
+<p>
+しかしながら, 物理過程の導入や(場が急激に鉛直方向に変化する)他の物理現象の計算のために, 
+このギブス振動が発生する条件やその特性について考察することは有用だと思われるので, 
+以下にまとめることにする. 
+</p>
 </div>
 </div>
 <div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2"><span class="section-number-2">2</span> 補足</h2>
+<h2 id="sec-2"><span class="section-number-2">2</span> 検証方法について</h2>
 <div class="outline-text-2" id="text-2">
 </div><div id="outline-container-sec-2-1" class="outline-3">
-<h3 id="sec-2-1"><span class="section-number-3">2.1</span> 塩分の定義について</h3>
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> ケース 1</h3>
 </div>
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> ケース 2</h3>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> 検証結果</h2>
+</div>
+
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> 参考文献, 参考リンク</h2>
 </div>
 </div>
 <div id="postamble" class="status">
 <p class="author">&#33879;&#32773;: KAWAI Yuta</p>
-<p class="date">Created: 2014-01-13 月 20:18</p>
+<p class="date">Created: 2014-01-23 木 15:11</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
