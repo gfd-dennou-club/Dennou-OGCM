@@ -69,6 +69,7 @@ program ogcm_main
   call InitCond_Set(Exp_SetInitCond)
   call RestartDataFileSet_Input()
 
+  call DataFileSet_OutputBasicData()
   call DataFileSet_OutputData(datFile)
 
   call InitCond_Final()

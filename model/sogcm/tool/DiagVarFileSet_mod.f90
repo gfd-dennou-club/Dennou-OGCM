@@ -17,8 +17,9 @@ module DiagVarFileSet_mod
        & MessageNotify
 
   use gtool_historyauto
-  use VariableSet_mod
 
+  use VariableSet_mod
+  use DiagVarSet_mod
   
   ! 宣言文; Declareration statements
   !
@@ -107,7 +108,7 @@ contains
          longname='velocity potential ', units='m2/s')
 
     call HistoryAutoAddVariable( &
-         varname='Div', dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_DIV, dims=(/'lon','lat','sig','t  '/), & 
          longname='divergence ', units='s-1')
 
     call HistoryAutoAddVariable( &
@@ -115,30 +116,28 @@ contains
          longname='stream function', units='m2/s')
 
     call HistoryAutoAddVariable( &
-         varname='Vor', dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_VOR, dims=(/'lon','lat','sig','t  '/), & 
          longname='vorcity', units='s-1')
 
     call HistoryAutoAddVariable( &
-         varname='Press', dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_TOTPRESS, dims=(/'lon','lat','sig','t  '/), & 
          longname='pressure deviation from RefDens*Grav*z', units='Pa')
 
     call HistoryAutoAddVariable( &
-         varname='TEnAvg', dims=(/'t  '/), & 
+         varname=DVARKEY_TEAVG, dims=(/'t  '/), & 
          longname='global mean of total energy', units='J*m-3')
 
     call HistoryAutoAddVariable( &
-         varname='KEnAvg', dims=(/'t  '/), & 
+         varname=DVARKEY_KEAVG, dims=(/'t  '/), & 
          longname='global mean of kinetic energy', units='J*m-3')
 
     call HistoryAutoAddVariable( &
-         varname='PEnAvg', dims=(/'t  '/), & 
+         varname=DVARKEY_PEAVG, dims=(/'t  '/), & 
          longname='global mean of potential energy', units='J*m-3')
 
     call HistoryAutoAddVariable( &
-         varname='IEnAvg', dims=(/'t  '/), & 
+         varname=DVARKEY_IEAVG, dims=(/'t  '/), & 
          longname='global mean of internal energy', units='J*m-3')
-
-
 
     call HistoryAutoAllVarFix()
 

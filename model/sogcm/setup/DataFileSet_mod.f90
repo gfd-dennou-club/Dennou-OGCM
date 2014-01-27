@@ -11,7 +11,7 @@ module DataFileSet_mod
   ! モジュール引用; Use statements
   !
   use dc_types, only: &
-       & DP, STRING
+       & DP, TOKEN, STRING
 
   use dc_message, only: &
        & MessageNotify
@@ -38,7 +38,8 @@ module DataFileSet_mod
   end type DataFileSet
 
   public :: DataFileSet_Init, DataFileSet_Final
-  public :: DataFileSet_OutputData
+  public :: DataFileSet_OutputData, DataFileSet_OutputBasicData
+
 
   ! 非公開手続き
   ! Private procedure
@@ -59,17 +60,11 @@ contains
 
     ! モジュール引用; Use statement
     !
-
-    use Constants_mod, only: RPlanet, PI
-
     use TemporalIntegSet_mod, only: &
          & Nl, RestartTime, IntegTime, EndTime
 
     use GridSet_mod, only: &
-         & iMax, jMax, kMax, &
-         & x_Lon, y_Lat
-
-    use SpmlUtil_mod, only: g_Sig
+         & iMax, jMax, kMax
 
     ! 宣言文; Declaration statement
     !
@@ -81,13 +76,15 @@ contains
     !
     character(STRING) :: outputFileName
 
-
     ! 実行文; Executable statements
     !
 
     !
     call read_nmlData(this, configNmlFileName, outputFileName)
     
+    !
+    !
+
     !
     call HistoryAutoCreate( &                            ! ヒストリー作成
          & title='OGCM Output',             &
@@ -99,57 +96,9 @@ contains
          & origin=RestartTime, interval=this%outputIntrval, terminus=EndTime,          &
          & namelist_filename=configNmlFileName )    
 
-    call HistoryAutoPutAxis('lon', x_Lon*180/PI)
-    call HistoryAutoAddAttr('lon', 'topology', 'circular')
-    call HistoryAutoAddAttr('lon', 'modulo', 360.0)
-    call HistoryAutoPutAxis('lat', y_Lat*180/PI)
-    call HistoryAutoPutAxis('sig', g_Sig)
-
-    
-    call HistoryAutoAddVariable( &
-         varname=VARSET_KEY_U, dims=(/'lon','lat','sig','t  '/), & 
-         longname='velocity(longitude) ', units='m/s')
-
-    call HistoryAutoAddVariable( &                  
-         varname=VARSET_KEY_V, dims=(/'lon','lat','sig','t  '/), & 
-         longname='velocity(latitude) ', units='m/s')
-
-
-    call HistoryAutoAddVariable( &
-         varname='Chi', dims=(/'lon','lat','sig','t  '/), & 
-         longname='velocity potential ', units='m2/s')
-
-    call HistoryAutoAddVariable( &
-         varname='Div', dims=(/'lon','lat','sig','t  '/), & 
-         longname='divergence ', units='s-1')
-
-    call HistoryAutoAddVariable( &
-         varname='Psi', dims=(/'lon','lat','sig','t  '/), & 
-         longname='stream function', units='m2/s')
-
-    call HistoryAutoAddVariable( &
-         varname='Vor', dims=(/'lon','lat','sig','t  '/), & 
-         longname='vorcity', units='s-1')
-
-    call HistoryAutoAddVariable( &                  
-         varname=VARSET_KEY_SurfHeight, dims=(/'lon','lat', 't  '/), & 
-         longname='surface height ', units='m')
-
-    call HistoryAutoAddVariable( &                  
-         varname=VARSET_KEY_PTEMPEDD, dims=(/'lon','lat', 'sig', 't  '/), & 
-         longname='eddy component of potential temperature ', units='K')
-
-    call HistoryAutoAddVariable( &                  
-         varname=VARSET_KEY_SIGDOT, dims=(/'lon','lat', 'sig', 't  '/), & 
-         longname='vertical velocity in Sigma coordinate ', units='s-1')
-
-    call HistoryAutoAddVariable( &                  
-         varname=VARSET_KEY_SURFPRESS, dims=(/'lon','lat', 't  '/), & 
-         longname='surface(barotropic) pressure ', units='Pa')
-
-    call HistoryAutoAddVariable( &                  
-         varname=VARSET_KEY_BAROCPRESS, dims=(/'lon','lat', 'sig', 't  '/), & 
-         longname='baroclinic pressure ', units='Pa')
+    ! Regist the axises and variables which will be output. 
+    call regist_OutputAxisAndVar()
+ 
 
   end subroutine DataFileSet_Init
 
@@ -248,8 +197,135 @@ contains
 
   end subroutine DataFileSet_OutputData
 
+  !> @brief 
+  !!
+  !!
+  subroutine DataFileSet_OutputBasicData()
+
+    ! モジュール引用; Use statement
+    !
+    use TemporalIntegSet_mod, only: &
+         & CurrentTime
+    
+    ! 宣言文; Declaration statement
+    !
+    
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+    
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_TOTDEPTHBASIC, xy_totDepthBasic )
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_PTEMPBASIC, z_PTempBasic )
+
+  end subroutine DataFileSet_OutputBasicData
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+
+  !> @brief 
+  !!
+  !!
+  subroutine regist_OutputAxisAndVar()
+
+    ! モジュール引用;
+    ! Use statements
+    use Constants_mod, only: PI
+
+    use GridSet_mod, only: &
+         & x_Lon, y_Lat
+
+    use SpmlUtil_mod, only: g_Sig
+    
+    ! 宣言文; Declaration statement
+    !
+    
+    
+    ! 局所変数
+    ! Local variables
+    !
+    character(TOKEN) :: lonName
+    character(TOKEN) :: latName
+    character(TOKEN) :: sigName
+    character(TOKEN) :: timeName
+
+    character(TOKEN) :: dims_Z(1), dims_XY(2), dims_ZT(2), dims_XYT(3), dims_XYZT(4)
+    
+    ! 実行文; Executable statement
+    !
+ 
+    ! Regist coordinates
+    !
+    lonName = 'lon'; latName='lat'; sigName='sig'; timeName='t'
+
+    call HistoryAutoPutAxis(lonName, x_Lon*180/PI)
+    call HistoryAutoAddAttr(lonName, 'topology', 'circular')
+    call HistoryAutoAddAttr(lonName, 'modulo', 360.0)
+    call HistoryAutoPutAxis(latName, y_Lat*180/PI)
+    call HistoryAutoPutAxis(sigName, g_Sig)
+
+    !
+    !
+    dims_Z = (/ sigName /)
+    dims_XY = (/ lonName, latName /)
+    dims_ZT = (/ sigName, timeName /)
+    dims_XYT = (/ lonName, latName, timeName /)
+    dims_XYZT = (/ lonName, latName, sigName, timeName /)
+
+    ! Regist prognostic variables
+    !
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_U, &
+         & dims=dims_XYZT, longname='velocity(longitude) ', units='m/s')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_V, &
+         & dims=dims_XYZT, longname='velocity(latitude) ', units='m/s')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SURFHEIGHT, &
+         & dims=dims_XYT, longname='surface height ', units='m')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_PTEMPEDD, &
+         & dims=dims_XYZT, longname='eddy component of potential temperature ', units='K')
+
+    ! Regist diagnostic variables
+    !
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SIGDOT, &
+         & dims=dims_XYZT, longname='vertical velocity in Sigma coordinate ', units='s-1')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SURFPRESS, &
+         & dims=dims_XYT, longname='surface(barotropic) pressure ', units='Pa')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_BAROCPRESS, &
+         & dims=dims_XYZT, longname='baroclinic pressure ', units='Pa')
+
+    ! Regist accessory variables
+    !
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_TOTDEPTHBASIC, &
+         & dims=dims_XY, longname='basic state of total depth', units='m')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_PTEMPBASIC, &
+         & dims=dims_Z, longname='basic state of potential temperature', units='K')
+
+    call HistoryAutoAddVariable( varname='Chi', &
+         & dims=dims_XYZT, longname='velocity potential ', units='m2/s')
+
+    call HistoryAutoAddVariable( varname='Div', &
+         & dims=dims_XYZT, longname='divergence ', units='s-1')
+
+    call HistoryAutoAddVariable( varname='Psi', &
+         & dims=dims_XYZT, longname='stream function', units='m2/s')
+
+    call HistoryAutoAddVariable( varname='Vor', &
+         & dims=dims_XYZT, longname='vorcity', units='s-1')
+   
+  end subroutine regist_OutputAxisAndVar
+
 
   subroutine read_nmlData( this, configNmlFileName, &
        & outputFileName )

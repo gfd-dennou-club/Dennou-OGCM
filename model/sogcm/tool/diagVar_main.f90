@@ -392,7 +392,7 @@ contains
 
     use DiagVarSet_mod, only: &
          & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_TotPress, &
-         & xyz_DensEdd, xy_totDepth
+         & xyz_DensEdd!, xy_totDepth
 
     ! ¿Î∏¿ ∏; Declaration statement
     !
@@ -403,7 +403,7 @@ contains
     integer :: varID
     character(STRING) :: rangeStr
     real(DP) :: CurrentTime
-    real(DP) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xy_totDepth(0:iMax-1,jMax), xyz_PTemp(0:iMax-1,jMax,0:kMax)
     character(*), parameter :: NCEXT =".nc"
     integer :: k
 
@@ -413,28 +413,35 @@ contains
     CurrentTime = DCCalConvertByUnit(CurrentTimeSec, 'sec', ogcm_gthsInfo%intUnit)
     rangeStr = CPrintf('t=%f', d=(/ currentTime /))
 
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_U // NCEXT, &
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_U) // NCEXT, &
          & VARSET_KEY_U, xyz_UN, range=rangeStr )
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_V // NCEXT, &
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_V) // NCEXT, &
          & VARSET_KEY_V, xyz_VN, range=rangeStr )
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_SURFPRESS // NCEXT, &
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SURFPRESS) // NCEXT, &
          & VARSET_KEY_SURFPRESS, xy_SurfPress, range=rangeStr )
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_BAROCPRESS // NCEXT, &
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_BAROCPRESS) // NCEXT, &
          & VARSET_KEY_BAROCPRESS, xyz_BarocPress, range=rangeStr )
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_PTEMPEDD // NCEXT, &
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPEDD) // NCEXT, &
          & VARSET_KEY_PTEMPEDD, xyz_PTempEddN, range=rangeStr )
 
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // VARSET_KEY_PTEMPBASIC // NCEXT, &
-         & VARSET_KEY_PTEMPBASIC, z_PTempBasic, range=rangeStr )
-!!$    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "totDepthBasic.nc", &
-!!$         & 'totDepthBasic', xy_totDepthBasic, range=rangeStr )
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPBASIC) // NCEXT, &
+         & VARSET_KEY_PTEMPBASIC, z_PTempBasic )
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_TOTDEPTHBASIC) // NCEXT, &
+         & VARSET_KEY_TOTDEPTHBASIC, xy_totDepthBasic )
+
 !!$    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "SurfHeight.nc", &
 !!$         & 'SurfHeight', xy_SurfHeightN, range=rangeStr )
 
     xyz_SaltN = 0d0
-    xy_totDepth = 5.2d03 !xy_SurfHeightN + xy_totDepthBasic
+    xy_totDepth = xy_totDepthBasic  !+ xy_SurfHeightN
 
     forAll(k=0:kMax) xyz_PTemp(:,:,k) = z_PTempBasic(k) + xyz_PTempEddN(:,:,k)
+
     xyz_totPress = eval_totPress(xy_SurfPress, xyz_BarocPress)
     xyz_DensEdd = eval_DensEdd(xyz_PTemp, xyz_SaltN, xyz_totPress)
 
@@ -453,7 +460,7 @@ contains
                   & varScalar=eval_kineticEnergyAvg(xyz_UN, xyz_VN) )
           case (DVARKEY_PEAVG)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PEAVG, &
-                  & varScalar=eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth) )
+                  & varScalar= eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth) )
 
        end select
     end do

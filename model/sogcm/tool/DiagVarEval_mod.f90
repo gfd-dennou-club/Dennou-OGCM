@@ -214,14 +214,13 @@ contains
     ! 局所変数
     ! Local variables
     !
-    
+    real(DP) :: temp(0:iMax-1,jMax,0:kMax)
     ! 実行文; Executable statement
     !
-    
-    PEAvg = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
-                      xyz_DensEdd * Diagnose_GeoPot(xy_totDepth) &
-            & ))
 
+    PEAvg = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
+                    xyz_DensEdd*Diagnose_GeoPot(xy_totDepth) &
+            & ))
 
   end function eval_potentialEnergyAvg
 

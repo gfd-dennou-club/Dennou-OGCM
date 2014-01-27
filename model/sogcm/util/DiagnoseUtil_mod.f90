@@ -127,7 +127,7 @@ contains
     integer :: k
 
     !$omp parallel do
-    do k=1, kMax
+    do k=0, kMax
        xyz_GeoPot(:,:,k) = Grav*( g_Sig(k)*xy_totDepth )
     end do
 
