@@ -21,6 +21,7 @@ bin_PROGRAMS =
 
 noinst_LTLIBRARIES= libDSOGCMUtil.la 
 nodist_libDSOGCMUtil_la_SOURCES= \
+	at_module_omp.f90 \
 	SpmlUtil_mod.f90 \
 	DiagnoseUtil_mod.f90 \
 	EqState_Linear_mod.f90 \

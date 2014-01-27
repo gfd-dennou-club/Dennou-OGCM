@@ -157,11 +157,6 @@ contains
          & xyz_SigDot, z_PTempBasic
     !
 
-    use at_module, only: &
-         & at_BoundariesGrid_NN, &
-         & at_BoundariesGrid_DD, &
-         & at_BoundariesGrid_ND
-    
     ! 宣言文; Declaration statement
     !
     integer, intent(in) :: timeIntMode
@@ -366,7 +361,7 @@ contains
     call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
          & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_PressEdd, xyz_GeoPot, xyz_SigDot)
 
-    call calc_TracerEqInvisRHS(wz_PTempRHS, &
+    Call calc_TracerEqInvisRHS(wz_PTempRHS, &
          & xyz_PTemp, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
 
 !!$    call calc_TracerEqInvisRHS(wz_SaltRHS, &

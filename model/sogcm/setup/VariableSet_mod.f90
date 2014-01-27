@@ -176,11 +176,17 @@ contains
     ! 実行文; Executable statement
     !
 
+    !$omp parallel
+    !$omp workshare
+
     xyz_UB = xyz_UN; xyz_UN = xyz_UA; xyz_UA = 0d0
     xyz_VB = xyz_VN; xyz_VN = xyz_VA; xyz_VA = 0d0
     xyz_PTempEddB = xyz_PTempEddN; xyz_PTempEddN = xyz_PTempEddA; xyz_PTempEddA = 0d0
     xyz_SaltB = xyz_SaltN; xyz_SaltN = xyz_SaltA; xyz_SaltA = 0d0
     xy_SurfHeightB = xy_SurfHeightN; xy_SurfHeightN = xy_SurfHeightA; xy_SurfHeightA = 0d0
+
+    !$omp end workshare
+    !$omp end parallel
 
   end subroutine VariableSet_AdvanceTStep
 

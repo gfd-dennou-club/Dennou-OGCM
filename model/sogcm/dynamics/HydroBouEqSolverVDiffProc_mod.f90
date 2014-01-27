@@ -196,8 +196,9 @@ contains
     
     !
     !
-    use at_module
     use lumatrix
+    use at_module_omp
+    use omp_lib
 
     ! 宣言文; Declaration statement
     !
@@ -214,6 +215,7 @@ contains
     real(DP) :: tg_data(0:tMax,0:kMax), dwork_tg_data(0:tMax,0:kMax)
     real(DP) :: tt_I(0:tMax,0:tMax)
     real(DP) :: Depth(iMax*jMax)
+
 
     ! 実行文; Executable statement
     !
@@ -232,25 +234,34 @@ contains
 
     dwork_tg_data = ag_at( at_Dx_at(at_Dx_at(tt_I)) )
     do k=1,kMax-1
+       !$omp parallel workshare
        forAll(t=0:tMax) &
             & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*Av/Depth**2 * dwork_tg_data(t,k)
+       !$omp end parallel workshare
     end do
 
     dwork_tg_data = ag_at( at_Dx_at(tt_I) )
     if(BCKindUpper == 'N') then
+       !$omp parallel workshare
        forall(t=0:tMax) vDiffProcMat(:,0,t) = dwork_tg_data(t,0)/Depth
+       !$omp end parallel workshare
     else
+       !$omp parallel workshare
        forall(t=0:tMax) vDiffProcMat(:,0,t) = tg_data(t,0)
+       !$omp end parallel workshare
     end if
 
     if(BCKindBottom == 'N') then
+       !$omp parallel workshare
        forall(t=0:tMax) vDiffProcMat(:,kMax,t) = dwork_tg_data(t,kMax)/Depth
+       !$omp end parallel workshare
     else
+       !$omp parallel workshare
        forall(t=0:tMax) vDiffProcMat(:,kMax,t) = tg_data(t,kMax)
+       !$omp end parallel workshare
     end if
 
     call ludecomp(vDiffProcMat, vDiffProcMatKp)
- 
   end subroutine construct_vDiffProcMat
 
 end module HydroBouEqSolverVDiffProc_mod

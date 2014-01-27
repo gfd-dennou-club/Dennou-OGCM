@@ -106,10 +106,12 @@ contains
 
     ! 実行文; Executable statement
     !
-    
+
+    !$omp parallel workshare
     xyz_KinEngy = (xyz_Urf**2 + xyz_Vrf**2)/(2d0*cos(xyz_Lat)**2)
     xyz_AbsVor = xyz_Vor + 2d0*Omega*sin(xyz_Lat)
     xyz_GeoPotGradCoef = xyz_DensEdd/(RefDens*RPlanet)
+    !$omp end parallel workshare
 
     wz_GeoPot = wz_xyz(xyz_GeoPot)
     wt_Urf = wt_xyz(xyz_Urf)
@@ -272,6 +274,7 @@ contains
 !!$write(*,'(3(1x,e12.5))') xy_Correct(1,16), xy_RHSDivSig(1,16), xy_DivSig(1,16)/dt
 !!$write(*,*) '-----'
 
+    !$omp parallel do
     do k=0,kMax
        wz_RHSDivEqN(:,k) = wz_RHSDivEqN(:,k) + w_CorrectTerm
     end do

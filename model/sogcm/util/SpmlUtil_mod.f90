@@ -16,15 +16,17 @@ module SpmlUtil_mod
        & MessageNotify
 
   use wa_module
+!!$  use wa_module_sjpack
 
 !!$  use wa_module, only: &
 !!$       & wz_DivLambda_xyz => wa_DivLambda_xya, &
 !!$       & wz_DivMu_xyz => wa_DivMu_xya
 
-  use at_module, only: &
+  use at_module_omp, only: &
        & at_Initial, &
        & g_Sig => g_X, g_Sig_WEIGHT => g_X_WEIGHT, &
-       & at_az => at_ag, az_at => ag_at, &
+       & at_az => at_ag, & 
+       & az_at => ag_at, &
        & t_DSig_t => t_Dx_t, at_DSig_at => at_Dx_at, &
        & at_BoundariesGrid_NN, at_BoundariesGrid_DD, &
        & at_BoundariesGrid_ND, at_BoundariesGrid_DN
@@ -41,10 +43,10 @@ module SpmlUtil_mod
   public :: SpmlUtil_Init, SpmlUtil_Final
   public :: isInitialzed
   public :: w_xy, xy_w
-  public :: wt_DSig_wt, t_DSig_t, az_at, at_az
+  public :: wt_DSig_wt, t_DSig_t
   public :: g_Sig
   public :: xyz_wt, wt_xyz, xyz_wz, wz_xyz, wz_wt, wt_wz
-  public :: xya_wa, wa_xya
+ 
 
   public :: wz_AlphaOptr_xyz, w_AlphaOptr_xy, xyz_AlphaOptr_wz
   public :: wz_Lapla2D_wz, wz_InvLapla2D_wz
@@ -58,7 +60,7 @@ module SpmlUtil_mod
   public :: xya_GradLon_wa, xya_GradLambda_wa, xya_GradLat_wa, xya_GradMu_wa
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: xy_Lon, xy_Lat
-  
+  public :: xya_wa, wa_xya 
   public :: AvrLonLat_xy
 
   ! 非公開手続き
@@ -81,6 +83,11 @@ module SpmlUtil_mod
 
   logical :: initalizedFlag = .false.
 
+  integer :: nThread
+  integer, allocatable :: lwMin(:), lwMax(:)
+  integer, allocatable :: lkMin(:), lkMax(:)
+  integer, allocatable :: ltMin(:), ltMax(:)
+  
 contains
 
   !>
@@ -93,28 +100,60 @@ contains
     integer, intent(in) :: iMax, jMax, kMax, nMax, tMax
     real(DP), intent(in) :: RPlanet
     integer, intent(in), optional :: np
+    
+    integer :: tId
 
     ! 実行文; Executable statements
     !
     im = iMax; jm = jMax; km = kMax;
     nm = nMax; lm = tMax;
-    
+    nThread = 1
+
     if( present(np) ) then
-       call MessageNotify("M", module_name, "The number of thread is %d", i=(/ np /))
+       nThread = np
        call wa_Initial(nMax, iMax, jMax, kMax+1, np)
     else
        call wa_Initial(nMax, iMax, jMax, kMax+1)
     end if
 
+    call MessageNotify("M", module_name, "The number of thread is %d", i=(/ nThread /))
     call at_Initial(kMax, tMax, SigMin, SigMax)
     
     Radius = RPlanet
 
     !
     call construct_vIntCoefMat()
+    
+    !
+!!$    call assign_IDRange(0, kMax+1, lkMin, lkMax)
+!!$    call assign_IDRange(0, tMax+1, ltMin, ltMax)
+!!$    call assign_IDRange(1, (nm+1)**2, lwMin, lwMax)
+!!$
+!!$    write(*,*) 'lwMin', lwMin
+!!$    write(*,*) 'lwMax', lwMax
+
+    !
 
     call MessageNotify("M", module_name, "SpmlUtil_mod have been initialized.")
     initalizedFlag = .true.
+
+    contains
+      subroutine assign_IDRange(dimFirstId, dimSize, lIdMin, lIdMax)
+        integer, intent(in) :: dimFirstId
+        integer, intent(in) :: dimSize
+        integer, allocatable :: lIdMin(:), lIdMax(:)
+
+        integer :: chunkSize
+
+        allocate(lIdMin(nThread), lIdMax(nThread))
+        chunkSize = (dimSize+1)/nThread
+        lIdMin(1) = dimFirstId; lIdMax(1) = chunkSize
+        do tId=2,nThread
+           lIdMin(tId) = lIdMax(tId-1) + 1
+           lIdMax(tId) = lIdMin(tId) + chunkSize + 1
+        end do
+        lIdMax(nThread) = dimFirstId + dimSize - 1        
+      end subroutine assign_IDRange
 
   end subroutine SpmlUtil_Init
 
@@ -145,6 +184,7 @@ contains
   !--------------- 基本変換 -----------------
 
     function xyz_wt(wt)
+
       !
       ! スペクトルデータから 3 次元格子点データへ(逆)変換する.
       !
@@ -179,6 +219,7 @@ contains
       real(8), dimension(0:im-1,1:jm,0:km)               :: xyz_wz
       !(out) 3 次元経度緯度動径格子点データ
 
+
       xyz_wz = xya_wa(wz)
 
     end function xyz_wz
@@ -205,8 +246,12 @@ contains
       real(8), dimension((nm+1)*(nm+1),0:km)             :: wz_wt
       !(out) 2 次元球面調和函数スペクトル・動径格子点データ
 
+!!$      integer :: n
+!!$      !$omp parallel do
+!!$      do n=1, nThread
+!!$         wz_wt(lwMin(n):lwMax(n),:) = az_at(wt(lwMin(n):lwMax(n),:))
+!!$      end do
       wz_wt = az_at(wt)
-
     end function wz_wt
 
     function wt_wz(wz)
@@ -395,6 +440,7 @@ contains
       integer :: k 
 
       xy_Int = 0d0
+      !$omp parallel do reduction(+: xy_Int)
       do k=0, km
          xy_Int = xy_Int + xyz(:,:,k)*g_Sig_WEIGHT(k)
       end do
@@ -409,6 +455,7 @@ contains
       integer :: k 
 
       w_Int = 0d0
+      !$omp parallel do reduction(+: w_Int) 
       do k=0, km
          w_Int = w_Int + wz(:,k)*g_Sig_WEIGHT(k)
       end do
@@ -421,8 +468,10 @@ contains
       real(8), dimension(0:im-1,1:jm,0:km) :: xyz_Int
       
       integer :: k, k2
+      !real(DP) :: xy_sumTmp(0:im-1,1:jm)
 
       xyz_Int = 0d0
+      !$omp parallel do private(k2)
       do k=0,km
          do k2=0,km
             xyz_Int(:,:,k) = xyz_Int(:,:,k) + vIntCoefMat(k,k2)*xyz(:,:,k2)
@@ -486,7 +535,6 @@ contains
     
     subroutine construct_vIntCoefMat()
 
-      use at_module, only: ag_at
       real(DP) :: tt_data(0:lm,0:lm)
       real(DP) :: TMat(0:lm,0:km)
       real(DP) :: TIntMat(0:km,0:lm)
@@ -499,7 +547,7 @@ contains
       do t=0, lm
          tt_data(t,t) = 1d0
       end do
-      TMat = ag_at(tt_data)
+      TMat = az_at(tt_data)
 
       do k=0, km
          theta = PI*k/dble(km)

@@ -261,10 +261,13 @@ contains
 
     select case(stage)
     case(1)
-       val = valB + 2d0*dt*RHS
-       val = ( 5d0*val + 8d0*valN - valB )/12d0
+       !$omp parallel workshare
+       val = ( 5d0*(valB + 2d0*dt*RHS) + 8d0*valN - valB )/12d0
+       !$omp end parallel workshare
     case(2)
+       !$omp parallel workshare
        val = valN + dt*RHS
+       !$omp end parallel workshare
     end select
 
   end function xyz_timeIntLFAM3
@@ -282,10 +285,13 @@ contains
 
     select case(stage)
     case(1)
-       val = valB + 2d0*dt*RHS
-       val = ( 5d0*val + 8d0*valN - valB )/12d0
+       !$omp parallel workshare
+       val = ( 5d0*(valB + 2d0*dt*RHS) + 8d0*valN - valB )/12d0
+       !$omp end parallel workshare
     case(2)
+       !$omp parallel workshare
        val = valN + dt*RHS
+       !$omp end parallel workshare
     end select
 
   end function wt_timeIntLFAM3
@@ -304,10 +310,13 @@ contains
 
     select case(stage)
     case(1)
-       val = valB + 2d0*dt*RHS
-       val = ( 5d0*val + 8d0*valN - valB )/12d0
+       !$omp parallel workshare
+       val = ( 5d0*(valB + 2d0*dt*RHS) + 8d0*valN - valB )/12d0
+       !$omp end parallel workshare
     case(2)
+       !$omp parallel workshare
        val = valN + dt*RHS
+       !$omp end parallel workshare
     end select
 
   end function xy_timeIntLFAM3
