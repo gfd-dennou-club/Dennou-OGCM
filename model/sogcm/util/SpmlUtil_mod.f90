@@ -547,7 +547,7 @@ contains
       do t=0, lm
          tt_data(t,t) = 1d0
       end do
-      TMat = az_at(tt_data)
+      TMat = transpose( at_az(tt_data) )
 
       do k=0, km
          theta = PI*k/dble(km)
@@ -560,12 +560,12 @@ contains
                  & - 0.5d0*( cos((t+1)*theta)/dble(t+1) - cos((t-1)*theta)/dble(t-1) )
          end do
       end do
+      TIntMat(:,0) = 0.5d0*TIntMat(:,0)
+      TIntMat(:,lm) = 0.5d0*TIntMat(:,lm)
 
-      TIntMat = 2d0/km * 0.5d0*(SigMax - SigMin) * TIntMat
-      vIntCoefMat = matmul(TIntMat, TMat)
-      vIntCoefMat(:,0) = 0.5d0*vIntCoefMat(:,0)
-      vIntCoefMat(:,km) = 0.5d0*vIntCoefMat(:,km)
-
+     TIntMat = 0.5d0*(SigMax - SigMin) * TIntMat 
+     vIntCoefMat = matmul(TIntMat, TMat)
+ 
     end subroutine construct_vIntCoefMat
 
 end module SpmlUtil_mod

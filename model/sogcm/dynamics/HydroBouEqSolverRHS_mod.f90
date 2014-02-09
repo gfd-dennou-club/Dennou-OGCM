@@ -118,7 +118,7 @@ contains
     wt_Vrf = wt_xyz(xyz_Vrf)
 
     xyz_A = &
-         &   xyz_AbsVor*xyz_Urf   + xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Vrf)) &
+         &   xyz_AbsVor*xyz_Urf + xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Vrf)) &
          & + xyz_GeoPotGradCoef*xya_GradMu_wa(wz_GeoPot)
     xyz_B = &
          &    xyz_AbsVor*xyz_Vrf - xyz_SigDot*xyz_wt(wt_DSig_wt(wt_Urf)) &

@@ -46,9 +46,8 @@ module HydroBouEqSolverVDiffProc_mod
   ! Private variable
   !
   character(*), parameter:: module_name = 'HydroBouEqSolverVDiffProc_mod' !< Module Name
-  real(DP), allocatable :: vDiffProcMat(:,:,:)
-  integer, allocatable :: vDiffProcMatKp(:,:)
-
+  real(DP), allocatable :: vDiffProcMatVor(:,:,:), vDiffProcMatDiv(:,:,:), vDiffProcMatHeat(:,:,:)
+  integer, allocatable :: vDiffProcMatVorKp(:,:), vDiffProcMatDivKp(:,:), vDiffProcMatHeatKp(:,:)
 
 contains
 
@@ -74,7 +73,9 @@ contains
     ! 実行文; Executable statements
     !
 
-    deallocate(vDiffProcMatKp, vDiffProcMat)
+    deallocate(vDiffProcMatVorKp, vDiffProcMatVor)
+    deallocate(vDiffProcMatDivKp, vDiffProcMatDiv)
+    deallocate(vDiffProcMatHeatKp, vDiffProcMatHeat)
 
   end subroutine HydroBouEqSolverVDiffProc_Final
 
@@ -105,7 +106,7 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_Work(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_Work(0:iMax-1,jMax,0:kMax+1)
     real(DP),dimension(iMax*jMax,0:kMax) :: workRHS
     integer :: l, k
     real(DP) :: xy_CosLat(0:iMax-1,jMax)
@@ -144,8 +145,9 @@ contains
        xyz_Work(:,:,kMax) = 0d0
     end if
 
-    call construct_vDiffProcMat(Av, dt, xy_totDepth, BCKindUpper, BCKindBottom)
-    wt_Vor = solve(xyz_Work)
+    call construct_vDiffProcMat(vDiffProcMatVor, vDiffProcMatVorKp, &   !(inout)
+         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+    wt_Vor = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
 
     xyz_Work = xyz_wt(wt_Div)
     if (DynBCSurf == DynBCTYPE_NoSlip) then 
@@ -160,30 +162,39 @@ contains
     else
        xyz_Work(:,:,kMax) = 0d0
     end if
-    wt_Div = solve(xyz_Work)
+
+    xyz_Work(:,:,kMax+1) = 0d0
+    call construct_vDiffProcMat2(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
+         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+    wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
 !!$    xyz_Div = xyz_wt(wt_Div)
 !!$    xy_DivSig = xy_IntSig_BtmToTop_xyz(xyz_Div)
 !!$    forAll(k=0:kMax) xyz_Div(:,:,k) = xyz_Div(:,:,k) - xy_DivSig
 !!$    wt_Div = wt_xyz(xyz_Div)
 
-    call construct_vDiffProcMat(Av, dt, xy_totDepth, 'N', 'N')
+    call construct_vDiffProcMat(vDiffProcMatHeat, vDiffProcMatHeatKp, Av, dt, xy_totDepth, 'N', 'N')
     xyz_Work = xyz_wt(wt_PTempEdd)
     xyz_Work(:,:,0) = 0d0 
     xyz_Work(:,:,kMax) = 0d0 
-    wt_PTempEdd = solve(xyz_Work)
+    wt_PTempEdd = solve(vDiffProcMatHeat, vDiffProcMatHeatKp, xyz_Work(:,:,0:kMax))
 
   end subroutine Advance_VDiffProc
 
-  function Solve(xyz_RHS) result(wt_ret)
+  function Solve(vDiffProcMat, vDiffProcMatKp, xyz_RHS) result(wt_ret)
 
     use lumatrix, only: lusolve
 
-    real(DP), intent(in) :: xyz_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP) :: wt_ret(lMax,0:tMax)
+    real(DP), intent(in) :: vDiffProcMat(:,:,:)
+    integer, intent(in) :: vDiffProcMatKp(:,:)
+    real(DP), intent(in) :: xyz_RHS(:,:,:)
+    real(DP) :: xyt_retTmp(0:iMax-1,jMax,0:size(vDiffProcMat,3)-1), wt_ret(lMax,0:tMax)
 
-    wt_ret = wa_xya( reshape( &
-         & lusolve( vDiffProcMat, vDiffProcMatKp, reshape(xyz_RHS, (/ iMax*jMax,kMax+1 /)) ), &
-         & shape(xyz_RHS) ))
+    xyt_retTmp = reshape( &
+         & lusolve( vDiffProcMat, vDiffProcMatKp, reshape(xyz_RHS, (/ size(xyz_RHS,1)*size(xyz_RHS,2),size(xyz_RHS,3) /)) ), &
+         & shape(xyz_RHS) )
+
+    wt_ret = wa_xya( xyt_retTmp(:,:,0:kMax) )
+
   end function Solve
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -191,8 +202,9 @@ contains
   !> @brief 
   !!
   !!
-  subroutine construct_vDiffProcMat(Av, dt, xy_totDepth, &
-       & BCKindUpper, BCKindBottom )
+  subroutine construct_vDiffProcMat2(vDiffProcMat, vDiffProcMatKp, &
+    & Av, dt, xy_totDepth, &
+    & BCKindUpper, BCKindBottom )
     
     !
     !
@@ -202,6 +214,97 @@ contains
 
     ! 宣言文; Declaration statement
     !
+    real(DP), intent(inout), allocatable :: vDiffProcMat(:,:,:)
+    integer, intent(inout), allocatable :: vDiffProcMatKp(:,:)
+    real(DP), intent(in) :: Av
+    real(DP), intent(in) :: dt
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    character, intent(in) :: BCKindUpper, BCKindBottom ! N or D
+    
+    ! 局所変数
+    ! Local variables
+    !
+    integer :: t, k
+    real(DP) :: tt_data(0:tMax,0:tMax)
+    real(DP) :: tg_data(0:tMax,0:kMax)
+    real(DP) :: dwork_tg_data(0:tMax,0:kMax), iwork_tg_data(0:tMax)
+    real(DP) :: tt_I(0:tMax,0:tMax)
+    real(DP) :: Depth(iMax*jMax)
+
+
+    ! 実行文; Executable statement
+    !
+    
+    if(.not. allocated(vDiffProcMat)) then
+       allocate( vDiffProcMat(iMax*jMax,0:kMax+1,0:tMax+1), vDiffProcMatKp(iMax*jMax,0:kMax+1) )
+       vDiffProcMat = 0d0
+   else
+       return
+    end if
+
+    Depth(:) = reshape( xy_totDepth, shape(Depth) )
+    
+    
+    tt_I = 0d0
+    do t=0,tMax
+       tt_I(t,t) = 1d0
+    end do
+    tg_data = ag_at(tt_I)
+
+    dwork_tg_data = ag_at( at_Dx_at(at_Dx_at(tt_I)) )
+    do k=1,kMax-1
+       !$omp parallel workshare
+       forAll(t=0:tMax) &
+            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*Av/Depth**2 * dwork_tg_data(t,k)
+       !$omp end parallel workshare
+       vDiffProcMat(:,k,tMax+1) = 1d0
+    end do
+
+    dwork_tg_data = ag_at( at_Dx_at(tt_I) )
+    if(BCKindUpper == 'N') then
+       !$omp parallel workshare
+       forall(t=0:tMax) vDiffProcMat(:,0,t) = dwork_tg_data(t,0)/Depth
+       !$omp end parallel workshare
+    else
+       !$omp parallel workshare
+       forall(t=0:tMax) vDiffProcMat(:,0,t) = tg_data(t,0)
+       !$omp end parallel workshare
+    end if
+
+    if(BCKindBottom == 'N') then
+       !$omp parallel workshare
+       forall(t=0:tMax) vDiffProcMat(:,kMax,t) = dwork_tg_data(t,kMax)/Depth
+       !$omp end parallel workshare
+    else
+       !$omp parallel workshare
+       forall(t=0:tMax) vDiffProcMat(:,kMax,t) = tg_data(t,kMax)
+       !$omp end parallel workshare
+    end if
+
+!    iwork_tg_data = matmul(g_X_WEIGHT, tg_data)
+    forall(t=0:tMax) vDiffProcMat(:,kMax+1,t) = dot_product(g_X_WEIGHT, tg_data(t,:))
+
+    call ludecomp(vDiffProcMat, vDiffProcMatKp)
+  end subroutine construct_vDiffProcMat2
+
+
+  !> @brief 
+  !!
+  !!
+  subroutine construct_vDiffProcMat(vDiffProcMat, vDiffProcMatKp, &
+    & Av, dt, xy_totDepth, &
+    & BCKindUpper, BCKindBottom )
+
+    !
+    !
+    use lumatrix
+    use at_module_omp
+    use omp_lib
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout), allocatable :: vDiffProcMat(:,:,:)
+    integer, intent(inout), allocatable :: vDiffProcMatKp(:,:)
     real(DP), intent(in) :: Av
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)

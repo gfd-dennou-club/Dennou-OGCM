@@ -85,6 +85,8 @@ contains
     real(DP) :: xy_DtotDepthDLambda(0:iMax-1,jMax)
     real(DP) :: sig
 
+ real(DP) :: xyz_dwdz(0:iMax-1,jMax,0:kMax)
+
     xyz_UrfHatSig = xyz_IntSig_SigToTop_xyz(xyz_Urf)
     xyz_VrfHatSig = xyz_IntSig_SigToTop_xyz(xyz_Vrf)
     xyz_DivHatSig = xyz_IntSig_SigToTop_xyz(xyz_Div)
@@ -105,7 +107,12 @@ contains
             & + xyz_DivHatSig(:,:,k) !&
 !!$            & + (xyz_UrfHatSig(:,:,k)*xy_DtotDepthDLambda + xyz_VrfHatSig(:,:,k)*xy_DtotDepthDmu)/xy_totDepth 
     end do
-    
+
+xyz_dwdz = xyz_wt(wt_DSig_wt(wt_xyz(xyz_SigDot)))
+write(*,*) "Div----"
+write(*,*) xyz_Div(1,16,:)
+write(*,*) "---- diagnose sigdot ---"
+write(*,*) (xyz_Div(1,1:16,0) + xyz_dwdz(1,1:16,0))!/maxval(xyz_Div)    
 !    xyz_SigDot(:,:,kMax) = 0d0
 
   end function diagnose_SigDot

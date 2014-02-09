@@ -184,6 +184,8 @@ contains
 
     integer :: Stage
 
+real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax)
+
     ! 実行文; Executable statement
     !
 
@@ -254,19 +256,25 @@ contains
           call timeInt_LFAM3(Stage)
        end select
 
+
        !
        call apply_boundaryConditions(wt_Vor, wt_Div, wt_PTempEdd)
 
+
        if( Stage == nStage_BarocTimeInt ) then
+
           call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &
                & xy_WindStressU, xy_WindStressV, xy_totDepthBasic+xy_SurfHeight, vDiffCoef, DelTime, &
                & DynBC_Surface, DynBC_Bottom )
+
        end if
 
        wz_Psi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
        wz_Chi = wz_InvLapla2D_wz( wz_wt(wt_Div) )
        xyz_Urf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
        xyz_Vrf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Psi,  wz_Chi)
+
+call check_continuity
     end do
 
 
@@ -277,6 +285,19 @@ contains
     xy_SurfHeightA = xy_SurfHeight
 
     contains
+
+subroutine check_continuity
+use DiagnoseUtil_mod
+real(DP) :: xyz_DwDz(0:iMax-1,jMax,0:kMax)
+if (Stage==nStage_BarocTimeInt) then
+   write(*,*) Stage, "----------------------------------------------"
+   xyz_Div=xyz_wt(wt_Div)
+   xyz_DwDz=xyz_wt(wt_DSig_wt(wt_xyz( Diagnose_SigDot( xy_totDepthBasic, xyz_Urf, xyz_Vrf, xyz_Div ))))
+   write(*,*) (xyz_Div(1,1:16,0) + xyz_DwDz(1,1:16,0))/maxval(xyz_Div)
+
+end if
+
+end subroutine check_continuity
 
       subroutine timeInt_Euler()
         wt_Vor = wt_timeIntEuler( wt_VorN, wt_wz(wz_VorRHS) )
