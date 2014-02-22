@@ -37,16 +37,13 @@ module DiagVarSet_mod
        & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_TotPress, xyz_DensEdd
 
   real(DP), dimension(:,:), allocatable, public :: &
-       & xy_totDepth
+       & xy_totDepth, yz_MassStreamFunc
 
   character(*), parameter, public :: DVARKEY_VOR = 'Vor'
   character(*), parameter, public :: DVARKEY_DIV = 'Div'
   character(*), parameter, public :: DVARKEY_TOTPRESS = 'TotPress'
   character(*), parameter, public :: DVARKEY_DENSEDD = 'DensEdd'
-  character(*), parameter, public :: DVARKEY_TEAVG = 'TEnAvg'
-  character(*), parameter, public :: DVARKEY_KEAVG = 'KEnAvg'
-  character(*), parameter, public :: DVARKEY_PEAVG = 'PEnAvg'
-  character(*), parameter, public :: DVARKEY_IEAVG = 'IEnAvg'
+  character(*), parameter, public :: DVARKEY_MASSSTREAMFUNC = 'MassStreamFunc'
 
   ! 非公開手続き
   ! Private procedure
@@ -90,11 +87,9 @@ contains
           case( DVARKEY_VOR )
              allocate( xyz_Vor(0:iMax-1,jMax,0:kMax) )
           case ( DVARKEY_TOTPRESS )
-          case ( DVARKEY_DENSEDD ) 
-          case ( DVARKEY_TEAVG )
-          case ( DVARKEY_KEAVG )
-          case ( DVARKEY_PEAVG )
-          case ( DVARKEY_IEAVG )
+          case ( DVARKEY_DENSEDD )
+          case (DVARKEY_MASSSTREAMFUNC )
+             allocate( yz_MassStreamFunc(jMax, 0:kMax) )
           case Default
              call MessageNotify('E', module_name, &
                   & "The name of specified diagnostic variable '%c'is invalid.", c1=trim(diagVarsName(varID)) )
@@ -110,12 +105,12 @@ contains
     ! 実行文; Executable statements
     !
 
-    deallocate( xy_totDepth ) 
+    deallocate( xy_totDepth, xyz_BarocPress, xyz_TotPress, xyz_DensEdd ) 
     if( allocated(xyz_Div) ) deallocate(xyz_Div)
     if( allocated(xyz_Vor) ) deallocate(xyz_Vor)
     if( allocated(xyz_BarocPress) ) deallocate(xyz_BarocPress)
     if( allocated(xyz_totPress) ) deallocate(xyz_totPress)
-
+    if( allocated(yz_MassStreamFunc) ) deallocate(yz_MassStreamFunc)
 
   end subroutine DiagVarSet_Final
 

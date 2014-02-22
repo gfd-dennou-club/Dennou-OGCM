@@ -1,13 +1,14 @@
-#+TITLE: 海水の状態方程式(Jacket and McDougall, 1995)の可視化
+#+TITLE: 海水に対する状態方程式のグラフ
 #+AUTHOR: KAWAI Yuta
 #+LANGUAGE: ja
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
 #+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+LaTeX_HEADER: \usepackage[round]{natbib}
 
 
 * 図
 
-以下のグラフは, JM95 の状態方程式から求めた密度の偏差(実際の密度 - 1000 kg m^{-3}) $\sigma$ を示している. 
+以下のグラフは, \cite{jackett1995minimal} の海水の状態方程式から求めた密度の偏差(実際の密度 - 1000 kg m^{-3}) $\sigma$ を示している. 
 
 ** 圧力固定(横軸: 塩分, 縦軸: 温位)
 
@@ -25,3 +26,7 @@
 | [[file:./fig/dens_sal_0.png][file:./fig/dens_sal_0_thumb.png]]       | [[file:./fig/dens_sal_10.png][file:./fig/dens_sal_10_thumb.png]]     | [[file:./fig/dens_sal_20.png][file:./fig/dens_sal_20_thumb.png]]     | [[file:./fig/dens_sal_30.png][file:./fig/dens_sal_30_thumb.png]]     | [[file:./fig/dens_sal_40.png][file:./fig/dens_sal_40_thumb.png]]     |
 
 
+
+* 参考文献, 参考リンク
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist abbrvnat limit:t

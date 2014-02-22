@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head>
+<title>風成循環計算における ChebyShev 多項式展開についての考察</title>
+<!-- 2014-02-22 土 18:54 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="KAWAI Yuta" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="./../org.css" />
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+<script type="text/javascript"> </script>
+<script type="text/x-mathjax-config">
+   MathJax.Hub.Config({
+    TeX: { equationNumbers: { autoNumber: "AMS" } }
+    });
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">風成循環計算における ChebyShev 多項式展開についての考察</h1>
+<div id="table-of-contents">
+<h2>&#30446;&#27425;</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. はじめに</a></li>
+<li><a href="#sec-2">2. 検証方法について</a>
+<ul>
+<li><a href="#sec-2-1">2.1. 関数の定義</a></li>
+<li><a href="#sec-2-2">2.2. 数値積分の誤差の評価方法</a></li>
+<li><a href="#sec-2-3">2.3. 解像度の設定</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3. 検証結果</a>
+<ul>
+<li><a href="#sec-3-1">3.1. ケース 1 : 連続的に場が変化する場合</a></li>
+<li><a href="#sec-3-2">3.2. ケース 2 : 境界近傍で急激に場が変化する場合</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. 参考文献, 参考リンク</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> はじめに</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+現在開発中の海洋モデルの定式化では, 物理場の鉛直方向の変化は Chebychev 多項式を使った
+関数展開によって表現される [<a href="#glatzmaier1984numerical">Glatzmaier</a>][<a href="#boyd1999chebyshev">Boyd</a>].  
+しかし, 風成循環のテスト計算で見られるように, 
+鉛直格子点数が足りず海面や海底近傍の境界層を解像できない場合には, 
+明瞭なギブス振動が内部領域の物理場に現れる. 
+</p>
+
+<p>
+このギブス振動の対処方法としては, 安直には鉛直格子点数を増やせばよい. 
+実際, 境界層に対して十分な鉛直解像度の計算において, ギブス振動は消失する. 
+</p>
+
+<p>
+高解像度計算と標準解像度計算の結果を比較するとき, 
+この風成循環の計算においては, このギブス振動は最低次の循環パターンに重大な影響を与えないことが見て取れる. 
+しかしながら, 物理過程の導入や(場が急激に鉛直方向に変化する)他の物理現象の計算のために, 
+このギブス振動が発生する条件やその特性について考察することは有用だと思われるので, 
+以下にまとめることにする. 
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 検証方法について</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+以下で与えられる解析的な関数を使って, Chebyshev 多項式展開による数値積分の誤差の収束性を調べる. 
+</p>
+</div>
+
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> 関数の定義</h3>
+<div class="outline-text-3" id="text-2-1">
+</div><ol class="org-ol"><li>ケース 1<br  /><div class="outline-text-4" id="text-2-1-1">
+<p>
+\(-1 \le \sigma \le 0\) の範囲で連続的に変化する関数
+</p>
+
+<p>
+\[
+  f_1(\sigma) = \sin(k\sigma)
+\]
+</p>
+
+<p>
+を使って, Chebyshev 多項式展開による数値積分の精度を検証する. 
+ここで, \(k\) はモード番号であり, \(k=1,2,3,4,5,6,7,8\) を与える. 
+</p>
+</div>
+</li>
+
+<li>ケース 2<br  /><div class="outline-text-4" id="text-2-1-2">
+<p>
+\(-1 \le \sigma \le 0\) の範囲で定義され, 境界付近で急激に値が変化する関数 
+</p>
+
+<p>
+\[
+  f_2(\sigma) = \exp{(\dfrac{\sigma}{l_b})} + \exp{ (\dfrac{\sigma-1}{l_b}) } 
+\]
+</p>
+
+<p>
+を用いる. 
+ここで, \(l_b\) は境界近傍のおける変化の特徴的な長さスケールであり, 
+\(l_b=0.05,0.01,0.005,0.0025,0.001\) を与える. 
+</p>
+
+<p>
+この関数形は, 風成循環のテスト計算におけるエクマン層内での急激な場の変化を想定している. 
+その際, 海洋の深さに対するエクマン層の厚さの比は 0.0025 であり, 
+このケースに対しては \(l_b=0.0025\) の場合が対応する.  
+</p>
+</div>
+</li></ol>
+</div>
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> 数値積分の誤差の評価方法</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+誤差の評価は, 次に定義される誤差ノルムを指標にして行う. 
+</p>
+
+<p>
+\[
+  {\rm ErrorNorm } [ f(\sigma) ] = 
+  \dfrac{ \sqrt{ \left( {\rm NumInt}[ f(\sigma) ]_\sigma^0  - {\rm Int}[f(\sigma)]_\sigma^0 \right)^2 }} { {\rm Max} \left[ {\rm Int}[f(\sigma)_{\sigma}^0 ] \right] }
+\]
+</p>
+
+<p>
+ここで, \({\rm NumInt}[\;]_\sigma^0\) は \([\sigma, 0]\) 間の数値積分による定積分, 
+\({\rm Int}[\;]_\sigma^0\) は \([\sigma, 0]\) 間の解析的な定積分を表す.  
+また, \({\rm Max}[\;]\) は区間内での最大値を示す. 
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3"><span class="section-number-3">2.3</span> 解像度の設定</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+ケース 1, 2 の両方において, 格子点数を 20, 40, 60, 80 に変化させて, 
+誤差の収束性を議論する. 
+場が変化する場所と格子点の配置の対応を表す図は, 検証結果において示す.  
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> 検証結果</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> ケース 1 : 連続的に場が変化する場合</h3>
+<div class="outline-text-3" id="text-3-1">
+</div><ol class="org-ol"><li>場の分布および格子点の配置<br  /><div class="outline-text-4" id="text-3-1-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;1:</span> 場の分布および格子点の配置. 横軸:座標, 縦軸:関数値. マーカーは格子点の位置を示す. 図は左から順に格子点数 20, 40, 60, 80 の場合である.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./data/waveFunc_dist_k20.jpg"><img src="./data/waveFunc_dist_k20_thumb.png" alt="waveFunc_dist_k20_thumb.png" /></a></td>
+<td class="left"><a href="./data/waveFunc_dist_k40.jpg"><img src="./data/waveFunc_dist_k40_thumb.png" alt="waveFunc_dist_k40_thumb.png" /></a></td>
+<td class="left"><a href="./data/waveFunc_dist_k60.jpg"><img src="./data/waveFunc_dist_k60_thumb.png" alt="waveFunc_dist_k60_thumb.png" /></a></td>
+<td class="left"><a href="./data/waveFunc_dist_k80.jpg"><img src="./data/waveFunc_dist_k80_thumb.png" alt="waveFunc_dist_k80_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>数値誤差の収束性<br  /><div class="outline-text-4" id="text-3-1-2">
+<ul class="org-ul">
+<li>格子点数の増加とともに, 指数関数的に急激に数値誤差が減少する. 
+<ul class="org-ul">
+<li>格子点が 40 点以上あれば, \(k=1\) から \(k=8\) までの全てのモードに対する数値誤差の大きさは, 丸め誤差程度となる. 
+</li>
+</ul>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;2:</span> 数値誤差の収束性. 横軸:座標, 縦軸:誤差ノルム. 図は左から順に格子点数 20, 40, 60, 80 の場合である.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./data/waveFunc_error_k20.jpg"><img src="./data/waveFunc_error_k20_thumb.png" alt="waveFunc_error_k20_thumb.png" /></a></td>
+<td class="left"><a href="./data/waveFunc_error_k40.jpg"><img src="./data/waveFunc_error_k40_thumb.png" alt="waveFunc_error_k40_thumb.png" /></a></td>
+<td class="left"><a href="./data/waveFunc_error_k60.jpg"><img src="./data/waveFunc_error_k60_thumb.png" alt="waveFunc_error_k60_thumb.png" /></a></td>
+<td class="left"><a href="./data/waveFunc_error_k80.jpg"><img src="./data/waveFunc_error_k80_thumb.png" alt="waveFunc_error_k80_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+</li></ol>
+</div>
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> ケース 2 : 境界近傍で急激に場が変化する場合</h3>
+<div class="outline-text-3" id="text-3-2">
+</div><ol class="org-ol"><li>場の分布および格子点の配置<br  /><div class="outline-text-4" id="text-3-2-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;3:</span> 場の分布および格子点の配置. 横軸:座標, 縦軸:関数値. マーカーは格子点の位置を示す. 図は左から順に格子点数 20, 40, 60, 80 の場合である.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./data/expFunc_dist_k20.jpg"><img src="./data/expFunc_dist_k20_thumb.png" alt="expFunc_dist_k20_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_dist_k40.jpg"><img src="./data/expFunc_dist_k40_thumb.png" alt="expFunc_dist_k40_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_dist_k60.jpg"><img src="./data/expFunc_dist_k60_thumb.png" alt="expFunc_dist_k60_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_dist_k80.jpg"><img src="./data/expFunc_dist_k80_thumb.png" alt="expFunc_dist_k80_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>数値誤差の収束性<br  /><div class="outline-text-4" id="text-3-2-2">
+<ul class="org-ul">
+<li>ケース 1 と比較して, 格子点数の増加に対する数値誤差の収束は遅い. 
+</li>
+</ul>
+
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;4:</span> 数値誤差の収束性. 横軸:座標, 縦軸:誤差ノルム. 図は左から順に格子点数 20, 40, 60, 80 の場合である.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./data/expFunc_error_k20.jpg"><img src="./data/expFunc_error_k20_thumb.png" alt="expFunc_error_k20_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_error_k40.jpg"><img src="./data/expFunc_error_k40_thumb.png" alt="expFunc_error_k40_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_error_k60.jpg"><img src="./data/expFunc_error_k60_thumb.png" alt="expFunc_error_k60_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_error_k80.jpg"><img src="./data/expFunc_error_k80_thumb.png" alt="expFunc_error_k80_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>数値積分により得られた値の分布の特徴<br  /><div class="outline-text-4" id="text-3-2-3">
+<ul class="org-ul">
+<li>境界近傍の急激な変化を十分に解像できない格子点数の場合, 
+数値的に得られた積分値には(2 グリッドノイズ的な)高波数の誤差が含まれることが分かる. 
+</li>
+
+<li>\(l_b=0.0025\) が対応する風成循環のテスト計算において, 高周波の誤差を排除するためには, 
+  <b>60 点程度の格子点数が必要</b> である. 
+</li>
+</ul>
+
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;5:</span> 数値積分により得られた値の分布の特徴. 横軸:座標, 縦軸:積分値. 図は左から順に格子点数 20, 40, 60, 80 の場合である.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./data/expFunc_accuracy_k20.jpg"><img src="./data/expFunc_accuracy_k20_thumb.png" alt="expFunc_accuracy_k20_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_accuracy_k40.jpg"><img src="./data/expFunc_accuracy_k40_thumb.png" alt="expFunc_accuracy_k40_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_accuracy_k60.jpg"><img src="./data/expFunc_accuracy_k60_thumb.png" alt="expFunc_accuracy_k60_thumb.png" /></a></td>
+<td class="left"><a href="./data/expFunc_accuracy_k80.jpg"><img src="./data/expFunc_accuracy_k80_thumb.png" alt="expFunc_accuracy_k80_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li></ol>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> 参考文献, 参考リンク</h2>
+<div class="outline-text-2" id="text-4">
+<div id="bibliography">
+<h2>References</h2>
+
+</div>
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="boyd1999chebyshev">Boyd(1999)</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;P. Boyd.
+ Chebyshev and fourier spectral methods.
+ 1999.
+[&nbsp;<a href="Dennou-OGCM_reflist_bib.html#boyd1999chebyshev">bib</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="glatzmaier1984numerical">Glatzmaier(1984)</a>]
+</td>
+<td class="bibtexitem">
+G.&nbsp;A. Glatzmaier.
+ Numerical simulations of stellar convective dynamos. i. the model and
+  method.
+ <em>Journal of Computational Physics</em>, 550 (3):0
+  461-484, 1984.
+[&nbsp;<a href="Dennou-OGCM_reflist_bib.html#glatzmaier1984numerical">bib</a>&nbsp;]
+
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">&#33879;&#32773;: KAWAI Yuta</p>
+<p class="date">Created: 2014-02-22 土 18:54</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

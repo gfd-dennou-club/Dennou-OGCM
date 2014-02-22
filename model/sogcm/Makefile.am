@@ -41,4 +41,5 @@ diagVar_SOURCES =\
 	tool/DiagVarSet_mod.f90 \
 	tool/DiagVarEval_mod.f90 \
 	tool/DiagVarFileSet_mod.f90 \
+	tool/BudgetAnalysis_mod.f90 \
 	tool/diagVar_main.f90

@@ -118,7 +118,7 @@
 
  - ศ๗นอ
   - exp1: $m=1,n=1, T=24 {\rm [hour]}$
-  - exp2: $m=1,n=2, T=36 {\rm [hour]}$
-  - exp3: $m=2,n=2, T=72 {\rm [hour]}$
+  - exp2: $m=1,n=2, T=72 {\rm [hour]}$
+  - exp3: $m=2,n=2, T=36 {\rm [hour]}$
 
 

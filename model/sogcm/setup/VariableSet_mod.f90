@@ -49,8 +49,11 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_WindStressV(:,:)
 
   character(TOKEN), public, parameter :: VARSET_KEY_U = 'U'
+  character(TOKEN), public, parameter :: VARSET_KEY_UB = 'UB'
   character(TOKEN), public, parameter :: VARSET_KEY_V = 'V'
+  character(TOKEN), public, parameter :: VARSET_KEY_VB = 'VB'
   character(TOKEN), public, parameter :: VARSET_KEY_PTEMPEDD = 'PTempEdd'
+  character(TOKEN), public, parameter :: VARSET_KEY_PTEMPEDDB = 'PTempEddB'
   character(TOKEN), public, parameter :: VARSET_KEY_SALT = 'Salt'
   character(TOKEN), public, parameter :: VARSET_KEY_SURFHEIGHT = 'SurfHeight'
 

@@ -81,9 +81,23 @@ class Exp
     @figList = []
   end
 
-  def add_NoAnimFig(varName, cutPos, figIntrv, figRange, prefix="", suffix="", gpOpts="", figPicExt="" )
+  def add_NoAnimFig(ncFileSuffix, varName, cutPos, figIntrv, figRange, prefix="", suffix="", gpOpts="", figPicExt="" )
 
-    figName, ncFilePath = create_FigMetaInfo(varName, prefix, suffix)
+
+
+    p "call type2 #{figName}, #{ncFilePath}"
+    fig = NoAnimFig.new(figName, ncFilePath, varName, cutPos, figIntrv, figRange, gpOpts)
+    fig.figPicExt = figPicExt if figPicExt.length != 0
+    @figList.push(fig)
+  end
+
+  def add_NoAnimFig(varName, cutPos, figIntrv, figRange, prefix="", suffix="", gpOpts="", figPicExt="", ncFileSuffix="" )
+
+    if ncFileSuffix.length > 0 then
+      figName, ncFilePath = create_FigMetaInfo(ncFileSuffix, prefix, suffix)
+    else
+      figName, ncFilePath = create_FigMetaInfo(varName, prefix, suffix)
+    end
 
     fig = NoAnimFig.new(figName, ncFilePath, varName, cutPos, figIntrv, figRange, gpOpts)
     fig.figPicExt = figPicExt if figPicExt.length != 0
@@ -122,16 +136,21 @@ class Exp
     p "chdir experiment dir `#{@dirPath}`.."
 
     FileUtils.chdir(@dirPath){ 
-      p "create thumbnail.."
+      p "create thumbnail.. target files: *.#{targetFileExt}"
 
       FileUtils.mkdir(["figdir", "thum-src"])
       FileUtils.cp(dcmodel_thumb_rb, "thum-src/dcmodel-thum.rb")
       FileUtils.cp(Dir.glob("*.#{targetFileExt}"), "figdir")
-      Dir.chdir("./thum-src/"){
-        `#{rb18cmd} ./dcmodel-thum.rb`
-        `#{rb18cmd} ./dcmodel-thum-make.rb`
+      Dir.chdir("./figdir/"){
+        FileUtils.rm_r(Dir.glob("*_thumb.png"))
       }
-      FileUtils.mv(Dir.glob("./thumbdir/*.png"), ".")
+      if ( Dir.glob("./figdir/*.#{targetFileExt}").count > 0 ) then
+        Dir.chdir("./thum-src/"){
+          `#{rb18cmd} ./dcmodel-thum.rb`
+          `#{rb18cmd} ./dcmodel-thum-make.rb`
+        }
+        FileUtils.mv(Dir.glob("./thumbdir/*_thumb.png"), ".")
+      end
       FileUtils.rm_r(["thumbdir", "figdir", "thum-src"])
       FileUtils.rm(Dir.glob("sample_thum.htm*"))
       FileUtils.rm("thumbdir.SIGEN")

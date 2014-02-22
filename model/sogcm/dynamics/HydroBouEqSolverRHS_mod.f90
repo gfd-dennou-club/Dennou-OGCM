@@ -258,8 +258,10 @@ contains
 
     wz_Av_Dsig_Div = Av*wz_wt( &
          & wt_DSig_wt(wt_xyz(xyz_wz(wz_DivN)/spread(xy_totDepth**2,3,kMax+1))) )
-    w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_DivN/dt ) &
-         &          + wz_Av_DSig_Div(:,kMax)
+    w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_DivN/dt ) !&
+!         &          + wz_Av_DSig_Div(:,kMax)
+!write(*,*) "Av*DSig_Div:", wz_Av_DSig_Div(:,kMax)
+
 
     xy_SurfPress = - xy_w( w_InvLapla2D_w( w_CorrectTerm*RefDens ) )
 

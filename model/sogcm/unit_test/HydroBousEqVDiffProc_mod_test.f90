@@ -18,9 +18,11 @@ program HydroBouEqSolverVDiffProc_mod_test
   real(DP), allocatable :: xy_totDepth(:,:)
   real(DP), allocatable ::  xyz_Temp(:,:,:), wt_Temp(:,:)
   integer :: i,j,n
-  integer, parameter :: nStep = 1000
+  integer, parameter :: nStep = 2000
   real(DP) :: dt
   real(DP) :: l2Error
+  real(DP), allocatable :: vDiffProcMat(:,:,:)
+  integer, allocatable :: vDiffProcMatKp(:,:)
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -36,14 +38,16 @@ program HydroBouEqSolverVDiffProc_mod_test
 
   xy_totDepth = 1d0
   dt = (2d0/Kappa)/real(nStep)
-!!$  forAll(i=0:iMax-1,j=1:jMax) xyz_Temp(i,j,:) = sin(-PI*g_Sig)
-  forAll(i=0:iMax-1,j=1:jMax) xyz_Temp(i,j,:) = cos(-PI*g_Sig)
+  forAll(i=0:iMax-1,j=1:jMax) xyz_Temp(i,j,:) = sin(-PI*g_Sig)
+!!$  forAll(i=0:iMax-1,j=1:jMax) xyz_Temp(i,j,:) = cos(-PI*g_Sig)
 
   call MessageNotify('M', 'HydroBouEqSolverVDiffProc_mod_test', &
        & 'construct_vDiffProcMat..')
-!!$  call construct_vDiffProcMat(0.5*Kappa, dt, xy_totDepth, &
+!!$  call construct_vDiffProcMat(vDiffProcMat, vDiffProcMatKp, &
+!!$       & 0.5*Kappa, dt, xy_totDepth, &
 !!$       & 'D', 'D' )
-  call construct_vDiffProcMat(0.5*Kappa, dt, xy_totDepth, &
+  call construct_vDiffProcMat(vDiffProcMat, vDiffProcMatKp, &
+       & 0.5*Kappa, dt, xy_totDepth, &
        & 'N', 'N' )
 
 
@@ -53,18 +57,18 @@ program HydroBouEqSolverVDiffProc_mod_test
      xyz_Temp = xyz_wt( wt_Temp + 0.5d0*dt*Kappa*at_Dx_at(at_Dx_at(wt_Temp)) )
      xyz_Temp(:,:,0) = 0d0
      xyz_Temp(:,:,kMax) = 0d0
-     wt_Temp = vDiffImplicitSolve(xyz_Temp)
+     wt_Temp = vDiffImplicitSolve(vDiffProcMat, vDiffProcMatKp, xyz_Temp)
 
      if(n==1 .or. mod(n,int(nStep*0.1)) == 0) then
         xyz_Temp = xyz_wt(wt_Temp)
-!!$        l2Error = sqrt(sum( (xyz_Temp(1,1,:) - sin(-PI*g_Sig)*exp(-Kappa*PI**2*(n*dt)))**2 ))/(1d0/PI)
+!        l2Error = sqrt(sum( (xyz_Temp(1,1,:) - sin(-PI*g_Sig)*exp(-Kappa*PI**2*(n*dt)))**2 ))/maxval(abs(xyz_Temp))
         l2Error = sqrt(sum( (xyz_Temp(1,1,:) - cos(-PI*g_Sig)*exp(-Kappa*PI**2*(n*dt)))**2 ))/(1d0/PI)
 
         call MessageNotify("M", "HydroBouEqSolverVDiffProc_mod_test", &
              & "t=%f, l2ErrorNorm=%f", d=(/ n*dt, l2Error /))
         write(*,*) xyz_Temp(1,1,:)
         write(*,*) cos(-PI*g_Sig)*exp(-Kappa*PI**2*(n*dt))
-!!$        write(*,*) sin(-PI*g_Sig)*exp(-Kappa*PI**2*(n*dt))
+!        write(*,*) sin(-PI*g_Sig)*exp(-Kappa*PI**2*(n*dt))
      end if
 
   end do

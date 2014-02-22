@@ -1,0 +1,132 @@
+#+TITLE: 風成循環計算における ChebyShev 多項式展開についての考察
+#+AUTHOR: KAWAI Yuta
+#+LANGUAGE: ja
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+LaTeX_HEADER: \usepackage[round]{natbib}
+
+#+NAME: create_resolDepFig
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var funcType="hoge" :var figType="hoge" 
+    str = "#+CAPTION: #{caption} 図は左から順に格子点数 20, 40, 60, 80 の場合である.\n" << "|"
+    [20,40,60,80].each{|kz|
+      str << "[[file:./data/#{funcType}_#{figType}_k#{kz}.jpg][file:./data/#{funcType}_#{figType}_k#{kz}_thumb.png]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* はじめに
+
+現在開発中の海洋モデルの定式化では, 物理場の鉛直方向の変化は Chebychev 多項式を使った
+関数展開によって表現される \cite{glatzmaier1984numerical,boyd1999chebyshev}.  
+しかし, 風成循環のテスト計算で見られるように, 
+鉛直格子点数が足りず海面や海底近傍の境界層を解像できない場合には, 
+明瞭なギブス振動が内部領域の物理場に現れる. 
+
+このギブス振動の対処方法としては, 安直には鉛直格子点数を増やせばよい. 
+実際, 境界層に対して十分な鉛直解像度の計算において, ギブス振動は消失する. 
+ 
+高解像度計算と標準解像度計算の結果を比較するとき, 
+この風成循環の計算においては, このギブス振動は最低次の循環パターンに重大な影響を与えないことが見て取れる. 
+しかしながら, 物理過程の導入や(場が急激に鉛直方向に変化する)他の物理現象の計算のために, 
+このギブス振動が発生する条件やその特性について考察することは有用だと思われるので, 
+以下にまとめることにする. 
+
+* 検証方法について
+以下で与えられる解析的な関数を使って, Chebyshev 多項式展開による数値積分の誤差の収束性を調べる. 
+
+** 関数の定義
+
+*** ケース 1
+
+$-1 \le \sigma \le 0$ の範囲で連続的に変化する関数
+
+\[
+  f_1(\sigma) = \sin(k\sigma)
+\]
+
+を使って, Chebyshev 多項式展開による数値積分の精度を検証する. 
+ここで, $k$ はモード番号であり, $k=1,2,3,4,5,6,7,8$ を与える. 
+
+
+*** ケース 2
+
+$-1 \le \sigma \le 0$ の範囲で定義され, 境界付近で急激に値が変化する関数 
+
+\[
+  f_2(\sigma) = \exp{(\dfrac{\sigma}{l_b})} + \exp{ (\dfrac{\sigma-1}{l_b}) } 
+\]
+
+を用いる. 
+ここで, $l_b$ は境界近傍のおける変化の特徴的な長さスケールであり, 
+$l_b=0.05,0.01,0.005,0.0025,0.001$ を与える. 
+
+この関数形は, 風成循環のテスト計算におけるエクマン層内での急激な場の変化を想定している. 
+その際, 海洋の深さに対するエクマン層の厚さの比は 0.0025 であり, 
+このケースに対しては $l_b=0.0025$ の場合が対応する.  
+
+** 数値積分の誤差の評価方法
+
+誤差の評価は, 次に定義される誤差ノルムを指標にして行う. 
+
+\[
+  {\rm ErrorNorm } [ f(\sigma) ] = 
+  \dfrac{ \sqrt{ \left( {\rm NumInt}[ f(\sigma) ]_\sigma^0  - {\rm Int}[f(\sigma)]_\sigma^0 \right)^2 }} { {\rm Max} \left[ {\rm Int}[f(\sigma)_{\sigma}^0 ] \right] }
+\]
+
+ここで, ${\rm NumInt}[\;]_\sigma^0$ は $[\sigma, 0]$ 間の数値積分による定積分, 
+${\rm Int}[\;]_\sigma^0$ は $[\sigma, 0]$ 間の解析的な定積分を表す.  
+また, ${\rm Max}[\;]$ は区間内での最大値を示す. 
+
+** 解像度の設定
+
+ケース 1, 2 の両方において, 格子点数を 20, 40, 60, 80 に変化させて, 
+誤差の収束性を議論する. 
+場が変化する場所と格子点の配置の対応を表す図は, 検証結果において示す.  
+
+* 検証結果
+
+** ケース 1 : 連続的に場が変化する場合
+
+*** 場の分布および格子点の配置
+
+ #+CALL: create_resolDepFig("場の分布および格子点の配置. 横軸:座標, 縦軸:関数値. マーカーは格子点の位置を示す.","waveFunc","dist") :results value raw :exports results
+
+*** 数値誤差の収束性
+
+- 格子点数の増加とともに, 指数関数的に急激に数値誤差が減少する. 
+  - 格子点が 40 点以上あれば, $k=1$ から $k=8$ までの全てのモードに対する数値誤差の大きさは, 丸め誤差程度となる. 
+
+ #+CALL: create_resolDepFig("数値誤差の収束性. 横軸:座標, 縦軸:誤差ノルム.","waveFunc","error") :results value raw :exports results
+
+** ケース 2 : 境界近傍で急激に場が変化する場合
+*** 場の分布および格子点の配置
+
+ #+CALL: create_resolDepFig("場の分布および格子点の配置. 横軸:座標, 縦軸:関数値. マーカーは格子点の位置を示す.","expFunc","dist") :results value raw :exports results
+
+*** 数値誤差の収束性
+
+- ケース 1 と比較して, 格子点数の増加に対する数値誤差の収束は遅い. 
+
+
+ #+CALL: create_resolDepFig("数値誤差の収束性. 横軸:座標, 縦軸:誤差ノルム.","expFunc","error") :results value raw :exports results
+
+*** 数値積分により得られた値の分布の特徴
+
+- 境界近傍の急激な変化を十分に解像できない格子点数の場合, 
+  数値的に得られた積分値には(2 グリッドノイズ的な)高波数の誤差が含まれることが分かる. 
+
+- $l_b=0.0025$ が対応する風成循環のテスト計算において, 高周波の誤差を排除するためには, 
+  *60 点程度の格子点数が必要* である. 
+
+
+ #+CALL: create_resolDepFig("数値積分により得られた値の分布の特徴. 横軸:座標, 縦軸:積分値.","expFunc","accuracy") :results value raw :exports results
+
+
+* 参考文献, 参考リンク
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist abbrvnat limit:t
+ 
+
+

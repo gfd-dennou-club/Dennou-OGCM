@@ -46,6 +46,7 @@ module HydroBouEqSolverVDiffProc_mod
   ! Private variable
   !
   character(*), parameter:: module_name = 'HydroBouEqSolverVDiffProc_mod' !< Module Name
+
   real(DP), allocatable :: vDiffProcMatVor(:,:,:), vDiffProcMatDiv(:,:,:), vDiffProcMatHeat(:,:,:)
   integer, allocatable :: vDiffProcMatVorKp(:,:), vDiffProcMatDivKp(:,:), vDiffProcMatHeatKp(:,:)
 
@@ -73,9 +74,9 @@ contains
     ! 実行文; Executable statements
     !
 
-    deallocate(vDiffProcMatVorKp, vDiffProcMatVor)
-    deallocate(vDiffProcMatDivKp, vDiffProcMatDiv)
-    deallocate(vDiffProcMatHeatKp, vDiffProcMatHeat)
+    if(allocated(vDiffProcMatVorKp)) deallocate(vDiffProcMatVorKp, vDiffProcMatVor)
+    if(allocated(vDiffProcMatDivKp)) deallocate(vDiffProcMatDivKp, vDiffProcMatDiv)
+    if(allocated(vDiffProcMatHeatKp)) deallocate(vDiffProcMatHeatKp, vDiffProcMatHeat)
 
   end subroutine HydroBouEqSolverVDiffProc_Final
 
@@ -90,7 +91,7 @@ contains
     !
     !
     use Constants_mod, only: refDens
-
+use at_module
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: wt_Vor(lMax,0:tMax)
@@ -149,6 +150,7 @@ contains
          & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
     wt_Vor = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
 
+    !
     xyz_Work = xyz_wt(wt_Div)
     if (DynBCSurf == DynBCTYPE_NoSlip) then 
        xyz_Work(:,:,0) = xy_w( &
@@ -164,14 +166,12 @@ contains
     end if
 
     xyz_Work(:,:,kMax+1) = 0d0
+
     call construct_vDiffProcMat2(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
          & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
     wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
-!!$    xyz_Div = xyz_wt(wt_Div)
-!!$    xy_DivSig = xy_IntSig_BtmToTop_xyz(xyz_Div)
-!!$    forAll(k=0:kMax) xyz_Div(:,:,k) = xyz_Div(:,:,k) - xy_DivSig
-!!$    wt_Div = wt_xyz(xyz_Div)
 
+    !
     call construct_vDiffProcMat(vDiffProcMatHeat, vDiffProcMatHeatKp, Av, dt, xy_totDepth, 'N', 'N')
     xyz_Work = xyz_wt(wt_PTempEdd)
     xyz_Work(:,:,0) = 0d0 
@@ -209,7 +209,7 @@ contains
     !
     !
     use lumatrix
-    use at_module_omp
+    use at_module
     use omp_lib
 
     ! 宣言文; Declaration statement
@@ -298,8 +298,7 @@ contains
     !
     !
     use lumatrix
-    use at_module_omp
-    use omp_lib
+    use at_module!_omp
 
     ! 宣言文; Declaration statement
     !
@@ -324,7 +323,9 @@ contains
     !
     
     if(.not. allocated(vDiffProcMat)) then
-       allocate( vDiffProcMat(iMax*jMax,0:kMax,0:tMax), vDiffProcMatKp(iMax*jMax,0:kMax) ) 
+       allocate( vDiffProcMat(iMax*jMax,0:kMax,0:tMax), vDiffProcMatKp(iMax*jMax,0:kMax) )
+    else
+       return
     end if
 
     Depth(:) = reshape( xy_totDepth, shape(Depth) )

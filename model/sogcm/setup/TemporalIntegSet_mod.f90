@@ -46,6 +46,7 @@ module TemporalIntegSet_mod
   integer, parameter, public :: timeIntMode_RK4 = 2
   integer, parameter, public :: timeIntMode_LFTR = 3
   integer, parameter, public :: timeIntMode_LFAM3 = 4
+  integer, parameter, public :: timeIntMode_RK2 = 5
 
 
   !
@@ -315,6 +316,10 @@ contains
        case('timeIntMode_LFAM3')
           barocTimeIntMode = timeIntMode_LFAM3
           isVarBUsed_BarocTimeInt = .true.
+          nStage_BarocTimeInt = 2
+       case('timeIntMode_RK2')
+          barocTimeIntMode = timeIntMode_RK2
+          isVarBUsed_BarocTimeInt = .false.
           nStage_BarocTimeInt = 2
        case('timeIntMode_RK4')
           barocTimeIntMode = timeIntMode_RK4

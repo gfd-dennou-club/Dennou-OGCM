@@ -24,6 +24,7 @@ module TemporalIntegUtil_mod
   public :: TemporalIntegUtil_Init, TemporalIntegUtil_Final
 
   public :: xyz_timeIntEuler, xy_timeIntEuler, wt_timeIntEuler
+  public :: xyz_timeIntRK2, xy_timeIntRK2, wt_timeIntRK2
   public :: xyz_timeIntRK4, xy_timeIntRK4, wt_timeIntRK4
   public :: xyz_timeIntLFTR, xy_timeIntLFTR, wt_timeIntLFTR
   public :: xyz_timeIntLFAM3, xy_timeIntLFAM3, wt_timeIntLFAM3
@@ -40,6 +41,7 @@ module TemporalIntegUtil_mod
 
   real(DP) :: dt
   real(DP) :: RK4_coef(4)
+  real(DP) :: RK2_coef(2)
 
 contains
 
@@ -60,6 +62,7 @@ contains
     lMax = lm; tMax = tm
     dt = DelTime
 
+    RK2_coef(:) = (/ 0.5d0, 0.5d0 /)
     RK4_coef(:) = (/ 1d0, 0.5d0, 0.5d0, 1d0 /)
 
   end subroutine TemporalIntegUtil_Init
@@ -105,6 +108,70 @@ contains
   end function xy_timeIntEuler
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+
+  !*** Runge=Kutta 2nd order method
+
+  function xyz_timeIntRK2(xyzN0, xyzRHS, rkStage, rkTmp) result(xyzA)
+    real(DP), intent(in) :: xyzN0(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyzRHS(0:iMax-1,jMax,0:kMax)
+    integer, intent(in) :: rkStage
+    real(DP), intent(inout) :: rkTmp(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyzA(0:iMax-1,jMax,0:kMax)
+    
+    if(rkStage==1) rkTmp = xyzN0
+
+    if(rkStage==2) then
+       xyzA = rkTmp + dt*0.5d0*xyzRHS
+       return
+    end if
+
+    rkTmp = rkTmp + dt*0.5d0*xyzRHS
+    xyzA = xyzN0 + dt*xyzRHS
+
+  end function xyz_timeIntRK2
+
+  function wt_timeIntRK2(wtN0, wtRHS, rkStage, rkTmp) result(wtA)
+    real(DP), intent(in) :: wtN0(lMax,0:tMax)
+    real(DP), intent(in) :: wtRHS(lMax,0:tMax)
+    integer, intent(in) :: rkStage
+    real(DP), intent(inout) :: rkTmp(lMax,0:tMax)
+    real(DP) :: wtA(lMax,0:tMax)
+
+    if(rkStage==1) rkTmp = wtN0
+
+    if(rkStage==2) then
+       wtA = rkTmp + dt*0.5d0*wtRHS
+       return
+    end if
+
+    rkTmp = rkTmp + dt*0.5d0*wtRHS
+    wtA = wtN0 + dt*wtRHS
+
+  end function wt_timeIntRK2
+
+  function xy_timeIntRK2(xyN0, xyRHS, rkStage, rkTmp) result(xyA)
+    real(DP), intent(in) :: xyN0(0:iMax-1,jMax)
+    real(DP), intent(in) :: xyRHS(0:iMax-1,jMax)
+    integer, intent(in) :: rkStage
+    real(DP), intent(inout) :: rkTmp(0:iMax-1,jMax)
+    real(DP) :: xyA(0:iMax-1,jMax)
+    
+    if(rkStage==1) rkTmp = xyN0
+
+    if(rkStage==2) then
+       xyA = rkTmp + dt*0.5d0*xyRHS
+       return
+    end if
+
+    rkTmp = rkTmp + dt*0.5d0*xyRHS
+    xyA = xyN0 + dt*xyRHS
+
+  end function xy_timeIntRK2
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !

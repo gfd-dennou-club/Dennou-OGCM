@@ -27,14 +27,15 @@ xz_Div_lat45_init = VarNoAnimFig.new("Div", "t=0,lat=45",  "1e-13", "-8e-13:8e-1
 tz_SigDot_lat0lon180 = VarNoAnimFig.new("SigDot", "lat=0,lon=180",  "2.5e-14", "-3e-13:3e-13", "tz", "lat0lon180", "--exch")
 tz_SigDot_lat45lon180 = VarNoAnimFig.new("SigDot", "lat=45,lon=180",  "2.5e-14", "-3e-13:3e-13", "tz", "lat45lon180", "--exch") 
 tz_Div_lat0lon180 = VarNoAnimFig.new("Div", "lat=0,lon=180",  "1e-13", "-8e-13:8e-13", "tz", "lat0lon180", "--exch") 
+tz_Div2_lat0lon180 = VarNoAnimFig.new("Div_2", "lat=0,lon=180,t=0:2",  "1e-13", "-8e-13:8e-13", "tz", "lat0lon180", "--exch") 
 tz_Div_lat45lon180 = VarNoAnimFig.new("Div", "lat=45,lon=180",  "1e-13", "-8e-13:8e-13", "tz", "lat0lon180", "--exch") 
 
 noAnimFigVars = [
- [xy_Div_SeaSurf_init, xz_Div_lat0_init, tz_SigDot_lat0lon180, tz_Div_lat0lon180], 
+ [xy_Div_SeaSurf_init, xz_Div_lat0_init, tz_SigDot_lat0lon180, tz_Div_lat0lon180, tz_Div2_lat0lon180], 
  [xy_Div_SeaSurf_init, xz_Div_lat45_init, tz_SigDot_lat45lon180, tz_Div_lat45lon180], 
- [xy_Div_SeaSurf_init, xz_Div_lat0_init, tz_SigDot_lat0lon180, tz_Div_lat0lon180], 
- [xy_Div_SeaSurf_init, xz_Div_lat0_init, tz_SigDot_lat0lon180, tz_Div_lat0lon180], 
- [xy_Div_SeaSurf_init, xz_Div_lat0_init, tz_SigDot_lat0lon180, tz_Div_lat0lon180], 
+ [xy_Div_SeaSurf_init, xz_Div_lat0_init, tz_SigDot_lat0lon180, tz_Div_lat0lon180, tz_Div2_lat0lon180], 
+ [xy_Div_SeaSurf_init, xz_Div_lat0_init, tz_SigDot_lat0lon180, tz_Div_lat0lon180, tz_Div2_lat0lon180], 
+ [xy_Div_SeaSurf_init, xz_Div_lat0_init, tz_SigDot_lat0lon180, tz_Div_lat0lon180, tz_Div2_lat0lon180], 
 ]
 
 exps = [
@@ -45,6 +46,7 @@ exps = [
  Exp.new("exp5", "./exp5_result/", "Run1_k20_")
 ]
 
+animFigFlag = false
 animFigVars = [
  [ VarAnimFig.new("SigDot", "lat=0", "2.5e-14", "-3e-13:3e-13", animTimeInfos[0], "xz", "anim", "") ],
  [ VarAnimFig.new("SigDot", "lat=45", "2.5e-14", "-3e-13:3e-13", animTimeInfos[1], "xz", "anim", "") ],
@@ -62,13 +64,15 @@ exps.each_with_index{|exp, i|
     exp.add_NoAnimFig(figvar.name, figvar.cutpos, figvar.intrv, figvar.range, figvar.prefix, figvar.suffix, figvar.gpOpts) 
   }
 
+if animFigFlag then
   animFigVars[i].each{|figvar|
     exp.add_AnimFig(figvar.name, figvar.cutpos, figvar.intrv, figvar.range, figvar.animTimeInfo, figvar.prefix, figvar.suffix, figvar.gpOpts)
 p figvar.animTimeInfo 
   }
+end if
 
   exp.create_allFig
   exp.create_thumb(DCMODEL_THUM_ORIGIN, "jpg") if noAnimFigVars[i].size > 0
-  exp.create_thumb(DCMODEL_THUM_ORIGIN, "gif") if animFigVars[i].size > 0
+  exp.create_thumb(DCMODEL_THUM_ORIGIN, "gif") if animFigFlag and animFigVars[i].size > 0
 }
 

@@ -93,6 +93,7 @@ contains
     real(DP), parameter :: Tau0 = 0.1d0
 
     integer :: m
+    
     ! 実行文; Executable statement
     !
 
@@ -102,9 +103,11 @@ contains
     xy_totDepthBasic = h0
     xy_SurfHeightN = 0d0
 
-    
-    xy_WindStressU = construct_WindStressU()
+    xy_WindStressU = construct_WindStressU_Marshall07()
+!!$    xy_WindStressU = construct_WindStressU_analysticFunc()
     xy_WindStressV = 0d0
+
+    write(*,*) 'total angular momentum=', AvrLonLat_xy( xy_WindStressU*cos(xyz_Lat(:,:,1)) )
 
     do k=0, kMax
        z_PTempBasic(k) = eval_PTempBasic(g_Sig(k))
@@ -117,7 +120,7 @@ contains
 !!$write(*,*) z_PTempBasic
 !!$stop
   contains
-    function construct_WindStressU() result(xy)
+    function construct_WindStressU_Marshall07() result(xy)
       real(DP) :: xy(0:iMax-1,jMax)
 
       real(DP), parameter :: coef(8) = &
@@ -130,7 +133,31 @@ contains
          xy = xy + coef(m)*cos((2*m-1)*xyz_Lat(:,:,1))
       end do
 
-    end function construct_WindStressU
+    end function construct_WindStressU_Marshall07
+
+    function construct_WindStressU_analysticFunc() result(xy)
+      real(DP) :: xy(0:iMax-1,jMax)
+
+      integer :: j
+      real(DP) :: c1, c2, lat
+
+      c2 = 0.12d0
+!      c1 = (PI/48d0 + 1089d0*sqrt(3d0)/35840d0)/(20d0*PI/320d0 - 27d0*sqrt(3d0)/320d0) * c2
+      c1 = (20d0*PI/320d0 - 27d0*sqrt(3d0)/320d0)/(PI/48d0 + 1089d0*sqrt(3d0)/35840d0) * c2
+
+      xy = 0d0
+      write(*,*) 'callll !!'
+      do j=1, jMax
+         lat = xyz_Lat(1,j,1)
+         if ( abs(lat) <= PI/6d0 ) then 
+            xy(:,j) = - c1*sin(3d0*lat)**2*sin(6d0*lat)**2
+         else
+            xy(:,j) = c2*sin(3d0*(lat - PI/6d0))**2*cos(lat)**2
+         end if
+      end do
+write(*,*) xy(1,:)
+    end function construct_WindStressU_analysticFunc
+
 
     function eval_PTempBasic(sig) result(z)
       real(DP), intent(in) :: sig

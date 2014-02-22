@@ -33,7 +33,7 @@ module HydroBouEqSolver_mod
        & DelTime, SubCycleNum, &
        & nShortTimeLevel, &
        & timeIntMode_Euler, timeIntMode_LFTR, timeIntMode_LFAM3, &
-       & timeIntMode_RK4
+       & timeIntMode_RK2, timeIntMode_RK4
 
   use GovernEqSet_mod, only: &
        & EOSType, &
@@ -67,7 +67,7 @@ module HydroBouEqSolver_mod
   !
   public :: HydroBouEqSolver_Init, HydroBouEqSolver_Final
   public :: HydroBouEqSolver_AdvanceTStep
-
+  public :: apply_boundaryConditions
 
   ! 非公開手続き
   ! Private procedure
@@ -185,6 +185,8 @@ contains
     integer :: Stage
 
 real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax)
+real(DP) ::  dKdt(0:iMax-1,jMax,0:kMax)
+real(DP) ::  dKdt_vdiff(0:iMax-1,jMax,0:kMax)
 
     ! 実行文; Executable statement
     !
@@ -248,6 +250,8 @@ real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax)
        select case(timeIntMode)
        case(timeIntMode_Euler)
           call timeInt_Euler()
+       case(timeIntMode_RK2)
+          call timeInt_RK2(Stage)
        case(timeIntMode_RK4)
           call timeInt_RK4(Stage)
        case(timeIntMode_LFTR)
@@ -257,15 +261,31 @@ real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax)
        end select
 
 
+!!$xyz_Div=xyz_wt(wt_DSig_wt(wt_Vor))
+!!$write(*,*) "apply bc before:",xyz_Div(1,1:16,0)
        !
        call apply_boundaryConditions(wt_Vor, wt_Div, wt_PTempEdd)
+!!$xyz_Div=xyz_wt(wt_DSig_wt(wt_Vor))
+!!$write(*,*) "apply bc after:",xyz_Div(1,1:16,0)
 
+!!$if (Stage==nStage_BarocTimeInt) then
+!!$
+!!$       wz_Psi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
+!!$       wz_Chi = wz_InvLapla2D_wz( wz_wt(wt_Div) )
+!!$       xyz_Urf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
+!!$       xyz_Vrf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Psi,  wz_Chi)
+!!$       dKdt = (0.5d0*(xyz_Urf**2 + xyz_Vrf**2)/xyz_CosLat**2 -0.5d0*(xyz_UN**2 + xyz_VN**2))/(DelTime)
+!!$       write(*,*) "before KE:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt))
+!!$end if
 
        if( Stage == nStage_BarocTimeInt ) then
 
           call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &
                & xy_WindStressU, xy_WindStressV, xy_totDepthBasic+xy_SurfHeight, vDiffCoef, DelTime, &
                & DynBC_Surface, DynBC_Bottom )
+
+!!$xyz_Div=xyz_wt(wt_DSig_wt(wt_Vor))
+!!$write(*,*) "apply vdiff after:",xyz_Div(1,1:16,0)
 
        end if
 
@@ -274,7 +294,26 @@ real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax)
        xyz_Urf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
        xyz_Vrf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Psi,  wz_Chi)
 
-call check_continuity
+!!$if (Stage==nStage_BarocTimeInt) then
+!!$       dKdt_vdiff =  &
+!!$            &   0.5d0*(xyz_UN+xyz_Urf/xyz_CosLat)/xyz_CosLat*xyz_wt(wt_DSig_wt(wt_DSig_wt(wt_xyz(xyz_Urf)))) &
+!!$            & + 0.5d0*(xyz_VN+xyz_Vrf/xyz_CosLat)/xyz_CosLat*xyz_wt(wt_DSig_wt(wt_DSig_wt(wt_xyz(xyz_Vrf))))
+!!$       dKdt_vdiff = vDiffCoef*dKdt_vdiff/spread(xy_totDepthBasic**2,3,kMax+1)
+!!$
+!!$       write(*,*) 'old vDIff', AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt_vdiff))
+!!$
+!!$       dKdt_vdiff = dKdt_vdiff + dKdt
+!!$       dKdt = (0.5d0*(xyz_Urf**2 + xyz_Vrf**2)/xyz_CosLat**2 -0.5d0*(xyz_UN**2 + xyz_VN**2))/(DelTime)
+!!$       dKdt_vdiff(:,:,0) = dKdt(:,:,0)
+!!$!write(*,*) 'dkdt_vdiff', dKdt_vdiff(1,15,:)
+!!$!write(*,*) 'res     :', (dKdt(1,15,:) - dKdt_vdiff(1,15,:))/maxval(abs(dKdt(1,:,:)))
+!!$
+!!$
+!!$       write(*,*) "KE:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt))
+!!$       write(*,*) 'vDIff', AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt_vdiff))
+!!$       write(*,*) "res:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt))-AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt_vdiff))
+!!$end if
+!!$call check_continuity
     end do
 
 
@@ -305,6 +344,14 @@ end subroutine check_continuity
         wt_PTempEdd = wt_timeIntEuler( wt_PTempEddN, wt_wz(wz_PTempRHS) )
         xy_SurfHeight = xy_timeIntEuler( xy_SurfHeightN, xy_w(w_SurfHeightRHS) )
       end subroutine timeInt_Euler
+
+      subroutine timeInt_RK2(RKStage)
+        integer, intent(in) :: RKStage
+        wt_Vor = wt_timeIntRK2( wt_VorN, wt_wz(wz_VorRHS), RKStage, wt_VorRKTmp )
+        wt_Div = wt_timeIntRK2( wt_DivN, wt_wz(wz_DivRHS), RKStage, wt_DivRKTmp )
+        wt_PTempEdd = wt_timeIntRK2( wt_PTempEddN, wt_wz(wz_PTempRHS), RKStage, wt_PTempEddRKTmp )
+        xy_SurfHeight = xy_timeIntRK2( xy_SurfHeightN, xy_w(w_SurfHeightRHS), RKStage, xy_SurfHeightRKTmp )
+      end subroutine timeInt_RK2
 
       subroutine timeInt_RK4(RKStage)
         integer, intent(in) :: RKStage
@@ -456,7 +503,7 @@ end subroutine check_continuity
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xy_CosLat(0:iMax-1,jMax)
+    real(DP) :: xy_Coef(0:iMax-1,jMax)
     character :: BtmBCType_HVel
 
     ! 実行文; Executable statement
@@ -469,17 +516,17 @@ end subroutine check_continuity
     end if
 
     if ( DynBC_Surface == DynBCTYPE_NoSlip ) then
-       xy_CosLat = cos(xyz_Lat(:,:,1))
+       xy_Coef = xy_totDepthBasic*cos(xyz_Lat(:,:,1))
        call apply_ZBoundaryCond( wt_Vor, &
             & 'N', BtmBCType_HVel, &
             & w_SurfBCWork = &
-            &   w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat)/(RefDens*vDiffCoef) &
+            &   w_AlphaOptr_xy(xy_WindStressV*xy_Coef, -xy_WindStressU*xy_Coef)/(RefDens*vDiffCoef) &
             & )
 
        call apply_ZBoundaryCond( wt_Div, &
             & 'N', BtmBCType_HVel, &
             & w_SurfBCWork = &
-            &   w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat)/(RefDens*vDiffCoef) &
+            &   w_AlphaOptr_xy(xy_WindStressU*xy_Coef, xy_WindStressV*xy_Coef)/(RefDens*vDiffCoef) &
             & )
 
     else

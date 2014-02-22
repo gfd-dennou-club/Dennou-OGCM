@@ -1,0 +1,39 @@
+  /
+  &grid_nml
+  nLat = 16
+  nLon = 32
+  nZ = 80
+  /
+  /
+  &temporalInteg_nml
+  DelTime     = 90d0,          !
+  SubCycleNum = 30,  
+  StartTime = 0d0, 
+  TotalIntegTime  = 90d0
+  /
+  /
+  &dataFile_nml
+  outputFileName = 'data.nc'
+  outputIntrval  = 90e0
+  /
+  &gtool_historyauto_nml
+  IntValue = 90.0,             ! 出力間隔の数値
+  IntUnit = 'sec'             ! 出力間隔の単位
+  /
+  &gtool_historyauto_nml
+  Name = 'u, v, eta'  ! 出力変数
+  /
+  &constants_nml
+  RPlanet    = 6.371e6,
+                              ! $ a $ [m].
+                              ! 惑星半径.
+                              ! Radius of planet
+  Omega      = 7.292115e-5,
+                              ! $ Omega $ [s-1].
+                              ! 回転角速度.
+                              ! Angular velocity
+  Grav       = 9.79764,
+                              ! $ g $ [m s-2].
+                              ! 重力加速度.
+                              ! Gravitational acceleration
+  /

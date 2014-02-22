@@ -23,10 +23,13 @@ module BudgetAnalysis_mod
        & hDiffCoef, vDiffCoef
 
   use GridSet_mod, only: &
-       & iMax, jMax, kMax, lMax, &
+       & iMax, jMax, kMax, lMax, tMax, &
        & xyz_Lat, xyz_Lon
 
   use SpmlUtil_mod
+
+  use HydroBouEqSolverRHS_mod
+  use HydroBouEqSolverVDiffProc_mod
 
   use DiagVarFileSet_mod
   use DiagnoseUtil_mod
@@ -61,7 +64,7 @@ module BudgetAnalysis_mod
   character(*), parameter, public :: BUDGETANAKEY_KEINPUTSURFAVG = 'KEInputSurfAvg'
   character(*), parameter, public :: BUDGETANAKEY_HDIFFDISPAVG = 'HDiffDispAvg'
   character(*), parameter, public :: BUDGETANAKEY_VDIFFDISPAVG = 'VDiffDispAvg'
-  character(*), parameter, public :: BUDGETANAKEY_SURFPRESSWORKAvg = 'SurfPressWorkAvg'
+  character(*), parameter, public :: BUDGETANAKEY_ADVECTWORKAVG = 'AdvectWorkAvg'
   character(*), parameter, public :: BUDGETANAKEY_KEGENNETAVG = 'KEGenNet'
 
 
@@ -109,6 +112,9 @@ contains
 
     call prepair_Output(diagVar_gthsInfo)
 
+    call HydroBouEqSolverRHS_Init()
+    call HydroBouEqSolverVDiffProc_Init()
+
   end subroutine BudgetAnalysis_Init
 
   !>
@@ -127,17 +133,19 @@ contains
        call HistoryClose(hst_angMomBudget)
     end if
 
+    call HydroBouEqSolverRHS_Final()
+    call HydroBouEqSolverVDiffProc_Final()
+
   end subroutine BudgetAnalysis_Final
 
-  subroutine BudgetAnalysis_perform( &
-       & xyz_U, xyz_V, xyz_SigDot, xyz_DensEdd, &
-       & xy_SurfPress, xy_totDepth )
+  subroutine BudgetAnalysis_perform( )
+
+    use VariableSet_mod, only: &
+         & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_PTempEddB, &
+         & xy_totDepthBasic
 
     ! 宣言文; Declare statements
     !
-    real(DP), intent(in), dimension(0:iMax-1, jMax, 0:kMax) :: &
-         & xyz_U, xyz_V, xyz_SigDot, xyz_DensEdd
-    real(DP), intent(in), dimension(0:iMax-1, jMax) :: xy_SurfPress, xy_totDepth
  
     ! 実行文; Executable statements
     !
@@ -149,121 +157,48 @@ contains
     subroutine analyze_energyBudget()
 
 use wa_module
+use DiagVarSet_mod, only: xyz_DensEdd
+
 use HydroBouEqSolverRHS_mod
 
       real(DP) :: KEnAvg, PEnAvg
       
-      real(DP) :: PEConvert, HDiffDisp, HDiffDisp2, VDiffDisp, VDiffDisp2
-      real(DP) :: KEInput, KEInput2, NoHDivCorrecTmp, NoHDivCorrec, NoHDivCorrec2
-      real(DP) :: Adv
-      real(DP) :: xyz_DuDSig(0:iMax-1,jMax,0:kMax)
-      real(DP) :: xyz_DvDSig(0:iMax-1,jMax,0:kMax)
-      real(DP) :: xyz_DPsiDSig(0:iMax-1,jMax,0:kMax)
-      real(DP) :: xyz_DChiDSig(0:iMax-1,jMax,0:kMax)
-      real(DP) :: xyz_CosLat(0:iMax-1,jMax,0:kMax)
-      real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax)
-      real(DP) :: xyz_Vor(0:iMax-1,jMax,0:kMax)
-      real(DP) :: w_Zero(lMax,0:kMax)
+      real(DP), dimension(2) :: PEConvert, HDiffDisp, VDiffDisp, KEInput, Advect
+      real(DP) :: wz_Zero(lMax,0:kMax)
+      real(DP), dimension(0:iMax-1,jMax,0:kMax,2) :: xyz_dudt, xyz_dvdt, xyz_dPTempdt
+      real(DP) :: xy_totDepth(0:iMax-1,jMax)
 
- real(DP) :: xy(0:iMax-1,jMax), xyz_DwDz(0:iMax-1,jMax,0:kMax)
- real(DP) :: wz_DivRHS(lMax,0:kMax)
- real(DP) :: wz_VorRHS(lMax,0:kMax)
- real(DP) :: xyz_AdvPsi(0:iMax-1,jMax,0:kMax), xyz_AdvChi(0:iMax-1,jMax,0:kMax)
- real(DP), parameter :: dt = 36000d0
 
       call MessageNotify("M", module_name, "Analyze energy budget..")
-      
+      xy_totDepth = xy_totDepthBasic
+
       !
-      KEnAvg = eval_kineticEnergyAvg(xyz_U, xyz_V)
+      KEnAvg = eval_kineticEnergyAvg(xyz_UN, xyz_VN)
       PEnAvg = eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth) 
       call HistoryPut( BUDGETANAKEY_KEAVG, KEnAvg, hst_energyBudget )
       call HistoryPut( BUDGETANAKEY_PEAVG, PEnAvg, hst_energyBudget )
       call HistoryPut( BUDGETANAKEY_TEAVG, KEnAvg + PEnAvg, hst_energyBudget )
 
-      !
-      xyz_Div = eval_Div(xyz_U, xyz_V)
-      xyz_Vor = eval_Vor(xyz_U, xyz_V)
 
-      xyz_DuDSig = xyz_wt( wt_DSig_wt(wt_xyz(xyz_U)) ) 
-      xyz_DvDSig = xyz_wt( wt_DSig_wt(wt_xyz(xyz_V)) ) 
-      xyz_DPsiDSig = xyz_wt( wa_LaplaInv_wa( wt_DSig_wt(wt_xyz(xyz_Vor)) )*RPlanet**2 ) 
-      xyz_DChiDSig = xyz_wt( wa_LaplaInv_wa( wt_DSig_wt(wt_xyz(xyz_Div)) )*RPlanet**2 ) 
-
-      xyz_CosLat = cos(xyz_Lat)
-
-      PEConvert = -AvrLonLat_xy( xy_totDepth * xy_IntSig_BtmToTop_xyz( (xyz_DensEdd/RefDens)*Grav*xyz_SigDot ) )
-
-      KEInput2 = vDiffCoef*AvrLonLat_xy( &
-           & (xyz_U(:,:,0)*xyz_DuDSig(:,:,0) + xyz_V(:,:,0)*xyz_DvDSig(:,:,0))/xy_totDepth**2 &
-           & )
-      VDiffDisp2 = - vDiffCoef* AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
-           & xyz_DuDSig**2 + xyz_DvDSig**2 &
-           & )/xy_totDepth**2 )
-
-      xyz_DuDSig = xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_DChiDSig), -wz_xyz(xyz_DPsiDSig))
-      xyz_DvDSig = xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_DPsiDSig),  wz_xyz(xyz_DChiDSig))
-      KEInput = vDiffCoef*AvrLonLat_xy(  &
-           &   (xyz_U(:,:,0) * xyz_DuDSig(:,:,0) + xyz_V(:,:,0) * xyz_DvDSig(:,:,0))/xy_totDepth**2 & 
-           & )
-      
-      VDiffDisp = vDiffCoef* AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
-           &    xyz_U*xyz_wt(wt_DSig_wt(wt_xyz(xyz_DuDSig))) &
-           &  + xyz_V*xyz_wt(wt_DSig_wt(wt_xyz(xyz_DvDSig))) &
-           & )/xy_totDepth**2 ) - KEInput
-
-      HDiffDisp2 = hDiffCoef*AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
-           &    xyz_U * ( xyz_wz(wz_Lapla2D_wz(wz_xyz(xyz_U))) - xyz_U/(RPlanet*xyz_CosLat)**2 ) &
-           &  + xyz_V * ( xyz_wz(wz_Lapla2D_wz(wz_xyz(xyz_V))) - xyz_V/(RPlanet*xyz_CosLat)**2 ) &
-           & ))
-     
-      HDiffDisp = hDiffCoef*AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
-           &   xyz_U * xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_Div), -wz_xyz(xyz_Vor)) &
-           & + xyz_V * xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_Vor),  wz_xyz(xyz_Div)) &
-           & ) )
-
-      w_Zero = 0d0      
-      NoHDivCorrec2 = AvrLonLat_xy(  &
-           & xy_IntSig_BtmToTop_xyz(xyz_Div)*xy_SurfPress/RefDens &
-           & )
-      NoHDivCorrec = - AvrLonLat_xy(  &
-           &   xy_IntSig_BtmToTop_xyz(xyz_U*xyz_CosLat)*xy_AlphaOptr_w(w_xy(xy_SurfPress/RefDens), w_Zero) &
-           & + xy_IntSig_BtmToTop_xyz(xyz_V*xyz_CosLat)*xy_AlphaOptr_w(w_Zero, w_xy(xy_SurfPress/RefDens)) &
-           &  )
+      KEInput=0d0; PEConvert=0d0; HDiffDisp=0d0; VDiffDisp=0d0; Advect = 0d0;
+      call calc_dudtdvdt(xyz_dudt(:,:,:,1), xyz_dvdt(:,:,:,1), xyz_dPTempdt(:,:,:,1), &
+           & KEInput(1), PEConvert(1), HDiffDisp(1), VDiffDisp(1), Advect(1))
 
 !!
-
-      call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
-         & xyz_Vor, xyz_U*xyz_CosLat, xyz_V*xyz_CosLat, xy_w(w_Zero), xyz_DensEdd, &
-         & Diagnose_PressBaroc(xy_totDepth, xyz_DensEdd), Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
-
-      Adv = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
-           &    xyz_U * RPlanet**2 * xyz_CosLat*xyz_AlphaOptr_wz(wa_LaplaInv_wa(wz_DivRHS), -wa_LaplaInv_wa(wz_VorRHS)) &
-           &  + xyz_V * RPlanet**2 * xyz_CosLat*xyz_AlphaOptr_wz(wa_LaplaInv_wa(wz_VorRHS),  wa_LaplaInv_wa(wz_DivRHS))  &
-           & ) )
-
-
-!!
-      call HistoryPut( BUDGETANAKEY_PE2KEAVG, PEConvert, hst_energyBudget)
-      call HistoryPut( BUDGETANAKEY_KE2PEAVG, -PEConvert, hst_energyBudget)
-      call HistoryPut( BUDGETANAKEY_KEINPUTSURFAVG, KEInput, hst_energyBudget)
-      call HistoryPut( BUDGETANAKEY_HDIFFDISPAVG, HDiffDisp, hst_energyBudget)
-      call HistoryPut( BUDGETANAKEY_VDIFFDISPAVG, VDiffDisp, hst_energyBudget)
-      call HistoryPut( BUDGETANAKEY_SURFPRESSWORKAVG, NoHDivCorrec, hst_energyBudget)
+      call HistoryPut( BUDGETANAKEY_PE2KEAVG, PEConvert(1), hst_energyBudget)
+      call HistoryPut( BUDGETANAKEY_KE2PEAVG, -PEConvert(1), hst_energyBudget)
+      call HistoryPut( BUDGETANAKEY_KEINPUTSURFAVG, KEInput(1), hst_energyBudget)
+      call HistoryPut( BUDGETANAKEY_HDIFFDISPAVG, HDiffDisp(1), hst_energyBudget)
+      call HistoryPut( BUDGETANAKEY_VDIFFDISPAVG, VDiffDisp(1), hst_energyBudget)
+      call HistoryPut( BUDGETANAKEY_ADVECTWORKAVG, Advect(1), hst_energyBudget)
       call HistoryPut( BUDGETANAKEY_KEGENNETAVG, & 
-           & PEConvert + KEInput + VDiffDisp + HDiffDisp + NoHDivCorrec, &
+           & sum(PEConvert + KEInput + VDiffDisp + HDiffDisp + Advect), &
            & hst_energyBudget)
 
-!!$write(*,*) RefDens*vDiffCoef*xyz_DuDSig(1,:,0)/xy_totDepth(1,1)a
-xy = xy_IntSig_BtmToTop_xyz(xyz_Div)
-xyz_DwDz = xyz_wt(wt_DSig_wt(wt_xyz(xyz_SigDot)))
-write(*,*) "Check Continuity:"
-write(*,*) (xyz_DwDz(1,1:16,0)+xyz_Div(1,1:16,0))/maxval(xyz_Div)
-write(*,*) "="
-write(*,*) "HDiffDisp:", HDiffDisp2, HDiffDisp
-write(*,*) "VDiffDisp:", VDiffDisp2, VDiffDisp
-write(*,*) "NoHDivCorrec:", NoHDivCorrec2, NoHDivCorrec
-write(*,*) "KEInput:", KEInput2, KEInput
-write(*,*) "Adv:", Adv
+write(*,*) "HDiffDisp: VDiffDisp: PE2KE:  KEInput: Advect:"
+write(*,'(5(E15.5e4,a))'), HDiffDisp(1), ":", VDiffDisp(1), ":", PEConvert(1), ":", KEInput(1), ":", Advect(1)
+write(*,*) ":  KEGenNet", PEConvert(1)+KEInput(1)+VDiffDisp(1)+HDiffDisp(1)
+write(*,*) ":  KEGenNet", PEConvert(1)+KEInput(1)+VDiffDisp(1)+HDiffDisp(1)+Advect(1)
 
     end subroutine analyze_energyBudget
 
@@ -273,10 +208,172 @@ write(*,*) "Adv:", Adv
 
       call MessageNotify("M", module_name, "Analyze angular momentum budget..")
 
-      AngMomAvg = eval_angularMomAvg(xyz_U)
+      AngMomAvg = eval_angularMomAvg(xyz_UN)
       call HistoryPut( BUDGETANAKEY_ANGMOMAVG, AngMomAvg, hst_angMomBudget )
 
     end subroutine analyze_angMomBudget
+
+    subroutine calc_dudtdvdt(xyz_dudt, xyz_dvdt, xyz_dPTempdt, KEInput, PEConvert, HDiffDisp, VDiffDisp, Advect )
+
+use wa_module
+use HydroBouEqSolverRHS_mod
+use VariableSet_mod!, only: z_PTempBasic, xy_WindStressU, xy_WindStressV
+use TemporalIntegSet_mod, only: DelTime
+use BoundCondSet_mod, only: &
+       & KinBC_Surface, DynBC_Surface, DynBC_Bottom, &
+       & DynBCTYPE_Slip, DynBCTYPE_NoSlip
+use HydroBouEqSolver_mod
+
+      real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: xyz_dudt, xyz_dvdt, xyz_dPTempdt
+      real(DP), intent(inout) :: KEInput, PEConvert, HDiffDisp, VDiffDisp, Advect
+      
+
+      !
+      real(DP) :: xyz_DuDSig(0:iMax-1,jMax,0:kMax), xyz_DvDSig(0:iMax-1,jMax,0:kMax)
+      real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax), xyz_Vor(0:iMax-1,jMax,0:kMax)
+      real(DP) , dimension(0:iMax-1,jMax,0:kMax) :: xyz_InvisRHSU, xyz_InvisRHSV, &
+           & xyz_HDiffU, xyz_HDiffV, xyz_VDiff, xyz_PressEddTmp, &
+           & xyz_PressEdd, xyz_UTmp, xyz_VTmp, xyz_totPress, xyz_PressWork, xyz_AdvWork, &
+           & xyz_PTempBasic, xyz_DensEdd, xyz_dKdt
+      real(DP) :: xyz_CosLat(0:iMax-1,jMax,0:kMax)
+      real(DP), dimension(lMax, 0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_TmpChi, wz_TmpPsi, wz_Tmp
+      real(DP), dimension(lMax, 0:kMax) :: wz_VorTmp, wz_DivTmp, wz_PTempEddTmp, wt_Vor, wt_Div, wt_PTempEdd, wz_VorA, wz_DivA
+      real(DP) :: xy_totDepth(0:iMax-1,jMax)
+      
+      !
+      xyz_CosLat = cos(xyz_Lat)
+      xy_totDepth = xy_totDepthBasic
+
+      xyz_Div = eval_Div(xyz_UN, xyz_VN)
+      xyz_Vor = eval_Vor(xyz_UN, xyz_VN)
+
+      !
+      xyz_HDiffU = hDiffCoef * xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_Div), -wz_xyz(xyz_Vor))
+      xyz_HDiffV = hDiffCoef * xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_Vor),  wz_xyz(xyz_Div))
+
+      !
+      xyz_SaltN = 0d0
+      xy_totDepth = xy_totDepthBasic
+      xyz_PTempBasic = spread(spread(z_PTempBasic,1,jMax),1,iMax)
+
+      ! 
+      ! Step 1
+      xyz_DensEdd = eval_DensEdd(xyz_PTempBasic + xyz_PTempEddN, xyz_SaltN, xy_totDepth)
+      xyz_SigDot = diagnose_SigDot( xy_totDepth, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xyz_Div )
+      wz_Tmp = 0d0
+      xyz_PressEddTmp = Diagnose_PressBaroc(xy_totDepth, xyz_DensEdd)
+      xyz_PressEdd = 0.5d0*xyz_PressEddTmp
+
+      call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
+         & xyz_Vor, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xy_w(wz_Tmp(:,0)), xyz_DensEdd, &
+         & xyz_PressEddTmp, Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
+
+      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
+           & xy_SurfPress, wz_xyz(xyz_Div), xy_totDepth, vDiffCoef, DelTime)
+
+      wz_TmpPsi = wa_LaplaInv_wa( wz_VorRHS  )*RPlanet**2
+      wz_TmpChi = wa_LaplaInv_wa( wz_DivRHS  )*RPlanet**2 + wz_xyz(xyz_PressEddTmp/RefDens)
+      xyz_InvisRHSU = 0.5d0*xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
+      xyz_InvisRHSV = 0.5d0*xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
+
+      call calc_TracerEqInvisRHS( wz_PTempRHS, &
+           & xyz_PTempBasic+xyz_PTempEddN, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xyz_Div, xyz_SigDot )
+
+      wz_VorTmp = wz_xyz( 4d0/12d0*eval_Vor(xyz_UB, xyz_VB) + 8d0/12d0*xyz_Vor ) + 10d0/12d0*DelTime*wz_VorRHS
+      wz_DivTmp = wz_xyz( 4d0/12d0*eval_Div(xyz_UB, xyz_VB) + 8d0/12d0*xyz_Div ) + 10d0/12d0*DelTime*wz_DivRHS
+      wz_PTempEddTmp = wz_xyz( 4d0/12d0*xyz_PTempEddB + 8d0/12d0*xyz_PTempEddN ) + 10d0/12d0*DelTime*wz_PTempRHS
+    
+
+      wt_Vor = wt_wz(wz_VorTmp); wt_Div = wt_wz(wz_DivTmp); wt_PTempEdd = wt_wz(wz_PTempEddTmp)
+      call apply_boundaryConditions(wt_Vor, wt_Div, wt_PTempEdd)
+      wz_VorTmp = wz_wt(wt_Vor); wz_DivTmp = wz_wt(wt_Div); wz_PTempEddTmp = wz_wt(wt_PTempEdd)
+
+      wz_TmpPsi = wa_LaplaInv_wa( wz_VorTmp  )*RPlanet**2
+      wz_TmpChi = wa_LaplaInv_wa( wz_DivTmp  )*RPlanet**2
+      xyz_UTmp =xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
+      xyz_VTmp =xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
+
+      ! Step 2
+      !
+      xyz_DensEdd = eval_DensEdd(xyz_PTempBasic + xyz_wz(wz_PTempEddTmp), xyz_SaltN, xy_totDepth)
+      xyz_SigDot = diagnose_SigDot( xy_totDepth, xyz_UTmp*xyz_CosLat, xyz_VTmp*xyz_CosLat, xyz_wz(wz_DivTmp) )
+      xyz_PressEddTmp = Diagnose_PressBaroc(xy_totDepth, xyz_DensEdd)
+      xyz_PressEdd = xyz_PressEddTmp! + 0.5d0*xyz_PressEddTmp
+      wz_Tmp = 0d0
+      call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
+         & xyz_wz(wz_VorTmp), xyz_UTmp*xyz_CosLat, xyz_VTmp*xyz_CosLat, xy_w(wz_Tmp(:,0)), xyz_DensEdd, &
+         & xyz_PressEddTmp, Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
+
+      wz_TmpPsi = wa_LaplaInv_wa( wz_VorRHS  )*RPlanet**2
+      wz_TmpChi = wa_LaplaInv_wa( wz_DivRHS  )*RPlanet**2 + wz_xyz(xyz_PressEddTmp/RefDens)
+      xyz_InvisRHSU = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
+      xyz_InvisRHSV = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
+
+      call calc_VorEqDivEqDiffRHS(wz_VorRHS, wz_DivRHS, &
+           & wz_xyz(xyz_Vor), wz_xyz(xyz_Div), hDiffCoef)
+
+      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
+           & xy_SurfPress, wz_DivTmp, xy_totDepth, vDiffCoef, DelTime)
+
+      wz_VorA = wz_xyz(xyz_Vor) + wz_VorRHS*DelTime
+      wz_DivA = wz_xyz(xyz_Div) + wz_DivRHS*DelTime
+!!$      wz_VorA = wz_VorA + wz_VorRHS*0.5d0*DelTime
+!!$      wz_DivA = wz_DivA + wz_DivRHS*0.5d0*DelTime
+
+      wt_Vor = wt_wz(wz_VorA); wt_Div = wt_wz(wz_DivA); 
+      call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &
+           & xy_WindStressU, xy_WindStressV, xy_totDepth, vDiffCoef, DelTime, &
+           & DynBC_Surface, DynBC_Bottom )
+
+      wz_TmpPsi = wa_LaplaInv_wa( wz_wt(wt_Vor) )*RPlanet**2
+      wz_TmpChi = wa_LaplaInv_wa( wz_wt(wt_Div) )*RPlanet**2
+      xyz_UA =xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
+      xyz_VA =xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
+
+      !
+
+      xyz_UTmp = 0.5d0*(xyz_UN + xyz_UA); xyz_VTmp = 0.5d0*(xyz_VN + xyz_VA)
+
+      HDiffDisp = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
+           & xyz_UTmp*xyz_HDiffU + xyz_VTmp*xyz_HDiffV &
+           & ))
+
+      wz_Tmp = 0d0
+      xyz_totPress = xyz_PressEdd + spread(xy_SurfPress,3,kMax+1)
+      xyz_PressWork = - ( &
+           &   xyz_UTmp * xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_totPress/RefDens), wz_Tmp) &
+           & + xyz_VTmp * xyz_CosLat*xyz_AlphaOptr_wz(wz_Tmp, wz_xyz(xyz_totPress/RefDens)) &
+           & )
+
+      PEConvert = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyz_PressWork ))
+
+
+      xyz_AdvWork = xyz_UTmp*xyz_InvisRHSU + xyz_VTmp*xyz_InvisRHSV 
+      Advect = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyz_AdvWork ))
+
+
+!!$      xyz_VDiff = vDiffCoef*( &
+!!$           &    xyz_UTmp * xyz_wt(wt_DSig_wt(wt_DSig_wt(wt_xyz(xyz_UA)))) &
+!!$           &  + xyz_VTmp * xyz_wt(wt_DSig_wt(wt_DSig_wt(wt_xyz(xyz_VA)))) &
+!!$           & )/spread(xy_totDepth**2,3,kMax+1)
+
+      xyz_VDiff = - vDiffCoef*( &
+           &    xyz_wt(wt_DSig_wt(wt_xyz(xyz_UTmp)))**2 &
+           &  + xyz_wt(wt_DSig_wt(wt_xyz(xyz_VTmp)))**2 &
+           & )/spread(xy_totDepth**2,3,kMax+1)
+
+      VDiffDisp =  AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyz_VDiff) )
+!      xyz_VDiff(:,:,0) = 0.5d0*( (xyz_UA(:,:,0)**2+xyz_VA(:,:,0)**2) - (xyz_UN(:,:,0)**2+xyz_VN(:,:,0)**2))/DelTime
+
+
+      xyz_dKdt = 0.5d0*((xyz_UA + xyz_UN)*(xyz_UA - xyz_UN) + (xyz_VA + xyz_VN)*(xyz_VA - xyz_VN))/DelTime
+      KEInput = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyz_dKdt )) - PEConvert - Advect - VDiffDisp - HDiffDisp
+
+write(*,*) "*KEInut surf:", KEInput
+
+write(*,*) "* DKEDt=", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyz_dKdt ))
+
+    end subroutine calc_dudtdvdt
 
   end subroutine BudgetAnalysis_perform
 
@@ -355,13 +452,13 @@ write(*,*) "Adv:", Adv
              & history=hst_energyBudget)
 
         call HistoryAddVariable( & 
-             & varname=BUDGETANAKEY_KEGENNETAVG, dims=(/'t'/), &
-             & longname='global mean of net kinetic energy generation', &
+             & varname=BUDGETANAKEY_ADVECTWORKAVG, dims=(/'t'/), &
+             & longname='global mean of the kinetic energy generation due to advection', &
              & units='J*m-3*kg-1*s-1', xtype='double',&
              & history=hst_energyBudget)
 
         call HistoryAddVariable( & 
-             & varname=BUDGETANAKEY_SURFPRESSWORKAVG, dims=(/'t'/), &
+             & varname=BUDGETANAKEY_KEGENNETAVG, dims=(/'t'/), &
              & longname='global mean of net kinetic energy generation', &
              & units='J*m-3*kg-1*s-1', xtype='double',&
              & history=hst_energyBudget)

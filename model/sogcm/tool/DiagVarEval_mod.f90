@@ -18,7 +18,8 @@ module DiagVarEval_mod
   
 
   use Constants_mod, only: &
-       & RPlanet, Grav, RefDens
+       & RPlanet, Grav, RefDens, &
+       & hDiffCoef, vDiffCoef
 
   use GridSet_mod, only: &
        & iMax, jMax, kMax, &
@@ -38,7 +39,10 @@ module DiagVarEval_mod
   !
   public :: DiagVarEval_Init, DiagVarEval_Final
   public :: eval_Vor, eval_Div, eval_totPress, eval_DensEdd
+
+  public :: eval_MassStreamFunc
   public :: eval_potentialEnergyAvg, eval_kineticEnergyAvg
+  public :: eval_angularMomAvg
 
   ! 非公開手続き
   ! Private procedure
@@ -126,7 +130,7 @@ contains
   !!
   !! @return 
   !!
-  function eval_DensEdd(xyz_PTemp, xyz_Salt, xyz_totPress) result(xyz_DensEdd)
+  function eval_DensEdd(xyz_PTemp, xyz_Salt, xy_totDepth) result(xyz_DensEdd)
     
     use EOSDriver_mod, only: EOSDriver_Eval
 
@@ -134,7 +138,7 @@ contains
     !
     real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_totPress(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     real(DP) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
 
     ! 局所変数
@@ -145,7 +149,7 @@ contains
     ! 実行文; Executable statement
     !
     call EOSDriver_Eval( rhoEdd=xyz_DensEdd, &           !(out)
-         & theta=xyz_PTemp, S=xyz_Salt, p=xyz_totPress )  !(in)
+         & theta=xyz_PTemp, S=xyz_Salt, p=-RefDens*Diagnose_GeoPot(xy_totDepth) )  !(in)
 
   end function eval_DensEdd
 
@@ -174,6 +178,29 @@ contains
     end do
   end function eval_totPress
 
+  !> @brief 
+  !!
+  !!
+  function eval_MassStreamFunc(xyz_V) result(yz_MassStreamFunc)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
+    real(DP) :: yz_MassStreamFunc(jMax,0:kMax)
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+    
+    yz_MassStreamFunc = ya_AvrLon_xya( xyz_IntSig_SigToTop_xyz( - RefDens*xyz_V ) )
+  end function eval_MassStreamFunc
+
+
+!!!!!!!!!!!!!! Subroutines for Energy Calculation
 
   !> @brief 
   !!
@@ -190,13 +217,16 @@ contains
     ! 局所変数
     ! Local variables
     !
-    
+    integer :: k
     
     ! 実行文; Executable statement
     !
     
-    KEAvg = RefDens*AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyz_u**2 + xyz_v**2) )
+    KEAvg = 0.5d0*AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyz_u**2 + xyz_v**2) )
 
+!!$do k=0,kMax
+!!$write(*,*) k, 0.5*AvrLonLat_xy(xyz_U(:,:,k)**2 + xyz_V(:,:,k)**2)
+!!$end do
   end function eval_kineticEnergyAvg
 
   !> @brief 
@@ -223,5 +253,32 @@ contains
             & ))
 
   end function eval_potentialEnergyAvg
+
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
+  function eval_angularMomAvg(xyz_u) result(angularMomAvg)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: xyz_u(0:iMax-1,jMax,0:kMax)
+    real(DP) :: angularMomAvg
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+    
+    angularMomAvg =  AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
+         & cos(xyz_Lat)*xyz_u &
+         & ) )
+
+  end function eval_angularMomAvg
+
 
 end module DiagVarEval_mod

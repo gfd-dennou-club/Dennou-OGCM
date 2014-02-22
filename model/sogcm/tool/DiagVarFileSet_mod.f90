@@ -124,20 +124,8 @@ contains
          longname='pressure deviation from RefDens*Grav*z', units='Pa')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_TEAVG, dims=(/'t  '/), & 
-         longname='global mean of total energy', units='J*m-3')
-
-    call HistoryAutoAddVariable( &
-         varname=DVARKEY_KEAVG, dims=(/'t  '/), & 
-         longname='global mean of kinetic energy', units='J*m-3')
-
-    call HistoryAutoAddVariable( &
-         varname=DVARKEY_PEAVG, dims=(/'t  '/), & 
-         longname='global mean of potential energy', units='J*m-3')
-
-    call HistoryAutoAddVariable( &
-         varname=DVARKEY_IEAVG, dims=(/'t  '/), & 
-         longname='global mean of internal energy', units='J*m-3')
+         varname=DVARKEY_MASSSTREAMFUNC, dims=(/'lat','sig','t  '/), & 
+         longname='mass stream function on meriodinal plane', units='kg.m2.s-1')
 
     call HistoryAutoAllVarFix()
 

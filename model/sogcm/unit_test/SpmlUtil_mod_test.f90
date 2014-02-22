@@ -171,7 +171,7 @@ contains
     real(DP) :: checkVal(0:iMax-1,jMax, 0:kMax)
     real(DP) :: lostCheck(0:iMax-1,jMax, 0:kMax)
     integer :: k, m
-    real(DP) :: l2norm
+    real(DP) :: l2norm, totIntVal
     character(STRING) :: message
 
     do k=0, kMax
@@ -193,9 +193,14 @@ contains
     if (present(outputFileName)) then
        call MessageNotify("M", "SpmlUtil_mod_test", "Output error data..")
        open(10, file=trim(outputFileName), status="replace")
+       
+       write(10,*) "# Sig,   f(Sig),  normalized integralation value,  nomalized analytic integration value, l2norm of error,", &
+            & "information loss with spectral conversion", "Zero"
+
        do k=0,kMax
-          write(10,'(6E15.5e4)') g_Sig(k), eval_func(g_Sig(k)), intVal(1,1,k), checkVal(1,1,k), & 
-               & sqrt( (intVal(1,1,k) - checkVal(1,1,k))**2 ), lostCheck(1,1,k)
+          write(10,'(7E15.5e4)') g_Sig(k), eval_func(g_Sig(k)), &
+               & intVal(1,1,k)/maxval(abs(checkVal(1,1,:))), checkVal(1,1,k)/maxval(abs(checkVal(1,1,:))), & 
+               & sqrt( (intVal(1,1,k) - checkVal(1,1,k))**2 )/maxval(abs(checkVal(1,1,:))), lostCheck(1,1,k), 0d0
        end do
        close(10)
     end if

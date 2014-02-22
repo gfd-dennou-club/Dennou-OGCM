@@ -26,7 +26,12 @@ test/advTest
 # data file
 *.nc
 *.vtk
+*.dat
+*.png
+*.jpg
+*.eps
 
 # tex temporary files
 *.aux
 *.log
+

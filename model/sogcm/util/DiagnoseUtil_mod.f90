@@ -108,11 +108,11 @@ contains
 !!$            & + (xyz_UrfHatSig(:,:,k)*xy_DtotDepthDLambda + xyz_VrfHatSig(:,:,k)*xy_DtotDepthDmu)/xy_totDepth 
     end do
 
-xyz_dwdz = xyz_wt(wt_DSig_wt(wt_xyz(xyz_SigDot)))
-write(*,*) "Div----"
-write(*,*) xyz_Div(1,16,:)
-write(*,*) "---- diagnose sigdot ---"
-write(*,*) (xyz_Div(1,1:16,0) + xyz_dwdz(1,1:16,0))!/maxval(xyz_Div)    
+!!$xyz_dwdz = xyz_wt(wt_DSig_wt(wt_xyz(xyz_SigDot)))
+!!$write(*,*) "Div----"
+!!$write(*,*) xyz_Div(1,16,:)
+!!$write(*,*) "---- diagnose sigdot ---"
+!!$write(*,*) (xyz_Div(1,1:16,0) + xyz_dwdz(1,1:16,0))!/maxval(xyz_Div)    
 !    xyz_SigDot(:,:,kMax) = 0d0
 
   end function diagnose_SigDot

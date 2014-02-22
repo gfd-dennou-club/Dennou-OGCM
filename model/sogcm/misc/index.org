@@ -1,0 +1,46 @@
+#+TITLE: Kawai Work 関連資料
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./org.css" />
+
+* 海洋力学・海洋モデリング 関連資料
+
+** 海洋力学基礎ノート
+  - [[file:./../../../../note_OModeling/fundamentals/fundamentals.pdf][熱力学]]
+
+** 海洋の地学データ
+  - [[./../../../../note_OModeling/basic_data/basic_data.html][海洋循環, 海水温, 塩分, 溶存酸素分布のグラフ]]
+
+
+* Dennou-OGCM 関連資料
+
+** モデルの記述
+
+  - [[file:./../../../doc/formulation/formulation.pdf][定式化]]
+  - [[file:./../../../doc/numeric/numeric.pdf][数値手法]]
+
+** 状態方程式
+
+  - [[./EOS/EOSfigure.html][海水の状態方程式(Jackett and McDougall, 1995)のグラフ]]
+  - [[./../../../../note_OModeling/review/EOS/EOSsurvey.html][海洋モデルで用いられる海水の状態方程式の調査]]
+  - 最近の海水の状態方程式の論文の読書ノート
+    - [[./../../../../note_OModeling/review/EOS/Mcdougall_et_al_2003.html][McDougall, et al.(2003)]]
+    - [[./../../../../note_OModeling/review/EOS/Jackett_et_al_2006.html][Jackett, et al.(2006)]]
+    - [[./../../../../note_OModeling/review/EOS/Mcdougall_2007.html][McDougall, et al.(2007)]]
+
+** テスト計算
+
+  - [[./../experiment/exp_BarotRossbyWave/Exp_BarotRossbyWave_mod.html][順圧ロスビー波の伝播テスト]]
+  - [[./../experiment/exp_InternalGravWave/Exp_InternalGravWave_mod.html][内部重力波の伝播テスト]]
+  - [[./../experiment/exp_WindDrivenCirculation/Exp_WindDrivenCirculation.html][水惑星設定における風成循環の数値実験]]
+
+** その他
+
+  - [[./chebyshev/chebyshevCheck.html][風成循環計算における Chebyshev 多項式展開についての考察]]
+
+* 水惑星実験 関連論文
+  - 読書ノート
+    - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)] ([[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][レビュー発表資料]])
+
+* 関連論文リスト

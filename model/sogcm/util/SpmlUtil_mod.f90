@@ -22,7 +22,7 @@ module SpmlUtil_mod
 !!$       & wz_DivLambda_xyz => wa_DivLambda_xya, &
 !!$       & wz_DivMu_xyz => wa_DivMu_xya
 
-  use at_module_omp, only: &
+  use at_module, only: &
        & at_Initial, &
        & g_Sig => g_X, g_Sig_WEIGHT => g_X_WEIGHT, &
        & at_az => at_ag, & 
@@ -48,7 +48,7 @@ module SpmlUtil_mod
   public :: xyz_wt, wt_xyz, xyz_wz, wz_xyz, wz_wt, wt_wz
  
 
-  public :: wz_AlphaOptr_xyz, w_AlphaOptr_xy, xyz_AlphaOptr_wz
+  public :: wz_AlphaOptr_xyz, w_AlphaOptr_xy, xyz_AlphaOptr_wz, xy_AlphaOptr_w
   public :: wz_Lapla2D_wz, wz_InvLapla2D_wz
   public :: w_InvLapla2D_w
 
@@ -61,7 +61,7 @@ module SpmlUtil_mod
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: xy_Lon, xy_Lat
   public :: xya_wa, wa_xya 
-  public :: AvrLonLat_xy
+  public :: AvrLonLat_xy, ya_AvrLon_xya
 
   ! 非公開手続き
   ! Private procedure
@@ -268,6 +268,7 @@ contains
     end function wt_wz
 
   !--------------- 微分計算 -----------------
+
     function wt_DSig_wt(wt)
       !
       ! 入力スペクトルデータに動径微分 ∂/∂r を作用する.
@@ -284,6 +285,7 @@ contains
       wt_DSig_wt = at_DSig_at(wt)
 
     end function wt_DSig_wt
+
 
     function wt_DivLon_xyz(xyz)
       ! 
@@ -364,6 +366,23 @@ contains
       xyz_AlphaOptr_wz = ( xya_GradLambda_wa(wz_A) + xya_GradMu_wa(wz_B) )/ (Radius*xyz_CosLat**2)
 
     end function xyz_AlphaOptr_wz
+
+    function xy_AlphaOptr_w(w_A, w_B)
+      !
+      ! 格子データに 1/a ( 1/(1-μ^2)・∂A/∂λ + ∂B/∂μ ) を
+      ! 作用させたスペクトルデータを返す.
+      !
+      real(8), dimension((nm+1)*(nm+1)), intent(in)   :: w_A
+      real(8), dimension((nm+1)*(nm+1)), intent(in)   :: w_B
+
+      !(in) 3 次元経度緯度動径格子点データ
+      real(8), dimension(0:im-1,jm)       :: xy_AlphaOptr_w
+      !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
+
+
+      xy_AlphaOptr_w = ( xy_GradLambda_w(w_A) + xy_GradMu_w(w_B) )/ (Radius*cos(xy_Lat)**2)
+
+    end function xy_AlphaOptr_w
 
 
     function wz_Lapla2D_wz(wz)
@@ -549,6 +568,7 @@ contains
       end do
       TMat = transpose( at_az(tt_data) )
 
+
       do k=0, km
          theta = PI*k/dble(km)
          Sigk = cos(theta)
@@ -564,8 +584,9 @@ contains
       TIntMat(:,lm) = 0.5d0*TIntMat(:,lm)
 
      TIntMat = 0.5d0*(SigMax - SigMin) * TIntMat 
+
      vIntCoefMat = matmul(TIntMat, TMat)
- 
+
     end subroutine construct_vIntCoefMat
 
 end module SpmlUtil_mod

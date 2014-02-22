@@ -10,6 +10,7 @@ program diagVar_main
 
   use GridSet_mod
   use SpmlUtil_mod
+  use BoundCondSet_mod
 
   use GovernEqSet_mod, only: &
        & GovernEqSet_Init, GovernEqSet_Final, &
@@ -20,12 +21,18 @@ program diagVar_main
   use DiagVarSet_mod
   use DiagVarFileSet_mod
   use DiagVarEval_mod
+  use BudgetAnalysis_mod
 
   use gtool_history
    use dc_calendar, only: &
          & DCCalCreate, DCCalDateCreate, &
          & DCCalConvertByUnit, DCCalDateDifference, &
          & DCCalDateInquire, DCCalDateEval
+
+  use Exp_WindDrivenCirculation_mod, only: &
+       & Exp_Init => Exp_WindDrivenCirculation_Init, &
+       & Exp_Final => Exp_WindDrivenCirculation_Final, &
+       & Exp_SetInitCond => SetInitCondition
 
   implicit none
 
@@ -36,6 +43,7 @@ program diagVar_main
   character(*), parameter :: DEFAULT_CONFIG_NML = 'defaultConfigDiagVar.nml' 
   character(TOKEN), pointer :: ogcmOutputVarsName(:) => null()
   character(TOKEN), pointer :: diagVarsName(:) => null()
+  character(TOKEN), pointer :: BudgetTypesName(:) => null()
 
   real(DP) :: CurrentTimeSec, EndTimeSec, TimeIntSec
 
@@ -124,6 +132,7 @@ contains
 
     call Constants_Init(ogcmConfigNmlFile)
     call TemporalIntegSet_Init(ogcmConfigNmlFile)
+    call BoundCondSet_Init(ogcmConfigNmlFile)
     call GridSet_Init(ogcmConfigNmlFile)
     call GovernEqSet_Init(ogcmConfigNmlFile)
     call EOSDriver_Init(EOSType)
@@ -145,6 +154,8 @@ contains
 
     call GridSet_construct()
     call VariableSet_Init()
+    call Exp_Init(ogcmConfigNmlFile)
+    call Exp_SetInitCond()
 
     !
     call MessageNotify('M', PROGRAM_NAME, &
@@ -152,6 +163,7 @@ contains
     call DiagVarSet_Init(diagVarsName)
     call DiagVarEval_Init()
     call DiagVarFileSet_Init(configNmlFile, diagVar_gthsInfo)
+    call BudgetAnalysis_Init(diagVar_gthsInfo, BudgetTypesName)
 
     !
 
@@ -180,16 +192,19 @@ contains
 
     call DiagVarEval_Final()
     call DiagVarFileSet_Final()
+    call BudgetAnalysis_Final()
     call DiagVarSet_Final()
 
     if( associated(diagVarsName) ) deallocate(diagVarsName)
     if( associated(ogcmOutputVarsName) ) deallocate(ogcmOutputVarsName)
+    if( associated(BudgetTypesName) ) deallocate(BudgetTypesName)
 
     call EOSDriver_Final()
     call GovernEqSet_Final()
     call VariableSet_Final()
     call SpmlUtil_Final()
     call GridSet_Final()
+    call BoundCondSet_Final()
     call TemporalIntegSet_Final()
     call Constants_Final()
 
@@ -235,6 +250,8 @@ contains
     character(TOKEN) :: IntUnit
     character(STRING) :: Name, FilePrefix
 
+    character(STRING) :: BudgetTypes
+
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
@@ -243,6 +260,9 @@ contains
 
     namelist /gtool_historyauto_nml/ &
          & IntValue, IntUnit, Name, FilePrefix
+    
+    namelist /budgetAnalysis_nml/ &
+         & BudgetTypes
 
     ! 実行文; Executable statements
 
@@ -264,6 +284,7 @@ contains
        read( unit_nml, &           ! (in)
             & nml = diagVar_nml, iostat = iostat_nml )   ! (out)
 
+       !
        pos_nml = ''
        do while ( trim(pos_nml) /= 'APPEND' .and. iostat_nml == 0 ) 
           read( unit_nml, &           ! (in)
@@ -271,6 +292,11 @@ contains
           inquire( unit_nml, & !(in)
                & position=pos_nml ) !(out)
        end do
+       
+       !
+       rewind( unit_nml )
+       read( unit_nml, &           ! (in)
+            & nml = budgetAnalysis_nml, iostat = iostat_nml )   ! (out)
 
        close( unit_nml )
     end if
@@ -281,11 +307,15 @@ contains
     diagVar_gthsInfo = gtool_historyauto_info( intValue=intValue, intUnit=intUnit, &
          &                                     FilePrefix=FilePrefix, Name=Name )
 
+    BudgetTypes = Replace(BudgetTypes, " ", "")
+    call Split(trim(BudgetTypes), BudgetTypesName, ",")
+
     ! 印字 ; Print
     !
     call MessageNotify( 'M', PROGRAM_NAME, '----- Initialization Messages -----' )
     call MessageNotify( 'M', PROGRAM_NAME, ' ogcm configure file   = %c', c1=trim(ogcmConfigNml) )
     call MessageNotify( 'M', PROGRAM_NAME, ' diagnostic variables  = %c', c1=Name )
+    call MessageNotify( 'M', PROGRAM_NAME, ' budget analysis types  = %c', c1=BudgetTypes )
     
   end subroutine readNml
 
@@ -386,9 +416,11 @@ contains
     
     use VariableSet_mod, only: &
          & VARSET_KEY_U, VARSET_KEY_V, VARSET_KEY_SURFPRESS, VARSET_KEY_BAROCPRESS, VARSET_KEY_SURFHEIGHT, VARSET_KEY_PTEMPEDD, &
-         & VARSET_KEY_PTEMPBASIC, VARSET_KEY_TOTDEPTHBASIC, &
+         & VARSET_KEY_UB, VARSET_KEY_VB, VARSET_KEY_PTEMPEDDB, &
+         & VARSET_KEY_SIGDOT, VARSET_KEY_PTEMPBASIC, VARSET_KEY_TOTDEPTHBASIC, &
          & xyz_UN, xyz_VN, xy_SurfPress, xy_SurfHeightN, xyz_PTempEddN, xyz_SaltN, &
-         & z_PTempBasic, xy_totDepthBasic
+         & xyz_UB, xyz_VB, xyz_PTempEddB, &
+         & xyz_SigDot, z_PTempBasic, xy_totDepthBasic
 
     use DiagVarSet_mod, only: &
          & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_TotPress, &
@@ -419,14 +451,26 @@ contains
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_V) // NCEXT, &
          & VARSET_KEY_V, xyz_VN, range=rangeStr )
 
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPEDD) // NCEXT, &
+         & VARSET_KEY_PTEMPEDD, xyz_PTempEddN, range=rangeStr )
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_UB) // NCEXT, &
+         & VARSET_KEY_UB, xyz_UB, range=rangeStr )
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_VB) // NCEXT, &
+         & VARSET_KEY_VB, xyz_VB, range=rangeStr )
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPEDDB) // NCEXT, &
+         & VARSET_KEY_PTEMPEDDB, xyz_PTempEddB, range=rangeStr )
+
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SIGDOT) // NCEXT, &
+         & VARSET_KEY_SIGDOT, xyz_SigDot, range=rangeStr )
+
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SURFPRESS) // NCEXT, &
          & VARSET_KEY_SURFPRESS, xy_SurfPress, range=rangeStr )
 
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_BAROCPRESS) // NCEXT, &
          & VARSET_KEY_BAROCPRESS, xyz_BarocPress, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPEDD) // NCEXT, &
-         & VARSET_KEY_PTEMPEDD, xyz_PTempEddN, range=rangeStr )
 
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPBASIC) // NCEXT, &
          & VARSET_KEY_PTEMPBASIC, z_PTempBasic )
@@ -443,7 +487,7 @@ contains
     forAll(k=0:kMax) xyz_PTemp(:,:,k) = z_PTempBasic(k) + xyz_PTempEddN(:,:,k)
 
     xyz_totPress = eval_totPress(xy_SurfPress, xyz_BarocPress)
-    xyz_DensEdd = eval_DensEdd(xyz_PTemp, xyz_SaltN, xyz_totPress)
+    xyz_DensEdd = eval_DensEdd(xyz_PTemp, xyz_SaltN, xy_totDepth )
 
     do varID=1, size(diagVarsName)
        select case(diagVarsName(varID))
@@ -455,15 +499,13 @@ contains
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_Vor, var3D=xyz_Vor)
           case (DVARKEY_TOTPRESS)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_TOTPRESS, var3D=xyz_totPress )
-          case (DVARKEY_KEAVG)
-             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_KEAVG, &
-                  & varScalar=eval_kineticEnergyAvg(xyz_UN, xyz_VN) )
-          case (DVARKEY_PEAVG)
-             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PEAVG, &
-                  & varScalar= eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth) )
-
+          case (DVARKEY_MASSSTREAMFUNC)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_MASSSTREAMFUNC, &
+                  & var2D=eval_MassStreamFunc(xyz_VN) )
        end select
     end do
+
+    call BudgetAnalysis_perform()
 
     
   end subroutine diagnose_outputVariables
