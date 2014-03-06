@@ -1,0 +1,116 @@
+#+TITLE: 各海水の状態方程式から求めた密度のグラフ
+#+AUTHOR: KAWAI Yuta
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{} 
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+LaTeX_HEADER: \usepackage[round]{natbib}
+
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby :results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="{EOS,EOS}figure.org" :var dirPath="./fig/dens/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 海水の密度の特徴
+- 密度の温度・塩分依存性について
+  - 海洋の密度変化は, 主に温度変化によって生じる. 
+    - 海洋全体で存在する温度・塩分範囲は -2~30 [degC], 0~40[psu] であるが, 
+      約 9 割の海水は, 温度 -2~10 [degC], 塩分 33.5~35 [psu] の狭い範囲にある.  
+      - 塩分範囲は温度範囲よりも相対的に狭い. 
+      - 例外: 表層の水(蒸発より降水が多い場合や氷の融解によって淡水化する). 
+  - 状態方程式の非線形性により, ある温度・塩分における密度変化は, その温度や塩分によって異なる.  
+    - 高温域では, 全ての塩分において, 密度は温度の増加とともに急激に減少する. 
+    - 低温域では, 特に低塩分において, 温度の増加による密度の減少は小さくなる. 
+      - 純水の密度は, 4[deg C] ぐらいで最大となる特性[fn:water_prop]に起因する. 
+
+[fn:water_prop] 極性分子である水分子は, 水素結合により鎖構造を作る性質がある. 
+融点から4度ぐらいまでの温度をもつ水を加熱するとき, そのエネルギーは鎖構造の形成に用いられる. 
+この際, 体積は減少するので密度は増加する. 
+しかし, 4 度以上の温度をもつ水を加熱すると, 水分子の鎖構造は破壊されるため, 体積は増加し密度は減少する. 
+水に塩分が加わるにつれて, 水に特有なこの密度の性質が失われる.   
+
+* 海水の密度のグラフ
+以下のグラフでは, それぞれの海水の状態方程式から求めた密度の偏差(実際の密度 - 1000 kg m^{-3}) $\sigma$ を示している. 
+
+
+** \cite{jackett1995minimal}の海水の状態方程式
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温位)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_JM95_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温位固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から theta=0,10,20,30,40 [degC]", "EOS_JM95_ptemp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+*** 塩分固定(横軸: 温位, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_JM95_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+** 線形近似した海水の状態方程式\cite{vallis2006atmospheric}
+
+- 密度は, \cite{vallis2006atmospheric} の (1.156) (ただし, 第二熱膨張率 $\beta_T^*$ と熱圧パラメータ関係した量 $\gamma^*$ をゼロにする)から求める. 
+  - 密度の温度, 塩分, 圧力の依存性が線形近似によって表現される. 
+- JM95 の海水の状態方程式との相対誤差の二乗平均平方根は, 0.31 % .
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温位)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_LINEAR_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("JM95 の EOS との相対誤差. 左から p=0,1000,2000,3000,4000,5000 [dbar]", "densError_Linear_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温位固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から theta=0,10,20,30,40 [degC]", "EOS_LINEAR_ptemp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("JM95 の EOS との相対誤差. theta=0,10,20,30,40 [degC]", "densError_Linear_ptemp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+*** 塩分固定(横軸: 温位, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_LINEAR_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("JM95 の EOS との相対誤差. S=0,10,20,30,40 [psu]", "densError_Linear_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+** 非線形を考慮した近似的な海水の状態方程式\cite{de2004effect,vallis2006atmospheric}
+
+- 密度は, \cite{vallis2006atmospheric} の (1.156) から求める. 
+  - 密度の温度依存性は, 2 次関数で表現される. また, 熱圧効果を含む. 
+  - 塩分の依存性は線形で近似.  
+- JM95 の海水の状態方程式との相対誤差の二乗平均平方根は, 0.14 % .
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温位)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_SIMPLENONLINEAR_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("JM95 の EOS との相対誤差. 左から p=0,1000,2000,3000,4000,5000 [dbar]", "densError_SimpleNonLinear_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温位固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から theta=0,10,20,30,40 [degC]", "EOS_SIMPLENONLINEAR_ptemp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("JM95 の EOS との相対誤差. theta=0,10,20,30,40 [degC]", "densError_SimpleNonLinear_ptemp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+*** 塩分固定(横軸: 温位, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_SIMPLENONLINEAR_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("JM95 の EOS との相対誤差. S=0,10,20,30,40 [psu]", "densError_SimpleNonLinear_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+* 参考文献, 参考リンク
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist abbrvnat limit:t

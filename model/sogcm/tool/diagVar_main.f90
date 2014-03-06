@@ -61,11 +61,6 @@ program diagVar_main
   call setup()
 
   !
-  write(*,*) ogcmOutputVarsName
-  call HistoryGetPointer( &
-       & trim(ogcm_gthsInfo%FilePrefix) // trim(ogcmOutputVarsName(1)) // '.nc', &
-       & 't', ogcm_outputTime)
-  write(*,*) 'outputTime', size(ogcm_outputTime), ogcm_outputTime
   EndTimeSec = DCCalConvertByUnit(ogcm_outputTime(size(ogcm_outputTime)), ogcm_gthsInfo%intUnit, "sec")
   TimeIntSec = DCCalConvertByUnit(diagVar_gthsInfo%intValue, diagVar_gthsInfo%intUnit, 'sec')
 
@@ -160,6 +155,14 @@ contains
     !
     call MessageNotify('M', PROGRAM_NAME, &
          & "Some modules is initialized.. ")
+
+    write(*,*) ogcmOutputVarsName
+    call HistoryGetPointer( &
+         & trim(ogcm_gthsInfo%FilePrefix) // trim(ogcmOutputVarsName(1)) // '.nc', &
+         & 't', ogcm_outputTime)
+    write(*,*) 'outputTime', size(ogcm_outputTime), ogcm_outputTime
+    diagVar_gthsInfo%origin = ogcm_outputTime(1)
+
     call DiagVarSet_Init(diagVarsName)
     call DiagVarEval_Init()
     call DiagVarFileSet_Init(configNmlFile, diagVar_gthsInfo)
@@ -305,7 +308,7 @@ contains
     call Split(trim(Name), diagVarsName, ",")
 
     diagVar_gthsInfo = gtool_historyauto_info( intValue=intValue, intUnit=intUnit, &
-         &                                     FilePrefix=FilePrefix, Name=Name )
+         &                                     FilePrefix=FilePrefix, Name=Name, origin=0d0 )
 
     BudgetTypes = Replace(BudgetTypes, " ", "")
     call Split(trim(BudgetTypes), BudgetTypesName, ",")
@@ -395,7 +398,7 @@ contains
     call Split(trim(Name), ogcmOutputVarsName, ",")
 
     ogcm_gthsInfo = gtool_historyauto_info( intValue=intValue, intUnit=intUnit, &
-         &                                     FilePrefix=FilePrefix, Name=Name )
+         &                                     FilePrefix=FilePrefix, Name=Name, origin=0d0 )
 
     ! °õ»ú ; Print
     !

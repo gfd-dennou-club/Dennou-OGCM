@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head>
+<title>海水の比熱のグラフ</title>
+<!-- 2014-03-05 水 01:16 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="KAWAI Yuta" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="./../org.css" />
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+<script type="text/javascript"> </script>
+<script type="text/x-mathjax-config">
+   MathJax.Hub.Config({
+    TeX: { equationNumbers: { autoNumber: "AMS" } }
+    });
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">海水の比熱のグラフ</h1>
+<div id="table-of-contents">
+<h2>&#30446;&#27425;</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. 海水の比熱のグラフ</a>
+<ul>
+<li><a href="#sec-1-1">1.1. FM83 から求めた比熱のグラフ</a></li>
+<li><a href="#sec-1-2">1.2. 線形の状態方程式と同じ近似レベルの比熱のグラフ</a></li>
+<li><a href="#sec-1-3">1.3. 双曲線近似した状態方程式[<a href="#de2004effect">de</a>][<a href="#vallis2006atmospheric">Vallis</a>]と同じ近似レベルの比熱のグラフ</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. 参考文献, 参考リンク</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 海水の比熱のグラフ</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+以下のグラフでは, いくつかの海水の定圧比熱の式から求めた定圧比熱\(C_p\) を示す. 
+</p>
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> FM83 から求めた比熱のグラフ</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>定圧比熱は, [<a href="#fofonoff1983algorithms">Fofonoff</a>](FM83) の p.31-35 の式群から求める. 
+</li>
+<li>海水の比熱の特徴
+<ul class="org-ul">
+<li></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<ol class="org-ol"><li>圧力固定(横軸: 塩分, 縦軸: 温度)<br  /><div class="outline-text-4" id="text-1-1-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;1:</span> 左から p=0,1000,2000,3000,4000,5000 [dbar].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_JM95_press_0.jpg"><img src="./fig/Cp/EOS_JM95_press_0_thumb.png" alt="EOS_JM95_press_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_press_100.jpg"><img src="./fig/Cp/EOS_JM95_press_100_thumb.png" alt="EOS_JM95_press_100_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_press_200.jpg"><img src="./fig/Cp/EOS_JM95_press_200_thumb.png" alt="EOS_JM95_press_200_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_press_300.jpg"><img src="./fig/Cp/EOS_JM95_press_300_thumb.png" alt="EOS_JM95_press_300_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_press_400.jpg"><img src="./fig/Cp/EOS_JM95_press_400_thumb.png" alt="EOS_JM95_press_400_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_press_500.jpg"><img src="./fig/Cp/EOS_JM95_press_500_thumb.png" alt="EOS_JM95_press_500_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>温度固定(横軸: 塩分, 縦軸: 圧力)<br  /><div class="outline-text-4" id="text-1-1-2">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;2:</span> 左から theta=0,10,20,30,40 [degC].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_JM95_temp_0.jpg"><img src="./fig/Cp/EOS_JM95_temp_0_thumb.png" alt="EOS_JM95_temp_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_temp_10.jpg"><img src="./fig/Cp/EOS_JM95_temp_10_thumb.png" alt="EOS_JM95_temp_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_temp_20.jpg"><img src="./fig/Cp/EOS_JM95_temp_20_thumb.png" alt="EOS_JM95_temp_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_temp_30.jpg"><img src="./fig/Cp/EOS_JM95_temp_30_thumb.png" alt="EOS_JM95_temp_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_temp_40.jpg"><img src="./fig/Cp/EOS_JM95_temp_40_thumb.png" alt="EOS_JM95_temp_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>塩分固定(横軸: 温度, 縦軸: 圧力)<br  /><div class="outline-text-4" id="text-1-1-3">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;3:</span> 左から S=0,10,20,30,40 [psu].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_JM95_sal_0.jpg"><img src="./fig/Cp/EOS_JM95_sal_0_thumb.png" alt="EOS_JM95_sal_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_sal_10.jpg"><img src="./fig/Cp/EOS_JM95_sal_10_thumb.png" alt="EOS_JM95_sal_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_sal_20.jpg"><img src="./fig/Cp/EOS_JM95_sal_20_thumb.png" alt="EOS_JM95_sal_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_sal_30.jpg"><img src="./fig/Cp/EOS_JM95_sal_30_thumb.png" alt="EOS_JM95_sal_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_JM95_sal_40.jpg"><img src="./fig/Cp/EOS_JM95_sal_40_thumb.png" alt="EOS_JM95_sal_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li></ol>
+</div>
+
+
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> 線形の状態方程式と同じ近似レベルの比熱のグラフ</h3>
+<div class="outline-text-3" id="text-1-2">
+<ul class="org-ul">
+<li>定圧比熱は, [<a href="#vallis2006atmospheric">Vallis</a>] の (1.150) (ただし, 第二熱膨張率 \(\beta_T^*\) をゼロにする)から求める. 
+</li>
+<li>F83 の定圧比熱との相対誤差の二乗平均平方根は, 3.2 % .
+</li>
+</ul>
+</div>
+
+<ol class="org-ol"><li>圧力固定(横軸: 塩分, 縦軸: 温度)<br  /><div class="outline-text-4" id="text-1-2-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;4:</span> 左から p=0,1000,2000,3000,4000,5000 [dbar].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_press_0.jpg"><img src="./fig/Cp/EOS_LINEAR_press_0_thumb.png" alt="EOS_LINEAR_press_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_press_100.jpg"><img src="./fig/Cp/EOS_LINEAR_press_100_thumb.png" alt="EOS_LINEAR_press_100_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_press_200.jpg"><img src="./fig/Cp/EOS_LINEAR_press_200_thumb.png" alt="EOS_LINEAR_press_200_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_press_300.jpg"><img src="./fig/Cp/EOS_LINEAR_press_300_thumb.png" alt="EOS_LINEAR_press_300_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_press_400.jpg"><img src="./fig/Cp/EOS_LINEAR_press_400_thumb.png" alt="EOS_LINEAR_press_400_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_press_500.jpg"><img src="./fig/Cp/EOS_LINEAR_press_500_thumb.png" alt="EOS_LINEAR_press_500_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;5:</span> F83 の定圧比熱との相対誤差. 左から p=0,1000,2000,3000,4000,5000 [dbar].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/cpError_Linear_press_0.jpg"><img src="./fig/Cp/cpError_Linear_press_0_thumb.png" alt="cpError_Linear_press_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_press_100.jpg"><img src="./fig/Cp/cpError_Linear_press_100_thumb.png" alt="cpError_Linear_press_100_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_press_200.jpg"><img src="./fig/Cp/cpError_Linear_press_200_thumb.png" alt="cpError_Linear_press_200_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_press_300.jpg"><img src="./fig/Cp/cpError_Linear_press_300_thumb.png" alt="cpError_Linear_press_300_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_press_400.jpg"><img src="./fig/Cp/cpError_Linear_press_400_thumb.png" alt="cpError_Linear_press_400_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_press_500.jpg"><img src="./fig/Cp/cpError_Linear_press_500_thumb.png" alt="cpError_Linear_press_500_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>温度固定(横軸: 塩分, 縦軸: 圧力)<br  /><div class="outline-text-4" id="text-1-2-2">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;6:</span> 左から temp=0,10,20,30,40 [degC].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_temp_0.jpg"><img src="./fig/Cp/EOS_LINEAR_temp_0_thumb.png" alt="EOS_LINEAR_temp_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_temp_10.jpg"><img src="./fig/Cp/EOS_LINEAR_temp_10_thumb.png" alt="EOS_LINEAR_temp_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_temp_20.jpg"><img src="./fig/Cp/EOS_LINEAR_temp_20_thumb.png" alt="EOS_LINEAR_temp_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_temp_30.jpg"><img src="./fig/Cp/EOS_LINEAR_temp_30_thumb.png" alt="EOS_LINEAR_temp_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_temp_40.jpg"><img src="./fig/Cp/EOS_LINEAR_temp_40_thumb.png" alt="EOS_LINEAR_temp_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;7:</span> F83 の定圧比熱との相対誤差. 左から temp=0,10,20,30,40 [degC].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/cpError_Linear_temp_0.jpg"><img src="./fig/Cp/cpError_Linear_temp_0_thumb.png" alt="cpError_Linear_temp_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_temp_10.jpg"><img src="./fig/Cp/cpError_Linear_temp_10_thumb.png" alt="cpError_Linear_temp_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_temp_20.jpg"><img src="./fig/Cp/cpError_Linear_temp_20_thumb.png" alt="cpError_Linear_temp_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_temp_30.jpg"><img src="./fig/Cp/cpError_Linear_temp_30_thumb.png" alt="cpError_Linear_temp_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_temp_40.jpg"><img src="./fig/Cp/cpError_Linear_temp_40_thumb.png" alt="cpError_Linear_temp_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>塩分固定(横軸: 温度, 縦軸: 圧力)<br  /><div class="outline-text-4" id="text-1-2-3">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;8:</span> 左から S=0,10,20,30,40 [psu].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_sal_0.jpg"><img src="./fig/Cp/EOS_LINEAR_sal_0_thumb.png" alt="EOS_LINEAR_sal_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_sal_10.jpg"><img src="./fig/Cp/EOS_LINEAR_sal_10_thumb.png" alt="EOS_LINEAR_sal_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_sal_20.jpg"><img src="./fig/Cp/EOS_LINEAR_sal_20_thumb.png" alt="EOS_LINEAR_sal_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_sal_30.jpg"><img src="./fig/Cp/EOS_LINEAR_sal_30_thumb.png" alt="EOS_LINEAR_sal_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_LINEAR_sal_40.jpg"><img src="./fig/Cp/EOS_LINEAR_sal_40_thumb.png" alt="EOS_LINEAR_sal_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;9:</span> F83 の定圧比熱との相対誤差. 左から S=0,10,20,30,40 [psu].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/cpError_Linear_sal_0.jpg"><img src="./fig/Cp/cpError_Linear_sal_0_thumb.png" alt="cpError_Linear_sal_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_sal_10.jpg"><img src="./fig/Cp/cpError_Linear_sal_10_thumb.png" alt="cpError_Linear_sal_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_sal_20.jpg"><img src="./fig/Cp/cpError_Linear_sal_20_thumb.png" alt="cpError_Linear_sal_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_sal_30.jpg"><img src="./fig/Cp/cpError_Linear_sal_30_thumb.png" alt="cpError_Linear_sal_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_Linear_sal_40.jpg"><img src="./fig/Cp/cpError_Linear_sal_40_thumb.png" alt="cpError_Linear_sal_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li></ol>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> 双曲線近似した状態方程式[<a href="#de2004effect">de</a>][<a href="#vallis2006atmospheric">Vallis</a>]と同じ近似レベルの比熱のグラフ</h3>
+<div class="outline-text-3" id="text-1-3">
+<ul class="org-ul">
+<li>定圧比熱は, [<a href="#vallis2006atmospheric">Vallis</a>] の (1.150) から求める. 
+</li>
+<li>F83 の定圧比熱との相対誤差の二乗平均平方根は, 1.4 % .
+</li>
+</ul>
+</div>
+
+<ol class="org-ol"><li>圧力固定(横軸: 塩分, 縦軸: 温度)<br  /><div class="outline-text-4" id="text-1-3-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;10:</span> 左から p=0,1000,2000,3000,4000,5000 [dbar].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_press_0.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_press_0_thumb.png" alt="EOS_SIMPLENONLINEAR_press_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_press_100.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_press_100_thumb.png" alt="EOS_SIMPLENONLINEAR_press_100_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_press_200.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_press_200_thumb.png" alt="EOS_SIMPLENONLINEAR_press_200_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_press_300.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_press_300_thumb.png" alt="EOS_SIMPLENONLINEAR_press_300_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_press_400.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_press_400_thumb.png" alt="EOS_SIMPLENONLINEAR_press_400_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_press_500.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_press_500_thumb.png" alt="EOS_SIMPLENONLINEAR_press_500_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;11:</span> F83 の定圧比熱との相対誤差. 左から p=0,1000,2000,3000,4000,5000 [dbar].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_press_0.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_press_0_thumb.png" alt="cpError_SimpleNonLinear_press_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_press_100.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_press_100_thumb.png" alt="cpError_SimpleNonLinear_press_100_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_press_200.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_press_200_thumb.png" alt="cpError_SimpleNonLinear_press_200_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_press_300.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_press_300_thumb.png" alt="cpError_SimpleNonLinear_press_300_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_press_400.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_press_400_thumb.png" alt="cpError_SimpleNonLinear_press_400_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_press_500.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_press_500_thumb.png" alt="cpError_SimpleNonLinear_press_500_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>温度固定(横軸: 塩分, 縦軸: 圧力)<br  /><div class="outline-text-4" id="text-1-3-2">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;12:</span> 左から theta=0,10,20,30,40 [degC].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_temp_0.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_temp_0_thumb.png" alt="EOS_SIMPLENONLINEAR_temp_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_temp_10.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_temp_10_thumb.png" alt="EOS_SIMPLENONLINEAR_temp_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_temp_20.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_temp_20_thumb.png" alt="EOS_SIMPLENONLINEAR_temp_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_temp_30.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_temp_30_thumb.png" alt="EOS_SIMPLENONLINEAR_temp_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_temp_40.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_temp_40_thumb.png" alt="EOS_SIMPLENONLINEAR_temp_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;13:</span> F83 の定圧比熱との相対誤差. 左から temp=0,10,20,30,40 [degC].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_temp_0.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_temp_0_thumb.png" alt="cpError_SimpleNonLinear_temp_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_temp_10.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_temp_10_thumb.png" alt="cpError_SimpleNonLinear_temp_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_temp_20.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_temp_20_thumb.png" alt="cpError_SimpleNonLinear_temp_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_temp_30.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_temp_30_thumb.png" alt="cpError_SimpleNonLinear_temp_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_temp_40.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_temp_40_thumb.png" alt="cpError_SimpleNonLinear_temp_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>塩分固定(横軸: 温度, 縦軸: 圧力)<br  /><div class="outline-text-4" id="text-1-3-3">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;14:</span> 左から S=0,10,20,30,40 [psu].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_sal_0.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_sal_0_thumb.png" alt="EOS_SIMPLENONLINEAR_sal_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_sal_10.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_sal_10_thumb.png" alt="EOS_SIMPLENONLINEAR_sal_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_sal_20.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_sal_20_thumb.png" alt="EOS_SIMPLENONLINEAR_sal_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_sal_30.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_sal_30_thumb.png" alt="EOS_SIMPLENONLINEAR_sal_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/EOS_SIMPLENONLINEAR_sal_40.jpg"><img src="./fig/Cp/EOS_SIMPLENONLINEAR_sal_40_thumb.png" alt="EOS_SIMPLENONLINEAR_sal_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption align="above"><span class="table-number">&#34920;15:</span> F83 の定圧比熱との相対誤差. 左から S=0,10,20,30,40 [psu].</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_sal_0.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_sal_0_thumb.png" alt="cpError_SimpleNonLinear_sal_0_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_sal_10.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_sal_10_thumb.png" alt="cpError_SimpleNonLinear_sal_10_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_sal_20.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_sal_20_thumb.png" alt="cpError_SimpleNonLinear_sal_20_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_sal_30.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_sal_30_thumb.png" alt="cpError_SimpleNonLinear_sal_30_thumb.png" /></a></td>
+<td class="left"><a href="./fig/Cp/cpError_SimpleNonLinear_sal_40.jpg"><img src="./fig/Cp/cpError_SimpleNonLinear_sal_40_thumb.png" alt="cpError_SimpleNonLinear_sal_40_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li></ol>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 参考文献, 参考リンク</h2>
+<div class="outline-text-2" id="text-2">
+<div id="bibliography">
+<h2>References</h2>
+
+</div>
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="de2004effect">de&nbsp;Szoeke(2004)</a>]
+</td>
+<td class="bibtexitem">
+R.&nbsp;A. de&nbsp;Szoeke.
+ An effect of the thermobaric nonlinearity of the equation of state: A
+  mechanism for sustaining solitary rossby waves.
+ <em>Journal of physical oceanography</em>, 340 (9), 2004.
+[&nbsp;<a href="Dennou-OGCM_reflist_bib.html#de2004effect">bib</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="fofonoff1983algorithms">Fofonoff and Millard(1983)</a>]
+</td>
+<td class="bibtexitem">
+N.&nbsp;P. Fofonoff and R.&nbsp;C. Millard.
+ Algorithms for computation of fundamental properties of seawater.
+ 1983.
+[&nbsp;<a href="Dennou-OGCM_reflist_bib.html#fofonoff1983algorithms">bib</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="vallis2006atmospheric">Vallis(2006)</a>]
+</td>
+<td class="bibtexitem">
+G.&nbsp;K. Vallis.
+ <em>Atmospheric and oceanic fluid dynamics: fundamentals and
+  large-scale circulation</em>.
+ Cambridge University Press, 2006.
+[&nbsp;<a href="Dennou-OGCM_reflist_bib.html#vallis2006atmospheric">bib</a>&nbsp;]
+
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">&#33879;&#32773;: KAWAI Yuta</p>
+<p class="date">Created: 2014-03-05 水 01:16</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

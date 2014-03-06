@@ -35,6 +35,7 @@ module DiagVarFileSet_mod
 
 
   type, public :: gtool_historyauto_info
+     real(DP) :: origin
      real(DP) :: IntValue
      character(TOKEN) :: IntUnit
      character(STRING) :: FilePrefix
@@ -95,6 +96,7 @@ contains
          & dims=(/'lon','lat','sig','t  '/), dimsizes=(/iMax,jMax,kMax+1,0/),       &
          & longnames=(/'longitude','latitude ','sigma    ', 'time     '/),      &
          & units=(/'degree_east ','degree_north','(1)         ', intUnit /), &
+         & origin=real(diagVar_gthsInfo%origin), &
          & namelist_filename=configNmlFileName )    
 
     call HistoryAutoPutAxis('lon', x_Lon*180/PI)

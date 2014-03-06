@@ -31,10 +31,6 @@ module GovernEqSet_mod
   !
 
   integer, public, save :: EOSType
-  integer, public, parameter :: EOSTYPE_LINEAR = 1
-  integer, public, parameter :: EOSTYPE_JM95   = 2
-  character(*), public, parameter :: EOSTYPENAME_LINEAR = 'EOS_LINEAR'
-  character(*), public, parameter :: EOSTYPENAME_JM95   = 'EOS_JM95'
 
   ! 非公開手続き
   ! Private procedure
@@ -80,6 +76,7 @@ contains
 
     ! モジュール引用; Use statement
     !
+    use EOS_Linear_mod, only: EOSTYPENAME_LINEAR
 
     ! ファイル入出力補助
     ! File I/O support
@@ -134,15 +131,7 @@ contains
        close( unit_nml )
     end if
 
-    select case(EOSTypeName)
-       case (EOSTYPENAME_LINEAR)
-          EOSType = EOSTYPE_LINEAR
-       case (EOSTYPENAME_JM95)
-          EOSType = EOSTYPE_JM95
-       case default
-          call MessageNotify('E', module_name, &
-               & 'The specified EOSType ''%c'' is invalid.', c1=EOSTypeName )
-    end select
+    call set_EOSType(EOSTypeName)
 
     ! 印字 ; Print
     !
@@ -150,6 +139,50 @@ contains
     call MessageNotify( 'M', module_name, '    EOSType      = %c', c1 = EOSTypeName )
 
   end subroutine read_nmlData
+
+  !> @brief 
+  !!
+  !!
+  subroutine set_EOSType(EOSTypeName)
+    
+    ! モジュール引用; Use statements
+    !
+
+    use EOS_Linear_mod, only: &
+         & EOSTYPE_LINEAR, EOSTYPENAME_LINEAR
+
+    use EOS_SimpleNonLinear_mod, only: &
+         & EOSTYPE_SIMPLENONLINEAR, EOSTYPENAME_SIMPLENONLINEAR
+
+    use EOS_JM95_mod, only: &
+         & EOSTYPE_JM95, EOSTYPENAME_JM95
+
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: EOSTypeName
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+
+    select case(EOSTypeName)
+       case (EOSTYPENAME_LINEAR)
+          EOSType = EOSTYPE_LINEAR
+       case (EOSTYPENAME_SIMPLENONLINEAR)
+          EOSType = EOSTYPE_SIMPLENONLINEAR
+       case (EOSTYPENAME_JM95)
+          EOSType = EOSTYPE_JM95
+       case default
+          call MessageNotify('E', module_name, &
+               & 'The specified EOSType ''%c'' is invalid.', c1=EOSTypeName )
+    end select
+    
+  end subroutine set_EOSType
+
 
 end module GovernEqSet_mod
 

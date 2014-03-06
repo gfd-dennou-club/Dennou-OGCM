@@ -1,0 +1,112 @@
+#+TITLE: 海水の比熱のグラフ
+#+AUTHOR: KAWAI Yuta
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{} 
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+LaTeX_HEADER: \usepackage[round]{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby :results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="{EOS,EOS}figure.org" :var dirPath="./fig/Cp/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 海水の比熱の特徴
+はじめに, 海水の比熱の特性について簡単にまとめる. 
+ 
+- 純粋の特性に起因して, 比熱が大きい
+  - 純粋の比熱は液体の中で最大(例外はアンモニア). 
+  - 水分子は, 水素結合により鎖構造を形成する. 
+    比熱が大きいことは, 鎖構造の形成にエネルギーが必要であることと関係する. 
+- 塩分の増加と伴に, 比熱は減少する. 
+- 比熱の温度依存性は, S=20 \permil ぐらいを境に逆転する.
+  - 温度が増加するとき, S<20 \permil では減少, S>20 \permil では増加する.   
+
+* 海水の比熱のグラフ
+以下のグラフでは, いくつかの海水の定圧比熱の式から求めた定圧比熱$C_p$ を示す. 
+
+** FM83 から求めた比熱のグラフ
+
+- 定圧比熱は, \cite{fofonoff1983algorithms}(FM83) の p.31-35 の式群から求める. 
+    
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温度)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_JM95_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温度固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から theta=0,10,20,30,40 [degC]", "EOS_JM95_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+*** 塩分固定(横軸: 温度, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_JM95_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+
+
+** 線形の状態方程式と同じ近似レベルの比熱のグラフ
+
+- 定圧比熱は, \cite{vallis2006atmospheric} の (1.150) (ただし, 第二熱膨張率 $\beta_T^*$ をゼロにする)から求める. 
+  - 比熱の塩分依存性のみが, 線形的に表現される. 
+- F83 の定圧比熱との相対誤差の二乗平均平方根は, 3.2 % .
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温度)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_LINEAR_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("F83 の定圧比熱との相対誤差. 左から p=0,1000,2000,3000,4000,5000 [dbar]", "cpError_Linear_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温度固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から temp=0,10,20,30,40 [degC]", "EOS_LINEAR_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("F83 の定圧比熱との相対誤差. 左から temp=0,10,20,30,40 [degC]", "cpError_Linear_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+*** 塩分固定(横軸: 温度, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_LINEAR_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("F83 の定圧比熱との相対誤差. 左から S=0,10,20,30,40 [psu]", "cpError_Linear_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+** 非線形を考慮した近似的な状態方程式\cite{de2004effect,vallis2006atmospheric}と同じ近似レベルの比熱のグラフ
+- 定圧比熱は, \cite{vallis2006atmospheric} の (1.150) から求める. 
+  - 比熱の塩分依存性と圧力依存性が, 線形的に表現される. 
+- F83 の定圧比熱との相対誤差の二乗平均平方根は, 1.4 % .
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温度)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_SIMPLENONLINEAR_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("F83 の定圧比熱との相対誤差. 左から p=0,1000,2000,3000,4000,5000 [dbar]", "cpError_SimpleNonLinear_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温度固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から theta=0,10,20,30,40 [degC]", "EOS_SIMPLENONLINEAR_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("F83 の定圧比熱との相対誤差. 左から temp=0,10,20,30,40 [degC]", "cpError_SimpleNonLinear_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+*** 塩分固定(横軸: 温度, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_SIMPLENONLINEAR_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("F83 の定圧比熱との相対誤差. 左から S=0,10,20,30,40 [psu]", "cpError_SimpleNonLinear_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+
+* 参考文献, 参考リンク
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist abbrvnat limit:t
+
+  

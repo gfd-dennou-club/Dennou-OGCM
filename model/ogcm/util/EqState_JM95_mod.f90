@@ -25,6 +25,12 @@ module EqState_JM95_mod
   public :: EqState_JM95_Init, EqState_JM95_Final
   public :: EqState_JM95_Eval
 
+  ! 公開変数
+  ! Public variables
+  !
+  integer, public, parameter :: EOSTYPE_JM95   = 3
+  character(*), public, parameter :: EOSTYPENAME_JM95   = 'EOS_JM95'
+
   ! 非公開手続き
   ! Private procedure
   !

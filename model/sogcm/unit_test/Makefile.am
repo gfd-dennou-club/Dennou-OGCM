@@ -38,8 +38,12 @@ check_PROGRAMS += test_HydroBousEqVDiffProc_mod
 test_HydroBousEqVDiffProc_mod_SOURCES =\
 	HydroBousEqVDiffProc_mod_test.f90
 
+check_PROGRAMS += test_SeaWaterProp_mod
+test_SeaWaterProp_mod_SOURCES =\
+	SeaWaterProp_mod_test.f90
+
 check_PROGRAMS += test_EOS_mod
 test_EOS_mod_SOURCES =\
 	EOS_mod_test.f90
 
-EOS_mod_test.f90: ./../../ogcm/util/EqState_JM95_mod.o
+

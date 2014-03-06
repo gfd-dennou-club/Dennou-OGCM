@@ -8,7 +8,6 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/fvm \
         $(MODPATHFLAG)$(srcdir)/../../../src/mesh2 \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
-        $(MODPATHFLAG)$(srcdir)/../../ogcm/util \
         $(MODPATHFLAG)$(srcdir)/../setup \
 	$(FCFLAGS) $(SYSFFLAGS)
 
@@ -21,19 +20,31 @@ bin_PROGRAMS =
 
 noinst_LTLIBRARIES= libDSOGCMUtil.la 
 nodist_libDSOGCMUtil_la_SOURCES= \
+	UnitConversion_mod.f90 \
 	at_module_omp.f90 \
 	SpmlUtil_mod.f90 \
 	DiagnoseUtil_mod.f90 \
-	EqState_Linear_mod.f90 \
+	EOS_Linear_mod.f90 \
+	EOS_SimpleNonLinear_mod.f90 \
+	SeaWaterProp_FM83_mod.f90 \
+	EOS_JM95_mod.f90 \
 	EOSDriver_mod.f90
+
+
+# Dependency
 
 DiagnoseUtil_mod.f90: \
 	../setup/Constants_mod.o \
 	../setup/GridSet_mod.o
 
+
 EOSDriver_mod.f90: \
 	../setup/Constants_mod.o \
 	../setup/GridSet_mod.o \
-	../setup/GovernEqSet_mod.o 
+	./EOS_Linear_mod.o \
+	./EOS_SimpleNonLinear_mod.o \
+	./EOS_JM95_mod.o
+
+
 
 

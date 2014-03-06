@@ -1,0 +1,121 @@
+#+TITLE: 温位と現場温度の差のグラフ
+#+AUTHOR: KAWAI Yuta
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{} 
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+LaTeX_HEADER: \usepackage[round]{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby :results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="{EOS,EOS}figure.org" :var dirPath="./fig/PTempTempDiff/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 海水の温位の定義と特徴
+- 流体粒子を圧縮あるいは膨張するとき, 断熱過程においてもその温度は変化する.
+  温位を導入する目的は, この圧力による効果を考慮することである.  
+
+- 海水の温位 $\theta$ は, \cite{fofonoff1983algorithms}(FM83) において, 
+
+  \[
+    \theta (S,T,p) = T + \int_p^{p_r} \Gamma (S,T,p^\prime) \; dp^\prime
+  \]
+  
+  と定義される. 
+  ここで, $S, T, p, p_r$ はそれぞれ塩分, 温度, 圧力, 参照圧力. 
+  また, $\Gamma = (\partial T/\partial p)_{\rm adiabatic}$ は断熱温度勾配である. 
+  $p_r$ の値には, よくゼロがとられる. 
+
+- この $\theta$ の物理的意味は, $(S,T,p)$ の状態にある流体粒子を, 
+  $S$ を一定に保ちながら断熱的に, $p$ から $p_r$ まで移動させたときに得られる
+  流体粒子の温度である. 
+
+- 海洋の典型的な断熱温度勾配の値は, およそ $0.1 \sim 0.2$ [deg C/km] であるので, 
+  海底($5 \sim 10$ [km])における温位と温度の差は 1 度程度. 
+  
+* 温位と現場温度の差のグラフ
+以下のグラフでは, いくつかの式から求めた温位と現場温度の差を示す. 
+
+** FM83 から求めた温位と現場温度の差グラフ
+
+- 温位は, FM83 の p.42-43 の式群から求める. 
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温度)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_JM95_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温度固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から temp=0,10,20,30,40 [degC]", "EOS_JM95_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+*** 塩分固定(横軸: 温度, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_JM95_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+
+
+** 線形の状態方程式と同じ近似レベルの温位と現場温度の差のグラフ
+
+- 温位は, \cite{vallis2006atmospheric} の (1.154c) から求める. 
+- FM83 の温位-温度との絶対誤差の二乗平均平方根は, 0.60 [degC].
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温度)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_LINEAR_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("FM83 の温位-温度に対する絶対誤差. 左から p=0,1000,2000,3000,4000,5000 [dbar]", "ptemptempdiffError_Linear_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温度固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から temp=0,10,20,30,40 [degC]", "EOS_LINEAR_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("FM83 の温位-温度に対する絶対誤差. 左から temp=0,10,20,30,40 [degC]", "ptemptempdiffError_Linear_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+*** 塩分固定(横軸: 温度, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_LINEAR_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("FM83 の温位-温度に対する絶対誤差. 左から S=0,10,20,30,40 [psu]", "ptemptempdiffError_Linear_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+** 非線形を考慮した近似的な状態方程式\cite{de2004effect,vallis2006atmospheric}と同じ近似レベルの温位と現場温度の差のグラフ
+
+- 温位は, \cite{vallis2006atmospheric} の (1.154b) から求める. 
+- FM83 の温位-温度との絶対誤差の二乗平均平方根は, 0.19 [degC].
+
+*** 圧力固定(横軸: 塩分, 縦軸: 温度)
+
+ #+CALL: create_FigsTable("左から p=0,1000,2000,3000,4000,5000 [dbar]", "EOS_SIMPLENONLINEAR_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("FM83 の温位-温度に対する絶対誤差. 左から p=0,1000,2000,3000,4000,5000 [dbar]", "ptemptempdiffError_SimpleNonLinear_press_{0,100,200,300,400,500}.jpg") :results value raw :exports results
+
+*** 温度固定(横軸: 塩分, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から temp=0,10,20,30,40 [degC]", "EOS_SIMPLENONLINEAR_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("FM83 の温位-温度に対する絶対誤差. 左から temp=0,10,20,30,40 [degC]", "ptemptempdiffError_SimpleNonLinear_temp_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+*** 塩分固定(横軸: 温度, 縦軸: 圧力)
+
+ #+CALL: create_FigsTable("左から S=0,10,20,30,40 [psu]", "EOS_SIMPLENONLINEAR_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("FM83 の温位-温度に対する絶対誤差. 左から S=0,10,20,30,40 [psu]", "ptemptempdiffError_SimpleNonLinear_sal_{0,10,20,30,40}.jpg") :results value raw :exports results
+
+
+
+* 参考文献, 参考リンク
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist abbrvnat limit:t
+
+  

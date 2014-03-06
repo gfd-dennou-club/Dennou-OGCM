@@ -403,7 +403,7 @@ write(*,*) "* DKEDt=", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyz_dKdt ))
             & dims=(/'t'/), dimsizes=(/ 0 /), &
             & longnames=(/'time'/),&
             & units=(/ diagVar_gthsInfo%intUnit /), &
-            & origin=real(0), interval=real(diagVar_gthsInfo%intValue), &
+            & origin=real(diagVar_gthsInfo%origin), interval=real(diagVar_gthsInfo%intValue), &
             & history=hst_energyBudget )  
 
         call HistoryAddVariable( & 

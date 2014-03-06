@@ -12,21 +12,23 @@ module EOSDriver_mod
   !
   use dc_types, only: DP
 
-  use EqState_Linear_mod, only: &
-       & EqState_Linear_Init, EqState_Linear_Final, &
-       & EqState_Linear_Eval
+  use EOS_Linear_mod, only: &
+       & EOSTYPE_LINEAR, EOS_Linear_Init, EOS_Linear_Final, &
+       & EOS_Linear_Eval
 
-  use EqState_JM95_mod, only: &
-       & EqState_JM95_Init, EqState_JM95_Final, &
-       & EqState_JM95_Eval
+  use EOS_SimpleNonLinear_mod, only: &
+       & EOSTYPE_SIMPLENONLINEAR, EOS_SimpleNonLinear_Init, EOS_SimpleNonLinear_Final, &
+       & EOS_SimpleNonLinear_Eval
+
+  use EOS_JM95_mod, only: &
+       & EOSTYPE_JM95, EOS_JM95_Init, EOS_JM95_Final, &
+       & EOS_JM95_Eval
 
   use Constants_mod 
 
   use GridSet_mod, only: &
        & iMax, jMax, kMax
 
-  use GovernEqSet_mod, only: &
-       & EOSTYPE_LINEAR, EOSTYPE_JM95
 
   ! 宣言文; Declareration statements
   !
@@ -72,14 +74,14 @@ contains
 
     select case(EOSType)
     case(EOSTYPE_LINEAR)
-       call EqState_Linear_Init( & 
+       call EOS_Linear_Init( & 
             & refDens_=RefDens, refTemp_=RefTemp, BetaT_=ThermalExpanCoef, Cp0_=Cp0, Cs0_=RefSoundSpeed  )
     case(EOSTYPE_JM95)
-       call EqState_JM95_Init()
+       call EOS_JM95_Init()
     end select
 
 
-!    write(*,*) "Check EOS val:", EqState_JM95_Eval(S=35.5d0, p=300d0, theta=3d0)
+!    write(*,*) "Check EOS val:", EOS_JM95_Eval(S=35.5d0, p=300d0, theta=3d0)
 
   end subroutine EOSDriver_Init
 
@@ -93,9 +95,9 @@ contains
 
     select case(EOSType)
     case(EOSTYPE_LINEAR)
-       call EqState_Linear_Final()
+       call EOS_Linear_Final()
     case(EOSTYPE_JM95)
-       call EqState_JM95_Final()
+       call EOS_JM95_Final()
     end select
 
   end subroutine EOSDriver_Final
@@ -119,9 +121,9 @@ contains
 
     select case(EOSType)
     case(EOSTYPE_LINEAR)
-       rho = EqState_Linear_Eval(theta, S, p)
+       rho = EOS_Linear_Eval(theta, S, p)
     case(EOSTYPE_JM95)
-       rho = EqState_JM95_Eval(theta, S, p)
+       rho = EOS_JM95_Eval(theta, S, p)
     end select
 
 
@@ -152,9 +154,9 @@ contains
 
     select case(EOSType)
     case(EOSTYPE_LINEAR)
-       rhoEdd = EqState_Linear_Eval(theta, S, p)
+       rhoEdd = EOS_Linear_Eval(theta, S, p)
     case(EOSTYPE_JM95)
-       rhoEdd = EqState_JM95_Eval(theta, S, p) - RefDens
+       rhoEdd = EOS_JM95_Eval(theta, S, p) - RefDens
     end select
 
   end subroutine EOSDriver_Eval_array3d

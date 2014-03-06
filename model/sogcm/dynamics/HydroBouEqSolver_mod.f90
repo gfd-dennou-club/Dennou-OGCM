@@ -36,8 +36,7 @@ module HydroBouEqSolver_mod
        & timeIntMode_RK2, timeIntMode_RK4
 
   use GovernEqSet_mod, only: &
-       & EOSType, &
-       & EOSTYPE_LINEAR, EOSTYPE_JM95
+       & EOSType
 
   use EOSDriver_mod, only: &
        & EOSDriver_Eval

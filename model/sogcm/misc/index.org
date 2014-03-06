@@ -13,21 +13,24 @@
   - [[./../../../../note_OModeling/basic_data/basic_data.html][海洋循環, 海水温, 塩分, 溶存酸素分布のグラフ]]
 
 
+** 海水の状態方程式
+
+  - 海水の熱力学変数のグラフ
+    - [[file:./EOS/densFig.html][密度]], [[./EOS/PTempTempDiffFig.org][温位と現場温度の差]], [[file:./EOS/heatCapacityFig.html][比熱]]
+  - [[./../../../../note_OModeling/review/EOS/EOSsurvey.html][海洋モデルで用いられる海水の状態方程式の調査]]
+  - 最近の海水の状態方程式の論文の読書ノート
+    - [[./../../../../note_OModeling/review/EOS/Mcdougall_et_al_2003.html][McDougall, et al.(2003)]]
+    - [[./../../../../note_OModeling/review/EOS/Jackett_et_al_2006.html][Jackett, et al.(2006)]]
+    - [[./../../../../note_OModeling/review/EOS/Mcdougall_2007.html][McDougall, et al.(2007)]]
+
+
+
 * Dennou-OGCM 関連資料
 
 ** モデルの記述
 
   - [[file:./../../../doc/formulation/formulation.pdf][定式化]]
   - [[file:./../../../doc/numeric/numeric.pdf][数値手法]]
-
-** 状態方程式
-
-  - [[./EOS/EOSfigure.html][海水の状態方程式(Jackett and McDougall, 1995)のグラフ]]
-  - [[./../../../../note_OModeling/review/EOS/EOSsurvey.html][海洋モデルで用いられる海水の状態方程式の調査]]
-  - 最近の海水の状態方程式の論文の読書ノート
-    - [[./../../../../note_OModeling/review/EOS/Mcdougall_et_al_2003.html][McDougall, et al.(2003)]]
-    - [[./../../../../note_OModeling/review/EOS/Jackett_et_al_2006.html][Jackett, et al.(2006)]]
-    - [[./../../../../note_OModeling/review/EOS/Mcdougall_2007.html][McDougall, et al.(2007)]]
 
 ** テスト計算
 
