@@ -50,8 +50,9 @@ module DataFileSet_mod
   ! Private variable
   !
   character(*), parameter:: module_name = 'DataFileSet_mod' !< Module Name
+  real(DP) :: outputIntTimeSec
+  character(TOKEN) :: outputIntUnit
   
-
 contains
 
   !>
@@ -100,7 +101,6 @@ contains
     ! Regist the axises and variables which will be output. 
     call regist_OutputAxisAndVar()
  
-
   end subroutine DataFileSet_Init
 
   !>
@@ -127,6 +127,9 @@ contains
 
     ! モジュール引用; Use statement
     !
+    use dc_calendar, only: &
+         & DCCalConvertByUnit
+
     use TemporalIntegSet_mod, only: &
          & CurrentTime, Nl
 
@@ -141,6 +144,7 @@ contains
     use EOSDriver_mod, only: &
          & EOSDriver_Eval
 
+    
     ! 宣言文; Declaration statement
     !
     type(DataFileSet), intent(inout) :: this
@@ -163,12 +167,15 @@ contains
     ! 実行文; Executable statement
     !
 
-    if( mod(CurrentTime, this%outputIntrval) /= 0 ) return 
+    if( mod(CurrentTime, outputIntTimeSec) /= 0 ) return 
+
+
+    call MessageNotify("M", module_name, "Output data of some field at %f [%c] ..", &
+         & d=(/ DCCalConvertByUnit(CurrentTime, 'sec', outputIntUnit) /), c1=trim(outputIntUnit) )
 
 
     xy_totDepth = xy_totDepthBasic + xy_SurfHeightN
 
-    call MessageNotify("M", module_name, "Output data of some field at %d [sec] ..", i=(/ int(CurrentTime) /))
     call HistoryAutoPut(CurrentTime, VARSET_KEY_U, xyz_UN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_V, xyz_VN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHEIGHT, xy_SurfHeightN)
@@ -274,6 +281,7 @@ contains
     call HistoryAutoPutAxis(latName, y_Lat*180/PI)
     call HistoryAutoPutAxis(sigName, g_Sig)
 
+
     !
     !
     dims_Z = (/ sigName /)
@@ -305,6 +313,7 @@ contains
 
     call HistoryAutoAddVariable( varname=VARSET_KEY_PTEMPEDDB, &
          & dims=dims_XYZT, longname='eddy component of potential temperature ', units='K')
+
 
     ! Regist diagnostic variables
     !
@@ -347,6 +356,8 @@ contains
 
     ! モジュール引用; Use statement
     !
+    use dc_calendar, only: &
+         & DCCalConvertByUnit
 
     ! ファイル入出力補助
     ! File I/O support
@@ -373,21 +384,26 @@ contains
     integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
                               ! IOSTAT of NAMELIST read
 
-    real(DP) :: outputIntrval
+    character(TOKEN) :: pos_nml
+
+    real(DP) :: IntValue
+    character(TOKEN) :: IntUnit
+    character(STRING) :: Name, FilePrefix
 
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
-    namelist /datafile_nml/ &
-         & outputFileName, outputIntrval
+    namelist /gtool_historyauto_nml/ &
+         & IntValue, IntUnit, Name, FilePrefix
+
 
     ! 実行文; Executable statements
 
     ! デフォルト値の設定
     ! Default values settings
     !
-    outputFileName = "data.nc"
-    outputIntrval  = -1d0
+    IntValue = 0d0
+    IntUnit = "sec"
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -397,20 +413,23 @@ contains
        call FileOpen( unit_nml, &             ! (out)
             & configNmlFileName, mode = 'r' ) ! (in)
 
-       rewind( unit_nml )
-       read( unit_nml, &           ! (in)
-            & nml = datafile_nml, &  ! (out)
-            & iostat = iostat_nml )   ! (out)
+       pos_nml = ''; iostat_nml = 0
+       do while ( trim(pos_nml) /= 'APPEND' .and. iostat_nml == 0 ) 
+          read( unit_nml, &           ! (in)
+               & nml = gtool_historyauto_nml, iostat = iostat_nml )   ! (out)
+          inquire( unit_nml, &      !(in)
+               & position=pos_nml ) !(out)
+       end do
        close( unit_nml )
     end if
 
-    this%outputIntrval = outputIntrval
+    outputIntTimeSec = DCCalConvertByUnit(IntValue, IntUnit, "sec")
+    outputIntUnit = IntUnit
 
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
-    call MessageNotify( 'M', module_name, '  outputFileName        = %a', ca=(/ outputFileName /))
-    call MessageNotify( 'M', module_name, '  outputIntrval        = %d [sec]', i=(/ int(this%outputIntrval) /))
+    call MessageNotify( 'M', module_name, 'Output Interval %f [%c]', d=(/IntValue/), c1=trim(IntUnit) )
 
   end subroutine read_nmlData
 

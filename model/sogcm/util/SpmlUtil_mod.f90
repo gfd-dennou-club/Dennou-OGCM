@@ -15,7 +15,12 @@ module SpmlUtil_mod
   use dc_message, only: &
        & MessageNotify
 
+#ifdef DSOGCM_MODE_AXISYM
+  use wa_zonal_module
+#else
   use wa_module
+#endif
+
 !!$  use wa_module_sjpack
 
 !!$  use wa_module, only: &
@@ -59,7 +64,7 @@ module SpmlUtil_mod
   ! Cascade
   public :: xya_GradLon_wa, xya_GradLambda_wa, xya_GradLat_wa, xya_GradMu_wa
   public :: w_DivLambda_xy, w_DivMu_xy
-  public :: xy_Lon, xy_Lat
+  public :: xy_Lon, xy_Lat, x_Lon, y_Lat
   public :: xya_wa, wa_xya 
   public :: AvrLonLat_xy, ya_AvrLon_xya
 
@@ -77,7 +82,13 @@ module SpmlUtil_mod
   real(DP), parameter :: PI = 3.1415926535897932385D0
 
   real(DP) :: Radius
-  integer :: im, jm, km, nm, lm
+  integer :: im      !< Number of grid points in longitude
+  integer :: jm      !< Number of grid points in latitude
+  integer :: km      !< Number of vertical layers
+  integer :: nm      !< Maximum truncated wave number in horizontal spectral method
+  integer :: tm      !< Maximum truncated wave number in vertical spectral method
+  integer :: lm      !< 
+
   real(DP), allocatable :: vIntCoefMat(:,:)
   real(DP), allocatable :: vDiffProcInvMat(:,:)
 
@@ -106,7 +117,14 @@ contains
     ! 実行文; Executable statements
     !
     im = iMax; jm = jMax; km = kMax;
-    nm = nMax; lm = tMax;
+    nm = nMax; tm = tMax;
+
+#ifdef DSOGCM_MODE_AXISYM
+    lm = nm + 1
+#else
+    lm = (nm + 1)*(nm + 1)
+#endif
+
     nThread = 1
 
     if( present(np) ) then
@@ -188,7 +206,7 @@ contains
       !
       ! スペクトルデータから 3 次元格子点データへ(逆)変換する.
       !
-      real(8), dimension((nm+1)*(nm+1),0:lm), intent(in) :: wt
+      real(8), dimension(lm,0:tm), intent(in) :: wt
       !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
       real(8), dimension(0:im-1,1:jm,0:km)               :: xyz_wt
       !(out) 3 次元経度緯度動径格子点データ
@@ -203,7 +221,7 @@ contains
       !
       real(8), dimension(0:im-1,1:jm,0:km), intent(in) :: xyz
       !(in) 3 次元経度緯度動径格子点データ
-      real(8), dimension((nm+1)*(nm+1),0:lm)           :: wt_xyz
+      real(8), dimension(lm,0:tm)           :: wt_xyz
       !(out) 2 次元球面調和函数チェビシェフスペクトルデータ
 
       wt_xyz = wt_wz(wa_xya(xyz))
@@ -214,7 +232,7 @@ contains
       !
       ! 水平スペクトル・動径格子点データから 3 次元格子点データへ(逆)変換する.
       !
-      real(8), dimension((nm+1)*(nm+1),0:km), intent(in) :: wz
+      real(8), dimension(lm,0:km), intent(in) :: wz
       !(in) 2 次元球面調和函数スペクトル・動径格子点データ
       real(8), dimension(0:im-1,1:jm,0:km)               :: xyz_wz
       !(out) 3 次元経度緯度動径格子点データ
@@ -230,7 +248,7 @@ contains
       !
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
       !(in) 3 次元経度緯度動径格子点データ
-      real(8), dimension((nm+1)*(nm+1),0:km)             :: wz_xyz
+      real(8), dimension(lm,0:km)             :: wz_xyz
       !(out) 2 次元球面調和函数スペクトル・動径格子点データ
 
       wz_xyz = wa_xya(xyz)
@@ -241,9 +259,9 @@ contains
       !
       ! スペクトルデータから水平スペクトル・動径格子点データへ(正)変換する.
       !
-      real(8), dimension((nm+1)*(nm+1),0:lm), intent(in) :: wt
+      real(8), dimension(lm,0:tm), intent(in) :: wt
       !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
-      real(8), dimension((nm+1)*(nm+1),0:km)             :: wz_wt
+      real(8), dimension(lm,0:km)             :: wz_wt
       !(out) 2 次元球面調和函数スペクトル・動径格子点データ
 
 !!$      integer :: n
@@ -258,9 +276,9 @@ contains
       !
       ! 水平スペクトル・動径格子点データからスペクトルデータへ(正)変換する.
       !
-      real(8), dimension((nm+1)*(nm+1),0:km), intent(in) :: wz
+      real(8), dimension(lm,0:km), intent(in) :: wz
       !(in) 2 次元球面調和函数スペクトル・動径格子点データ
-      real(8), dimension((nm+1)*(nm+1),0:lm)             :: wt_wz
+      real(8), dimension(lm,0:tm)             :: wt_wz
       !(out) 2 次元球面調和函数チェビシェフスペクトルデータ
 
       wt_wz = at_az(wz)
@@ -276,10 +294,10 @@ contains
       ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
       ! 作用させたデータのスペクトル変換のことである.
       !
-      real(8), dimension((nm+1)*(nm+1),0:lm), intent(in) :: wt
+      real(8), dimension(lm,0:tm), intent(in) :: wt
       !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
 
-      real(8), dimension((nm+1)*(nm+1),0:lm)             :: wt_DSig_wt
+      real(8), dimension(lm,0:tm)             :: wt_DSig_wt
       !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
 
       wt_DSig_wt = at_DSig_at(wt)
@@ -294,7 +312,7 @@ contains
       !
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
       !(in) 3 次元経度緯度動径格子点データ
-      real(8), dimension((nm+1)*(nm+1),0:lm)       :: wt_DivLon_xyz
+      real(8), dimension(lm,0:tm)       :: wt_DivLon_xyz
       !(out) 発散型経度微分を作用された 2 次元スペクトルデータ
 
       wt_DivLon_xyz = wt_wz(wa_DivLon_xya(xyz/Radius))
@@ -308,7 +326,7 @@ contains
       !
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
       !(in) 3 次元経度緯度動径格子点データ
-      real(8), dimension((nm+1)*(nm+1),0:lm)       :: wt_DivLat_xyz
+      real(8), dimension(lm,0:tm)       :: wt_DivLat_xyz
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
       wt_DivLat_xyz = wt_wz(wa_divlat_xya(xyz/Radius))
@@ -324,7 +342,7 @@ contains
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz_B
 
       !(in) 3 次元経度緯度動径格子点データ
-      real(8), dimension((nm+1)*(nm+1),0:km)       :: wz_AlphaOptr_xyz
+      real(8), dimension(lm,0:km)       :: wz_AlphaOptr_xyz
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
       wz_AlphaOptr_xyz = ( wa_DivLambda_xya(xyz_A) + wa_DivMu_xya(xyz_B) )/Radius
@@ -340,7 +358,7 @@ contains
       real(8), dimension(0:im-1,1:jm), intent(in)   :: xy_B
 
       !(in) 3 次元経度緯度動径格子点データ
-      real(8), dimension((nm+1)*(nm+1))       :: w_AlphaOptr_xy
+      real(8), dimension(lm)       :: w_AlphaOptr_xy
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
       w_AlphaOptr_xy = ( w_DivLambda_xy(xy_A) + w_DivMu_xy(xy_B) )/Radius
@@ -352,8 +370,8 @@ contains
       ! 格子データに 1/a ( 1/(1-μ^2)・∂A/∂λ + ∂B/∂μ ) を
       ! 作用させたスペクトルデータを返す.
       !
-      real(8), dimension((nm+1)*(nm+1),0:km), intent(in)   :: wz_A
-      real(8), dimension((nm+1)*(nm+1),0:km), intent(in)   :: wz_B
+      real(8), dimension(lm,0:km), intent(in)   :: wz_A
+      real(8), dimension(lm,0:km), intent(in)   :: wz_B
 
       !(in) 3 次元経度緯度動径格子点データ
       real(8), dimension(0:im-1,jm,0:km)       :: xyz_AlphaOptr_wz
@@ -372,8 +390,8 @@ contains
       ! 格子データに 1/a ( 1/(1-μ^2)・∂A/∂λ + ∂B/∂μ ) を
       ! 作用させたスペクトルデータを返す.
       !
-      real(8), dimension((nm+1)*(nm+1)), intent(in)   :: w_A
-      real(8), dimension((nm+1)*(nm+1)), intent(in)   :: w_B
+      real(8), dimension(lm), intent(in)   :: w_A
+      real(8), dimension(lm), intent(in)   :: w_B
 
       !(in) 3 次元経度緯度動径格子点データ
       real(8), dimension(0:im-1,jm)       :: xy_AlphaOptr_w
@@ -396,10 +414,10 @@ contains
       ! スペクトルデータのラプラシアンとは, 対応する格子点データに
       ! ラプラシアンを作用させたデータのスペクトル変換のことである. 
       !
-      real(8), dimension((nm+1)*(nm+1),0:km), intent(in) :: wz
+      real(8), dimension(lm,0:km), intent(in) :: wz
       !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
 
-      real(8), dimension((nm+1)*(nm+1),0:km)             :: wz_Lapla2D_wz
+      real(8), dimension(lm,0:km)             :: wz_Lapla2D_wz
       !(out) ラプラシアンを作用された 2 次元スペクトルデータ
 
       wz_Lapla2D_wz = wa_Lapla_wa(wz)/Radius**2
@@ -417,10 +435,10 @@ contains
       ! スペクトルデータのラプラシアンとは, 対応する格子点データに
       ! ラプラシアンを作用させたデータのスペクトル変換のことである. 
       !
-      real(8), dimension((nm+1)*(nm+1),0:km), intent(in) :: wz
+      real(8), dimension(lm,0:km), intent(in) :: wz
       !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
 
-      real(8), dimension((nm+1)*(nm+1),0:km)             :: wz_InvLapla2D_wz
+      real(8), dimension(lm,0:km)             :: wz_InvLapla2D_wz
       !(out) ラプラシアンを作用された 2 次元スペクトルデータ
 
       wz_InvLapla2D_wz = wa_LaplaInv_wa(wz) * Radius**2
@@ -439,10 +457,10 @@ contains
       ! スペクトルデータのラプラシアンとは, 対応する格子点データに
       ! ラプラシアンを作用させたデータのスペクトル変換のことである. 
       !
-      real(8), dimension((nm+1)*(nm+1),0:km), intent(in) :: w
+      real(8), dimension(lm,0:km), intent(in) :: w
       !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
 
-      real(8), dimension((nm+1)*(nm+1))             :: w_InvLapla2D_w
+      real(8), dimension(lm)             :: w_InvLapla2D_w
       !(out) ラプラシアンを作用された 2 次元スペクトルデータ
 
       w_InvLapla2D_w = w_LaplaInv_w(w) * Radius**2
@@ -468,8 +486,8 @@ contains
 
     function w_IntSig_BtmToTop_wz(wz) result(w_Int)
 
-      real(8), dimension((nm+1)*(nm+1),0:km), intent(in)   :: wz
-      real(8), dimension((nm+1)*(nm+1)) :: w_Int
+      real(8), dimension(lm,0:km), intent(in)   :: wz
+      real(8), dimension(lm) :: w_Int
 
       integer :: k 
 
@@ -507,11 +525,11 @@ contains
       
       ! 宣言文; Declaration statement
       !
-      real(DP), intent(inout) :: wt_field((nm+1)*(nm+1), 0:lm)
+      real(DP), intent(inout) :: wt_field(lm, 0:tm)
       character, intent(in) :: SurfBCType
       character, intent(in) :: BtmBCType
-      real(DP), intent(in), optional :: w_SurfBCWork((nm+1)*(nm+1))
-      real(DP), intent(in), optional :: w_BtmBCWork((nm+1)*(nm+1))
+      real(DP), intent(in), optional :: w_SurfBCWork(lm)
+      real(DP), intent(in), optional :: w_BtmBCWork(lm)
 
       
       ! 局所変数
@@ -554,16 +572,16 @@ contains
     
     subroutine construct_vIntCoefMat()
 
-      real(DP) :: tt_data(0:lm,0:lm)
-      real(DP) :: TMat(0:lm,0:km)
-      real(DP) :: TIntMat(0:km,0:lm)
+      real(DP) :: tt_data(0:tm,0:tm)
+      real(DP) :: TMat(0:tm,0:km)
+      real(DP) :: TIntMat(0:km,0:tm)
       real(DP) :: Sigk, theta, tl
       integer :: k, t, k2
 
       allocate(vIntCoefMat(0:km,0:km))
 
       tt_data = 0d0
-      do t=0, lm
+      do t=0, tm
          tt_data(t,t) = 1d0
       end do
       TMat = transpose( at_az(tt_data) )
@@ -575,13 +593,13 @@ contains
          TIntMat(k,0) = 1d0 - Sigk
          TIntMat(k,1) = 0.5d0*(1d0 - Sigk**2)
 
-         do t=2, lm
+         do t=2, tm
             TIntMat(k,t) = 1d0/(1d0-t**2) &
                  & - 0.5d0*( cos((t+1)*theta)/dble(t+1) - cos((t-1)*theta)/dble(t-1) )
          end do
       end do
       TIntMat(:,0) = 0.5d0*TIntMat(:,0)
-      TIntMat(:,lm) = 0.5d0*TIntMat(:,lm)
+      TIntMat(:,tm) = 0.5d0*TIntMat(:,tm)
 
      TIntMat = 0.5d0*(SigMax - SigMin) * TIntMat 
 

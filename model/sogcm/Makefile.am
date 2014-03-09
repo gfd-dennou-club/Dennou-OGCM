@@ -21,7 +21,7 @@ LDADD = \
 	$(srcdir)/dynamics/libDSOGCMDynamics.la \
 	$(srcdir)/setup/libDSOGCMSetup.la \
 	$(srcdir)/util/libDSOGCMUtil.la \
-	$(srcdir)/../ogcm/util/libDOGCMUtil.la \
+	$(srcdir)/util/libSpmlUtil.la \
 	$(srcdir)/../../src/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 
@@ -29,6 +29,7 @@ CLEANFILES = *$(MODEXT)
 
 bin_PROGRAMS = 
 
+#####################
 bin_PROGRAMS += dsogcm 
 dsogcm_SOURCES =\
 	GovernEqSolverDriver_mod.f90 \
@@ -36,6 +37,16 @@ dsogcm_SOURCES =\
 	ogcm_main.f90
 
 
+#####################
+#bin_PROGRAMS += dsogcm_axisym
+#dsogcm_axisym_SOURCES = \
+	GovernEqSolverDriver_mod.f90 \
+	InitCond_mod.f90 \
+	ogcm_main.f90
+#
+#dsogcm_axisym_FCFLAGS = $(AM_FCFLAGS) -DAXISYMMETRY
+
+#############################
 bin_PROGRAMS += diagVar
 diagVar_SOURCES =\
 	tool/DiagVarSet_mod.f90 \

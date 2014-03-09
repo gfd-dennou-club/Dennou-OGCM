@@ -383,7 +383,7 @@ contains
        call FileOpen( unit_nml, &          ! (out)
             & ogcmConfigNml, mode = 'r' ) ! (in)
 
-       pos_nml = ''
+       pos_nml = ''; iostat_nml = 0
        do while ( trim(pos_nml) /= 'APPEND' .and. iostat_nml == 0 ) 
           read( unit_nml, &           ! (in)
                & nml = gtool_historyauto_nml, iostat = iostat_nml )   ! (out)

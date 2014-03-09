@@ -16,9 +16,11 @@ module GridSet_mod
 
   use dc_message, only: &
        & MessageNotify
+
        
-  use wa_module, only: & 
+  use SpmlUtil_mod, only: &
        & x_Lon, y_Lat
+
 
   !  use SimParameters_mod, only: gridFilePath, Radius
 
@@ -63,9 +65,6 @@ contains
     ! モジュール引用; Use statement
     !
     use Constants_mod, only: RPlanet
-
-    use PolyMesh_mod, only: &
-         & getCellListSize, getFaceListSize, getPointListSize
 
     ! 宣言文; Declaration statement
     !
@@ -194,8 +193,22 @@ contains
     jMax = jMaxGlobe
     kMax = nZ
 
+#ifdef DSOGCM_MODE_AXISYM
+    if (iMax /= 1) then
+       call MessageNotify("E", module_name, &
+            & "The number of grid points in longitude must be 1 in DSOGCM_MODE_AXISYM")
+    end if
+#endif
+
+    ! Set truncated wave number
+#ifdef DSOGCM_MODE_AXISYM
+    nMax = ( 2*jMaxGlobe - 1 )/ 3
+    lMax = nMax + 1 
+#else
     nMax = ( iMax - 1 )/ 3
     lMax = ( nMax + 1 )**2
+#endif
+
     tMax = kMax
 
     ! 印字 ; Print

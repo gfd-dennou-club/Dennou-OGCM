@@ -152,7 +152,7 @@ DC_ARG_WITH([ispack],
             [ac_cv_lib_ispack],
   [AC_MSG_ERROR([specify ispack library filename with --with-ispack= option.])])
 DC_SET_LIBDIR_LIBNAME($ac_cv_lib_ispack, ispack_libdir, ispack_libname)
-DC_SET_MODDIR($ac_cv_lib_ispack, ispack_moddir)
+#DC_SET_MODDIR($ac_cv_lib_ispack, ispack_moddir)
 
 
 #
@@ -165,6 +165,21 @@ DC_ARG_WITH([spml],
 DC_SET_LIBDIR_LIBNAME($ac_cv_lib_spml, spml_libdir, spml_libname)
 DC_SET_MODDIR($ac_cv_lib_spml, spml_moddir)
 
+#
+# * dsogcm run mode
+#
+DC_ARG_WITH([dsogcm-mode],
+            [dsogcm run mode],
+            [ac_cv_mode_dsogcm],
+            [ac_cv_mode_dsogcm="3D"])
+
+case $ac_cv_mode_dsogcm in
+AXISYM)
+        SYSFFLAGS="${SYSFFLAGS} -DDSOGCM_MODE_AXISYM"
+	;;
+*)
+	;;
+esac
 
 #
 # * --enable-mpi
@@ -197,6 +212,7 @@ no)
         ;;
 esac
 
+
 #
 # * set flags
 #
@@ -205,7 +221,7 @@ if test -n "$ac_cv_lib_netcdff"; then
    SYSLDLIBS="-l$netcdff_libname $SYSLDLIBS"
 fi
 SYSLDFLAGS="-L$spml_libdir -L$ispack_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdf_libdir"
-SYSLDLIBS="-l$spml_libname -l$ispack_libname -l$gtool5_libname $SYSLDLIBS -l$netcdf_libname"
+SYSLDLIBS="-l$spml_libname -l$ispack_libname -l$gtool5_libname $SYSLDLIBS -l$netcdf_libname -llapack"
 SYSFFLAGS="$SYSFFLAGS $ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir $ax_cv_fortran_modflag$spml_moddir"
 
 AC_SUBST(SYSLDLIBS)

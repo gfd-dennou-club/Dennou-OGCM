@@ -81,7 +81,7 @@ contains
     use VariableSet_mod
 
     use SpmlUtil_mod
-    use w_module, only : l_nm, AvrLonLat_xy
+    use w_module, only : l_nm
 
     use Constants_mod, only: &
          & Grav, ThermalExpanCoef, PI, RPlanet, RefTemp

@@ -156,7 +156,6 @@ contains
   contains
     subroutine analyze_energyBudget()
 
-use wa_module
 use DiagVarSet_mod, only: xyz_DensEdd
 
 use HydroBouEqSolverRHS_mod
@@ -215,7 +214,7 @@ write(*,*) ":  KEGenNet", PEConvert(1)+KEInput(1)+VDiffDisp(1)+HDiffDisp(1)+Adve
 
     subroutine calc_dudtdvdt(xyz_dudt, xyz_dvdt, xyz_dPTempdt, KEInput, PEConvert, HDiffDisp, VDiffDisp, Advect )
 
-use wa_module
+!use wa_module
 use HydroBouEqSolverRHS_mod
 use VariableSet_mod!, only: z_PTempBasic, xy_WindStressU, xy_WindStressV
 use TemporalIntegSet_mod, only: DelTime
@@ -271,8 +270,8 @@ use HydroBouEqSolver_mod
       call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
            & xy_SurfPress, wz_xyz(xyz_Div), xy_totDepth, vDiffCoef, DelTime)
 
-      wz_TmpPsi = wa_LaplaInv_wa( wz_VorRHS  )*RPlanet**2
-      wz_TmpChi = wa_LaplaInv_wa( wz_DivRHS  )*RPlanet**2 + wz_xyz(xyz_PressEddTmp/RefDens)
+      wz_TmpPsi = wz_InvLapla2D_wz( wz_VorRHS  )
+      wz_TmpChi = wz_InvLapla2D_wz( wz_DivRHS  ) + wz_xyz(xyz_PressEddTmp/RefDens)
       xyz_InvisRHSU = 0.5d0*xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
       xyz_InvisRHSV = 0.5d0*xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
 
@@ -288,8 +287,8 @@ use HydroBouEqSolver_mod
       call apply_boundaryConditions(wt_Vor, wt_Div, wt_PTempEdd)
       wz_VorTmp = wz_wt(wt_Vor); wz_DivTmp = wz_wt(wt_Div); wz_PTempEddTmp = wz_wt(wt_PTempEdd)
 
-      wz_TmpPsi = wa_LaplaInv_wa( wz_VorTmp  )*RPlanet**2
-      wz_TmpChi = wa_LaplaInv_wa( wz_DivTmp  )*RPlanet**2
+      wz_TmpPsi = wz_InvLapla2D_wz( wz_VorTmp  )
+      wz_TmpChi = wz_InvLapla2D_wz( wz_DivTmp  )
       xyz_UTmp =xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
       xyz_VTmp =xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
 
@@ -304,8 +303,8 @@ use HydroBouEqSolver_mod
          & xyz_wz(wz_VorTmp), xyz_UTmp*xyz_CosLat, xyz_VTmp*xyz_CosLat, xy_w(wz_Tmp(:,0)), xyz_DensEdd, &
          & xyz_PressEddTmp, Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
 
-      wz_TmpPsi = wa_LaplaInv_wa( wz_VorRHS  )*RPlanet**2
-      wz_TmpChi = wa_LaplaInv_wa( wz_DivRHS  )*RPlanet**2 + wz_xyz(xyz_PressEddTmp/RefDens)
+      wz_TmpPsi = wz_InvLapla2D_wz( wz_VorRHS  )
+      wz_TmpChi = wz_InvLapla2D_wz( wz_DivRHS  ) + wz_xyz(xyz_PressEddTmp/RefDens)
       xyz_InvisRHSU = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
       xyz_InvisRHSV = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
 
@@ -325,8 +324,8 @@ use HydroBouEqSolver_mod
            & xy_WindStressU, xy_WindStressV, xy_totDepth, vDiffCoef, DelTime, &
            & DynBC_Surface, DynBC_Bottom )
 
-      wz_TmpPsi = wa_LaplaInv_wa( wz_wt(wt_Vor) )*RPlanet**2
-      wz_TmpChi = wa_LaplaInv_wa( wz_wt(wt_Div) )*RPlanet**2
+      wz_TmpPsi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
+      wz_TmpChi = wz_InvLapla2D_wz( wz_wt(wt_Div) )
       xyz_UA =xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
       xyz_VA =xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
 
