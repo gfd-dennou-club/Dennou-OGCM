@@ -16,6 +16,10 @@ module Exp_WindDrivenCirculation_mod
   use Constants_mod, only: &
        & Grav, PI, RPlanet, Omega, RefDens
 
+  use GridSet_mod, only: &
+         & iMax, jMax, kMax, nMax, lMax, &
+         & xyz_Lat, xyz_Lon
+
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -26,6 +30,8 @@ module Exp_WindDrivenCirculation_mod
   !
   public :: Exp_WindDrivenCirculation_Init, Exp_WindDrivenCirculation_Final
   public :: SetInitCondition
+
+  public :: construct_WindStressU_Marshall07
 
   ! 非公開手続き
   ! Private procedure
@@ -72,9 +78,6 @@ contains
     
     !
     !
-    use GridSet_mod, only: &
-         & iMax, jMax, kMax, nMax, lMax, &
-         & xyz_Lat, xyz_Lon
 
     use VariableSet_mod
 
@@ -92,8 +95,10 @@ contains
     integer :: k
     real(DP), parameter :: Tau0 = 0.1d0
 
-    integer :: m
-    
+    integer :: i, j, m
+    real(DP) :: TempAvg
+    real(DP) :: z_PTemp(0:kMax)
+
     ! 実行文; Executable statement
     !
 
@@ -103,14 +108,20 @@ contains
     xy_totDepthBasic = h0
     xy_SurfHeightN = 0d0
 
-    xy_WindStressU = construct_WindStressU_Marshall07()
+    xy_WindStressU = construct_WindStressU_Marshall07(xyz_Lat(:,:,0))
 !!$    xy_WindStressU = construct_WindStressU_analysticFunc()
     xy_WindStressV = 0d0
 
     write(*,*) 'total angular momentum=', AvrLonLat_xy( xy_WindStressU*cos(xyz_Lat(:,:,1)) )
 
     do k=0, kMax
-       z_PTempBasic(k) = eval_PTempBasic(g_Sig(k))
+       z_PTemp(k) = eval_PTempBasic(g_Sig(k))
+    end do
+    
+    TempAvg = IntSig_BtmToTop(z_PTemp)
+    z_PTempBasic = TempAvg
+    do k=0, kMax
+       xyz_PTempEddN(:,:,k) = z_PTemp(k) - TempAvg
     end do
 
 !!$write(*,*) "-- WindStressU --"
@@ -119,21 +130,23 @@ contains
 !!$write(*,*) "-- PTempBasic --"
 !!$write(*,*) z_PTempBasic
 !!$stop
-  contains
-    function construct_WindStressU_Marshall07() result(xy)
-      real(DP) :: xy(0:iMax-1,jMax)
+  end subroutine setInitCondition
+  
+  function construct_WindStressU_Marshall07(xy_lat) result(windStressU)
+    real(DP), intent(in) :: xy_lat(:,:)
+    real(DP) :: windStressU(size(xy_lat,1), size(xy_lat,2))
 
-      real(DP), parameter :: coef(8) = &
+    real(DP), parameter :: coef(8) = &
          & (/ 0.0265682, -0.0784899, -0.00880389, 0.0343205, 0.0233334, &
          & 0.000641955, -0.00387676, -0.00150998 /)
-      integer :: m
+    integer :: m
 
-      xy = 0d0
-      do m=1, size(coef)
-         xy = xy + coef(m)*cos((2*m-1)*xyz_Lat(:,:,1))
-      end do
+    windStressU = 0d0
+    do m=1, size(coef)
+       windStressU = windStressU + coef(m)*cos((2*m-1)*xy_lat)
+    end do
 
-    end function construct_WindStressU_Marshall07
+  end function construct_WindStressU_Marshall07
 
     function construct_WindStressU_analysticFunc() result(xy)
       real(DP) :: xy(0:iMax-1,jMax)
@@ -155,7 +168,8 @@ contains
             xy(:,j) = c2*sin(3d0*(lat - PI/6d0))**2*cos(lat)**2
          end if
       end do
-write(*,*) xy(1,:)
+
+write(*,*) xy(1,1:jMax)
     end function construct_WindStressU_analysticFunc
 
 
@@ -175,7 +189,6 @@ write(*,*) xy(1,:)
 
     end function eval_PTempBasic
 
-  end subroutine setInitCondition
 
   !> @brief 
   !!

@@ -122,6 +122,7 @@ contains
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_PressBaroc(0:iMax-1,jMax,0:kMax)
+
     xyz_PressBaroc =  Grav*spread(xy_totDepth,3,kMax+1)*(xyz_IntSig_SigToTop_xyz(xyz_DensEdd)) 
 
   end function diagnose_PressBaroc

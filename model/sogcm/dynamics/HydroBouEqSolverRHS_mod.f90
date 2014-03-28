@@ -138,7 +138,9 @@ contains
   !!
   !!
   subroutine calc_VorEqDivEqDiffRHS(wz_RHSVor, wz_RHSDiv, &
-       & wz_Vor, wz_Div, Ah, &
+       & wz_Vor, wz_Div,&
+       & hViscCoef, vViscCoef, hHyperViscCoef, vHyperViscCoef, &
+       & xyz_totDepth, &
        & overwrite )
     
 
@@ -148,13 +150,16 @@ contains
     real(DP), intent(inout) :: wz_RHSDiv(lMax, 0:kMax)
     real(DP), intent(in) :: wz_Vor(lMax,0:kMax)
     real(DP), intent(in) :: wz_Div(lMax,0:kMax)
-    real(DP), intent(in) :: Ah
+    real(DP), intent(in) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: hViscCoef, vViscCoef
+    real(DP), intent(in) :: hHyperViscCoef, vHyperViscCoef
     logical, optional, intent(in) :: overWrite
     
     ! 局所変数
     ! Local variables
     !
-
+    real(DP) :: xyt_VorDIVDep2(0:iMax-1, jMax, 0:tMax)
+    real(DP) :: xyt_DivDIVDep2(0:iMax-1, jMax, 0:tMax)
 
     ! 実行文; Executable statement
     !
@@ -163,8 +168,22 @@ contains
        wz_RHSVor = 0d0; wz_RHSDiv = 0d0
     end if
 
-    wz_RHSVor = wz_RHSVor + Ah * wz_Lapla2D_wz(wz_Vor) 
-    wz_RHSDiv = wz_RHSDiv + Ah * wz_Lapla2D_wz(wz_Div) 
+    xyt_VorDIVDep2 = xyt_xyz(xyz_wz(wz_Vor))/xyz_totDepth**2
+    wz_RHSVor = wz_RHSVor &
+!!$         &      + hViscCoef*wz_Vor/RPlanet**2 &
+         &      + wz_Lapla2D_wz(hViscCoef*wz_Vor - hHyperViscCoef*wz_Lapla2D_wz(wz_Vor))  &
+         &      + wz_xyz(xyz_xyt( &
+         &          xyt_DSigDSig_xyt( vViscCoef*xyt_VorDIVDep2 - vHyperViscCoef*xyt_DSigDSig_xyt(xyt_VorDIVDep2/xyz_totDepth**2) ) &
+         &      ))
+
+    xyt_DivDIVDep2 = xyt_xyz(xyz_wz(wz_Div))/xyz_totDepth**2
+    wz_RHSDiv = wz_RHSDiv &
+!!$         &      + hViscCoef*wz_Div/RPlanet**2 &
+         &      + wz_Lapla2D_wz(hViscCoef*wz_Div - hHyperViscCoef*wz_Lapla2D_wz(wz_Div))  &
+         &      + wz_xyz(xyz_xyt( &
+         &          xyt_DSigDSig_xyt( vViscCoef*xyt_DivDIVDep2 - vHyperViscCoef*xyt_DSigDSig_xyt(xyt_DivDIVDep2/xyz_totDepth**2) ) &
+         &      ))
+
 
   end subroutine calc_VorEqDivEqDiffRHS
 
@@ -181,13 +200,19 @@ contains
          & + wz_xyz(   xyz_Tracer*xyz_Div & 
          &           - xyz_SigDot*xyz_wt(wt_DSig_wt(wt_xyz(xyz_Tracer))) )
 
+!!$    wz_RHSTracer =  &
+!!$         & - wz_AlphaOptr_xyz(xyz_Tracer*xyz_Urf, xyz_Tracer*xyz_Vrf) &
+!!$         & + wz_xyz(   xyz_Tracer*xyz_Div &
+!!$         &           - xyz_wt(wt_DSig_wt(wt_xyz(xyz_SigDot*xyz_Tracer))) &
+!!$         &           + xyz_Tracer*xyz_wt(wt_DSig_wt(wt_xyz(xyz_SigDot))) )
+
   end subroutine calc_TracerEqInvisRHS
 
   !> @brief 
   !!
   !!
   subroutine calc_TracerEqDiffRHS(wz_RHSTracer, &
-       & wz_Tracer, Ah, &
+       & wz_Tracer, Kh, Kv, xyz_totDepth, &
        & overwrite )
     
 
@@ -195,7 +220,8 @@ contains
     !
     real(DP), intent(inout) :: wz_RHSTracer(lMax, 0:kMax)
     real(DP), intent(in) :: wz_Tracer(lMax,0:kMax)
-    real(DP), intent(in) :: Ah
+    real(DP), intent(in) :: Kh, Kv
+    real(DP), intent(in) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
     logical, optional, intent(in) :: overWrite
     
     ! 局所変数
@@ -210,7 +236,11 @@ contains
        wz_RHSTracer = 0d0
     end if
 
-    wz_RHSTracer = wz_RHSTracer + Ah * wz_Lapla2D_wz(wz_Tracer) 
+    wz_RHSTracer = wz_RHSTracer & 
+         & + Kh * wz_Lapla2D_wz(wz_Tracer) &
+         & + Kv * wz_wt( &
+         &          wt_DSig_wt(wt_DSig_wt( wt_xyz(xyz_wz(wz_Tracer)/xyz_totDepth**2) )) &
+         &        )
 
   end subroutine calc_TracerEqDiffRHS
 
@@ -256,8 +286,8 @@ contains
     ! 実行文; Executable statement
     !
 
-    wz_Av_Dsig_Div = Av*wz_wt( &
-         & wt_DSig_wt(wt_xyz(xyz_wz(wz_DivN)/spread(xy_totDepth**2,3,kMax+1))) )
+!!$    wz_Av_Dsig_Div = Av*wz_wt( &
+!!$         & wt_DSig_wt(wt_xyz(xyz_wz(wz_DivN)/spread(xy_totDepth**2,3,kMax+1))) )
     w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_DivN/dt ) !&
 !         &          + wz_Av_DSig_Div(:,kMax)
 !write(*,*) "Av*DSig_Div:", wz_Av_DSig_Div(:,kMax)

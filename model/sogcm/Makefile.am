@@ -37,15 +37,6 @@ dsogcm_SOURCES =\
 	ogcm_main.f90
 
 
-#####################
-#bin_PROGRAMS += dsogcm_axisym
-#dsogcm_axisym_SOURCES = \
-	GovernEqSolverDriver_mod.f90 \
-	InitCond_mod.f90 \
-	ogcm_main.f90
-#
-#dsogcm_axisym_FCFLAGS = $(AM_FCFLAGS) -DAXISYMMETRY
-
 #############################
 bin_PROGRAMS += diagVar
 diagVar_SOURCES =\
@@ -54,3 +45,5 @@ diagVar_SOURCES =\
 	tool/DiagVarFileSet_mod.f90 \
 	tool/BudgetAnalysis_mod.f90 \
 	tool/diagVar_main.f90
+
+

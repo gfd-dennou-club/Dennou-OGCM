@@ -55,7 +55,7 @@ exps[1] = Exp.new("exp2", 1e-02, 1, 2, 1)
 exps[2] = Exp.new("exp3", 1e-02, 2, 2, 1)
 exps[3] = Exp.new("exp4", 1e-02, 1, 1, 2)
 exps[4] = Exp.new("exp5", 1e-03, 1, 1, 1)
-
+exps[5] = Exp.new("exp6", 1e-02, 0, 1, 2)
 
 exps.each{|exp|
  exp.print_IGravWaveProp

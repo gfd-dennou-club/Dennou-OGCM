@@ -20,6 +20,7 @@ module BudgetAnalysis_mod
 
   use Constants_mod, only: &
        & RPlanet, Grav, RefDens, &
+       & hViscCoef, vViscCoef, hHyperViscCoef, vHyperViscCoef, &
        & hDiffCoef, vDiffCoef
 
   use GridSet_mod, only: &
@@ -232,7 +233,7 @@ use HydroBouEqSolver_mod
       real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax), xyz_Vor(0:iMax-1,jMax,0:kMax)
       real(DP) , dimension(0:iMax-1,jMax,0:kMax) :: xyz_InvisRHSU, xyz_InvisRHSV, &
            & xyz_HDiffU, xyz_HDiffV, xyz_VDiff, xyz_PressEddTmp, &
-           & xyz_PressEdd, xyz_UTmp, xyz_VTmp, xyz_totPress, xyz_PressWork, xyz_AdvWork, &
+           & xyz_UTmp, xyz_VTmp, xyz_PressEdd, xyz_PressWork, xyz_AdvWork, &
            & xyz_PTempBasic, xyz_DensEdd, xyz_dKdt
       real(DP) :: xyz_CosLat(0:iMax-1,jMax,0:kMax)
       real(DP), dimension(lMax, 0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_TmpChi, wz_TmpPsi, wz_Tmp
@@ -309,7 +310,9 @@ use HydroBouEqSolver_mod
       xyz_InvisRHSV = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
 
       call calc_VorEqDivEqDiffRHS(wz_VorRHS, wz_DivRHS, &
-           & wz_xyz(xyz_Vor), wz_xyz(xyz_Div), hDiffCoef)
+           & wz_xyz(xyz_Vor), wz_xyz(xyz_Div), &
+           & hDiffCoef, 0.5d0*vDiffCoef, hHyperViscCoef, vHyperViscCoef, &
+           & spread(xy_totDepth,3,kMax+1))
 
       call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
            & xy_SurfPress, wz_DivTmp, xy_totDepth, vDiffCoef, DelTime)
@@ -338,10 +341,10 @@ use HydroBouEqSolver_mod
            & ))
 
       wz_Tmp = 0d0
-      xyz_totPress = xyz_PressEdd + spread(xy_SurfPress,3,kMax+1)
+      xyz_PressEdd = xyz_PressEdd + spread(xy_SurfPress,3,kMax+1)
       xyz_PressWork = - ( &
-           &   xyz_UTmp * xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_totPress/RefDens), wz_Tmp) &
-           & + xyz_VTmp * xyz_CosLat*xyz_AlphaOptr_wz(wz_Tmp, wz_xyz(xyz_totPress/RefDens)) &
+           &   xyz_UTmp * xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_PressEdd/RefDens), wz_Tmp) &
+           & + xyz_VTmp * xyz_CosLat*xyz_AlphaOptr_wz(wz_Tmp, wz_xyz(xyz_PressEdd/RefDens)) &
            & )
 
       PEConvert = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyz_PressWork ))

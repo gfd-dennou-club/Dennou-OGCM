@@ -122,12 +122,16 @@ contains
          longname='vorcity', units='s-1')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_TOTPRESS, dims=(/'lon','lat','sig','t  '/), & 
-         longname='pressure deviation from RefDens*Grav*z', units='Pa')
+         varname=DVARKEY_PRESSEDD, dims=(/'lon','lat','sig','t  '/), & 
+         longname='pressure deviation from static pressure(RefDens*Grav*z)', units='Pa')
 
     call HistoryAutoAddVariable( &
          varname=DVARKEY_MASSSTREAMFUNC, dims=(/'lat','sig','t  '/), & 
          longname='mass stream function on meriodinal plane', units='kg.m2.s-1')
+
+    call HistoryAutoAddVariable( &
+         varname=DVARKEY_PTEMP, dims=(/'lon','lat','sig','t  '/), & 
+         longname='potential temperature', units='K')
 
     call HistoryAutoAllVarFix()
 

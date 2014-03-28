@@ -25,4 +25,3 @@ nodist_libDSOGCMExp_la_SOURCES= \
 	exp_BarotRossbyWave/Exp_BarotRossbyWave_mod.f90 \
 	exp_InternalGravWave/Exp_InternalGravWave_mod.f90 \
 	exp_WindDrivenCirculation/Exp_WindDrivenCirculation_mod.f90
-

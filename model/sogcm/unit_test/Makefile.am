@@ -20,7 +20,7 @@ LDADD = \
 	$(srcdir)/../dynamics/libDSOGCMDynamics.la \
 	$(srcdir)/../setup/libDSOGCMSetup.la \
 	$(srcdir)/../util/libDSOGCMUtil.la \
-	$(srcdir)/../../ogcm/util/libDOGCMUtil.la \
+	$(srcdir)/../util/libSpmlUtil.la \
 	$(srcdir)/../../../src/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 

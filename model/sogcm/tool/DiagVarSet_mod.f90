@@ -34,17 +34,17 @@ module DiagVarSet_mod
   ! Public variable
   !
   real(DP), dimension(:,:,:), allocatable, public :: &
-       & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_TotPress, xyz_DensEdd
+       & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_PressEdd, xyz_DensEdd
 
   real(DP), dimension(:,:), allocatable, public :: &
        & xy_totDepth, yz_MassStreamFunc
 
   character(*), parameter, public :: DVARKEY_VOR = 'Vor'
   character(*), parameter, public :: DVARKEY_DIV = 'Div'
-  character(*), parameter, public :: DVARKEY_TOTPRESS = 'TotPress'
+  character(*), parameter, public :: DVARKEY_PRESSEDD = 'PressEdd'
   character(*), parameter, public :: DVARKEY_DENSEDD = 'DensEdd'
   character(*), parameter, public :: DVARKEY_MASSSTREAMFUNC = 'MassStreamFunc'
-
+  character(*), parameter, public :: DVARKEY_PTEMP = 'PTemp'
   ! 非公開手続き
   ! Private procedure
   !
@@ -75,7 +75,7 @@ contains
     !
     allocate(xy_totDepth(0:iMax-1,jMax))
     allocate(xyz_BarocPress(0:iMax-1,jMax,0:kMax))
-    allocate(xyz_TotPress(0:iMax-1,jMax,0:kMax))
+    allocate(xyz_PressEdd(0:iMax-1,jMax,0:kMax))
     allocate(xyz_DensEdd(0:iMax-1,jMax,0:kMax))
 
     do varID=1, size(diagVarsName)
@@ -86,10 +86,11 @@ contains
              allocate( xyz_Div(0:iMax-1,jMax,0:kMax) )
           case( DVARKEY_VOR )
              allocate( xyz_Vor(0:iMax-1,jMax,0:kMax) )
-          case ( DVARKEY_TOTPRESS )
+          case ( DVARKEY_PRESSEDD )
           case ( DVARKEY_DENSEDD )
           case (DVARKEY_MASSSTREAMFUNC )
              allocate( yz_MassStreamFunc(jMax, 0:kMax) )
+          case (DVARKEY_PTEMP)
           case Default
              call MessageNotify('E', module_name, &
                   & "The name of specified diagnostic variable '%c'is invalid.", c1=trim(diagVarsName(varID)) )
@@ -105,11 +106,11 @@ contains
     ! 実行文; Executable statements
     !
 
-    deallocate( xy_totDepth, xyz_BarocPress, xyz_TotPress, xyz_DensEdd ) 
+    deallocate( xy_totDepth, xyz_BarocPress, xyz_PressEdd, xyz_DensEdd ) 
     if( allocated(xyz_Div) ) deallocate(xyz_Div)
     if( allocated(xyz_Vor) ) deallocate(xyz_Vor)
     if( allocated(xyz_BarocPress) ) deallocate(xyz_BarocPress)
-    if( allocated(xyz_totPress) ) deallocate(xyz_totPress)
+    if( allocated(xyz_PressEdd) ) deallocate(xyz_PressEdd)
     if( allocated(yz_MassStreamFunc) ) deallocate(yz_MassStreamFunc)
 
   end subroutine DiagVarSet_Final

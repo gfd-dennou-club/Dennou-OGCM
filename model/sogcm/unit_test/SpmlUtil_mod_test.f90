@@ -10,11 +10,26 @@ program SpmlUtil_mod_test
 
   implicit none
 
+#ifdef DSOGCM_MODE_AXISYM
+  character(*), parameter :: configNmlFile = "defaultConfig_axisym.nml"
+#else
   character(*), parameter :: configNmlFile = "defaultConfig.nml"
+#endif
+
+
+  integer :: caseId
+
+  ! Variables for continious field
   integer :: nMode
-  integer :: lyrDivId
+  real(DP), parameter :: contField_bt_ErrLims(8) = (/ 1d-15, 1d-15, 1d-15, 1d-13, 1d-13, 1d-9, 1d-8, 1d-7 /) 
+  real(DP), parameter :: contField_st_ErrLims(8) = (/ 1d-14, 1d-14, 1d-14, 1d-12, 1d-10, 1d-9, 1d-8, 1d-7 /) 
+
+  ! Variables for noncontinious field  
+  real(DP), parameter :: lyrLenRatios(5) = (/ 0.05d0, 0.01d0, 0.005d0, 0.0025d0, 0.001d0 /)
+  real(DP), parameter :: ncontField_bt_ErrLims(5) = (/ 1d-11, 1d-5, 1d-3, 1d-3, 1d-3 /)
+  real(DP), parameter :: ncontField_st_ErrLims(5) = (/ 1d-12, 1d-5, 1d-4, 1d-3, 1d-3 /)
+
   real(DP) :: lyrLen
-  real(DP) :: lyrLenRatio(5) = (/ 0.05d0, 0.01d0, 0.005d0, 0.0025d0, 0.001d0 /)
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -24,26 +39,30 @@ program SpmlUtil_mod_test
   call GridSet_construct()
 
   call MessageNotify("M", "SpmlUtil_mod_test", "= WaveFunc")
-  do nMode=1, 5
+  do caseId=1, size(contField_bt_ErrLims)
+     nMode = caseId
      call check_xy_IntSig_BtmToTop_xyz( &
-          & eval_func1_intBtmToTop, check_intfunc1_intBtmToTop, dble(nMode) )
+          & eval_func1_intBtmToTop, check_intfunc1_intBtmToTop, caseId, contField_bt_ErrLims(caseId) )
   end do
-  do nMode=1, 8
+  do caseId=1, 8
+     nMode = caseId
      call check_xyz_IntSig_SigToTop_xyz( &
-          & eval_func1_intSigToTop, check_intfunc1_intSigToTop, dble(nMode), CPrintf("waveFunc_%d_k%d.dat",i=(/nMode,kMax/)) )
+          & eval_func1_intSigToTop, check_intfunc1_intSigToTop, caseId, CPrintf("waveFunc_%d_k%d.dat",i=(/nMode,kMax/)), &
+          & contField_st_ErrLims(caseId) )
   end do
 
   call MessageNotify("M", "SpmlUtil_mod_test", "= ExpFunc")
-  do lyrDivId=1, size(lyrLenRatio)
-     lyrLen = lyrLenRatio(lyrDivId)
+  do caseId=1, size(lyrLenRatios)
+     lyrLen = lyrLenRatios(caseId)
      call check_xy_IntSig_BtmToTop_xyz( &
-          & eval_func2_intBtmToTop, check_intfunc2_intBtmToTop, dble(lyrDivId) )
+          & eval_func2_intBtmToTop, check_intfunc2_intBtmToTop, caseId, ncontField_bt_ErrLims(caseId) )
   end do
-  do lyrDivId=1,size(lyrLenRatio)
+  do caseId=1,size(lyrLenRatios)
 
-     lyrLen = lyrLenRatio(lyrDivId)
+     lyrLen = lyrLenRatios(caseId)
      call check_xyz_IntSig_SigToTop_xyz( &
-          & eval_func2_intSigToTop, check_intfunc2_intSigToTop, dble(lyrDivId), CPrintf("expFunc_%d_k%d.dat",i=(/lyrDivId,kMax/)) )
+          & eval_func2_intSigToTop, check_intfunc2_intSigToTop, caseId, CPrintf("expFunc_%d_k%d.dat",i=(/caseId,kMax/)), &
+          & ncontField_st_ErrLims(caseId) )
   end do
 
   call SpmlUtil_Final()
@@ -116,7 +135,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
 
-  subroutine check_xy_IntSig_BtmToTop_xyz(eval_func, check_intfunc, param)
+  subroutine check_xy_IntSig_BtmToTop_xyz(eval_func, check_intfunc, caseId, errorLimit)
 
     interface
        pure function eval_func(sig) result(val)
@@ -130,7 +149,8 @@ contains
        end function check_intfunc
     end interface
 
-    real(DP), intent(in) :: param
+    integer, intent(in) :: caseId
+    real(DP), intent(in) :: errorLimit
 
     real(DP) :: val(0:iMax-1,jMax,0:kMax)
     integer :: k
@@ -143,13 +163,13 @@ contains
     end do
     intVal = xy_IntSig_BtmToTop_xyz(val)
     l2norm = abs(intVal(1,1) - check_intfunc())
-    message=CPrintf("xy_IntSig_BtmToTop_xyz: param=%f, l2norm=%f", d=(/ param, l2norm /))
+    message=CPrintf("xy_IntSig_BtmToTop_xyz: param=%d, l2norm=%f", i=(/caseId/), d=(/ l2norm /))
     call  AssertLessThan(message=message, &
-         & answer=5d-1, check=l2norm)
+         & answer=errorLimit, check=l2norm)
 
   end subroutine check_xy_IntSig_BtmToTop_xyz
 
-  subroutine check_xyz_IntSig_SigToTop_xyz(eval_func, check_intfunc, param, outputFileName)
+  subroutine check_xyz_IntSig_SigToTop_xyz(eval_func, check_intfunc, caseId, outputFileName, errorLimit)
 
     interface
        pure function eval_func(sig) result(val)
@@ -163,8 +183,9 @@ contains
          real(DP) :: val
        end function check_intfunc
     end interface
-    real(DP), intent(in) :: param
+    integer, intent(in) :: caseId
     character(*), optional :: outputFileName
+    real(DP), intent(in) :: errorLimit
 
     real(DP) :: val(0:iMax-1,jMax,0:kMax)
     real(DP) :: intVal(0:iMax-1,jMax, 0:kMax)
@@ -178,15 +199,13 @@ contains
        val(:,:,k) = eval_func(g_Sig(k))
        checkVal(:,:,k) = check_intfunc(g_Sig(k))
     end do
+
     intVal = xyz_IntSig_SigToTop_xyz(val)
-
     l2norm = abs(sum(intVal - checkVal))/dble(iMax*jMax*(kMax+1))       
-    message=CPrintf("xyz_IntSig_SigToTop_xyz: param %f, l2norm %f", d=(/param, l2norm/))
-
+    message=CPrintf("xyz_IntSig_SigToTop_xyz: param %d, l2norm %f", i=(/caseId/), d=(/ l2norm/))
     lostCheck = (val - xyz_wt(-wt_DSig_wt(wt_xyz(intVal))))/maxval(abs(val))
-!!$do k=0,kMax
-!!$   write(*,*) "k=",k, ": theta=", theta(k), "val=", val(10,10,k), ": integral ",  intVal(10,10,k), checkVal(10,10,k)
-!!$end do
+    
+    call  AssertLessThan(message=message, answer=errorLimit, check=l2norm)
 
     !
     
@@ -205,8 +224,6 @@ contains
        close(10)
     end if
 
-    !
-    call  AssertLessThan(message=message, answer=1d-0, check=l2norm)
 
 
   end subroutine check_xyz_IntSig_SigToTop_xyz

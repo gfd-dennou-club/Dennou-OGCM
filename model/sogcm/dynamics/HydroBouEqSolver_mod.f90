@@ -19,6 +19,8 @@ module HydroBouEqSolver_mod
 
   use Constants_mod, only: &
        & Omega, Grav, RPlanet, &
+       & hViscCoef, vViscCoef, &
+       & hHyperViscCoef, vHyperViscCoef, &
        & hDiffCoef, vDiffCoef, &
        & RefDens
 
@@ -30,7 +32,7 @@ module HydroBouEqSolver_mod
        & KinBC_Surface, DynBC_Surface, DynBC_Bottom
 
   use TemporalIntegSet_mod, only: &
-       & DelTime, SubCycleNum, &
+       & CurrentTime, DelTime, SubCycleNum, &
        & nShortTimeLevel, &
        & timeIntMode_Euler, timeIntMode_LFTR, timeIntMode_LFAM3, &
        & timeIntMode_RK2, timeIntMode_RK4
@@ -156,6 +158,7 @@ contains
          & xyz_SigDot, z_PTempBasic
     !
 
+
     ! 宣言文; Declaration statement
     !
     integer, intent(in) :: timeIntMode
@@ -183,9 +186,8 @@ contains
 
     integer :: Stage
 
-real(DP) :: xyz_Div(0:iMax-1,jMax,0:kMax)
-real(DP) ::  dKdt(0:iMax-1,jMax,0:kMax)
-real(DP) ::  dKdt_vdiff(0:iMax-1,jMax,0:kMax)
+real(DP) :: xyz(0:iMax-1,jMax,0:kMax),xyz_Div(0:iMax-1,jMax,0:kMax)
+
 
     ! 実行文; Executable statement
     !
@@ -215,24 +217,30 @@ real(DP) ::  dKdt_vdiff(0:iMax-1,jMax,0:kMax)
     
     do Stage=1, nStage_BarocTimeInt
 
-       call calc_GovernEqInvisRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &
-            & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), xyz_wt(wt_Salt), &
-            & xy_SurfHeight )
+       call calc_GovernEqInvisRHS( &
+            & wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &   ! (inout)
+            & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), xyz_wt(wt_Salt), & ! (in)
+            & xy_SurfHeight                                                                           & ! (in)
+            & )
 
 
        if(timeIntMode == timeIntMode_LFAM3 ) then
           if(Stage==2) then
-             call calc_GovernEqDiffRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
-                  wz_wt(wt_VorN), wz_wt(wt_DivN), wz_wt(wt_PTempEddN) )
+             call calc_GovernEqDiffRHS( &
+                  & wz_VorRHS, wz_DivRHS, wz_PTempRHS,                  & ! (inout)  
+                  & wz_wt(wt_VorN), wz_wt(wt_DivN), wz_wt(wt_PTempEddN) & ! (in)
+                  & )
 
              !write(*,*) "Stage=", Stage
-             call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
-                  & xy_SurfPress, wz_wt(wt_DivN), xy_totDepthBasic, vDiffCoef, DelTime)
+             call correct_DivEqRHSUnderRigidLid( &
+                  & wz_DivRHS, xy_SurfPress,                              & ! (inout)
+                  & wz_wt(wt_DivN), xy_totDepthBasic, vDiffCoef, DelTime  & ! (in)
+                  & ) 
 
           else
              !write(*,*) "Stage=", Stage
              call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
-                  & xy_SurfPress, wz_wt(wt_DivB), xy_totDepthBasic, vDiffCoef, DelTime*2)
+                  & xy_SurfPress, wz_wt(wt_DivB/3d0+wt_DivN*2d0/3d0), xy_totDepthBasic, vDiffCoef, 11d0/12d0*DelTime)
           end if
 
        else 
@@ -260,32 +268,33 @@ real(DP) ::  dKdt_vdiff(0:iMax-1,jMax,0:kMax)
        end select
 
 
-!!$xyz_Div=xyz_wt(wt_DSig_wt(wt_Vor))
-!!$write(*,*) "apply bc before:",xyz_Div(1,1:16,0)
        !
        call apply_boundaryConditions(wt_Vor, wt_Div, wt_PTempEdd)
-!!$xyz_Div=xyz_wt(wt_DSig_wt(wt_Vor))
-!!$write(*,*) "apply bc after:",xyz_Div(1,1:16,0)
-
-!!$if (Stage==nStage_BarocTimeInt) then
-!!$
-!!$       wz_Psi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
-!!$       wz_Chi = wz_InvLapla2D_wz( wz_wt(wt_Div) )
-!!$       xyz_Urf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
-!!$       xyz_Vrf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Psi,  wz_Chi)
-!!$       dKdt = (0.5d0*(xyz_Urf**2 + xyz_Vrf**2)/xyz_CosLat**2 -0.5d0*(xyz_UN**2 + xyz_VN**2))/(DelTime)
-!!$       write(*,*) "before KE:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt))
-!!$end if
 
        if( Stage == nStage_BarocTimeInt ) then
 
+!!$if(mod(int(CurrentTime),3600)==0)then
+!!$xyz_Div(:,:,0) = xy_IntSig_BtmToTop_xyz(xyz_wt(wt_Div))
+!!$write(*,*) "Before:", xyz_Div(0,:,0)
+!!$endif
+
+!!$xyz_Div = xyz_wt(wt_Div)
           call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &
                & xy_WindStressU, xy_WindStressV, xy_totDepthBasic+xy_SurfHeight, vDiffCoef, DelTime, &
                & DynBC_Surface, DynBC_Bottom )
 
-!!$xyz_Div=xyz_wt(wt_DSig_wt(wt_Vor))
-!!$write(*,*) "apply vdiff after:",xyz_Div(1,1:16,0)
+!!$xyz = - RefDens*xyz_wz(wz_InvLapla2D_wz(wz_xyz(  &
+!!$     &   (xyz_wt(wt_Div) - xyz_Div)/DelTime &
+!!$     & - 0.5d0*vDiffCoef*xyz_wt(wt_DSig_wt(wt_DSig_wt(wt_Div)))/spread(xy_totDepthBasic,3,kMax+1)**2 &
+!!$     & )))
+!!$xy_SurfPress = xyz(:,:,1)
 
+!!$if(mod(int(CurrentTime),3600)==0)then
+!!$xyz_Div(:,:,0) = xy_IntSig_BtmToTop_xyz(xyz_wt(wt_Div))
+!!$!write(*,*) "After:", xyz_Div(0,16,0)
+!!$write(*,*) "SurfPress*:", - xy_w(w_Lapla2D_w(w_xy(xyz(:,:,1))))/RefDens
+!!$endif
+       
        end if
 
        wz_Psi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
@@ -293,26 +302,6 @@ real(DP) ::  dKdt_vdiff(0:iMax-1,jMax,0:kMax)
        xyz_Urf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
        xyz_Vrf = xyz_CosLat**2 * xyz_AlphaOptr_wz(wz_Psi,  wz_Chi)
 
-!!$if (Stage==nStage_BarocTimeInt) then
-!!$       dKdt_vdiff =  &
-!!$            &   0.5d0*(xyz_UN+xyz_Urf/xyz_CosLat)/xyz_CosLat*xyz_wt(wt_DSig_wt(wt_DSig_wt(wt_xyz(xyz_Urf)))) &
-!!$            & + 0.5d0*(xyz_VN+xyz_Vrf/xyz_CosLat)/xyz_CosLat*xyz_wt(wt_DSig_wt(wt_DSig_wt(wt_xyz(xyz_Vrf))))
-!!$       dKdt_vdiff = vDiffCoef*dKdt_vdiff/spread(xy_totDepthBasic**2,3,kMax+1)
-!!$
-!!$       write(*,*) 'old vDIff', AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt_vdiff))
-!!$
-!!$       dKdt_vdiff = dKdt_vdiff + dKdt
-!!$       dKdt = (0.5d0*(xyz_Urf**2 + xyz_Vrf**2)/xyz_CosLat**2 -0.5d0*(xyz_UN**2 + xyz_VN**2))/(DelTime)
-!!$       dKdt_vdiff(:,:,0) = dKdt(:,:,0)
-!!$!write(*,*) 'dkdt_vdiff', dKdt_vdiff(1,15,:)
-!!$!write(*,*) 'res     :', (dKdt(1,15,:) - dKdt_vdiff(1,15,:))/maxval(abs(dKdt(1,:,:)))
-!!$
-!!$
-!!$       write(*,*) "KE:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt))
-!!$       write(*,*) 'vDIff', AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt_vdiff))
-!!$       write(*,*) "res:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt))-AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(dKdt_vdiff))
-!!$end if
-!!$call check_continuity
     end do
 
 
@@ -323,19 +312,6 @@ real(DP) ::  dKdt_vdiff(0:iMax-1,jMax,0:kMax)
     xy_SurfHeightA = xy_SurfHeight
 
     contains
-
-subroutine check_continuity
-use DiagnoseUtil_mod
-real(DP) :: xyz_DwDz(0:iMax-1,jMax,0:kMax)
-if (Stage==nStage_BarocTimeInt) then
-   write(*,*) Stage, "----------------------------------------------"
-   xyz_Div=xyz_wt(wt_Div)
-   xyz_DwDz=xyz_wt(wt_DSig_wt(wt_xyz( Diagnose_SigDot( xy_totDepthBasic, xyz_Urf, xyz_Vrf, xyz_Div ))))
-   write(*,*) (xyz_Div(1,1:16,0) + xyz_DwDz(1,1:16,0))/maxval(xyz_Div)
-
-end if
-
-end subroutine check_continuity
 
       subroutine timeInt_Euler()
         wt_Vor = wt_timeIntEuler( wt_VorN, wt_wz(wz_VorRHS) )
@@ -410,6 +386,7 @@ end subroutine check_continuity
     real(DP) :: xyz_PressEdd(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xy_totDepth(0:iMax-1, jMax)    
     real(DP) :: xyz_PTemp(0:iMax-1, jMax, 0:kMax)
+    integer :: i, j
 
     ! 実行文; Executable statement
     !
@@ -418,7 +395,8 @@ end subroutine check_continuity
     xyz_SigDot  = Diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div )
     xyz_GeoPot  = Diagnose_GeoPot( xy_totDepth )
 
-    xyz_PTemp = xyz_PTempEdd + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
+    forAll(i=0:iMax-1,j=1:jMax) &
+         & xyz_PTemp(i,j,:) = xyz_PTempEdd(i,j,:) + z_PTempBasic(:)
 
     call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
          & theta=xyz_PTemp, S=xyz_Salt, p=-RefDens*xyz_GeoPot )     ! (in)
@@ -459,21 +437,24 @@ end subroutine check_continuity
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: Ah
     real(DP) :: wz_totPTempEdd(lMax,0:kMax)
+    real(DP) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
     integer :: k
 
     ! 実行文; Executable statement
     !
 
+    xyz_totDepth = spread(xy_totDepthBasic, 3, kMax+1)
+
     call calc_VorEqDivEqDiffRHS(wz_VorRHS, wz_DivRHS, &
-         & wz_Vor, wz_Div, hDiffCoef )
+         & wz_Vor, wz_Div, hViscCoef, 0.5d0*vViscCoef, hHyperViscCoef, vHyperViscCoef, &
+         & xyz_totDepth )
 
 !!$    do k=0,kMax
 !!$       wz_totPTempEdd(:,k) = w_xy( xy_w(wz_PTempEdd(:,k)) + z_PTempBasic(k) )
 !!$    end do
     call calc_TracerEqDiffRHS(wz_PTempRHS, &
-         & wz_PTempEdd, hDiffCoef)
+         & wz_PTempEdd, hDiffCoef, 0.5d0*vDiffCoef, xyz_totDepth )
 
   end subroutine calc_GovernEqDiffRHS
 

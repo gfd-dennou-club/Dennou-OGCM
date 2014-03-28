@@ -113,6 +113,7 @@ program ogcm_main
 
 
 contains
+
   !> @brief
   !!
   !!
@@ -124,13 +125,11 @@ contains
 
     use GridSet_mod, only: &
          & iMax, jMax, kMax, &
-         & nMax, tMax
+         & nMax, tMax, &
+         & GridSet_construct
 
     use SpmlUtil_mod, only: &
          SpmlUtil_Init
-
-    use GridSet_mod, only: &
-         & GridSet_construct
 
 #ifdef _OPENMP
     use omp_lib

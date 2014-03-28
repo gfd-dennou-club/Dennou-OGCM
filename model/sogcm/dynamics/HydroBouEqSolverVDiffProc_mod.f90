@@ -128,7 +128,7 @@ use at_module
     !
     !
 
-    xyz_Work = xyz_wt(wt_Vor)
+    xyz_Work(:,:,0:kMax) = xyz_wt(wt_Vor)
     if (DynBCSurf == DynBCTYPE_NoSlip) then
        BCKindUpper = 'N'
        xyz_Work(:,:,0) = xy_w( &
@@ -151,7 +151,7 @@ use at_module
     wt_Vor = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
 
     !
-    xyz_Work = xyz_wt(wt_Div)
+    xyz_Work(:,:,0:kMax) = xyz_wt(wt_Div)
     if (DynBCSurf == DynBCTYPE_NoSlip) then 
        xyz_Work(:,:,0) = xy_w( &
             & w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat) &
@@ -171,9 +171,13 @@ use at_module
          & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
     wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
 
+!!$    call construct_vDiffProcMat(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
+!!$         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+!!$    wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax))
+
     !
     call construct_vDiffProcMat(vDiffProcMatHeat, vDiffProcMatHeatKp, Av, dt, xy_totDepth, 'N', 'N')
-    xyz_Work = xyz_wt(wt_PTempEdd)
+    xyz_Work(:,:,0:kMax) = xyz_wt(wt_PTempEdd)
     xyz_Work(:,:,0) = 0d0 
     xyz_Work(:,:,kMax) = 0d0 
     wt_PTempEdd = solve(vDiffProcMatHeat, vDiffProcMatHeatKp, xyz_Work(:,:,0:kMax))
@@ -183,7 +187,7 @@ use at_module
   function Solve(vDiffProcMat, vDiffProcMatKp, xyz_RHS) result(wt_ret)
 
     use lumatrix, only: lusolve
-
+    use TemporalIntegSet_mod,only:CurrentTime
     real(DP), intent(in) :: vDiffProcMat(:,:,:)
     integer, intent(in) :: vDiffProcMatKp(:,:)
     real(DP), intent(in) :: xyz_RHS(:,:,:)
@@ -193,7 +197,11 @@ use at_module
          & lusolve( vDiffProcMat, vDiffProcMatKp, reshape(xyz_RHS, (/ size(xyz_RHS,1)*size(xyz_RHS,2),size(xyz_RHS,3) /)) ), &
          & shape(xyz_RHS) )
 
-    wt_ret = wa_xya( xyt_retTmp(:,:,0:kMax) )
+    wt_ret = wa_xya( xyt_retTmp(:,:,0:tMax) )
+
+!!$if(size(xyz_RHS,3)==kMax+2.and.mod(int(CurrentTime),3600)==0)then
+!!$   write(*,*) "surfPress:", xyt_retTmp(0,:,tMax+1)
+!!$endif
 
   end function Solve
 
@@ -255,9 +263,9 @@ use at_module
     do k=1,kMax-1
        !$omp parallel workshare
        forAll(t=0:tMax) &
-            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*Av/Depth**2 * dwork_tg_data(t,k)
+            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*0.5d0*Av/Depth**2 * dwork_tg_data(t,k)
        !$omp end parallel workshare
-       vDiffProcMat(:,k,tMax+1) = 1d0
+       vDiffProcMat(:,k,tMax+1) = - dt
     end do
 
     dwork_tg_data = ag_at( at_Dx_at(tt_I) )
@@ -285,6 +293,7 @@ use at_module
     forall(t=0:tMax) vDiffProcMat(:,kMax+1,t) = dot_product(g_X_WEIGHT, tg_data(t,:))
 
     call ludecomp(vDiffProcMat, vDiffProcMatKp)
+
   end subroutine construct_vDiffProcMat2
 
 
@@ -340,7 +349,7 @@ use at_module
     do k=1,kMax-1
        !$omp parallel workshare
        forAll(t=0:tMax) &
-            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*Av/Depth**2 * dwork_tg_data(t,k)
+            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*0.5d0*Av/Depth**2 * dwork_tg_data(t,k)
        !$omp end parallel workshare
     end do
 

@@ -32,10 +32,11 @@ module SpmlUtil_mod
        & g_Sig => g_X, g_Sig_WEIGHT => g_X_WEIGHT, &
        & at_az => at_ag, & 
        & az_at => ag_at, &
+       & IntSig_BtmToTop => Int_g, &
        & t_DSig_t => t_Dx_t, at_DSig_at => at_Dx_at, &
        & at_BoundariesGrid_NN, at_BoundariesGrid_DD, &
        & at_BoundariesGrid_ND, at_BoundariesGrid_DN
-
+  
 
   ! 宣言文; Declareration statements
   !
@@ -47,26 +48,31 @@ module SpmlUtil_mod
   !
   public :: SpmlUtil_Init, SpmlUtil_Final
   public :: isInitialzed
-  public :: w_xy, xy_w
-  public :: wt_DSig_wt, t_DSig_t
   public :: g_Sig
-  public :: xyz_wt, wt_xyz, xyz_wz, wz_xyz, wz_wt, wt_wz
  
-
+  ! Procedures for the discritization of horizontal differential or integrator with spherical harmonics spectral method
   public :: wz_AlphaOptr_xyz, w_AlphaOptr_xy, xyz_AlphaOptr_wz, xy_AlphaOptr_w
   public :: wz_Lapla2D_wz, wz_InvLapla2D_wz
-  public :: w_InvLapla2D_w
+  public :: w_Lapla2D_w, w_InvLapla2D_w
 
-  public :: xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz, w_IntSig_BtmToTop_wz
+  ! Procedures for the discritization of vertical differential or integrator with chebyshev spectral method
+  public :: xyt_DSig_xyt, wt_DSig_wt, t_DSig_t, xyt_DSigDSig_xyt, wt_DSigDSig_wt
+  public :: IntSig_BtmToTop, xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz, w_IntSig_BtmToTop_wz
 
+  ! Procedures for the data conversion between real and spectral space with the spectral methods.
+  public :: xyz_wt, wt_xyz, xyz_wz, wz_xyz, wz_wt, wt_wz, xyt_xyz, xyz_xyt
+
+  ! Procedures to statisfy the vertical boundary conditions.
   public :: apply_ZBoundaryCond
 
   ! Cascade
+  public :: w_xy, xy_w
   public :: xya_GradLon_wa, xya_GradLambda_wa, xya_GradLat_wa, xya_GradMu_wa
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: xy_Lon, xy_Lat, x_Lon, y_Lat
   public :: xya_wa, wa_xya 
   public :: AvrLonLat_xy, ya_AvrLon_xya
+  public :: a_Interpolate_wa, Interpolate_w
 
   ! 非公開手続き
   ! Private procedure
@@ -285,25 +291,21 @@ contains
 
     end function wt_wz
 
-  !--------------- 微分計算 -----------------
+    function xyt_xyz(xyz)
+      real(8), dimension(0:im-1,jm,0:km) :: xyz
+      real(8), dimension(0:im-1,jm,0:tm) :: xyt_xyz
 
-    function wt_DSig_wt(wt)
-      !
-      ! 入力スペクトルデータに動径微分 ∂/∂r を作用する.
-      !
-      ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
-      ! 作用させたデータのスペクトル変換のことである.
-      !
-      real(8), dimension(lm,0:tm), intent(in) :: wt
-      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
+      xyt_xyz = reshape( at_az(reshape(xyz, (/im*jm, km+1/))), shape(xyt_xyz) )
+    end function xyt_xyz
 
-      real(8), dimension(lm,0:tm)             :: wt_DSig_wt
-      !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
+    function xyz_xyt(xyt)
+      real(8), dimension(0:im-1,jm,0:tm) :: xyt
+      real(8), dimension(0:im-1,jm,0:km) :: xyz_xyt
 
-      wt_DSig_wt = at_DSig_at(wt)
+      xyz_xyt = reshape( az_at(reshape(xyt, (/im*jm, tm+1/))), shape(xyz_xyt) )
+    end function xyz_xyt
 
-    end function wt_DSig_wt
-
+  !--------------- 水平微分計算 -----------------
 
     function wt_DivLon_xyz(xyz)
       ! 
@@ -402,6 +404,26 @@ contains
 
     end function xy_AlphaOptr_w
 
+    function w_Lapla2D_w(w)
+      ! 入力スペクトルデータにラプラシアン
+      !
+      !     ▽^2 =   1/a^2 cos^2φ・∂^2/∂λ^2 
+      !            + 1/a^2 cosφ・∂/∂φ(cosφ∂/∂φ) 
+      !
+      ! を作用する.
+      !
+      ! スペクトルデータのラプラシアンとは, 対応する格子点データに
+      ! ラプラシアンを作用させたデータのスペクトル変換のことである. 
+      !
+      real(8), dimension(lm), intent(in) :: w
+      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
+
+      real(8), dimension(lm)             :: w_Lapla2D_w
+      !(out) ラプラシアンを作用された 2 次元スペクトルデータ
+
+      w_Lapla2D_w = w_Lapla_w(w)/Radius**2
+
+    end function w_Lapla2D_w
 
     function wz_Lapla2D_wz(wz)
       ! 入力スペクトルデータにラプラシアン
@@ -467,8 +489,82 @@ contains
 
     end function w_InvLapla2D_w
 
-    !--------------- 鉛直積分計算 -----------------
+    !--------------- 鉛直微分計算 -----------------
+ 
+    function wt_DSig_wt(wt)
+      !
+      ! 入力スペクトルデータに鉛直微分 d/dsig を作用する.
+      !
+      ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
+      ! 作用させたデータのスペクトル変換のことである.
+      !
+      real(8), dimension(lm,0:tm), intent(in) :: wt
+      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
 
+      real(8), dimension(lm,0:tm)             :: wt_DSig_wt
+      !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
+
+      wt_DSig_wt = at_DSig_at(wt)
+
+    end function wt_DSig_wt
+
+    function wt_DSigDSig_wt(wt)
+      !
+      ! 入力スペクトルデータに鉛直微分 d/dsig を作用する.
+      !
+      ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
+      ! 作用させたデータのスペクトル変換のことである.
+      !
+      real(8), dimension(lm,0:tm), intent(in) :: wt
+      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
+
+      real(8), dimension(lm,0:tm)             :: wt_DSigDSig_wt
+      !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
+
+      wt_DSigDSig_wt = at_DSig_at(at_DSig_at(wt))
+
+    end function wt_DSigDSig_wt
+
+    function xyt_DSig_xyt(xyt)
+      !
+      ! 入力スペクトルデータに鉛直微分 ∂/sig を作用する.
+      !
+      ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
+      ! 作用させたデータのスペクトル変換のことである.
+      !
+      real(8), dimension(0:im,jm,0:tm), intent(in) :: xyt
+      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
+
+      real(8), dimension(0:im-1,jm,0:tm)             :: xyt_DSig_xyt
+      !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
+
+      xyt_DSig_xyt = reshape( &
+           &         at_DSig_at(reshape(xyt, (/ im*jm, tm+1 /)) ), &
+           &         shape(xyt_DSig_xyt) )
+
+    end function xyt_DSig_xyt
+
+    function xyt_DSigDSig_xyt(xyt)
+      !
+      ! 入力スペクトルデータに鉛直微分 ∂/sig を作用する.
+      !
+      ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
+      ! 作用させたデータのスペクトル変換のことである.
+      !
+      real(8), dimension(0:im,jm,0:tm), intent(in) :: xyt
+      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
+
+      real(8), dimension(0:im-1,jm,0:tm)             :: xyt_DSigDSig_xyt
+      !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
+
+      xyt_DSigDSig_xyt = reshape( &
+           &         at_DSig_at(at_DSig_at( reshape(xyt, (/ im*jm, tm+1 /)) )), &
+           &         shape(xyt_DSigDSig_xyt) )
+
+    end function xyt_DSigDSig_xyt
+
+    !--------------- 鉛直積分計算 -----------------
+    
     function xy_IntSig_BtmToTop_xyz(xyz) result(xy_Int)
 
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz

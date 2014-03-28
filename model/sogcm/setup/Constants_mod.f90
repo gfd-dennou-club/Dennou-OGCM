@@ -51,6 +51,10 @@ module Constants_mod
                               ! 重力加速度. 
                               ! Gravitational acceleration
 
+  real(DP), public, save :: vHyperViscCoef
+  real(DP), public, save :: hHyperViscCoef
+  real(DP), public, save :: vViscCoef
+  real(DP), public, save :: hViscCoef  
   real(DP), public, save :: vDiffCoef
   real(DP), public, save :: hDiffCoef  
   real(DP), public, save :: RoughnessParamBottom
@@ -117,7 +121,9 @@ contains
     !
     namelist /constants_nml/ &
       & RefDens, RefTemp, ThermalExpanCoef, RefSoundSpeed, Cp0, &
-      & RPlanet, Omega, Grav, vDiffCoef, hDiffCoef, &
+      & RPlanet, Omega, Grav, &
+      & vViscCoef, hViscCoef, vDiffCoef, hDiffCoef, &
+      & hHyperViscCoef, vHyperViscCoef, &
       & RoughnessParamBottom
 
     ! 実行文; Executable statements
@@ -129,8 +135,13 @@ contains
     Omega            = 2.0_DP * PI / ( 60.0_DP * 60.0_DP * 23.9345_DP )
     Grav             = 9.8_DP
 
+    vViscCoef        = 0d0
+    hViscCoef        = 0d0
+    vHyperViscCoef   = 0d0
+    hHyperViscCoef   = 0d0
     vDiffCoef        = 0d0
     hDiffCoef        = 0d0
+    
 
     RefDens          = 1.027d03
     RefTemp          = 283d0
@@ -161,6 +172,10 @@ contains
     call MessageNotify( 'M', module_name, '  RPlanet          = %f', d = (/ RPlanet          /) )
     call MessageNotify( 'M', module_name, '  Omega            = %f', d = (/ Omega            /) )
     call MessageNotify( 'M', module_name, '  Grav             = %f', d = (/ Grav             /) )
+    call MessageNotify( 'M', module_name, '  vViscCoef        = %f', d = (/ vViscCoef        /) )
+    call MessageNotify( 'M', module_name, '  hViscCoef        = %f', d = (/ hViscCoef        /) )
+    call MessageNotify( 'M', module_name, '  vHyperViscCoef        = %f', d = (/ vHyperViscCoef        /) )
+    call MessageNotify( 'M', module_name, '  hHyperViscCoef        = %f', d = (/ hHyperViscCoef        /) )
     call MessageNotify( 'M', module_name, '  vDiffCoef        = %f', d = (/ vDiffCoef        /) )
     call MessageNotify( 'M', module_name, '  hDiffCoef        = %f', d = (/ hDiffCoef        /) )
     call MessageNotify( 'M', module_name, '  RoughnessParamBottom = %f', d = (/ RoughnessParamBottom  /) )

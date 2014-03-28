@@ -207,6 +207,8 @@ contains
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFPRESS, xy_SurfPress)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SIGDOT, xyz_SigDot)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_BAROCPRESS, xyz_PressBaroc)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLON, xy_WindStressU)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLAT, xy_WindStressV)
 
   end subroutine DataFileSet_OutputData
 
@@ -347,6 +349,13 @@ contains
 
     call HistoryAutoAddVariable( varname='Vor', &
          & dims=dims_XYZT, longname='vorcity', units='s-1')
+
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_WINDSTRESSLAT, &
+         & dims=dims_XYT, longname='wind stress(latitude)', units='kg.m-1.s-2')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_WINDSTRESSLON, &
+         & dims=dims_XYT, longname='wind stress(longitude)', units='kg.m-1.s-2')
    
   end subroutine regist_OutputAxisAndVar
 

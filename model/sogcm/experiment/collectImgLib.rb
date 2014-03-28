@@ -71,6 +71,33 @@ class NoAnimFig < Figure
   end 
 end
 
+class NoAnimOverplotFig < Figure
+  attr_accessor :ncFilePaths, :varNames
+  def initialize(figname, ncFilePaths, varNames, cutpos, intrv="", range="", gpOpts="")
+    super(figname, "", "", cutpos, intrv, range, gpOpts)
+    @ncFilePaths = ncFilePaths
+    @varNames = varNames
+    @figPicExt = "jpg"
+  end
+
+  def createFigure(dirPath)
+
+    ncFilePaths_ary = @ncFilePaths.split(",")
+    
+    targets = "--overplot #{ncFilePaths_ary.length} "
+    @varNames.split(",").each_with_index{|varName,i|
+      targets << " #{ncFilePaths_ary[i]}@#{varName}"
+      targets << ",#{@cutpos}" if @cutpos.length > 0
+    }
+
+    p "command: gpview #{targets} #{@gpviewOpt}"
+    `gpview #{targets} #{@gpviewOpt}`
+    p "convert.. ps => #{dirPath}#{@name}.#{figPicExt} (options #{@convertOpt})"    
+    `convert #{@convertOpt} dcl.ps #{dirPath}#{@name}.#{figPicExt}`
+    `rm dcl.ps`
+  end 
+end
+
 class Exp
   attr_accessor :name, :dirPath, :ncFilePrefix
 
@@ -81,15 +108,6 @@ class Exp
     @figList = []
   end
 
-  def add_NoAnimFig(ncFileSuffix, varName, cutPos, figIntrv, figRange, prefix="", suffix="", gpOpts="", figPicExt="" )
-
-
-
-    p "call type2 #{figName}, #{ncFilePath}"
-    fig = NoAnimFig.new(figName, ncFilePath, varName, cutPos, figIntrv, figRange, gpOpts)
-    fig.figPicExt = figPicExt if figPicExt.length != 0
-    @figList.push(fig)
-  end
 
   def add_NoAnimFig(varName, cutPos, figIntrv, figRange, prefix="", suffix="", gpOpts="", figPicExt="", ncFileSuffix="" )
 

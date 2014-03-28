@@ -38,7 +38,7 @@ module DiagVarEval_mod
   ! Public procedure
   !
   public :: DiagVarEval_Init, DiagVarEval_Final
-  public :: eval_Vor, eval_Div, eval_totPress, eval_DensEdd
+  public :: eval_Vor, eval_Div, eval_PressEdd, eval_DensEdd
 
   public :: eval_MassStreamFunc
   public :: eval_potentialEnergyAvg, eval_kineticEnergyAvg
@@ -157,13 +157,13 @@ contains
   !!
   !! @return 
   !!
-  function eval_totPress(xy_surfPress, xyz_barocPress) result(xyz_totPress)
+  function eval_PressEdd(xy_surfPress, xyz_barocPress) result(xyz_PressEdd)
     
     ! 宣言文; Declaration statement
     !
     real(DP), intent(in) :: xy_surfPress(0:iMax-1,jMax)
     real(DP), intent(in) :: xyz_barocPress(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_totPress(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_PressEdd(0:iMax-1,jMax,0:kMax)
 
     !
     !
@@ -174,9 +174,9 @@ contains
     !
 
     do k=0, kMax
-       xyz_totPress(:,:,k) = xy_surfPress(:,:) + xyz_barocPress(:,:,k)
+       xyz_PressEdd(:,:,k) = xy_surfPress(:,:) + xyz_barocPress(:,:,k)
     end do
-  end function eval_totPress
+  end function eval_PressEdd
 
   !> @brief 
   !!

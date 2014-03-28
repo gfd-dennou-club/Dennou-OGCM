@@ -1,32 +1,69 @@
-#+TITLE: 水惑星設定におけ風成循環の数値実験
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験
 #+AUTOHR: 河合 佑太
 #+LANGUAGE: ja
 #+OPTIONS: H:2
 #+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
 
 #+NAME: create_FigsTable
-#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge1.png,hoge2.png" :var dirPath="./"
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./data/"
     require 'pathname'
 
     str = "#+CAPTION: #{caption}.\n" << "|"
 
-    figPicPathStrs = figPicsPath.split(",")
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
     figPicPathStrs.each{|figPath|
       figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
-      str << "[[file:#{dirPath}#{figPath}][file:#{dirPath}#{figThumbPath}]] |"
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
     }
     str << "\n"
     return str
 #+END_SRC
 
+* 概要 
 
-* 概要
-  水惑星設定(陸・地形なし)の静止した海洋に対して, 東西一様な海面応力場を与え, 
-  どのような循環が駆動されるかをシミュレーションする. 
+  海洋の表層循環は, 海面に吹く偏西風や貿易風の応力によりエクマン層を介して駆動される. 
+  陸の存在する海洋における表層循環の基本的な力学は, 解析的な数理モデル(Stommel, Munk)や数値実験により理解されてきた. 
 
-  地球では偏西風や貿易風の海面応力によって, エクマン層を介して循環が駆動される. 
-  hogehoge
+  近年, 気候状態に対する大気と海洋の相互作用の仕組みを理解する目的で, 
+  大気・海洋大循環結合モデルを用いた水惑星実験が行われている\cite{smith2006global}\cite{marshall2007mean}. 
+  そこで示された陸のない海洋循環の特徴は岸の存在する場合の循環と大きく異なるため, 
+  両者の間で力学の違いが存在することが示唆されている. 
+  また, \cite{marshall2007mean} では, 同等の実験設定を行った水惑星実験にも関わらず, 
+  \cite{smith2006global} の計算により得られた平衡状態の気候が大きく異なる問題を挙げている. 
+  この理由については, \cite{marshall2007mean} は, 海洋モデルの(特に混合過程の)定式化に違いのために, 
+  計算される海洋循環や温度構造, そして海洋の熱輸送が異なるためだと主張している. 
+
+
+  水惑星設定における海洋循環もまた気候状態に重要な影響を与えることが予期されるが, 
+  一方で, その循環の基本的な力学は, 陸の存在する海洋循環と比較してまだ広く調べられていない.   
+  ここでは, 
+    - 実装したモデルの妥当性の検証
+    - 水惑星設定における海洋循環の基本構造(軸対称構造)の理解
+  を試みるために, 静止した海洋に対して東西一様な海面応力を与えたとき, 
+  どのような循環が駆動されるかを数値実験する. 
+
+
+* 陸の存在しない軸対称な風成循環の力学
+
+(Pedlosky 8.3 節を参考に, 内部領域の解の特徴を記述する予定)
+#  内部領域の南北流 $v_I$ は, 渦度方程式における最低次のバランス, 
+# 
+#  \[
+#  \] 
+
+#  によって決定される. 
+#  これは, スベル・ドラップバランスと呼ばれる. 
+
+#  一方, 内部領域の東西流 $u_I$ は, 連続の式から, 
+#
+#   \[
+#   \]
+
+#  となる. 
+#  しかし, 内部領域の東西流を完全に決定するためには, 東西の境界条件を考慮する必要がある. 
 
   
 * 実験設定
@@ -35,27 +72,43 @@
 
 *** 計算領域
 
-- 全球的に広がる水深 5.3 km の海洋. 
+- 全球的に広がる水深 $H= 5.3$ km の海洋. 
   海底地形や陸は存在しない.  
 
+*** 支配方程式系  
 
-*** 基本成層場
+- 静力学ブジネスク方程式
+- 海水の状態方程式
+  - 線形(Vallis, 2006)
+- 粘性, 拡散
+  - 水平方向の渦粘性, 渦拡散係数 $A_h,K_h$ の設定
+    - 大きさは, 次の各ケース設定を参照. 
+    - $A_h$ は $K_h$ と同じにとる.    
+  - 鉛直方向の渦粘性, 渦拡散係数 $A_v,K_v$ の設定
+    - 海面流速が \cite{marshall2007mean} と同程度になるように, $A_v=1.0 \times 10^{-2}$ [m^2 s^{-1}] にとる. 
+    - $K_v$ は $A_v$ と同じにとる. 
 
-  温位の気候値データの水平平均を与える. 
+*** 境界条件
 
-*** 散逸
-- 水平渦粘性係数
+- 海面応力
+  - \cite{marshall2007mean} における準平衡状態での地表風速から計算された, 
+    海面応力の東西平均場を与える.  
   
-  次の各ケース設定を参照.   
+  \[ 
+     \rho_0 A_v \dfrac{\partial u}{\partial z} = \tau_{zx}, \;\;\; 
+     \rho_0 A_v \dfrac{\partial v}{\partial z} = 0          \;\;\;\;\;\; {\rm at} \; z=0.         
+  \]
   
-- 鉛直渦粘性係数
+- 海面, 海底における熱的条件: 断熱
 
-  海面の流速が Marshall, et al. (2007) と同程度になるように, $A_v=1.0 \times 10^{-2}$ [m^2 s^{-1}] にとる. 
+  \[ 
+     \rho_0 K_v \dfrac{\partial \theta}{\partial z} = 0, \;\;\; 
+     \rho_0 K_v \dfrac{\partial \theta}{\partial z} = 0  \;\;\;\;\;\; {\rm at} \; z=0, -H.
+  \]
 
-*** 海水の状態方程式
+  ここで, $\theta$ は温位である. 
 
-- 線形(Vallis, 2006)
-
+- 海面における淡水フラックス: なし
 
 *** 初期条件  
 
@@ -63,42 +116,42 @@
 - 温位の摂動場: 摂動なし
 - 塩分は空間一様を仮定
 
-*** 境界条件
+*** 基本成層場
 
-- 海面応力
-
-  Marshall, et al. (2007) における準平衡状態での地表風速から計算された, 
-  海面応力の東西平均場を与える.  
-
-- 海面, 海底における熱的条件: 断熱
-- 海面における淡水フラックス: なし
+- 温位の気候値データの水平平均を与える. 
 
 
-  #+CAPTION: 海面応力および温位の基本場の分布. 
+  #+CAPTION: 海面応力(\tau_zx) および温位の基本場の分布. 
   | [[./data/common/windStressLon.jpg][file:./data/common/windStressLon_thumb.png]]    | [[./data/common/z_PTempBasic.jpg][file:./data/common/z_PTempBasic_thumb.png]]    |
 
 
 ** 各ケース設定
 
-   #+CAPTION: Ah:水平渦粘性係数[m^2 s^{-1}]. 
-  | 実験名              | 解像度　 | Ah              |
-  |---------------------+----------+-----------------|
-  | Ah800L20 (標準実験) | T21L20   | 8.0 \times 10^2 |
-  | Ah800L60            | T21L60   | 8.0 \times 10^2 |
-  | Ah400L20            | T21L20   | 4.0 \times 10^2 |
-  | Ah1600L20           | T21L20   | 1.6 \times 10^3 |
+   #+CAPTION: Kh:水平渦拡散係数[m^2 s^{-1}]. 
+  | 実験名                 | 解像度　 | Kh              |
+  |------------------------+----------+-----------------|
+  | Kh800T42L20 (標準実験) | T42L20   | 8.0 \times 10^2 |
+  | Kh800T21L20            | T21L20   | 8.0 \times 10^2 |
+  | Kh800T42L60            | T42L60   | 8.0 \times 10^2 |
+  | Kh400T42L20            | T42L20   | 4.0 \times 10^2 |
+  | Kh1600T42L20           | T42L20   | 1.6 \times 10^3 |
    
 
-- ケース Ah800L20 は, 鉛直解像度および水平渦粘性係数の依存性を調べるための標準実験である. 
-  - 水平渦粘性係数 $A_h=800$ [m^2 s^{-1}] の値は, Marshall, et al(2007) で使われている
-    中規模渦パラメタリゼーション(Gent and McWilliams, 1990)の輸送係数を参考に決定[fn:AbouthEddCoef]. 
+- ケース Kh800T42L20 は, 鉛直解像度および水平渦拡散係数の依存性を調べるための標準実験である. 
+  - 水平渦拡散係数 $K_h=800$ [m^2 s^{-1}] の値は, \cite{marshall2003residual}, \cite{marshall2007mean} において使われた
+    等密度面混合\cite{gent1990isopycnal}の輸送係数を用いる[fn:AbouthEddCoef]. 
+- 水平解像度の依存性: Kh800T42L20 と Kh800T21L20 の計算結果を比較
+- 鉛直解像度の依存性: Kh800T42L20 と Kh800T42L60 の計算結果を比較
+- 水平渦粘性係数の依存性: Kh400T42L20, Kh800T42L20, Kh1600T42L20  間の計算結果を比較
 
-[fn:AbouthEddCoef] Marshall, et al. の計算の水平解像度の方が 1.5 倍ほど高いため, ここではより大きな Ah をとるべきかもしれない. しかし, GM スキームとここでの粗野な水平拡散の取り扱いには差があり, 自明に拡散係数の値を設定するのは難しいと思われたので, 
-同じ値にした. 
+[fn:AbouthEddCoef] \cite{marshall2007mean} と本計算の混合過程の表現方法は厳密には異なるため, 
+拡散係数の値を簡単には決定できないが, ここでは安直に同じ値をとることにした. 
+
+*** 各ケースの設定ファイル
+
+- [[file:data/exp_Kh800T42L20/config.nml][Kh800T42L20(標準実験)]], [[file:data/exp_Kh800T21L20/config.nml][Kh800T21L20]],  [[file:data/exp_Kh800T42L60/config.nml][Kh800T42L60]], [[file:data/exp_Kh400T42L20/config.nml][Kh400T42L20]], [[file:data/exp_Kh1600T42L20/config.nml][Kh1600T42L20]]
 
 
-- 鉛直解像度の依存性は, Ah800L20 と Ah800L60 の計算結果の比較によって調べる. 
-- 水平渦粘性係数の依存性は, Ah400L20, Ah800L20, Ah1600L20  間の計算結果の比較によって調べる. 
 
 * 計算結果
 　
@@ -106,83 +159,149 @@
 
 *** 東西流速, 子午面循環
 
- #+CALL: create_FigsTable("左から順に, 東西流速の海面分布の時間発展([m]), t=25yr における東西流速([m]), 質量流線関数([m^2/s])の子午面分布, 運動エネルギーの全球平均の時間発展[m^2/(s*kg)]", "xy_U_SeaSurf.jpg,yz_U_mplane.jpg,yz_MassStreamFunc_mplane.jpg,t_EnergyBudget.jpg","./data/exp_Ah800L20/") :results value raw :exports results
+ #+CALL: create_FigsTable("左から順に, 東西流速の海面分布の時間発展([m]), t=300yr における東西流速([m]), 質量流線関数([m^2/s])の子午面分布, 運動エネルギーの全球平均の時間発展[m^2/(s*kg)]", "{xy_U_SeaSurf,yz_U_mplane,yz_MassStreamFunc_mplane,t_EnergyBudget}.jpg","./data/exp_Kh800T42L20/") :results value raw :exports results
 
 - 東西流
-  - 海面応力と同じ方向の流れ. 中緯度:西向き, 低緯度: 東向き. 
-  - 東西流速の大きさの順圧的な成分は海面応力によって決定される.  
-  - 東西流速の傾圧的な成分は, 南北方向の温度勾配を反映している(温度風平衡). 
+  - その向きや大きさは, 海面応力により決定される. 
+    - 中緯度:西向き, 低緯度: 東向き. 
+  - 南北の圧力勾配と地衡流バランスしている. 
+    - 温位が空間的にほぼ一様となるため, 順圧的な分布をとる.  
 
 - 子午面循環
-  - 境界近傍のエクマン層によって, 低緯度, 中緯度に 2 つの循環セルが生じる. 
-    - 南北流
+  - 極-緯度30度, 緯度30度-緯度8度, 緯度8度-緯度5度, 緯度5度-赤道に 4 つの循環セルが生じる. 
+  - 南北流
+    - 内部域では東西流速に比べて非常に小さく, 境界近傍においてエクマン流として存在.
       - 海面近く:　低緯度では極向き, 中高緯度では赤道向き
       - 海底近く:　海面近くの南北流と同程度の大きさで, 向きが逆. 
-    - 鉛直流: 赤道帯/高緯度域で上昇, 中緯度域で下降する.  
-  - 内部域では南北流は東西流速と比べ非常に小さい.
-　- 鉛直方向に対してギブス振動が見受けられる. 鉛直解像度依存性を参照. 
+  - 鉛直流
+    - 上昇域: 赤道, 低緯度域(緯度8度-緯度12度), 高緯度域(緯度50度-極)で上昇. 
+      - 特に, 赤道上昇流は他の上昇流よりも 3 倍ほど強い. 
+    - 下降域: 赤道近傍(緯度5度-緯度8度), 低・中緯度域(緯度12度-緯度50度)で下降. 
+  - 鉛直方向に対してギブス振動が見受けられる. 鉛直解像度依存性を参照. 
 
 - 運動エネルギー 
-  - この時間積分の時間スケール(25 年間)では, 系は定常に達さない. 
+  - 約 5000 日で極大に達した後, 緩やかに減少し定常状態に向かう. 
+    - 本実験の積分時間(300 年間)のスケールで, 系はほぼ定常に達する. 
+    
+*** 温位
 
-*** 温位(偏差)
+ #+CALL: create_FigsTable(" t=30,100,300yr における温位[K]の子午面分布, 海面での温位[K]の時間発展", "{yz_PTemp_mplane_{30,100,300}yr,tz_PTemp_SeaSurf}.jpg", "./data/exp_Kh800T42L20/") :results value raw :exports results
 
- #+CALL: create_FigsTable(" t=25yr における温位偏差([K])の子午面分布", "yz_PTempEdd_mplane.jpg", "./data/exp_Ah800L20/") :results value raw :exports results
-
-- 鉛直流の南北分布を反映し, 温度偏差は赤道帯の上昇域では負, 中緯度の下降域では正である. 
+ - 初期の時間発展(約 30 yr まで)
+   - 鉛直拡散により, 初期の基本場の温位の鉛直勾配はすみやかに減少する. 
+   - 一方, 子午面循環による移流により, 低・高緯度域では相対的に低い下層の温位が上昇, 中緯度の下降域では相対的に高い上層の温位が下降する.  
+   - 約 100 yr ほどで, 鉛直方向に温位がほぼ一定となる. 
+ - 運動エネルギーの極大後の時間発展(約 100 yr 後)
+   - 残った水平温位勾配は, 子午面循環による移流や水平拡散により, ゆくっりと減少し, 領域全体で温位が一様となる.   
 
 *** 圧力
 
-hogehoge
+ #+CALL: create_FigsTable(" t=300yr における圧力偏差(力学的圧力)[Pa]の子午面分布", "yz_PressEdd_mplane.jpg", "./data/exp_Kh800T42L20/") :results value raw :exports results
 
-** 鉛直解像度の依存性(ケース Ah800L20, Ah800L60 の結果の比較)
+
+
+** 鉛直解像度の依存性(ケース Kh800T42L20(標準実験), Kh800T42L60 の比較)
 
 *** ケース間での数値解の変化について
 
 - 海面東西流の比較 
 
- #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Ah800L20, Ah800L60), 運動エネルギー[m^2/(s^2*kg)] の全球平均値の時間発展(破線:Ah800L20, 実線:Ah800L60)の比較. ", "exp_Ah800L20/xy_U_SeaSurf.png,exp_Ah800L60/xy_U_SeaSurf.png,LCompare/KEAvg_LCompari.png", "./data/") :results value raw :exports results
+ #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Kh800T42L20, Kh800T42L60), 運動エネルギー[m^2/(s^2*kg)] の全球平均値の時間発展(破線:Kh800T42L20, 実線:Kh800T42L60)の比較. ", "{exp_Kh800T42L{20,60}/xy_U_SeaSurf,LCompare/KEAvg_LCompari}.jpg", "./data/") :results value raw :exports results
+
+  - Kh800T42L20 の運動エネルギーは, Kh800T42L80 よりも約二倍大きい.   
+
 
 - 質量流線関数の比較
 
- #+CALL: create_FigsTable(" t=25 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Ah800L20, Ah800L60)の比較. ", "exp_Ah800L20/yz_MassStreamFunc_mplane.png,exp_Ah800L60/yz_MassStreamFunc_mplane.png", "./data/") :results value raw :exports results
+ #+CALL: create_FigsTable(" t=300 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Kh800T42L20, Kh800T42L60)の比較. ", "exp_Kh800T42L{20,60}/yz_MassStreamFunc_mplane.jpg", "./data/") :results value raw :exports results
 
-- 温度偏差の比較
-
- #+CALL: create_FigsTable(" t=25yr における温位偏差[K]の子午面分布の比較.", "exp_Ah800L20/yz_PTempEdd_mplane.jpg,exp_Ah800L60/yz_PTempEdd_mplane.jpg", "./data/") :results value raw :exports results
-
-*** ギブス振動について
-- hogehoge
+  - Kh800T42L20 で見られる鉛直方向に対するギブス振動は, 上下端の境界層を解像できる Kh800T42L60 の場合では発生しない. 
 
 
-** 水平渦粘性係数の依存性(ケース Ah400L20, Ah800L20, Ah1600L20 間の比較)
+- 温位の比較
+
+ #+CALL: create_FigsTable(" t=300yr における温位[K]の子午面分布の比較.", "exp_Kh800T42L{20,60}/yz_PTemp_mplane.jpg", "./data/") :results value raw :exports results
+
+ #+CALL: create_FigsTable(" 海面における温位[K]の時間発展の比較.", "exp_Kh800T42L{20,60}/tz_PTemp_SeaSurf.jpg", "./data/") :results value raw :exports results
+
+  - Kh800T42L20 と Kh800T42L60 の間で大きな違いは見られない. 
+
+** 水平渦拡散・粘性係数の依存性(ケース Kh400T42L20, Kh800T42L20(標準実験), Kh1600T42L20 の比較)
 
 *** ケース間での数値解の変化について
 
 - 海面東西流の比較
 
- #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Ah400L20, Ah800L20, Ah1600L20)の比較", "exp_Ah400L20/xy_U_SeaSurf.jpg,exp_Ah800L20/xy_U_SeaSurf.jpg,exp_Ah1600L20/xy_U_SeaSurf.jpg", "./data/") :results value raw :exports results
+ #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Kh400T42L20, Kh800T42L20, Kh1600T42L20)の比較", "exp_Kh{400,800,1600}T42L20/xy_U_SeaSurf.jpg", "./data/") :results value raw :exports results
 
+  - 水平渦拡散・粘性係数が大きいほど, 赤道の西向きの海面東西流が極大を迎える時期が早く, 極大の値は小さい.
+  - 最終状態における海面東西流の違いはほとんどない. 
 
 - 質量流線関数の比較
 
- #+CALL: create_FigsTable(" t=25 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Ah400L20, Ah800L20, Ah1600L20)の比較", "exp_Ah400L20/yz_MassStreamFunc_mplane.png,exp_Ah800L20/yz_MassStreamFunc_mplane.png,exp_Ah1600L20/yz_MassStreamFunc_mplane.png", "./data/") :results value raw :exports results
+ #+CALL: create_FigsTable(" t=300 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Kh400T42L20, Kh800T42L20, Kh1600T42L20)の比較", "exp_Kh{400,800,1600}T42L20/yz_MassStreamFunc_mplane.jpg", "./data/") :results value raw :exports results
 
-- 温度偏差の比較
+  - 水平渦拡散・粘性係数による違いは, ほとんど見られない. 
 
- #+CALL: create_FigsTable(" t=25yr における温位偏差[K]の子午面分布(左から順に Ah400L20, Ah800L20, Ah1600L20)の比較", "exp_Ah400L20/yz_PTempEdd_mplane.jpg,exp_Ah800L20/yz_PTempEdd_mplane.jpg,exp_Ah1600L20/yz_PTempEdd_mplane.jpg", "./data/") :results value raw :exports results
+
+- 温位の比較
+
+ #+CALL: create_FigsTable(" t=300 yr における温位[K]の子午面分布(左から順に Kh400T42L20, Kh800T42L20, Kh1600T42L20)の比較", "exp_Kh{400,800,1600}T42L20/yz_PTemp_mplane.jpg", "./data/") :results value raw :exports results
+
+ #+CALL: create_FigsTable(" 海面における温位[K]の時間発展(左から順に Kh400T42L20, Kh800T42L20, Kh1600T42L20)の比較.", "exp_Kh{400,800,1600}T42L20/tz_PTemp_SeaSurf.jpg", "./data/") :results value raw :exports results
+
+  - 水平渦拡散係数が大きいほど, 30 yr 付近の水平温位勾配の大きさが小さく, その後の温位の水平方向の一様化も早い. 
+
 
 *** 運動エネルギーの収支解析
 
 - 運動エネルギーの全球平均値の比較
 
- #+CALL: create_FigsTable(" 運動エネルギーの全球平均値(実線:Ah400L20, 破線:Ah800L20, 点線:Ah1600L20)の比較", "KEAvg_AhCompari.png", "./data/AhCompare/") :results value raw :exports results
+ #+CALL: create_FigsTable(" 運動エネルギーの全球平均値(破線:Kh400T42L20, 実線:Kh800T42L20, 点線:Kh1600T42L20)の比較", "KEAvg_KhCompari.jpg", "./data/KhCompare/") :results value raw :exports results
+
+  - 運動エネルギーのピークを迎える時期は, 水平渦拡散係数が大きいほど早い. 
+  - 運動エネルギーのピーク時の値は, 水平渦拡散係数が大きいほど 1.5 割程度小さくなるが, 最終状態では大きく変わらない. 
+
 
 - 運動エネルギーの収支解析とその比較
 
- #+CALL: create_FigsTable(" 運動エネルギーの全球平均値の収支解析(左から順に Ah400L20, Ah800L20, Ah1600L20)の比較. 各図における線は, 上から順に運動エネルギーの注入率, 移流項の仕事, 正味の変化率, 水平拡散による散逸, ポテンシャルエネルギーへの変換, 鉛直拡散による散逸を表す", "exp_Ah400L20/KEBudget.png,exp_Ah800L20/KEBudget.png,exp_Ah1600L20/KEBudget.png", "./data/") :results value raw :exports results
+ #+CALL: create_FigsTable(" 運動エネルギーの全球平均値の収支解析(左から順に Kh400T42L20, Kh800T42L20, Kh1600T42L20)の比較. 各図において, 破線:運動エネルギーの注入率, 実線:正味の変化率, 二点跳び破線:水平渦粘性による散逸, 跳び破線:移流項の仕事, 一点破線:ポテンシャルエネルギーへの変換, 点線:鉛直渦粘性による散逸を表す", "exp_Kh{400,800,1600}T42L20/KEBudget.jpg", "./data/") :results value raw :exports results
+
+  - 約 5000 日で, 海面における運動エネルギーの注入と鉛直渦粘性による散逸がおよそバランスし, 運動エネルギーの成長が止まる. 
+  - 水平渦拡散・粘性係数が大きいほど, 初期のポテンシャルエネルギーへの変化率は小さい.  
+  - 水平粘性散逸の寄与は, 運動エネルギーの収支にあまり影響を与えない(ようだ)  
 
 * 考察
-- hogehoge
+
+** 各過程がもつ特徴的な時間スケール
+
+- 子午面循環による移流, 水平渦拡散, 鉛直渦拡散を特徴付ける時間スケールは次のように与えられる. 
+
+  - 移流の時間スケール
+
+    H~5 [km], w~2 \times 10^{-6} [m/s] とすれば, T_{advect} ~ 2.5 \times 10^4 [days] ~ 70 [yr]
+
+  - 水平拡散の時間スケール
+
+    L~5000 [km], K_h=1\times 800 [m^2 /s] とすれば, T_{hdiff} ~ 3.0 \times 10^5 [days] ~ 820 [yr]
+
+  - 鉛直拡散の時間スケール
+
+    H~5 [km], K_v=1\times 10^{-2} [m^2 /s] とすれば, T_{vdiff} ~ 2.5 \times 10^4 [days] ~ 70 [yr]
+  
+- T_{advet}~T_{vdiff} << T_{hdiff} の関係にあり, 移流や鉛直拡散の効果が水平拡散より先に現れることが分かる.  
+- 運動エネルギーの時間発展におけるピークや温位の水平勾配の極大を迎える時期(約 30 yr後)は, T_{advect}, T_{vdiff} の時間スケールに対応?
+
+** 内部領域の東西流の速度スケール
+
+- 運動エネルギーの収支解析により, 定常状態では海面応力によるエネルギー注入と鉛直渦粘性による散逸がバランスすることが分かる. 
+- 定常状態における運動エネルギーのバランスから, 東西流速を見積もることができる.  
+  - 内部領域では流れはほぼ順圧なので, エネルギー散逸は下側エクマン層(深さ D_e)で起きとし, 
+    鉛直速度シアの長さスケールを D_e = 20 [m] でとる. 
+  - U*\tau_{surface} = \rho_0 * A_v (U/D_e)^2 * D_ e より,  U = D_e * \tau_{surface} / (\rho_0*A_v).  
+  - 緯度50度の \tau_{surface} (=0.12 [kg*m^-1*s^^1]), \rho_0=10^3 [kg/m^3] とすれば, U=0.24 [m/s] となる.
+    - 標準実験の内部領域の東西流速と整合的. 
 
 * 参考文献
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist plain limit:t

@@ -426,7 +426,7 @@ contains
          & xyz_SigDot, z_PTempBasic, xy_totDepthBasic
 
     use DiagVarSet_mod, only: &
-         & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_TotPress, &
+         & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_PressEdd, &
          & xyz_DensEdd!, xy_totDepth
 
     ! ¿Î∏¿ ∏; Declaration statement
@@ -489,7 +489,7 @@ contains
 
     forAll(k=0:kMax) xyz_PTemp(:,:,k) = z_PTempBasic(k) + xyz_PTempEddN(:,:,k)
 
-    xyz_totPress = eval_totPress(xy_SurfPress, xyz_BarocPress)
+    xyz_PressEdd = eval_PressEdd(xy_SurfPress, xyz_BarocPress)
     xyz_DensEdd = eval_DensEdd(xyz_PTemp, xyz_SaltN, xy_totDepth )
 
     do varID=1, size(diagVarsName)
@@ -500,11 +500,14 @@ contains
           case(DVARKEY_VOR)
              xyz_Vor = eval_Vor(xyz_UN, xyz_VN)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_Vor, var3D=xyz_Vor)
-          case (DVARKEY_TOTPRESS)
-             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_TOTPRESS, var3D=xyz_totPress )
+          case (DVARKEY_PRESSEDD)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PRESSEDD, var3D=xyz_PressEdd )
           case (DVARKEY_MASSSTREAMFUNC)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_MASSSTREAMFUNC, &
                   & var2D=eval_MassStreamFunc(xyz_VN) )
+          case (DVARKEY_PTEMP)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PTEMP, &
+                  & var3D=xyz_PTemp )                
        end select
     end do
 
