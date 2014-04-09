@@ -236,7 +236,7 @@ contains
     ! 宣言文; Declaration statement
     !    
     character(*), intent(in) :: configNml
-    character(*), intent(out) :: ogcmConfigNml
+    character(STRING), intent(out) :: ogcmConfigNml
 
     ! 局所変数
     ! Local variables

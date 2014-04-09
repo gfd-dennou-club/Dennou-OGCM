@@ -16,18 +16,24 @@ module SpmlUtil_mod
        & MessageNotify
 
 #ifdef DSOGCM_MODE_AXISYM
+
+#ifdef DSOGCM_USE_SJPACK
+  use wa_zonal_module_sjpack
+#else
   use wa_zonal_module
+#endif
+
+#else
+
+#ifdef DSOGCM_USE_SJPACK
+  use wa_module_sjpack
 #else
   use wa_module
 #endif
 
-!!$  use wa_module_sjpack
+#endif
 
-!!$  use wa_module, only: &
-!!$       & wz_DivLambda_xyz => wa_DivLambda_xya, &
-!!$       & wz_DivMu_xyz => wa_DivMu_xya
-
-  use at_module, only: &
+  use at_module_omp, only: &
        & at_Initial, &
        & g_Sig => g_X, g_Sig_WEIGHT => g_X_WEIGHT, &
        & at_az => at_ag, & 
@@ -36,7 +42,12 @@ module SpmlUtil_mod
        & t_DSig_t => t_Dx_t, at_DSig_at => at_Dx_at, &
        & at_BoundariesGrid_NN, at_BoundariesGrid_DD, &
        & at_BoundariesGrid_ND, at_BoundariesGrid_DN
-  
+
+#ifdef _OPENMP
+  use omp_lib
+#endif  
+
+
 
   ! 宣言文; Declareration statements
   !
@@ -69,6 +80,7 @@ module SpmlUtil_mod
   public :: w_xy, xy_w
   public :: xya_GradLon_wa, xya_GradLambda_wa, xya_GradLat_wa, xya_GradMu_wa
   public :: w_DivLambda_xy, w_DivMu_xy
+  public :: l_nm
   public :: xy_Lon, xy_Lat, x_Lon, y_Lat
   public :: xya_wa, wa_xya 
   public :: AvrLonLat_xy, ya_AvrLon_xya
@@ -95,15 +107,17 @@ module SpmlUtil_mod
   integer :: tm      !< Maximum truncated wave number in vertical spectral method
   integer :: lm      !< 
 
-  real(DP), allocatable :: vIntCoefMat(:,:)
+  real(DP), allocatable :: tr_vIntCoefMat(:,:)
   real(DP), allocatable :: vDiffProcInvMat(:,:)
 
   logical :: initalizedFlag = .false.
 
   integer :: nThread
-  integer, allocatable :: lwMin(:), lwMax(:)
+  integer, allocatable :: llMin(:), llMax(:)
+  integer, allocatable :: ljMin(:), ljMax(:)
   integer, allocatable :: lkMin(:), lkMax(:)
   integer, allocatable :: ltMin(:), ltMax(:)
+  integer, allocatable :: lxyMin(:), lxyMax(:)
   
 contains
 
@@ -146,15 +160,22 @@ contains
     Radius = RPlanet
 
     !
-    call construct_vIntCoefMat()
+    call construct_tr_vIntCoefMat()
     
     !
-!!$    call assign_IDRange(0, kMax+1, lkMin, lkMax)
-!!$    call assign_IDRange(0, tMax+1, ltMin, ltMax)
-!!$    call assign_IDRange(1, (nm+1)**2, lwMin, lwMax)
+    call assign_IDRange(0, kMax+1, lkMin, lkMax)
+    call assign_IDRange(0, tMax+1, ltMin, ltMax)
+    call assign_IDRange(1, lm, llMin, llMax)
+    call assign_IDRange(1, jMax, ljMin, ljMax)
+    call assign_IDRange(1, iMax*jMax, lxyMin, lxyMax)
+
+!!$    write(*,*) 'ljMin', ljMin
+!!$    write(*,*) 'ljMax', ljMax
 !!$
-!!$    write(*,*) 'lwMin', lwMin
-!!$    write(*,*) 'lwMax', lwMax
+!!$    write(*,*) 'llMin', llMin(:)
+!!$    write(*,*) 'llMax', llMax(:)
+!!$    write(*,*) 'lxyMin', lxyMin
+!!$    write(*,*) 'lxyMax', lxyMax
 
     !
 
@@ -170,11 +191,11 @@ contains
         integer :: chunkSize
 
         allocate(lIdMin(nThread), lIdMax(nThread))
-        chunkSize = (dimSize+1)/nThread
+        chunkSize = dimSize/nThread
         lIdMin(1) = dimFirstId; lIdMax(1) = chunkSize
         do tId=2,nThread
            lIdMin(tId) = lIdMax(tId-1) + 1
-           lIdMax(tId) = lIdMin(tId) + chunkSize + 1
+           lIdMax(tId) = lIdMin(tId) + chunkSize - 1
         end do
         lIdMax(nThread) = dimFirstId + dimSize - 1        
       end subroutine assign_IDRange
@@ -189,7 +210,7 @@ contains
     ! 実行文; Executable statements
     !
 
-    deallocate(vIntCoefMat)
+    deallocate(tr_vIntCoefMat)
 
   end subroutine SpmlUtil_Final
 
@@ -270,12 +291,19 @@ contains
       real(8), dimension(lm,0:km)             :: wz_wt
       !(out) 2 次元球面調和函数スペクトル・動径格子点データ
 
-!!$      integer :: n
-!!$      !$omp parallel do
-!!$      do n=1, nThread
-!!$         wz_wt(lwMin(n):lwMax(n),:) = az_at(wt(lwMin(n):lwMax(n),:))
-!!$      end do
+      integer :: thId
+
+!!$      !$omp parallel private(thId)
+!!$#ifdef _OPENMP
+!!$      thId = omp_get_thread_num() + 1
+!!$#else
+!!$      thId = 1
+!!$#endif
+!!$      wz_wt(llMin(thId):llMax(thId),:) = az_at(wt(llMin(thId):llMax(thId),:))
+!!$      !$omp end parallel 
+!!$
       wz_wt = az_at(wt)
+
     end function wz_wt
 
     function wt_wz(wz)
@@ -287,6 +315,17 @@ contains
       real(8), dimension(lm,0:tm)             :: wt_wz
       !(out) 2 次元球面調和函数チェビシェフスペクトルデータ
 
+      integer :: thId
+
+!!$      !$omp parallel private(thId)
+!!$#ifdef _OPENMP
+!!$      thId = omp_get_thread_num() + 1
+!!$#else
+!!$      thId = 1
+!!$#endif
+!!$      wt_wz(llMin(thId):llMax(thId),:) = at_az(wz(llMin(thId):llMax(thId),:))
+!!$      !$omp end parallel 
+
       wt_wz = at_az(wz)
 
     end function wt_wz
@@ -295,14 +334,39 @@ contains
       real(8), dimension(0:im-1,jm,0:km) :: xyz
       real(8), dimension(0:im-1,jm,0:tm) :: xyt_xyz
 
-      xyt_xyz = reshape( at_az(reshape(xyz, (/im*jm, km+1/))), shape(xyt_xyz) )
+      integer :: n
+      real(DP) :: at_Work(im*jm, km+1)
+      
+      at_Work = reshape(xyz, (/im*jm, km+1/))
+!!$      
+!!$      !$omp parallel do
+!!$      do n=1, nThread
+!!$         at_Work(lxyMin(n):lxyMax(n),:) = at_az(at_Work(lxyMin(n):lxyMax(n),:))
+!!$      end do
+!!$
+      at_Work = at_az(at_Work)
+      xyt_xyz = reshape(at_Work, shape(xyt_xyz))
+
+      
     end function xyt_xyz
 
     function xyz_xyt(xyt)
       real(8), dimension(0:im-1,jm,0:tm) :: xyt
       real(8), dimension(0:im-1,jm,0:km) :: xyz_xyt
 
-      xyz_xyt = reshape( az_at(reshape(xyt, (/im*jm, tm+1/))), shape(xyz_xyt) )
+      integer :: n
+      real(DP) :: az_Work(im*jm, km+1)
+      
+      az_Work = reshape(xyt, (/im*jm, km+1/))
+      
+!!$      !$omp parallel do
+!!$      do n=1, nThread
+!!$         az_Work(lxyMin(n):lxyMax(n),:) = az_at(az_Work(lxyMin(n):lxyMax(n),:))
+!!$      end do
+
+      az_Work = az_at(az_Work)
+      xyz_xyt = reshape(az_Work, shape(xyz_xyt))
+
     end function xyz_xyt
 
   !--------------- 水平微分計算 -----------------
@@ -380,10 +444,10 @@ contains
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
 
-      real(DP) :: xyz_CosLat(0:im-1,jm,0:km)
+      real(DP) :: xyz_Cos2Lat(0:im-1,jm,0:km)
       
-      xyz_CosLat = cos(spread(xy_Lat,3,km+1))
-      xyz_AlphaOptr_wz = ( xya_GradLambda_wa(wz_A) + xya_GradMu_wa(wz_B) )/ (Radius*xyz_CosLat**2)
+      xyz_Cos2Lat = spread(cos(xy_Lat)**2,3,km+1)
+      xyz_AlphaOptr_wz = ( xya_GradLambda_wa(wz_A) + xya_GradMu_wa(wz_B) )/ (Radius*xyz_Cos2Lat)
 
     end function xyz_AlphaOptr_wz
 
@@ -504,8 +568,15 @@ contains
       real(8), dimension(lm,0:tm)             :: wt_DSig_wt
       !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
 
-      wt_DSig_wt = at_DSig_at(wt)
+      integer :: n
 
+!!$      !$omp parallel do
+!!$      do n=1, nThread
+!!$         wt_DSig_wt(llMin(n):llMax(n),:) = at_DSig_at(wt(llMin(n):llMax(n),:))
+!!$      end do
+
+
+      wt_DSig_wt = at_DSig_at(wt)
     end function wt_DSig_wt
 
     function wt_DSigDSig_wt(wt)
@@ -521,8 +592,14 @@ contains
       real(8), dimension(lm,0:tm)             :: wt_DSigDSig_wt
       !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
 
-      wt_DSigDSig_wt = at_DSig_at(at_DSig_at(wt))
+      integer :: n
 
+!!$      !$omp parallel do
+!!$      do n=1, nThread
+!!$         wt_DSigDSig_wt(llMin(n):llMax(n),:) = at_DSig_at(at_DSig_at(wt(llMin(n):llMax(n),:)))
+!!$      end do
+
+      wt_DSigDSig_wt = at_DSig_at(at_DSig_at(wt))
     end function wt_DSigDSig_wt
 
     function xyt_DSig_xyt(xyt)
@@ -537,6 +614,18 @@ contains
 
       real(8), dimension(0:im-1,jm,0:tm)             :: xyt_DSig_xyt
       !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
+
+      integer :: n
+      real(DP) :: at_Work(im*jm, tm+1)
+
+!!$      at_Work = reshape(xyt, (/ im*jm, tm+1 /))
+!!$
+!!$      !$omp parallel do
+!!$      do n=1, nThread
+!!$         at_Work(lxyMin(n):lxyMax(n),:) = at_DSig_at(at_Work(lxyMin(n):lxyMax(n),:))
+!!$      end do
+!!$
+!!$      xyt_DSig_xyt = reshape(at_Work, shape(xyt_DSig_xyt))
 
       xyt_DSig_xyt = reshape( &
            &         at_DSig_at(reshape(xyt, (/ im*jm, tm+1 /)) ), &
@@ -557,6 +646,20 @@ contains
       real(8), dimension(0:im-1,jm,0:tm)             :: xyt_DSigDSig_xyt
       !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
 
+
+      integer :: n
+      real(DP) :: at_Work(im*jm, tm+1)
+
+!!$      at_Work = reshape(xyt, (/ im*jm, tm+1 /))
+!!$
+!!$      !$omp parallel do
+!!$      do n=1, nThread
+!!$         at_Work(lxyMin(n):lxyMax(n),:) = at_DSig_at(at_DSig_at(at_Work(lxyMin(n):lxyMax(n),:)))
+!!$      end do
+!!$
+!!$      xyt_DSigDSig_xyt = reshape(at_Work, shape(xyt_DSigDSig_xyt))
+
+
       xyt_DSigDSig_xyt = reshape( &
            &         at_DSig_at(at_DSig_at( reshape(xyt, (/ im*jm, tm+1 /)) )), &
            &         shape(xyt_DSigDSig_xyt) )
@@ -570,13 +673,15 @@ contains
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
       real(8), dimension(0:im-1,1:jm) :: xy_Int
 
-      integer :: k 
+      integer :: i,j,k 
 
-      xy_Int = 0d0
-      !$omp parallel do reduction(+: xy_Int)
-      do k=0, km
-         xy_Int = xy_Int + xyz(:,:,k)*g_Sig_WEIGHT(k)
+      !$omp parallel do private(i)
+      do j=1, jm
+         do i=0, im-1
+            xy_Int(i,j) = sum(xyz(i,j,:)*g_Sig_WEIGHT(:))
+         end do
       end do
+      !$omp end parallel do
 
     end function xy_IntSig_BtmToTop_xyz
 
@@ -585,13 +690,13 @@ contains
       real(8), dimension(lm,0:km), intent(in)   :: wz
       real(8), dimension(lm) :: w_Int
 
-      integer :: k 
+      integer :: l
 
-      w_Int = 0d0
-      !$omp parallel do reduction(+: w_Int) 
-      do k=0, km
-         w_Int = w_Int + wz(:,k)*g_Sig_WEIGHT(k)
+      !$omp parallel do
+      do l=1, lm
+         w_Int(l) = sum(wz(l,:)*g_Sig_WEIGHT(:))
       end do
+      !$omp end parallel do
 
     end function w_IntSig_BtmToTop_wz
 
@@ -600,16 +705,24 @@ contains
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
       real(8), dimension(0:im-1,1:jm,0:km) :: xyz_Int
       
-      integer :: k, k2
-      !real(DP) :: xy_sumTmp(0:im-1,1:jm)
+      integer :: i, tr, ljm
 
-      xyz_Int = 0d0
-      !$omp parallel do private(k2)
-      do k=0,km
-         do k2=0,km
-            xyz_Int(:,:,k) = xyz_Int(:,:,k) + vIntCoefMat(k,k2)*xyz(:,:,k2)
-         end do
+      !$omp parallel private(tr,i, ljm)
+      tr = omp_get_thread_num() + 1
+      ljm = ljMax(tr)-ljMin(tr)+1
+
+      do i=0, im-1
+         xyz_Int(i,ljMin(tr):ljMax(tr),:) = matmul(xyz(i,ljMin(tr):ljMax(tr),:),tr_vIntCoefMat)
       end do
+      !$omp end parallel
+
+!!$      xyz_Int = 0d0
+!!$      !$omp parallel do private(k2)
+!!$      do k=0,km
+!!$         do k2=0,km
+!!$            xyz_Int(:,:,k) = xyz_Int(:,:,k) + tr_vIntCoefMat(k,k2)*xyz(:,:,k2)
+!!$         end do
+!!$      end do
 
     end function xyz_IntSig_SigToTop_xyz
 
@@ -666,7 +779,7 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
-    subroutine construct_vIntCoefMat()
+    subroutine construct_tr_vIntCoefMat()
 
       real(DP) :: tt_data(0:tm,0:tm)
       real(DP) :: TMat(0:tm,0:km)
@@ -674,7 +787,7 @@ contains
       real(DP) :: Sigk, theta, tl
       integer :: k, t, k2
 
-      allocate(vIntCoefMat(0:km,0:km))
+      allocate(tr_vIntCoefMat(0:km,0:km))
 
       tt_data = 0d0
       do t=0, tm
@@ -699,9 +812,9 @@ contains
 
      TIntMat = 0.5d0*(SigMax - SigMin) * TIntMat 
 
-     vIntCoefMat = matmul(TIntMat, TMat)
+     tr_vIntCoefMat = transpose( matmul(TIntMat, TMat) )
 
-    end subroutine construct_vIntCoefMat
+    end subroutine construct_tr_vIntCoefMat
 
 end module SpmlUtil_mod
 

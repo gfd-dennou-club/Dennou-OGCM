@@ -81,7 +81,6 @@ contains
     use VariableSet_mod
 
     use SpmlUtil_mod
-    use w_module, only : l_nm
 
     ! 宣言文; Declaration statement
     !

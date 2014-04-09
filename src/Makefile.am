@@ -1,10 +1,12 @@
 SUBDIRS = math mesh data fvm mesh2 io
 
-AM_FCFLAGS = $(SYSFFLAGS) \
+AM_FCFLAGS = \
 	$(MODPATHFLAG)$(srcdir)/ \
 	$(MODPATHFLAG)$(srcdir)/../math \
 	$(MODPATHFLAG)$(srcdir)/../mesh \
-	$(MODPATHFLAG)$(srcdir)/../data 
+	$(MODPATHFLAG)$(srcdir)/../data \
+	$(SYSFFLAGS)
+
 
 #AM_CXXFLAGS = $(SYSCXXFLAGS) \
 #	-I $(srcdir)/data/ \

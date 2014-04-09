@@ -161,6 +161,11 @@ module at_module_omp
   !
   use dc_message
   use lumatrix
+
+#ifdef _OPENMP
+  use omp_lib
+#endif
+
   implicit none
   private
   public g_X, g_X_Weight                      ! 座標変数
@@ -553,11 +558,13 @@ module at_module_omp
   ! 各格子点における積分のための重みが格納してある
 
   save :: im, km, xl, it, t, g_X, g_X_Weight
+  
+  integer :: nThread
 
 contains
 
 ! ---- 初期化 ----
-  subroutine at_Initial(i,k,xmin,xmax)
+  subroutine at_Initial(i,k,xmin,xmax, threadNum)
     !
     ! チェビシェフ変換の格子点数, 波数, 領域の大きさを設定する.
     !
@@ -567,9 +574,10 @@ contains
     integer,intent(in) :: i              !(in) 格子点数
     integer,intent(in) :: k              !(in) 切断波数
     real(8),intent(in) :: xmin, xmax     !(in) 座標の範囲
+    integer, optional, intent(in) :: threadNum
 
     integer :: ii,kk
-
+    
     im=i ; km=k
     xl = xmax-xmin
 
@@ -609,12 +617,30 @@ contains
     g_X_Weight(0)  = g_X_Weight(0) / 2
     g_X_Weight(im) = g_X_Weight(im) / 2
 
+#ifdef _OPENMP
+    !$omp parallel
+    !$omp single
+    nThread = omp_get_num_threads()
+    !$omp end single
+    !$omp end parallel
+
+    if(present(threadNum)) then
+       nThread = threadNum
+    end if
+    call MessageNotify('M', 'at_initial', "Number of thread is set %d.", i=(/nThread/))
+#else
+    nThread = 1
+#endif
+
+
     call MessageNotify('M','at_initial','at_module (2009/07/31) is initialized')
 
   end subroutine at_Initial
 
 ! ---- 逆変換 ----
   function ag_at(at_data)
+
+    use omp_lib
     !
     ! チェビシェフデータから格子データへ変換する(2 次元配列用).
     !
@@ -628,6 +654,9 @@ contains
     ! 作業用配列
     integer :: m
 
+    integer :: tr, lc_m, lbnd, ubnd
+    real(8), allocatable :: lc_ag_at(:,:,:)    
+
     m = size(at_data,1)
     if ( size(at_data,2)-1 < km ) then
        call MessageNotify('E','ag_at', &
@@ -637,9 +666,28 @@ contains
             'The Chebyshev dimension of input data too large.')
     endif
 
+#ifdef _OPENMP
+    allocate(lc_ag_at(1:ceiling(m/real(nThread)),0:im, 1:nThread))
+
+    !$omp parallel private(lc_m, lbnd, ubnd, y, tr)
+    tr = omp_get_thread_num() + 1
+    lbnd = (tr-1)*ceiling(m/real(nThread)) + 1
+    ubnd = min(tr*ceiling(m/real(nThread)), m)
+    lc_m = ubnd - lbnd + 1
+    lc_ag_at(:,:,tr) = 0d0
+    lc_ag_at(1:lc_m,0:km,tr) = at_data(lbnd:ubnd,:)
+
+    call fttctb(lc_m,im,lc_ag_at(1:lc_m,:,tr),y(1:lc_m*im),it,t)
+
+    ag_at(lbnd:ubnd,0:im) = lc_ag_at(1:lc_m, 0:im, tr)
+    !$omp end parallel
+
+#else
     ag_at = 0.0D0
-    ag_at(:,0:km)=at_data
+    ag_at(:,0:km) = at_data
     call fttctb(m,im,ag_at,y,it,t)
+#endif
+    
 
   end function ag_at
 
@@ -680,6 +728,9 @@ contains
     real(8), dimension(size(ag_data,1),0:im) :: ag_work
     integer :: m
 
+    integer :: tr, lc_m, lbnd, ubnd
+    real(8), allocatable :: lc_at_ag(:,:,:)    
+
     m = size(ag_data,1)
     if ( size(ag_data,2)-1 < im ) then
        call MessageNotify('E','at_ag', &
@@ -688,10 +739,34 @@ contains
        call MessageNotify('W','at_ag', &
             'The Grid points of input data too large.')
     endif
-    ag_work = ag_data
 
+
+#ifdef _OPENMP
+    allocate(lc_at_ag(1:ceiling(m/real(nThread)),0:im, 1:nThread))
+
+    !$omp parallel private(lc_m, lbnd, ubnd, y, tr)
+    tr = omp_get_thread_num() + 1
+    lbnd = (tr-1)*ceiling(m/real(nThread)) + 1
+    ubnd = min(tr*ceiling(m/real(nThread)), m)
+    lc_m = ubnd - lbnd + 1
+    lc_at_ag(1:lc_m,0:im,tr) = ag_data(lbnd:ubnd,:)
+
+    call fttctf(lc_m,im,lc_at_ag(1:lc_m,:,tr),y(1:lc_m*im),it,t)
+
+    at_ag(lbnd:ubnd,:) = lc_at_ag(1:lc_m, 0:km, tr)
+    !$omp end parallel
+
+#else
+    ag_work = ag_data
     call fttctf(m,im,ag_work,y,it,t)
     at_ag = ag_work(:,0:km)
+#endif
+
+
+!!$    ag_work = ag_data
+!!$
+!!$    call fttctf(m,im,ag_work,y,it,t)
+!!$    at_ag = ag_work(:,0:km)
 
   end function at_ag
 
@@ -715,6 +790,7 @@ contains
   end function t_g
 
 ! ---- 微分計算 ----
+
   function at_Dx_at(at_data)
     !
     ! 入力チェビシェフデータに X 微分を作用する(2 次元配列用).
@@ -732,6 +808,9 @@ contains
     integer :: m, k
     integer :: nm, kmax
 
+    integer :: tr, lc_m, lbnd, ubnd
+    real(8), allocatable :: lc_at_Dx_at(:,:,:)    
+
     nm=size(at_data,1)
     kmax=size(at_data,2)-1
     if ( kmax  < km ) then
@@ -742,34 +821,61 @@ contains
             'The Chebyshev dimension of input data too large.')
     endif
 
-    if ( kmax == im ) then
-!       !$omp parallel do
-       do m=1,nm
-          at_Dx_at(m,kmax)   = 0.
-          at_Dx_at(m,kmax-1) = 2 * km * at_data(m,kmax) /2
-       enddo
-    else
-       do m=1,nm
-          at_Dx_at(m,kmax)   = 0.
-          at_Dx_at(m,kmax-1) = 2 * km * at_data(m,kmax)
-          ! スタートはグリッド対応最大波数未満. Factor 1/2 不要
-       enddo
-    endif
 
-    do k=kmax-2,0,-1
-  !     !$omp parallel do
-       do m=1,nm
-          at_Dx_at(m,k) = at_Dx_at(m,k+2) + 2*(k+1)*at_data(m,k+1)
-       enddo
-    enddo
+#ifdef _OPENMP
+    allocate( lc_at_Dx_at(1:ceiling(nm/real(nThread)),0:kmax, nThread) )
 
- !   !$omp parallel do private(m)
-    do k=0,kmax
-       do m=1,nm
-          at_Dx_at(m,k) = 2/xl * at_Dx_at(m,k)
-       enddo
-    enddo
+    !$omp parallel private(lc_m, lbnd, ubnd, tr)
+    tr = omp_get_thread_num() + 1
+    lbnd = (tr-1)*ceiling(nm/real(nThread)) + 1
+    ubnd = min(tr*ceiling(nm/real(nThread)), nm)
+    lc_m = ubnd - lbnd + 1
+    lc_at_Dx_at(1:lc_m,0:kmax,tr) = at_data(lbnd:ubnd,:)
+    at_Dx_at(lbnd:ubnd,:) = at_Dx_at_core(lc_at_Dx_at(1:lc_m,0:kmax,tr))
+    !$omp end parallel
 
+#else
+    at_Dx_at = at_Dx_at_core(at_data)
+#endif
+    
+
+  contains
+    function at_Dx_at_core(at_data) result(at_Dx_at)
+      !
+      ! 入力チェビシェフデータに X 微分を作用する(2 次元配列用).
+      !
+      ! チェビシェフデータの X 微分とは, 対応する格子点データに X 微分を
+      ! 作用させたデータのチェビシェフ変換のことである.
+      !
+      !
+      real(8), dimension(:,0:), intent(in)                    :: at_data
+      !(in) 入力チェビシェフデータ
+      
+      real(8), dimension(size(at_data,1),0:size(at_data,2)-1) :: at_Dx_at
+      !(out) チェビシェフデータの X 微分
+
+      integer :: m, k
+      integer :: nm, kmax
+
+      nm=size(at_data,1)
+      kmax=size(at_data,2)-1
+
+      if ( kmax == im ) then
+         at_Dx_at(:,kmax)   = 0.
+         at_Dx_at(:,kmax-1) = 2 * km * at_data(:,kmax) /2
+      else
+         at_Dx_at(:,kmax)   = 0.
+         at_Dx_at(:,kmax-1) = 2 * km * at_data(:,kmax)
+         ! スタートはグリッド対応最大波数未満. Factor 1/2 不要
+      endif
+
+      do k=kmax-2,0,-1
+         at_Dx_at(:,k) = at_Dx_at(:,k+2) + 2*(k+1)*at_data(:,k+1)
+      enddo
+
+      at_Dx_at = 2d0/xl * at_Dx_at
+
+  end function at_Dx_at_core
   end function at_Dx_at
 
   function t_Dx_t(t_data)
@@ -1244,8 +1350,6 @@ contains
       endif
 
       a_Int_ag = 0.0d0
-
- !     !$omp parallel do reduction(+:a_Int_ag)
       do i=0,im
          a_Int_ag(:) = a_Int_ag(:) + ag(:,i)*g_X_Weight(i)
       enddo

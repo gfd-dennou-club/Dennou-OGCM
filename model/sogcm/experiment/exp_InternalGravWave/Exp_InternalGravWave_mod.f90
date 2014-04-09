@@ -82,14 +82,6 @@ contains
 
     use SpmlUtil_mod
 
-
-#ifdef DSOGCM_MODE_AXISYM
-  use wa_zonal_module, only: l_nm
-#else
-  use wa_module, only: l_nm
-#endif
-
-
     use Constants_mod, only: &
          & Grav, ThermalExpanCoef, PI, RPlanet, RefTemp
 

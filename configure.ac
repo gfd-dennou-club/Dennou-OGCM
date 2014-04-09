@@ -182,6 +182,24 @@ AXISYM)
 esac
 
 #
+# * --enable-sjpack
+#
+DC_ARG_ENABLE([sjpack], 
+				[use sjpack for spectral method [disable]], 
+				[ac_cv_sjpack], [ac_cv_mpi=default])
+
+case $ac_cv_sjpack in
+yes)
+        SYSFFLAGS="${SYSFFLAGS} -DDSOGCM_USE_SJPACK"
+	;;
+no)
+	;;
+*)
+	;;
+esac
+
+
+#
 # * --enable-mpi
 #
 DC_ARG_ENABLE([mpi], 
@@ -216,13 +234,9 @@ esac
 #
 # * set flags
 #
-if test -n "$ac_cv_lib_netcdff"; then
-   SYSLDFLAGS="-L$netcdff_libdir $SYSLDFLAGS"
-   SYSLDLIBS="-l$netcdff_libname $SYSLDLIBS"
-fi
-SYSLDFLAGS="-L$spml_libdir -L$ispack_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdf_libdir"
-SYSLDLIBS="-l$spml_libname -l$ispack_libname -l$gtool5_libname $SYSLDLIBS -l$netcdf_libname -llapack"
-SYSFFLAGS="$SYSFFLAGS $ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir $ax_cv_fortran_modflag$spml_moddir"
+SYSLDFLAGS="-L$spml_libdir -L$ispack_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdff_libdir -L$netcdf_libdir -L/usr/lib/"
+SYSLDLIBS="-l$spml_libname -l$ispack_libname -l$gtool5_libname $SYSLDLIBS -l$netcdff_libname -l$netcdf_libname -llapack -lblas"
+SYSFFLAGS="$ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir $ax_cv_fortran_modflag$spml_moddir $SYSFFLAGS"
 
 AC_SUBST(SYSLDLIBS)
 AC_SUBST(SYSLDFLAGS)

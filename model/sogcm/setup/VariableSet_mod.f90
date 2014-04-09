@@ -183,15 +183,28 @@ contains
     !
 
     !$omp parallel
-    !$omp workshare
 
-    xyz_UB = xyz_UN; xyz_UN = xyz_UA; xyz_UA = 0d0
-    xyz_VB = xyz_VN; xyz_VN = xyz_VA; xyz_VA = 0d0
-    xyz_PTempEddB = xyz_PTempEddN; xyz_PTempEddN = xyz_PTempEddA; xyz_PTempEddA = 0d0
-    xyz_SaltB = xyz_SaltN; xyz_SaltN = xyz_SaltA; xyz_SaltA = 0d0
-    xy_SurfHeightB = xy_SurfHeightN; xy_SurfHeightN = xy_SurfHeightA; xy_SurfHeightA = 0d0
-
+    !$omp workshare    
+    xyz_UB = xyz_UN; xyz_VB = xyz_VN; xyz_PTempEddB = xyz_PTempEddN; 
+    xyz_SaltB = xyz_SaltN; xy_SurfHeightB = xy_SurfHeightN
     !$omp end workshare
+
+    !$omp workshare
+    xyz_UN = xyz_UA; xyz_VN = xyz_VA; xyz_PTempEddN = xyz_PTempEddA; 
+    xyz_SaltN = xyz_SaltA; xy_SurfHeightN = xy_SurfHeightA    
+    !$omp end workshare
+
+    !$omp workshare
+    xyz_UA = 0d0; xyz_VA = 0d0; xyz_PTempEddA = 0d0
+    xyz_SaltA = 0d0; xy_SurfHeightA = 0d0
+    !$omp end workshare
+
+!!$    xyz_UB = xyz_UN; xyz_UN = xyz_UA; xyz_UA = 0d0
+!!$    xyz_VB = xyz_VN; xyz_VN = xyz_VA; xyz_VA = 0d0
+!!$    xyz_PTempEddB = xyz_PTempEddN; xyz_PTempEddN = xyz_PTempEddA; xyz_PTempEddA = 0d0
+!!$    xyz_SaltB = xyz_SaltN; xyz_SaltN = xyz_SaltA; xyz_SaltA = 0d0
+!!$    xy_SurfHeightB = xy_SurfHeightN; xy_SurfHeightN = xy_SurfHeightA; xy_SurfHeightA = 0d0
+
     !$omp end parallel
 
   end subroutine VariableSet_AdvanceTStep

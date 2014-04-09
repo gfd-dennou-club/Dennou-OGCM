@@ -5,7 +5,6 @@
 !! 
 !! @author Kawai Yuta
 !!
-!!
 module HydroBouEqSolverVDiffProc_mod 
 
   ! モジュール引用; Use statements
@@ -91,7 +90,7 @@ contains
     !
     !
     use Constants_mod, only: refDens
-use at_module
+use at_module_omp
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: wt_Vor(lMax,0:tMax)
@@ -148,7 +147,7 @@ use at_module
 
     call construct_vDiffProcMat(vDiffProcMatVor, vDiffProcMatVorKp, &   !(inout)
          & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
-    wt_Vor = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
+    wt_Vor(:,:) = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
 
     !
     xyz_Work(:,:,0:kMax) = xyz_wt(wt_Div)
@@ -168,8 +167,8 @@ use at_module
     xyz_Work(:,:,kMax+1) = 0d0
 
     call construct_vDiffProcMat2(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
-         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
-    wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
+         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )              !(in)
+    wt_Div(:,:) = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
 
 !!$    call construct_vDiffProcMat(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
 !!$         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
@@ -180,21 +179,29 @@ use at_module
     xyz_Work(:,:,0:kMax) = xyz_wt(wt_PTempEdd)
     xyz_Work(:,:,0) = 0d0 
     xyz_Work(:,:,kMax) = 0d0 
-    wt_PTempEdd = solve(vDiffProcMatHeat, vDiffProcMatHeatKp, xyz_Work(:,:,0:kMax))
+    wt_PTempEdd(:,:) = solve(vDiffProcMatHeat, vDiffProcMatHeatKp, xyz_Work(:,:,0:kMax))
 
   end subroutine Advance_VDiffProc
 
   function Solve(vDiffProcMat, vDiffProcMatKp, xyz_RHS) result(wt_ret)
 
     use lumatrix, only: lusolve
-    use TemporalIntegSet_mod,only:CurrentTime
+    use omp_lib
+
     real(DP), intent(in) :: vDiffProcMat(:,:,:)
     integer, intent(in) :: vDiffProcMatKp(:,:)
     real(DP), intent(in) :: xyz_RHS(:,:,:)
     real(DP) :: xyt_retTmp(0:iMax-1,jMax,0:size(vDiffProcMat,3)-1), wt_ret(lMax,0:tMax)
 
-    xyt_retTmp = reshape( &
-         & lusolve( vDiffProcMat, vDiffProcMatKp, reshape(xyz_RHS, (/ size(xyz_RHS,1)*size(xyz_RHS,2),size(xyz_RHS,3) /)) ), &
+    real(DP) :: az_RHS(size(xyz_RHS,1)*size(xyz_RHS,2),size(xyz_RHS,3))
+
+
+    !$omp parallel workshare
+    az_RHS = reshape(xyz_RHS, shape(az_RHS))
+    !$omp end parallel workshare
+
+    xyt_retTmp(:,:,:) = reshape( &
+         & lusolve( vDiffProcMat, vDiffProcMatKp,  az_RHS ), &
          & shape(xyz_RHS) )
 
     wt_ret = wa_xya( xyt_retTmp(:,:,0:tMax) )
@@ -217,7 +224,7 @@ use at_module
     !
     !
     use lumatrix
-    use at_module
+    use at_module_omp
     use omp_lib
 
     ! 宣言文; Declaration statement
@@ -307,7 +314,7 @@ use at_module
     !
     !
     use lumatrix
-    use at_module!_omp
+    use at_module_omp!_omp
 
     ! 宣言文; Declaration statement
     !

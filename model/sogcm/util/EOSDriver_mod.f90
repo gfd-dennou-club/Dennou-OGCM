@@ -154,9 +154,17 @@ contains
 
     select case(EOSType)
     case(EOSTYPE_LINEAR)
+
+       !$omp parallel workshare
        rhoEdd = EOS_Linear_Eval(theta, S, p)
+       !$omp end parallel workshare
+
     case(EOSTYPE_JM95)
+
+       !$omp parallel workshare
        rhoEdd = EOS_JM95_Eval(theta, S, p) - RefDens
+       !$omp end parallel workshare
+
     end select
 
   end subroutine EOSDriver_Eval_array3d

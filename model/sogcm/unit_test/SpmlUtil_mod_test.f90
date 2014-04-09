@@ -8,6 +8,10 @@ program SpmlUtil_mod_test
   use dc_test
   use dc_string
 
+#ifdef _OPENMP
+  use omp_lib
+#endif
+
   implicit none
 
 #ifdef DSOGCM_MODE_AXISYM
@@ -30,12 +34,24 @@ program SpmlUtil_mod_test
   real(DP), parameter :: ncontField_st_ErrLims(5) = (/ 1d-12, 1d-5, 1d-4, 1d-3, 1d-3 /)
 
   real(DP) :: lyrLen
+  integer :: nThread
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   call Constants_Init(configNmlFile)
   call GridSet_Init(configNmlFile)
-  call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet)
+
+#ifdef _OPENMP
+  !$omp parallel
+  !$omp single
+  nThread = omp_get_num_threads()
+  !$omp end single
+  !$omp end parallel 
+#else
+  nThread = 1
+#endif
+
+  call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet, nThread)
   call GridSet_construct()
 
   call MessageNotify("M", "SpmlUtil_mod_test", "= WaveFunc")

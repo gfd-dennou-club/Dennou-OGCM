@@ -254,9 +254,9 @@ contains
     case (TS_FWEuler) 
        alpha = 1d0; beta = 0d0;
     case (TS_BWEuler) 
-       alpha = 0d0; beta = 1d0;
+       alpha = 0d0; beta = 2d0;
     case (TS_CRANK_NICO)
-       alpha = 0.5d0; beta = 0.5d0;
+       alpha = 0.5d0; beta = 1d0;
     end select
 
 
