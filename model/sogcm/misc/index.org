@@ -37,6 +37,8 @@
   - [[./../experiment/exp_BarotRossbyWave/Exp_BarotRossbyWave_mod.html][順圧ロスビー波の伝播テスト]]
   - [[./../experiment/exp_InternalGravWave/Exp_InternalGravWave_mod.html][内部重力波の伝播テスト]]
   - [[./../experiment/exp_WindDrivenCirculation/Exp_WindDrivenCirculation.html][水惑星設定における風成循環の数値実験]]
+     - [[./../experiment/exp_WindDrivenCirculation/note/dynamics_description.pdf][力学定式化ノート]]
+     - [[./../experiment/exp_WindDrivenCirculation/note/EqBL_formulation.pdf][赤道境界層定式化ノート(暫定)]]
 
 ** その他
 
@@ -44,6 +46,7 @@
 
 * 水惑星実験 関連論文
   - 読書ノート
-    - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)] ([[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][レビュー発表資料]])
+    - [[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][Smith, et al.(2006)]] ([[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][発表資料]])
+    - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)]] ([[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][発表資料]])
 
 * 関連論文リスト

@@ -1,0 +1,156 @@
+\newpage
+\subsubsection*{付録: 非無限遠における境界条件を課して解析解を求める場合}
+
+右辺の応力の回転を, 
+\begin{equation}
+   - \DP{\tau_x(y)}{y} = a_0 + a_1 y + a_2 y^2 + a_3 y^3
+\end{equation}
+%%
+と三次関数で与えるとすれば, 
+\eqref{eq:interior_PV_steady}の一般解は, 
+%%
+\begin{equation}
+\begin{split}
+    \psi(y) =& \; C_1 \sinh \Big( {\rm Re}^{1/2} y \Big) + C_2 \cosh \Big( -{\rm Re}^{1/2} y \Big) 
+               + C_3 + C_4 x \\
+             & - \big(\dfrac{a_0}{2} + a_2/{\rm Re}\big)y^2 - \big( \dfrac{a_1}{6} + a_3/{\rm Re} \big) y^3
+               - \dfrac{a_2}{12}y^4 - \dfrac{a_3}{20} y^5
+\end{split}
+\label{eq:interior_PV_steady_generalSol}
+\end{equation}
+と得られる. 
+今, 未知定数$C_1, C_2, C_3, C4$を決定するために, 
+\eqref{eq:interior_PV_steady}に対して, 
+%%
+\begin{equation}
+\begin{split}
+   \psi &= 0, \;\;\;\; {\rm at} \;\; y = 0, \\
+   \DP{\psi}{y} &= 0, \;\;\;\; {\rm at} \;\; y = y_0,  \\
+   \DP[2]{\psi}{y} &= 0, \;\;\;\; {\rm at} \;\; y = \pm 1
+\end{split}
+\label{eq:BC_interior_streamFunc_nodim}
+\end{equation}
+%%
+なる条件を課す.  
+一番目の条件は, $y=0$において流れ関数がゼロとなることを要請するが,  
+この条件に物理的な意味はない. 
+二番目の条件は, $y=y_0\;(|y_0| < 1)$において$u_0$がゼロとなることを要求する. 
+最後の条件は, $y=\pm 1$において$u_0$の南北シアがゼロとなることを要求する. 
+したがって, 未知定数は以下のように決まる. 
+%%
+\begin{equation}
+\begin{split}
+  &C_1 = - \dfrac{q_{yy}(1) - q_{yy}(-1)}{2r^2 \sinh(r)}, \;\;\;
+   C_2 = - C_3 = - \dfrac{q_{yy}(1) + q_{yy}(-1)}{2r^2 \cosh(r)}, \\
+  &C_4 = - q_y(y_0) - r\cosh(ry_0)C_1 - r\sinh(ry_0)C_2. 
+\end{split}
+\end{equation}
+%%
+ただし, $q(y)$は\eqref{eq:interior_PV_steady_generalSol}の非斉次解の部分を表す関数である. 
+
+任意の$y_0$に対して, \eqref{eq:BC_interior_streamFunc_nodim} を満たす\eqref{eq:interior_PV_steady}の特殊解の陽な形式は, 
+複雑であるのでここでは明記しない. 
+しかし, $y_0=0$の特別な場合にはその対称性により, 特殊解は比較的簡単な形式をもつ. 
+よって, $y_0=0$の場合の\eqref{eq:interior_PV_steady}の特殊解およびそれと関係した変数の解を以下に示す. 
+初めに流線関数は, 
+%%
+\begin{equation}
+\begin{split}
+ \psi (y) = &- \Big(\dfrac{a_0}{2} + a_2/{\rm Re} \Big) y^2 - \Big(\dfrac{a_1}{6} + a_3/{\rm Re}\Big)y^3 - \dfrac{a_2}{12}y^4 - \dfrac{a_3}{20}y^5 \\
+    &+  \dfrac{a_0 + a_2(1 + 2/{\rm Re})}{{\rm Re} \; \cosh (\sqrt{\rm Re})} \cosh (\sqrt{\rm Re} \; y)
+    + \dfrac{a_1 + a_3(1 + 6/{\rm Re})}{{\rm Re} \; \sinh (\sqrt{\rm Re})} \left[ \sinh (\sqrt{\rm Re}\; y) - \sqrt{\rm Re} \; y \right]
+\end{split}
+\end{equation}
+%%
+と求まる.  
+したがって, O(1) の東西流速は, 
+%%
+\begin{equation}
+\begin{split}
+ u_0 (y) &= (a_0 + 2a_2/{\rm Re}) y + \dfrac{a_1}{2}y^2 + \dfrac{a_2}{3}y^3 + \dfrac{a_3}{4}y^4 \\
+    &-  \dfrac{a_0 + a_2(1 + 2/{\rm Re})}{\sqrt{\rm Re} \; \cosh (\sqrt{\rm Re})} \sinh (\sqrt{\rm Re} \; y)
+    - \dfrac{a_1 + a_3(1 + 6/{\rm Re})}{\sqrt{\rm Re} \; \sinh (\sqrt{\rm Re})} \left[ \cosh (\sqrt{\rm Re}\; y) - 1 \right]
+\end{split}
+\label{eq:interior_zonalVel_order1}
+\end{equation}
+%%
+と得られる. 
+また, 内部領域の O($\varepsilon$)の弱い子午面循環は, 次のように求めることができる. 
+$v_1$は\eqref{eq:x_momem_nondim_orderRo}を用いることによって, 
+%%
+\begin{equation}
+\begin{split}
+    v_1 =& - {\rm Re}^{-1} (a_1 + 2a_2 y + 3a_3 y^2) \\
+    &+  \dfrac{a_0 + a_2(1 + 2/{\rm Re})}{\sqrt{\rm Re} \; \cosh (\sqrt{\rm Re})} \sinh (\sqrt{\rm Re} \; y)
+    + \dfrac{a_1 + a_3(1 + 6/{\rm Re})}{\sqrt{\rm Re} \; \sinh (\sqrt{\rm Re})} \; \cosh (\sqrt{\rm Re}\; y)
+\end{split}
+\end{equation}
+%%
+と得られる. 
+したがって, 大きなレイノルズ数に対して, 内部領域の南北速度は O($\varepsilon$) よりもずっと\textbf{小さい}. 
+しかし,  \eqref{eq:EkmanSol_vVel_order1}, \eqref{eq:upEkmanSol_hVel_order1}から, 
+上下端の境界層において O(1) の南北速度が存在することに気をつける必要がある.   
+一方, $w_1$は上で求めた$v_1$と\eqref{eq:continuity_nondim_orderRo}, \eqref{eq:BC_interior_btm_nodim}を使って, 
+%%
+\begin{equation}
+\begin{split}
+    w_1(y,z) = \;\;& \dfrac{r}{2} \zeta_0(y) 
+       +  z \bigg[  {\rm Re}^{-1} (2a_2 + 6a_3 y) \\ 
+       &+ \dfrac{a_0 + a_2(1 + 2/{\rm Re})}{\cosh (\sqrt{\rm Re})} \cosh (\sqrt{\rm Re} \; y)
+       + \dfrac{a_1 + a_3(1 + 6/{\rm Re})}{\sinh (\sqrt{\rm Re})} \; \sinh (\sqrt{\rm Re}\; y) 
+    \bigg]
+\end{split}
+\end{equation}
+%%
+と求まる. 
+
+
+
+変数の最低次において$z=0,1$での境界条件を満足させるためには, 
+上で求めた内部領域における O(1) の解に, 
+\eqref{eq:EkmanSol_hVel_order1}, \eqref{eq:upEkmanSol_hVel_order1} の修正項を加える必要がある. 
+よって, 東西速度は,  
+%%
+\begin{equation}
+\begin{split}
+    u(y,z) = u_0(y) 
+             &+ \dfrac{\tau_x(y)}{\sqrt{2}}\; e^{-(1-z)/E_V^{1/2}} 
+                   \cos\Big(\dfrac{1-z}{\sqrt{E_V}} + \dfrac{\pi}{4} \Big) \\
+             &- u_0(y)\exp^{-z/E_V^{1/2}} \; \cos \Big( \dfrac{z}{\sqrt{E_V}} \Big)
+\end{split}
+\end{equation}
+%%
+となる. 
+一方, 南北速度は, 
+%%
+\begin{equation}
+\begin{split}
+    v(y,z) = &- \dfrac{\tau_x(y)}{\sqrt{2}} \; e^{-(1-z)/E_V^{1/2}} \sin \Big(\dfrac{1-z}{E_V^{1/2}} + \dfrac{\pi}{4} \Big) \\
+             &- u_0(y) e^{-z/E_V^{1/2}} \; \sin \big( z/E_V^{1/2} \big) 
+             + \varepsilon v_1(y)
+\end{split}
+\end{equation}
+%%
+となる%
+\footnote{
+$u_0$と同じように O($\varepsilon$) の項を打ち切るならば, 
+右辺の三項目を書くべきではないが, 内部領域では($v_0=0$のために)主要な項となるため残しておく. 
+}. 
+最後に鉛直速度は, 
+%%
+\begin{equation}
+ \begin{split}
+   w(y,z) = &\bigg\{
+	   \dfrac{E_V^{1/2}}{2}\zeta_0 \Big[ 1 - \sqrt(2) e^{-z/E_V^{1/2}} \sin \Big( \dfrac{z}{E_V^{1/2}} + \dfrac{\pi}{4} \Big)\Big]  
+             +  \varepsilon  \Big[ 
+             {\rm Re}^{-1} (2a_2 + 6a_3 y) \\
+             \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;
+            &+ \dfrac{a_0 + a_2(1 + 2/{\rm Re})}{\cosh (\sqrt{\rm Re})} \cosh (\sqrt{\rm Re} \; y)
+             + \dfrac{a_1 + a_3(1 + 6/{\rm Re})}{\sinh (\sqrt{\rm Re})} \; \sinh (\sqrt{\rm Re}\; y) 
+            \Big] z
+       \bigg\} \\
+       &\times \left\{ 1 - e^{ - (1-z)/E_V^{1/2}} \cos \Big( \dfrac{1-z}{\sqrt{E_V}} \Big)  \right\}
+ \end{split}
+\end{equation}
+%%
+と書ける. 

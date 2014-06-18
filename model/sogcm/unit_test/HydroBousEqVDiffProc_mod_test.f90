@@ -34,7 +34,7 @@ program HydroBouEqSolverVDiffProc_mod_test
   character(*), parameter :: configNmlFile = "defaultConfig.nml"
 #endif
 
-  real(DP), parameter :: EndNonDimTime = 4d0        ! normalized by the corresponding to e-folding time. 
+  real(DP), parameter :: EndNonDimTime = 20d0        ! normalized by the corresponding to e-folding time. 
   real(DP), parameter :: defaultDtRatio = 5d-04     ! relative to the corresponding to e-folding time.
 
   integer, parameter :: TS_FWEuler = 1   ! Forward Euler scheme
@@ -139,41 +139,45 @@ contains
   !
   subroutine test_case4()
 
+use SpmlUtil_mod
     call MessageNotify('M', PROGRAM_NAME, &
          & 'Solve 1D diffusion equation with inhomogeneous bc (D and N)..')
+write(*,*) g_Sig
+write(*,*) get_anaSol_inhomo_DN1(g_Sig, 0d0)
+write(*,*) get_anaSol_inhomo_DN1(g_Sig, 10000d0)
 
-    call perform_timeIntegration( 1d0/(0.5d0*PI)**2, 'N', -1d0, 'D', 0d0, get_anaSol_inhomo_DN1, TS_FWEuler,    1d-04, &
-         & dtRatio_=0.25*defaultDtRatio )
-    call perform_timeIntegration( 1d0/(0.5d0*PI)**2, 'N', -1d0, 'D', 0d0, get_anaSol_inhomo_DN1, TS_BWEuler,    1d-04 )
+    call perform_timeIntegration( 1d0/(0.5d0*PI)**2, 'D', 0d0, 'N', -1d0, get_anaSol_inhomo_DN1, TS_FWEuler,    1d-04, &
+         & dtRatio_=0.1*defaultDtRatio )
+    call perform_timeIntegration( 1d0/(0.5d0*PI)**2, 'D', 0d0, 'N', -1d0, get_anaSol_inhomo_DN1, TS_BWEuler,    1d-02, &
+         & dtRatio_ = defaultDtRatio*20.0 )
 
     ! Although The Crank-Nocolson scheme has second-order accuracy for time discritization, 
     ! the same amount of threshold as low-order scheme is set beacause the effective digits 
     ! of reference solution obtained by get_anaSol_inhomo_DN1 is only 6. 
-    call perform_timeIntegration( 1d0/(0.5d0*PI)**2, 'N', -1d0, 'D', 0d0, get_anaSol_inhomo_DN1, TS_CRANK_NICO, 1d-4 )
+    call perform_timeIntegration( 1d0/(0.5d0*PI)**2, 'D', 0d0, 'N', -1d0, get_anaSol_inhomo_DN1, TS_CRANK_NICO, 1d-2, &
+         & dtRatio_ = defaultDtRatio*20.0 )
 
   end subroutine test_case4
 
   !> This function returns analystic solution calculated with the sum of series. 
-  !> Note that if kMax=2, the maximum number of significant digits for returned solution is *6*.  
+  !> Note that if kMax=20, the maximum number of significant digits for returned solution is *6*.  
   pure function get_anaSol_inhomo_DN1(x,t) result(anaSol)
     real(DP), intent(in) :: x(:)
     real(DP), intent(in) :: t
     real(DP) :: anaSol(size(x))
 
-    integer, parameter :: nMax = 500000
-    integer :: n
+    integer, parameter :: mMax = 500000
+    integer :: n, m
     real(DP) :: sig
-    real(DP) :: coef
+    real(DP) :: kn
 
-    sig = -1d0
-    anaSol = 0d0
-    do n=0, nMax, 1
-       coef = (dble(n) + 0.5d0)*PI
-       sig = sign(1d0,-sig)
+    anaSol =  - (x + 1d0)
+    do m=0, mMax
+       kn = (m+0.5d0)*PI
        anaSol = anaSol + &
-            & 2d0*sig/(coef**2) * exp(-(coef**2)*t) * sin(coef*x)
+            & 2d0/kn**2 * exp(-(kn**2)*t) * cos(kn*x)
     end do
-    anaSol =  anaSol - x
+
   end function get_anaSol_inhomo_DN1
 
 
@@ -254,16 +258,16 @@ contains
     case (TS_FWEuler) 
        alpha = 1d0; beta = 0d0;
     case (TS_BWEuler) 
-       alpha = 0d0; beta = 2d0;
+       alpha = 0d0; beta = 1d0;
     case (TS_CRANK_NICO)
-       alpha = 0.5d0; beta = 1d0;
+       alpha = 0.5d0; beta = 0.5d0;
     end select
 
 
     ! Construct a matrix used in convert (I - dt*D) operator.
     call HydroBouEqSolverVDiffProc_Init()
     call construct_vDiffProcMat(vDiffProcMat, vDiffProcMatKp, & !(out)
-         & 1d0, beta*dt, xy_totDepth, uBCType, lBCType )
+         & beta*1d0, dt, xy_totDepth, uBCType, lBCType )
 
     ! Set initial condition
     forAll(i=0:iMax-1,j=1:jMax) xyz_Temp(i,j,:) = get_anaSolution(g_Sig,0d0)
@@ -275,7 +279,7 @@ contains
     t = 0d0
     do n=1, nStep
 
-       if(n==1 .or. mod(n,int(nStep*0.1)) == 0) then
+       if(n==1 .or. mod(n,int(nStep*0.05)) == 0) then
           xyz_Temp = xyz_wt(wt_Temp)
           l2Error = sqrt(sum( (xyz_Temp(1,1,:) - get_anaSolution(g_Sig, t))**2 ))/real(kMax+1)
 
@@ -284,6 +288,8 @@ contains
 
           message = CPrintf( &
                & "nondim time=%f, l2ErrorNorm=%f", d=(/ t/eFoldTime, l2Error /))
+
+
           call AssertLessThan(message=message, &
                & answer=errorLimit, check=l2Error )
        end if

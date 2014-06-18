@@ -1,0 +1,381 @@
+\chapter{モデル}
+\markright{\arabic{chapter} モデル} %  節の題名を書き込むこと
+
+\section{系の設定}
+\markright{\arabic{chapter}.\arabic{section} 系の設定}
+%%
+\begin{figure}[b]
+ \centering
+ \includegraphics[width=13cm]{Fig_modelConfig.eps}
+\caption{軸対称風成循環の力学を考察するための系の概念図.球面の効果は$\beta$平面近似により表現する.}
+\label{fig:modelConfig}
+\end{figure}
+%%
+全球に渡って岸のない海洋の軸対称な風成循環の力学を理解するために, 
+図\ref{fig:modelConfig} で示される$\beta$平面上の均質な流体層を考える. 
+一定の深さ$H$をもつ流体層は初期には静止しているが, 
+表面で加えられる応力$(\tau_{x*},\tau_{y*})=(\tau_{x*}(y),0)$により流体層は運動を始めるような状況を考える.  
+その際生じる境界近傍の摩擦層(エクマン層)内の運動やそれを介して駆動される内部領域の運動について次章以降で議論するために, 本章では支配方程式系や境界条件を記述する. 
+
+
+\section{支配方程式系と境界条件}
+\markright{\arabic{chapter}.\arabic{section} 支配方程式系と境界条件}
+%%
+\subsection{$\beta$平面近似}
+球面上の回転流体の運動を直交座標系を使って簡潔に記述するために, 
+ここでは$\beta$平面近似を用いる. 
+すなわち, とある球面上の一点$(\lambda,\theta,r)=(\lambda_0,\theta_0,a)$に対する接平面を定義し, それに対して局所直交座標系
+%%
+\begin{equation}
+  x = a\cos{\theta_0} (\lambda - \lambda_0), \;\; 
+  y = a(\theta - \theta_0), \;\;
+  z = r - a
+\end{equation}
+%%
+を導入する. 
+ここで, $a$は惑星半径である. 
+その際, 運動方程式に現れるコリオリパラーメタ$f(=2\Omega \sin\theta)$の緯度依存性は, 
+%%
+\begin{equation}
+\begin{split}
+ f &\sim f_0 + \left(\DD{f}{\theta}\right)_{\theta=\theta_0} (\theta - \theta_0) \\
+   &= f_0 + \beta_0 y
+\end{split}
+\end{equation}
+%%
+のように線形近似する. 
+ただし, 
+\begin{equation}
+  f_0 = 2\Omega \sin{\theta_0}, \;\;\; \beta_0 = \dfrac{1}{a} \left(\DD{f}{\theta}\right)_{\theta=\theta_0} = \dfrac{2\Omega}{a} \cos{\theta_0}
+\end{equation}
+%%
+と定義した. 
+
+\subsection{支配方程式系と境界条件}
+今考える問題において, 水平方向の運動のスケールは鉛直方向に比べてずっと大きいので, 
+静力学近似を適用することができる. 
+さらに, 軸対称な流体の運動を考えるので, 全ての変数は\textbf{$x$方向に一様}と仮定する. 
+このとき, 均質(密度一定)な流体の運動は以下の方程式系によって記述される. 
+%%
+\begin{subequations}
+\begin{align}
+  \DP{u_*}{t_*} + v_* \DP{u_*}{y_*} + w_*\DP{u_*}{z_*} - (f_0 + \beta_0 y_*) v_* 
+       &= A_h \DP[2]{u_*}{y_*} + A_v\DP[2]{u_*}{z_*}, \label{eq:x_momem_dim} \\
+  \DP{v_*}{t_*} + v_* \DP{v_*}{y_*} + w_*\DP{v_*}{z_*} + (f_0 + \beta_0 y_*) u_* 
+       &= - \dfrac{1}{\rho_0} \DP{p_*}{y_*} + A_h \DP[2]{v_*}{y_*} + A_v\DP[2]{v_*}{z_*}, \label{eq:y_momem_dim} \\
+  \DP{p_*}{z_*} &= - \rho_0 g, \label{eq:hydrostatic_dim} \\
+  \DP{v_*}{y_*} + \DP{w_*}{z_*} &= 0. \label{eq:continuity_dim}
+\end{align}
+\end{subequations}
+%%
+ここで, 添字の$*$は有次元の変数であることを示す. 
+$u_*,v_*,w_*$はそれぞれ速度の$y,z$方向成分, 
+$\rho_0$は基準密度, $p_*$は圧力, $g$は重力加速度である.
+また, $A_h, A_v$はそれぞれ水平, 鉛直渦粘性係数であり, 
+この系の散逸は渦粘性項により表現する. 
+
+(\ref{eq:x_momem_dim})-(\ref{eq:continuity_dim}) に対する境界条件は, 以下のように課される. 
+図\ref{fig:modelConfig}に示すように, 流体層の上端において$x$方向にのみ応力が加えられるので, 
+%%
+\begin{equation}
+      \rho_0 A_v \DP{u_*}{z_*} = \tau_{x*}(y_*), 
+ \;\; \rho_0 A_v \DP{v_*}{z_*} = 0 \;\;\;\;\;\; {\rm at} \;\; z=H
+\label{eq:BC_top_hVel}
+\end{equation}
+%%
+を課す. 
+流体層上端における鉛直速度の境界条件は, 今 rigid-lid 近似を適用することにすれば, 
+%%
+\begin{equation}
+  w = 0 \;\;\;\;\;\; {\rm at} \;\; z=H
+\label{eq:BC_top_vVel}
+\end{equation}
+%%
+によって与えられる. 
+一方, 地面と接する流体層下端では滑りなし条件
+%%
+\begin{equation}
+  u=0, \;\; v=0 \;\;\;\;\;\; {\rm at} \;\; z = 0
+\label{eq:BC_btm_hVel}
+\end{equation}
+%%
+を課す. 
+流体層下端における鉛直速度の境界条件は, 今地面は平坦であるので, 
+%%
+\begin{equation}
+  w = 0 \;\;\;\;\;\; {\rm at} \;\; z=0
+\label{eq:BC_btm_vVel}
+\end{equation}
+%%
+によって与えられる. 
+
+\section{系の無次元化}
+\markright{\arabic{chapter}.\arabic{section} 支配方程式系と境界条件}
+
+\subsection{系の無次元化(赤道遠方の場合)}
+
+\subsubsection*{無次元変数の導入}
+系のパラメータ依存性を調べる上で, 系の無次元化を行うこと有用である. 
+$L$は水平方向の長さスケール, $D$は鉛直方向の長さスケール(すなわち$H$), 
+$U$は水平速度のスケールとするとき, 
+%%
+\begin{equation}
+\begin{split}
+   (x_*, y_*, z_*) = (Lx, Ly, Dz),& \;\;\; (u_*, v_*, w_*) = (U u, Uv, \left(U\dfrac{D}{L}\right) w) \\
+   t_* = \dfrac{L}{U} t,& \;\;\; p_* = -\rho g z_* + (\rho_0 f_0 UL) p, \\
+   \tau_{x*} = \tau_0 \tau_x &
+\end{split}
+\label{eq:scale_variable}
+\end{equation}
+%%
+と無次元変数を導入する. 
+ここで, 鉛直速度$w_*$のスケーリングのために連続の式を使った. 
+ここで議論する風成循環の問題において, $L$は海面応力の空間スケールである. 
+
+今, 時間$t_*$のスケールには, 移流時間スケールを用いた. 
+しかし, 現時点では, スピンアップ時間$\tau_{\rm spinup}$よりも移流時間によるスケーリングが適切である保証はない. 
+どちらが適切な時間スケールかは, 両者の比
+%%
+\begin{equation}
+  r = \dfrac{L}{U\tau_{\rm spinup}}
+  \label{eq:ratio_advect_EkmanSpinup_time}
+\end{equation}
+%%
+に依存するだろう. 
+ここでは, 簡潔な記述のために, 形式的に, 
+%%
+\begin{equation}
+  r = {\rm O}(1)
+\end{equation}
+%%
+をyy仮定し, 摩擦の過程と移流の過程のどちらが卓越するかを, 先験的には\textbf{制限しない}ことにする. 
+そして, $r=$O(1) に対する定式化が完成した後に, $r$の値が大きい場合や小さい場合の極限を考えることで, 
+どちらかの過程が卓越する場合の定式化を得ることにする. 
+
+\subsubsection*{支配方程式系や境界条件の無次元化}
+(\ref{eq:scale_variable})を使って支配方程式系(\ref{eq:x_momem_dim})-(\ref{eq:continuity_dim})を無次元化すれば, 
+%%
+%%
+\begin{subequations}
+\begin{align}
+  \varepsilon \left( \DP{u}{t} + v\DP{u}{y} + w\DP{u}{z} - \beta y v \right) - v 
+       &= \dfrac{E_H}{2} \DP[2]{u}{y} + \dfrac{E_V}{2}\DP[2]{u}{z}, \label{eq:x_momem_nondim} \\
+  \varepsilon \left( \DP{v}{t} + v\DP{v}{y} + w\DP{v}{z} + \beta y u \right) + u 
+       &= - \DP{p}{y} + \dfrac{E_H}{2} \DP[2]{v}{y} + \dfrac{E_V}{2}\DP[2]{v}{z}, \label{eq:y_momem_nondim} \\
+  \DP{p}{z} &= 0, \label{eq:hydrostatic_nondim} \\
+  \DP{v}{y} + \DP{w}{z} &= 0. \label{eq:continuity_nondim}
+\end{align}
+\end{subequations}
+%%
+が得られる. 
+ここで, 
+%%
+\begin{subequations}
+\begin{equation}
+  {\rm ロスビー数:} \;\; \varepsilon = \dfrac{U}{f_0 L}, 
+\end{equation}
+\begin{equation}
+  {\rm 水平方向のエクマン数:} \;\; E_H = 2\dfrac{A_h}{f_0 L^2}, \;\;\;
+\end{equation}
+\begin{equation}
+  {\rm 鉛直方向のエクマン数:} \;\; E_V = 2\dfrac{A_v}{f_0 D^2}, 
+\end{equation}
+\begin{equation}
+   \beta = \beta_0 \dfrac{U}{L^2}
+\end{equation}
+\end{subequations}
+%%
+である. 
+
+次に境界条件(\ref{eq:BC_top_hVel})-(\ref{eq:BC_btm_vVel})を無次元化すれば, 
+流体層上端$z=1$における境界条件は, 
+\begin{equation}
+ \DP{u}{z} = \left( \dfrac{\tau_0 D}{\rho_0 A_v U} \right) \tau_{x}(y), 
+ \;\; \DP{v}{z} = 0 \;\;\;\;\;\; {\rm at} \;\; z=1, 
+\label{eq:BC_top_hVel_nodim}
+\end{equation}
+%%
+\begin{equation}
+  w = 0 \;\;\;\;\;\; {\rm at} \;\; z=1, 
+\label{eq:BC_top_vVel_nodim}
+\end{equation}
+%%
+となり, 
+一方, 流体層下端$z=0$における境界条件は, 
+%%
+\begin{equation}
+  u=0, \;\; v=0 \;\;\;\;\;\; {\rm at} \;\; z = 0, 
+\label{eq:BC_btm_hVel_nodim}
+\end{equation}
+%%
+%%
+\begin{equation}
+  w = 0 \;\;\;\;\;\; {\rm at} \;\; z=0
+\label{eq:BC_btm_vVel_nodim}
+\end{equation}
+%%
+となる. 
+
+\subsection{系の無次元化(赤道近傍の場合)}
+
+赤道ではコリオリパラメータの符号が反転するため, 
+赤道上で海面応力が与えられたときにその近傍では湧昇流や赤道境界層が生じる. 
+上で述べた系の無次元化は基準緯度におけるコリオリパラメータの値を陽に用いるので, 
+赤道近傍では使えない. 
+ここでは, 赤道近傍の循環に対して 適切な系の無次元化を行う. 
+
+
+\subsubsection*{無次元変数の導入}
+
+初めに, 惑星パラメータを用いて, おおまかに変数の無次元化を行う. 
+すなわち, 
+%%
+\begin{equation}
+\begin{split}
+   (x_*, y_*, z_*) = (ax, ay, Dz),& \;\;\; (u_*, v_*, w_*) = (U u, Uv, \left(U\dfrac{D}{a}\right) w) \\
+   t_* = \dfrac{a}{U} t,& \;\;\; p_* = -\rho g z_* + (\rho_0 2 \Omega U) p, \\
+   \tau_{x*} = \tau_0 \tau_x &
+\end{split}
+\label{eq:scale_variable_equator}
+\end{equation}
+%%
+ここで, $a$は惑星半径である. 
+また, 水平速度スケールを決定するために, 上側エクマン層内の運動量パランスを考えると, 
+%%
+$$
+  2 \Omega U \delta_E D \sim \tau_0 / \rho_0
+$$
+%%
+であるので,  
+%%
+\begin{equation}
+   U = \dfrac{\tau 0}{2\Omega \delta_E D}
+\end{equation}
+%%
+と決まる. 
+
+赤道近傍の循環に対して適切な変数のスケーリングは, この後の支配方程式系の各項のスケール解析によって行う. 
+
+\subsubsection*{支配方程式系や境界条件の無次元化}
+(\ref{eq:scale_variable_equator})を使って支配方程式系(\ref{eq:x_momem_dim})-(\ref{eq:continuity_dim})を無次元化すれば, 
+%%
+\begin{subequations}
+\begin{align}
+  \varepsilon_0 \left( \DP{u}{t} + v\DP{u}{y} + w\DP{u}{z} \right)  - y v 
+       &= E_{H0} \DP[2]{u}{y} + E_{V0}\DP[2]{u}{z}, \label{eq:x_momem_nondim_eq} \\
+  \varepsilon_0 \left( \DP{v}{t} + v\DP{v}{y} + w\DP{v}{z} \right) + y u 
+       &= - \DP{p}{y} + E_{H0} \DP[2]{v}{y} + E_{V0} \DP[2]{v}{z}, \label{eq:y_momem_nondim0_eq} \\
+  \DP{p}{z} &= 0, \label{eq:hydrostatic_nondim0_eq} \\
+  \DP{v}{y} + \DP{w}{z} &= 0. \label{eq:continuity_nondim0_eq}
+\end{align}
+\end{subequations}
+%%
+が得られる. 
+ここで, 
+%%
+\begin{subequations}
+\begin{equation}
+  {\rm ロスビー数:} \;\; \varepsilon_0 = \dfrac{U}{2\Omega L}, 
+\end{equation}
+\begin{equation}
+  {\rm 水平方向のエクマン数:} \;\; E_{H0} = \dfrac{A_h}{2\Omega a^2}, \;\;\;
+\end{equation}
+\begin{equation}
+  {\rm 鉛直方向のエクマン数:} \;\; E_{V0} = \dfrac{A_v}{2\Omega D^2}, 
+\end{equation}
+\end{subequations}
+%%
+である. 
+
+次に, 赤道近傍の循環の南北幅$l$を見積もる. 
+そのために, 赤道近傍における上側のエクマン層における力学的バランスを考えよう. 
+赤道から十分離れた場所では, 鉛直粘性項は, 非地衡流速度によるコリオリ項とバランスする. 
+しかし, 赤道に近づくにつれてそのコリオリ項はゼロとなるので, 
+力学的バランスを得るためには, 赤道遠方では無視した項(慣性項あるいは水平粘性項)が重要となる. 
+ここでは, Gill (1972) に従って, 赤道近傍において鉛直拡散項がコリオリ項と\textbf{水平粘性項}によってバランスする場合を考えることにする
+%%
+\footnote{
+ここでは, 水平粘性項に比べて慣性項は小さいことを仮定することによって, 
+まず線形問題を考えることにする.  
+しかし, 赤道近傍の循環における力学的バランスでは, 慣性項がしばしば重要である. 
+慣性項の効果については, M?? を参考にされたい. 
+また, ここで用いる支配方程式系では, 伝統的近似によって, 自転角速度ベクトルの水平成分に伴うコリオリ項を無視している. 
+しかしながら, この項もまた赤道近傍では重要な場合があり, 赤道境界層などの問題におけるその効果については, D?? を参考にされたい. 
+}. 
+
+今, 無次元単位において, エクマン層の厚さを$\delta_E$, 赤道近傍の循環の南北幅を$l$とする. 
+\eqref{eq:x_momem_nondim0_eq}, \eqref{eq:y_momem_nondim0_eq}におけるコリオリ項, 水平粘性項, 鉛直粘性項の大きさは, それぞれ
+%%
+\begin{equation*}
+  l, \;\;\; E_{H0} / l^2, \;\;\; E_{V0} / \delta_E^2
+\end{equation*}
+%%
+と見積もられる. 
+したがって, $l$と$\Delta_E$は, $E_{H0}, E_{V0}$を用いて, 
+%%
+\begin{equation}
+  l = (E_{H0})^{1/3}, \;\;\; 
+  \delta_E = \left(\dfrac{E_{V0}}{(E_{H0})^{1/3}}\right)^{1/2}
+\end{equation}
+%%
+と書ける. 
+よって, 水平長さスケールと関係した変数に対するスケーリングを, 
+%%
+\begin{equation}
+\begin{split}
+   & \tilde{y} = (E_{H0})^{1/3} y, \\
+   & (\tilde{u}, \tilde{v}) = (E_{H0})^{-1/3} (u,v), \;\;\; 
+     \tilde{w} = (E_{H0}^{-2/3}) w \\
+   & \tilde{t} = (E_{H0})^{-1/3} t, \;\;\; \tilde{p} = (E_{H0})^{-1/3} p
+\end{split}
+\label{eq:scale_variable_equator}
+\end{equation}
+%%
+とやり直すことにする. 
+
+このとき, 無次元化した支配方程式系は, 
+%%
+\begin{subequations}
+\begin{align}
+  \varepsilon_{eq} \left( \DP{u}{t} + v\DP{u}{y} + w\DP{u}{z} \right)  - y v 
+       &=  \DP[2]{u}{y} + \delta_E^2 \DP[2]{u}{z}, \label{eq:x_momem_nondim_eq} \\
+ \varepsilon_{eq} \left( \DP{v}{t} + v\DP{v}{y} + w\DP{v}{z} \right) + y u 
+       &= - \DP{p}{y} + \DP[2]{v}{y} + \delta_E^2 \DP[2]{v}{z}, \label{eq:y_momem_nondim_eq} \\
+  \DP{p}{z} &= 0, \label{eq:hydrostatic_nondim_eq} \\
+  \DP{v}{y} + \DP{w}{z} &= 0. \label{eq:continuity_nondim_eq}
+\end{align}
+\end{subequations}
+%%
+と書き直される. 
+ただし, $\tilde{(\;\;)}$は省略した. 
+ 
+\eqref{eq:x_momem_nondim_eq}-\eqref{eq:continuity_nondim_eq}に対して, 領域の上下端で課される無次元化した境界条件は, 
+%%
+\begin{equation}
+ \delta_E \DP{u}{z} = \tau_{x}(y), 
+  \;\; 
+ \delta_E \DP{v}{z} = 0 \;\;\;\;\;\; {\rm at} \;\; z=1, 
+\label{eq:BC_top_hVel_nodim}
+\end{equation}
+%%
+\begin{equation}
+  w = 0 \;\;\;\;\;\; {\rm at} \;\; z=1, 
+\label{eq:BC_top_vVel_nodim_eq}
+\end{equation}
+%%
+および, 
+%%
+\begin{equation}
+  u=0, \;\; v=0 \;\;\;\;\;\; {\rm at} \;\; z = 0, 
+\label{eq:BC_btm_hVel_nodim_eq}
+\end{equation}
+%%
+%%
+\begin{equation}
+  w = 0 \;\;\;\;\;\; {\rm at} \;\; z=0
+\label{eq:BC_btm_vVel_nodim_eq}
+\end{equation}
+%%
+である. 
+最後に, 赤道近傍の解は赤道から十分離れた所において, 赤道遠方の解と漸近的に接続するとする. 
+

@@ -44,6 +44,7 @@ diagVar_SOURCES =\
 	tool/DiagVarEval_mod.f90 \
 	tool/DiagVarFileSet_mod.f90 \
 	tool/BudgetAnalysis_mod.f90 \
+	tool/SpectralAnalysis_mod.f90 \
 	tool/diagVar_main.f90
 
 

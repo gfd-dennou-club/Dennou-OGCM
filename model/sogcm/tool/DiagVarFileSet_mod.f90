@@ -127,7 +127,11 @@ contains
 
     call HistoryAutoAddVariable( &
          varname=DVARKEY_MASSSTREAMFUNC, dims=(/'lat','sig','t  '/), & 
-         longname='mass stream function on meriodinal plane', units='kg.m2.s-1')
+         longname='mass stream function on meriodinal plane', units='Sv')
+
+    call HistoryAutoAddVariable( &
+         varname=DVARKEY_STATICSTABILITY, dims=(/ 'lon', 'lat','sig','t  '/), & 
+         longname='static stability(N^2)', units='s-2')
 
     call HistoryAutoAddVariable( &
          varname=DVARKEY_PTEMP, dims=(/'lon','lat','sig','t  '/), & 

@@ -14,6 +14,9 @@ module HydroBouEqSolverRHS_mod
   use dc_types, only: &
        & DP, STRING 
 
+  use dc_message, only: &
+       & MessageNotify
+
   use Constants_mod, only: &
        & Omega, Grav, RPlanet, RefDens
 
@@ -35,8 +38,9 @@ module HydroBouEqSolverRHS_mod
   public :: HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final
   public :: calc_VorEqDivEqInvisRHS, calc_VorEqDivEqDiffRHS
   public :: calc_TracerEqInvisRHS, calc_TracerEqDiffRHS
+  public :: calc_HDiffRHS, calc_VDiffRHS
   public :: calc_SurfHeightRHS
-  public :: correct_DivEqRHSUnderRigidLid
+  public :: correct_DivEqRHSUnderRigidLid, correct_DivEqRHSUnderRigidLid2
 
   ! 非公開手続き
   ! Private procedure
@@ -75,7 +79,7 @@ contains
   !!
   !!
   subroutine calc_VorEqDivEqInvisRHS(wz_RHSVor, wz_RHSDiv, &
-       & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_PEdd, xyz_GeoPot, xyz_SigDot &
+       & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_Press, xyz_GeoPot, xyz_SigDot &
        & )
     
 
@@ -88,7 +92,7 @@ contains
     real(DP), intent(in) :: xyz_Vrf(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xy_SurfHeight(0:iMax-1,jMax)
     real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_PEdd(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_Press(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_GeoPot(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_SigDot(0:iMax-1,jMax,0:kMax)
 
@@ -101,6 +105,8 @@ contains
     real(DP) :: xyz_AbsVor(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_GeoPotGradCoef(0:iMax-1,jMax,0:kMax)
     real(DP) :: wz_GeoPot(lMax, 0:kMax)
+
+real(DP) :: w(lMax)
 
     ! 実行文; Executable statement
     !
@@ -130,12 +136,13 @@ contains
          &   xyz_AbsVor*xyz_Vrf - xyz_SigDot*xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Urf))) &
          & - xyz_GeoPotGradCoef*xya_GradLambda_wa(wz_GeoPot)
 
+
     wz_RHSVor = - wz_AlphaOptr_xyz( xyz_A, xyz_B )
 
     wz_RHSDiv = wz_AlphaOptr_xyz( xyz_B, -xyz_A ) &
          &      - wz_Lapla2D_wz(wz_xyz( &
          &             xyz_KinEngy + Grav*spread(xy_SurfHeight,3,kMax+1) &
-         &           + xyz_PEdd/RefDens &
+         &           + xyz_Press/RefDens &
          &        ))
 
   end subroutine calc_VorEqDivEqInvisRHS
@@ -176,7 +183,7 @@ contains
 
     xyt_VorDIVDep2 = xyt_xyz(xyz_wz(wz_Vor))/xyz_totDepth**2
     wz_RHSVor = wz_RHSVor &
-!!$         &      + hViscCoef*wz_Vor/RPlanet**2 &
+         &      + hViscCoef* 2d0*wz_Vor/RPlanet**2 &
          &      + wz_Lapla2D_wz(hViscCoef*wz_Vor - hHyperViscCoef*wz_Lapla2D_wz(wz_Vor))  &
          &      + wz_xyz(xyz_xyt( &
          &          xyt_DSigDSig_xyt( vViscCoef*xyt_VorDIVDep2 - vHyperViscCoef*xyt_DSigDSig_xyt(xyt_VorDIVDep2/xyz_totDepth**2) ) &
@@ -184,14 +191,98 @@ contains
 
     xyt_DivDIVDep2 = xyt_xyz(xyz_wz(wz_Div))/xyz_totDepth**2
     wz_RHSDiv = wz_RHSDiv &
-!!$         &      + hViscCoef*wz_Div/RPlanet**2 &
+         &      + hViscCoef* 2d0*wz_Div/RPlanet**2 &
          &      + wz_Lapla2D_wz(hViscCoef*wz_Div - hHyperViscCoef*wz_Lapla2D_wz(wz_Div))  &
          &      + wz_xyz(xyz_xyt( &
          &          xyt_DSigDSig_xyt( vViscCoef*xyt_DivDIVDep2 - vHyperViscCoef*xyt_DSigDSig_xyt(xyt_DivDIVDep2/xyz_totDepth**2) ) &
          &      ))
 
-
   end subroutine calc_VorEqDivEqDiffRHS
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_HDiffRHS(wz_RHSQuant, &
+       & wz_Quant, hDiffCoef, hHyperDiffCoef, LhOptrType, LhOptrCoef, &
+       & overwrite )
+    
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout) :: wz_RHSQuant(lMax, 0:kMax)
+    real(DP), intent(in) :: wz_Quant(lMax,0:kMax)
+    real(DP), intent(in) :: hDiffCoef, hHyperDiffCoef
+    character(1), intent(in) :: LhOptrType              ! 'V': Vector, 'S': Scalar, Default setteing is 'S'
+    real(DP), optional, intent(in) :: LhOptrCoef 
+    logical, optional, intent(in) :: overWrite
+    
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: ScaLaplaOptrCoef
+
+    ! 実行文; Executable statement
+    !
+    
+    if( present(overwrite) .and. overwrite ) then
+       wz_RHSQuant = 0d0
+    end if
+
+    ScaLaplaOptrCoef = 1d0
+    if( present(LhOptrCoef) ) ScaLaplaOptrCoef = LhOptrCoef
+
+    if( LhOptrType == 'V' ) then
+       wz_RHSQuant = wz_RHSQuant  &
+            &      +  hDiffCoef* 2d0*wz_Quant/RPlanet**2 &
+            &      +  wz_Lapla2D_wz(  &
+            &              ScaLaplaOptrCoef*(hDiffCoef - 2d0*hHyperDiffCoef/RPlanet**2)*wz_Quant & 
+            &            - hHyperDiffCoef*wz_Lapla2D_wz(wz_Quant)               &
+            &         )
+    else
+       wz_RHSQuant = wz_RHSQuant &
+            &      + wz_Lapla2D_wz( hDiffCoef*wz_Quant - hHyperDiffCoef*wz_Lapla2D_wz(wz_Quant) )
+    end if
+
+  end subroutine calc_HDiffRHS
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_VDiffRHS(wz_RHSQuant, &
+       & wz_Quant, vDiffCoef, vHyperDiffCoef, &
+       & xyz_totDepth, overwrite )
+    
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout) :: wz_RHSQuant(lMax, 0:kMax)
+    real(DP), intent(in) :: wz_Quant(lMax,0:kMax)
+    real(DP), intent(in) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: vDiffCoef, vHyperDiffCoef
+    logical, optional, intent(in) :: overWrite
+    
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: xyt_QuantDIVDep2(0:iMax-1, jMax, 0:tMax)
+
+    ! 実行文; Executable statement
+    !
+    
+    if( present(overwrite) .and. overwrite ) then
+       wz_RHSQuant = 0d0
+    end if
+
+    xyt_QuantDIVDep2 = xyt_xyz(xyz_wz(wz_Quant))/xyz_totDepth**2    
+    wz_RHSQuant = wz_RHSQuant  + wz_xyz(xyz_xyt( &
+         &          xyt_DSigDSig_xyt( &
+         &              vDiffCoef*xyt_QuantDIVDep2                                        &
+         &            - vHyperDiffCoef*xyt_DSigDSig_xyt(xyt_QuantDIVDep2/xyz_totDepth**2) &
+         &          )                                                                     &
+         &      ))
+
+  end subroutine calc_VDiffRHS
+
 
   subroutine calc_TracerEqInvisRHS( wz_RHSTracer, xyz_Tracer, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
     real(DP), intent(out) :: wz_RHSTracer(lMax, 0:kMax)
@@ -264,60 +355,142 @@ contains
 
 
   !> @brief 
+  !! 
   !!
-  !!
-  subroutine correct_DivEqRHSUnderRigidLid(wz_RHSDivEqN, &
-       & xy_SurfPress, wz_DivN, xy_totDepth, Av, dt )
+  subroutine correct_DivEqRHSUnderRigidLid( wz_DivRHS, xy_SurfPressA, &
+       & wz_DivOld, xy_SurfPressRef, xy_SurfPressN, xy_SurfPressB, dDivdt_coef, &
+       & TIntType_SurfPressTerm )
     
+
+
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: wz_RHSDivEqN(lMax, 0:kMax)
-    real(DP), intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
-    real(DP), intent(in) :: wz_DivN(lMax,0:kMax), xy_totDepth(0:iMax-1,jMax)
-    real(DP), intent(in) :: Av, dt
+    real(DP), intent(inout) :: wz_DivRHS(lMax, 0:kMax)
+    real(DP), intent(inout) :: xy_SurfPressA(0:iMax-1,jMax)
+    real(DP), intent(in) :: wz_DivOld(lMax,0:kMax)
+    real(DP), intent(in) :: xy_SurfPressRef(0:iMax-1,jMax), xy_SurfPressN(0:iMax-1,jMax), xy_SurfPressB(0:iMax-1,jMax)
+    real(DP), intent(in) :: dDivdt_coef
+    character(*), intent(in) :: TIntType_SurfPressTerm
 
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: w_CorrectTerm(lMax)
-    real(DP) :: xyz_tmp(0:iMax-1,jMax,0:kMax)
+
+    !> Horizontal divergence of velcoity potential used in Pressure Correction method
+    !! to keep velocity divergence-free. 
+    real(DP) :: w_HDivVelPot(lMax)              
+
+    !> Coefficients used to exptrapolate new value of surface pressure.  
+    real(DP) :: ecoefPA, ecoefPB, ecoefPN
+
     integer :: k
-    real(DP) :: wz_Av_DSig_Div(lMax,0:kMax)
-    
-    real(DP) :: xyz_Av_DSig_Div(0:iMax-1,jMax,0:kMax)
-    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Div, xyz_RHSDiv
-    real(DP) :: xy_Correct(0:iMax-1,jMax)
-    real(DP) :: xy_DivSig(0:iMax-1,jMax), xy_RHSDivSig(0:iMax-1,jMax)
 
     ! 実行文; Executable statement
     !
 
-!!$    wz_Av_Dsig_Div = Av*wz_wt( &
-!!$         & wt_DSig_wt(wt_xyz(xyz_wz(wz_DivN)/spread(xy_totDepth**2,3,kMax+1))) )
-    w_CorrectTerm = - w_IntSig_BtmToTop_wz( wz_RHSDivEqN + wz_DivN/dt ) !&
-!         &          + wz_Av_DSig_Div(:,kMax)
-!write(*,*) "Av*DSig_Div:", wz_Av_DSig_Div(:,kMax)
+
+    ! 
+    ! 
+
+    select case(TIntType_SurfPressTerm)
+       case("BEuler1")
+          ecoefPA = 1d0; ecoefPN = 0d0; ecoefPB = 0d0;
+       case("CRANKNIC")
+          ecoefPA = 0.5d0; ecoefPN = 0.5d0; ecoefPB = 0d0;
+       case("CRANKNIC_WithLF")
+          ecoefPA = 0.5d0; ecoefPN = 0d0; ecoefPB = 0.5d0;
+       case("AM3")
+          ecoefPA = 5d0/12d0; ecoefPN = 8d0/12d0; ecoefPB = - 1d0/12d0;
+       case default
+          call MessageNotify('E', module_name, &
+               & "'%c' is not allowable as temporal integration method for surface pressure term", &
+               & c1 = TIntType_SurfPressTerm )
+    end select
 
 
-    xy_SurfPress = - xy_w( w_InvLapla2D_w( w_CorrectTerm*RefDens ) )
+    w_HDivVelPot = RefDens * w_IntSig_BtmToTop_wz( wz_DivOld*dDivdt_coef + wz_DivRHS )
 
-!!$    xyz_Av_DSig_Div = xyz_wz(wz_Av_DSig_Div)
-!!$    xy_Correct = xy_w(w_CorrectTerm)
-!!$    xyz_Div = xyz_wz(wz_DivN)
-!!$    xyz_RHSDiv = xyz_wz(wz_RHSDivEqN)
-!!$    xy_DivSig = xy_IntSig_BtmToTop_xyz(xyz_Div)
-!!$    xy_RHSDivSig = xy_IntSig_BtmToTop_xyz(xyz_wz(wz_RHSDivEqN))
-!!$write(*,'(13(1x,e12.5),a,13(1x,e12.5),a,e12.5)') xyz_RHSDiv(1,16,0:12), "*", xyz_Div(1,16,0:12)/dt, &
-!!$     & "*", -xyz_Av_DSig_Div(1,16,kMax) !xy_DivSig(1,:)
-!!$write(*,'(3(1x,e12.5))') xy_Correct(1,16), xy_RHSDivSig(1,16), xy_DivSig(1,16)/dt
-!!$write(*,*) '-----'
 
-    !$omp parallel do
-    do k=0,kMax
-       wz_RHSDivEqN(:,k) = wz_RHSDivEqN(:,k) + w_CorrectTerm
-    end do
+    xy_SurfPressA = ( &
+         & xy_w( w_InvLapla2D_w( w_HDivVelPot ) ) + xy_SurfPressRef &
+         & - ecoefPN*xy_SurfPressN - ecoefPB*xy_SurfPressB &
+         & )/ecoefPA
+
+
+    wz_DivRHS(:,:) =   wz_DivRHS(:,:) &
+         &      - spread(w_HDivVelPot, 2, kMax+1)/RefDens
 
   end subroutine correct_DivEqRHSUnderRigidLid
+
+  !> @brief 
+  !! 
+  !!
+  subroutine correct_DivEqRHSUnderRigidLid2( wt_DivA, xy_SurfPressA, &
+       & wz_DivOld, xy_SurfPressRef, xy_SurfPressN, xy_SurfPressB, dDivdt_coef, &
+       & TIntType_SurfPressTerm )
+    
+
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(out) :: wt_DivA(lMax, 0:tMax)
+    real(DP), intent(out) :: xy_SurfPressA(0:iMax-1,jMax)
+    real(DP), intent(in) :: wz_DivOld(lMax,0:kMax)
+    real(DP), intent(in) :: xy_SurfPressRef(0:iMax-1,jMax), xy_SurfPressN(0:iMax-1,jMax), xy_SurfPressB(0:iMax-1,jMax)
+    real(DP), intent(in) :: dDivdt_coef
+    character(*), intent(in) :: TIntType_SurfPressTerm
+
+    ! 局所変数
+    ! Local variables
+    !
+
+    !> Horizontal divergence of velcoity potential used in Pressure Correction method
+    !! to keep velocity divergence-free. 
+    real(DP) :: w_HDivPressInvRho(lMax)              
+
+    !> Coefficients used to exptrapolate new value of surface pressure.  
+    real(DP) :: ecoefPA, ecoefPB, ecoefPN
+
+    integer :: k
+
+    ! 実行文; Executable statement
+    !
+
+
+    ! 
+    ! 
+
+    select case(TIntType_SurfPressTerm)
+       case("BEuler1")
+          ecoefPA = 1d0; ecoefPN = 0d0; ecoefPB = 0d0;
+       case("CRANKNIC")
+          ecoefPA = 0.5d0; ecoefPN = 0.5d0; ecoefPB = 0d0;
+       case("CRANKNIC_WithLF")
+          ecoefPA = 0.5d0; ecoefPN = 0d0; ecoefPB = 0.5d0;
+       case("AM3")
+          ecoefPA = 5d0/12d0; ecoefPN = 8d0/12d0; ecoefPB = - 1d0/12d0;
+       case default
+          call MessageNotify('E', module_name, &
+               & "'%c' is not allowable as temporal integration method for surface pressure term", &
+               & c1 = TIntType_SurfPressTerm )
+    end select
+
+
+    w_HDivPressInvRho = w_IntSig_BtmToTop_wz( wz_DivOld*dDivdt_coef )
+
+
+    xy_SurfPressA = ( &
+         & xy_w( w_InvLapla2D_w( w_HDivPressInvRho*RefDens ) ) + xy_SurfPressRef &
+         & - ecoefPN*xy_SurfPressN - ecoefPB*xy_SurfPressB &
+         & )/ecoefPA
+
+
+
+    wt_DivA(:,:) = wt_wz( &
+         &        wz_DivOld(:,:) &
+         &      - spread(w_HDivPressInvRho, 2, kMax+1)/dDivdt_coef ) 
+
+  end subroutine correct_DivEqRHSUnderRigidLid2
 
 end module HydroBouEqSolverRHS_mod
 

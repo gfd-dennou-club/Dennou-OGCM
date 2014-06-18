@@ -67,9 +67,9 @@ contains
     ! モジュール引用; Use statement
     !
     use TemporalIntegSet_mod, only: &
-         & CurrentTimeStep, &
+         & CurrentTimeStep, DelTime, &
          & barocTimeIntMode, nStage_BarocTimeInt, isVarBUsed_BarocTimeInt, &
-         & timeIntMode_RK4
+         & timeIntMode_RK4, timeIntMode_Euler
 
     ! 宣言文; Declaration statement
     !
@@ -84,10 +84,11 @@ contains
 
     if(CurrentTimeStep /= 1) then
        call HydroBouEqSolver_AdvanceTStep( &
-            & barocTimeIntMode, nStage_BarocTimeInt, isVarBUsed_BarocTimeInt )
+            & DelTime, barocTimeIntMode, nStage_BarocTimeInt, isVarBUsed_BarocTimeInt )
     else
        ! For first time step, RK4 which  has an ability to self-start is used. 
-       call HydroBouEqSolver_AdvanceTStep( timeIntMode_RK4, 4, .false. )
+!       call HydroBouEqSolver_AdvanceTStep( DelTime, timeIntMode_RK4, 4, .false. )
+       call HydroBouEqSolver_AdvanceTStep( DelTime, timeIntMode_Euler, 1, .false. )
     end if
 
   end subroutine GovernEqSolverDriver_AdvanceTStep

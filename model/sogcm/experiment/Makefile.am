@@ -17,7 +17,15 @@ LDADD = \
 
 CLEANFILES = *$(MODEXT)
 
-bin_PROGRAMS = 
+
+bin_PROGRAMS = \
+	exp_WindDrivenCirculation/script/numsol_check_eq
+
+
+exp_WindDrivenCirculation_script_numsol_check_eq_SOURCES= \
+	exp_WindDrivenCirculation/script/numsol_check_eq.f90
+
+
 
 noinst_LTLIBRARIES= libDSOGCMExp.la 
 nodist_libDSOGCMExp_la_SOURCES= \

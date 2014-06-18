@@ -31,11 +31,19 @@ module BoundCondSet_mod
   !
   integer, public, save :: KinBC_Surface
   integer, public, save :: DynBC_Surface
+  integer, public, save :: ThermBC_Surface
+
+  integer, public, save :: KinBC_Bottom
   integer, public, save :: DynBC_Bottom
+  integer, public, save :: ThermBC_Bottom
+
+
   integer, public, parameter :: DynBCTYPE_NoSlip = 1
   integer, public, parameter :: DynBCTYPE_Slip = 2
   integer, public, parameter :: KinBCTYPE_FreeSurf = 3
   integer, public, parameter :: KinBCTYPE_RigidLid = 4
+  integer, public, parameter :: ThermBCTYPE_Adiabat = 5
+
 
   ! 非公開変数
   ! Private variable
@@ -108,19 +116,37 @@ contains
     integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
     ! IOSTAT of NAMELIST read
 
-    character(TOKEN) :: KinBCSurface, DynBCSurface, DynBCBottom
+    character(TOKEN) :: &
+         & KinBCSurface, KinBCBottom, &
+         & DynBCSurface, DynBCBottom, &
+         & ThermBCSurface, ThermBCBottom
 
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
     namelist /boundaryCondition_nml/ &
-         & KinBCSurface, DynBCSurface, DynBCBottom
+         & KinBCSurface, KinBCBottom, &
+         & DynBCSurface, DynBCBottom, &
+         & ThermBCSurface, ThermBCBottom
+
 
     ! 実行文; Executable statements
 
     ! デフォルト値の設定
     ! Default values settings
     !
+
+
+    ! Set default boundary conditions
+    !
+    KinBCSurface = "Rigid"
+    DynBCSurface = "Slip"
+    ThermBCSurface = "Adiabat"
+
+    KinBCBottom = "Rigid"
+    DynBCBottom = "Slip"
+    ThermBCBottom = "Adiabat"
+
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -137,6 +163,9 @@ contains
        close( unit_nml )
     end if
 
+    ! Specify the boundary condition on upper surface.
+    !
+
     select case(KinBCSurface)
        case("Free")
           KinBC_Surface = KinBCTYPE_FreeSurf
@@ -144,7 +173,7 @@ contains
           KinBC_Surface = KinBCTYPE_RigidLid
        case default
           call MessageNotify("E", module_name, &
-               & "The Kinetic boundary condition '%c' imposed in the surface is invalid.", c1=KinBCSurface) 
+               & "The Kinetic boundary condition '%c' imposed on the surface is invalid.", c1=KinBCSurface) 
     end select
 
     select case(DynBCSurface)
@@ -154,7 +183,26 @@ contains
           DynBC_Surface = DynBCTYPE_NoSlip
        case default
           call MessageNotify("E", module_name, &
-               & "The dynamical boundary condition '%c' imposed in the surface is invalid.", c1=DynBCSurface) 
+               & "The dynamical boundary condition '%c' imposed on the surface is invalid.", c1=DynBCSurface) 
+    end select
+
+    select case (ThermBCSurface)
+       case("Adiabat")
+          ThermBC_Surface = ThermBCTYPE_Adiabat
+       case default
+          call MessageNotify("E", module_name, &
+               & "The thermal boundary condition '%c' imposed on the surface is invalid.", c1=ThermBCSurface) 
+    end select
+
+    ! Specify the boundary condition on bottom surface.
+    !
+
+    select case(KinBCBottom)
+       case("Rigid")
+          KinBC_Surface = KinBCTYPE_RigidLid
+       case default
+          call MessageNotify("E", module_name, &
+               & "The Kinetic boundary condition '%c' imposed on the bottom is invalid.", c1=KinBCBottom) 
     end select
 
     select case(DynBCBottom)
@@ -164,7 +212,15 @@ contains
           DynBC_Bottom = DynBCTYPE_NoSlip
        case default
           call MessageNotify("E", module_name, &
-               & "The dynamical boundary condition '%c' imposed in the bottom is invalid.", c1=DynBCBottom) 
+               & "The dynamical boundary condition '%c' imposed on the bottom is invalid.", c1=DynBCBottom) 
+    end select
+
+    select case (ThermBCBottom)
+       case("Adiabat")
+          ThermBC_Bottom = ThermBCTYPE_Adiabat
+       case default
+          call MessageNotify("E", module_name, &
+               & "The thermal boundary condition '%c' imposed on the bottom is invalid.", c1=ThermBCBottom) 
     end select
 
     ! 印字 ; Print
@@ -172,7 +228,10 @@ contains
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, 'KinBC_Surface        = %c', c1 = KinBCSurface  )
     call MessageNotify( 'M', module_name, 'DynBC_Surface        = %c', c1 = DynBCSurface  )
+    call MessageNotify( 'M', module_name, 'ThermBC_Surface      = %c', c1 = ThermBCSurface  )
+    call MessageNotify( 'M', module_name, 'KinBC_Bottom         = %c', c1 = KinBCBottom  )
     call MessageNotify( 'M', module_name, 'DynBC_Bottom         = %c', c1 = DynBCBottom  )
+    call MessageNotify( 'M', module_name, 'ThermBC_Bottom       = %c', c1 = ThermBCBottom  )
 
   end subroutine read_nmlData
 

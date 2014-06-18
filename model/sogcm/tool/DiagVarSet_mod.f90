@@ -45,6 +45,9 @@ module DiagVarSet_mod
   character(*), parameter, public :: DVARKEY_DENSEDD = 'DensEdd'
   character(*), parameter, public :: DVARKEY_MASSSTREAMFUNC = 'MassStreamFunc'
   character(*), parameter, public :: DVARKEY_PTEMP = 'PTemp'
+  character(*), parameter, public :: DVARKEY_STATICSTABILITY = 'StaticStability'
+  
+
   ! 非公開手続き
   ! Private procedure
   !
@@ -91,6 +94,7 @@ contains
           case (DVARKEY_MASSSTREAMFUNC )
              allocate( yz_MassStreamFunc(jMax, 0:kMax) )
           case (DVARKEY_PTEMP)
+          case (DVARKEY_STATICSTABILITY)
           case Default
              call MessageNotify('E', module_name, &
                   & "The name of specified diagnostic variable '%c'is invalid.", c1=trim(diagVarsName(varID)) )

@@ -84,7 +84,8 @@ contains
   !!
   !!
   subroutine Advance_VDiffProc(wt_Vor, wt_Div, wt_PTempEdd, &
-    & xy_WindStressU, xy_WindStressV, xy_totDepth, Av, dt,  &
+    & xy_WindStressU, xy_WindStressV, xy_totDepth, &
+    & vViscTermCoef, vDiffTermCoef, vViscCoef, dt,  &
     & DynBCSurf, DynBCBottom )
     
     !
@@ -98,7 +99,7 @@ use at_module_omp
     real(DP), intent(inout) :: wt_PTempEdd(lMax,0:tMax)
     real(DP), intent(in) :: xy_WindStressU(0:iMax-1,jMax), xy_WindStressV(0:iMax-1,jMax)
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
-    real(DP), intent(in) :: Av
+    real(DP), intent(in) :: vViscTermCoef, vDiffTermCoef, vViscCoef
     real(DP), intent(in) :: dt
     integer, intent(in) :: DynBCSurf
     integer, intent(in) :: DynBCBottom
@@ -117,7 +118,7 @@ use at_module_omp
     ! 実行文; Executable statement
     !
 
-    xy_CosLat = cos(xyz_Lat(:,:,1))
+    xy_CosLat = cos(xyz_Lat(:,:,0))
     
 
     !
@@ -132,7 +133,7 @@ use at_module_omp
        BCKindUpper = 'N'
        xyz_Work(:,:,0) = xy_w( &
             & w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat) &
-            & )/(RefDens*Av)
+            & )/(RefDens*vViscCoef)
     else
        BCKindUpper = 'N'
        xyz_Work(:,:,0) = 0d0
@@ -146,15 +147,17 @@ use at_module_omp
     end if
 
     call construct_vDiffProcMat(vDiffProcMatVor, vDiffProcMatVorKp, &   !(inout)
-         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+         & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
     wt_Vor(:,:) = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
 
     !
     xyz_Work(:,:,0:kMax) = xyz_wt(wt_Div)
+    xyz_Work(:,:,kMax+1) = xy_IntSig_BtmToTop_xyz(xyz_Work(:,:,0:kMax)) !0d0
+
     if (DynBCSurf == DynBCTYPE_NoSlip) then 
        xyz_Work(:,:,0) = xy_w( &
             & w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat) &
-            & )/(RefDens*Av)
+            & )/(RefDens*vViscCoef)
     else
        xyz_Work(:,:,0) = 0d0
     end if
@@ -164,18 +167,17 @@ use at_module_omp
        xyz_Work(:,:,kMax) = 0d0
     end if
 
-    xyz_Work(:,:,kMax+1) = 0d0
-
     call construct_vDiffProcMat2(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
-         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )              !(in)
+         & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )              !(in)
     wt_Div(:,:) = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
 
 !!$    call construct_vDiffProcMat(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
-!!$         & Av, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+!!$         & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
 !!$    wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax))
 
     !
-    call construct_vDiffProcMat(vDiffProcMatHeat, vDiffProcMatHeatKp, Av, dt, xy_totDepth, 'N', 'N')
+    call construct_vDiffProcMat(vDiffProcMatHeat, vDiffProcMatHeatKp,&
+         & vDiffTermCoef, dt, xy_totDepth, 'N', 'N')
     xyz_Work(:,:,0:kMax) = xyz_wt(wt_PTempEdd)
     xyz_Work(:,:,0) = 0d0 
     xyz_Work(:,:,kMax) = 0d0 
@@ -187,6 +189,8 @@ use at_module_omp
 
     use lumatrix, only: lusolve
     use omp_lib
+use TemporalIntegSet_mod, only: CurrentTime
+use Constants_mod, only: RefDens
 
     real(DP), intent(in) :: vDiffProcMat(:,:,:)
     integer, intent(in) :: vDiffProcMatKp(:,:)
@@ -194,7 +198,7 @@ use at_module_omp
     real(DP) :: xyt_retTmp(0:iMax-1,jMax,0:size(vDiffProcMat,3)-1), wt_ret(lMax,0:tMax)
 
     real(DP) :: az_RHS(size(xyz_RHS,1)*size(xyz_RHS,2),size(xyz_RHS,3))
-
+!!$    real(DP) :: xy_SurfPress(0:iMax-1,jMax)
 
     !$omp parallel workshare
     az_RHS = reshape(xyz_RHS, shape(az_RHS))
@@ -206,8 +210,11 @@ use at_module_omp
 
     wt_ret = wa_xya( xyt_retTmp(:,:,0:tMax) )
 
-!!$if(size(xyz_RHS,3)==kMax+2.and.mod(int(CurrentTime),3600)==0)then
-!!$   write(*,*) "surfPress:", xyt_retTmp(0,:,tMax+1)
+
+!!$if(size(xyz_RHS,3)==kMax+2.and.mod(int(CurrentTime),43200)==0)then
+!!$   xy_SurfPress = xy_w(w_InvLapla2D_w ( w_xy(xyt_retTmp(:,:,tMax+1)) ))*RefDens
+!!$   write(*,*) "surfPress:", xy_SurfPress(0,:)
+!!$   write(*,*) "intSIg(D):", xy_IntSig_BtmToTop_xyz(xyz_wt(wt_ret))
 !!$endif
 
   end function Solve
@@ -218,7 +225,7 @@ use at_module_omp
   !!
   !!
   subroutine construct_vDiffProcMat2(vDiffProcMat, vDiffProcMatKp, &
-    & Av, dt, xy_totDepth, &
+    & vDiffTermCoef, dt, xy_totDepth, &
     & BCKindUpper, BCKindBottom )
     
     !
@@ -231,7 +238,7 @@ use at_module_omp
     !
     real(DP), intent(inout), allocatable :: vDiffProcMat(:,:,:)
     integer, intent(inout), allocatable :: vDiffProcMatKp(:,:)
-    real(DP), intent(in) :: Av
+    real(DP), intent(in) :: vDiffTermCoef
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     character, intent(in) :: BCKindUpper, BCKindBottom ! N or D
@@ -270,9 +277,9 @@ use at_module_omp
     do k=1,kMax-1
        !$omp parallel workshare
        forAll(t=0:tMax) &
-            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*0.5d0*Av/Depth**2 * dwork_tg_data(t,k)
+            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*vDiffTermCoef/Depth**2 * dwork_tg_data(t,k)
        !$omp end parallel workshare
-       vDiffProcMat(:,k,tMax+1) = - dt
+       vDiffProcMat(:,k,tMax+1) = 0.5d0*dt
     end do
 
     dwork_tg_data = ag_at( at_Dx_at(tt_I) )
@@ -297,7 +304,11 @@ use at_module_omp
     end if
 
 !    iwork_tg_data = matmul(g_X_WEIGHT, tg_data)
-    forall(t=0:tMax) vDiffProcMat(:,kMax+1,t) = dot_product(g_X_WEIGHT, tg_data(t,:))
+!    forall(t=0:tMax) vDiffProcMat(:,kMax+1,t) = dot_product(g_X_WEIGHT, tg_data(t,:))
+
+    forall(t=0:tMax) &
+         & vDiffProcMat(:,kMax+1,t) = - dt*vDiffTermCoef/Depth**2 * (dwork_tg_data(t,0) - dwork_tg_data(t,kMax))
+    vDiffProcMat(:,kMax+1,tMax+1) = 0.5d0*dt
 
     call ludecomp(vDiffProcMat, vDiffProcMatKp)
 
@@ -308,7 +319,7 @@ use at_module_omp
   !!
   !!
   subroutine construct_vDiffProcMat(vDiffProcMat, vDiffProcMatKp, &
-    & Av, dt, xy_totDepth, &
+    & vDiffTermCoef, dt, xy_totDepth, &
     & BCKindUpper, BCKindBottom )
 
     !
@@ -320,7 +331,7 @@ use at_module_omp
     !
     real(DP), intent(inout), allocatable :: vDiffProcMat(:,:,:)
     integer, intent(inout), allocatable :: vDiffProcMatKp(:,:)
-    real(DP), intent(in) :: Av
+    real(DP), intent(in) :: vDiffTermCoef
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     character, intent(in) :: BCKindUpper, BCKindBottom ! N or D
@@ -356,7 +367,7 @@ use at_module_omp
     do k=1,kMax-1
        !$omp parallel workshare
        forAll(t=0:tMax) &
-            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*0.5d0*Av/Depth**2 * dwork_tg_data(t,k)
+            & vDiffProcMat(:,k,t) = tg_data(t,k) - dt*vDiffTermCoef/Depth**2 * dwork_tg_data(t,k)
        !$omp end parallel workshare
     end do
 

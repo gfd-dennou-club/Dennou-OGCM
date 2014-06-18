@@ -44,7 +44,7 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_SurfHeightA(:,:), xy_SurfHeightN(:,:), xy_SurfHeightB(:,:)
   real(DP), public, save, allocatable :: xy_totDepthBasic(:,:)
   real(DP), public, save, allocatable :: z_PTempBasic(:)
-  real(DP), public, save, allocatable :: xy_SurfPress(:,:)
+  real(DP), public, save, allocatable :: xy_SurfPressA(:,:), xy_SurfPressN(:,:), xy_SurfPressB(:,:)
   real(DP), public, save, allocatable :: xy_WindStressU(:,:)
   real(DP), public, save, allocatable :: xy_WindStressV(:,:)
 
@@ -109,7 +109,7 @@ contains
     call malloc2DVar(xy_SurfHeightA); call malloc2DVar(xy_SurfHeightN); call malloc2DVar(xy_SurfHeightB);
     call malloc2DVar(xy_totDepthBasic)
     call malloc1DVar(z_PTempBasic)
-    call malloc2DVar(xy_SurfPress)
+    call malloc2DVar(xy_SurfPressA);  call malloc2DVar(xy_SurfPressN); call malloc2DVar(xy_SurfPressB);
     call malloc2DVar(xy_WindStressU); call malloc2DVar(xy_WindStressV)
     !
     TracerNum = 2
@@ -158,7 +158,7 @@ contains
        deallocate( xyz_SaltA, xyz_SaltN, xyz_SaltB )
        deallocate( xy_SurfHeightA, xy_SurfHeightN, xy_SurfHeightB )
        deallocate( xy_totDepthBasic )
-       deallocate( xy_SurfPress )
+       deallocate( xy_SurfPressA, xy_SurfPressN, xy_SurfPressB )
        deallocate( xy_WindStressU, xy_WindStressV )
     end if
 
@@ -186,17 +186,20 @@ contains
 
     !$omp workshare    
     xyz_UB = xyz_UN; xyz_VB = xyz_VN; xyz_PTempEddB = xyz_PTempEddN; 
-    xyz_SaltB = xyz_SaltN; xy_SurfHeightB = xy_SurfHeightN
+    xyz_SaltB = xyz_SaltN; xy_SurfHeightB = xy_SurfHeightN;
+    xy_SurfPressB = xy_SurfPressN
     !$omp end workshare
 
     !$omp workshare
     xyz_UN = xyz_UA; xyz_VN = xyz_VA; xyz_PTempEddN = xyz_PTempEddA; 
     xyz_SaltN = xyz_SaltA; xy_SurfHeightN = xy_SurfHeightA    
+    xy_SurfPressN = xy_SurfPressA
     !$omp end workshare
 
     !$omp workshare
     xyz_UA = 0d0; xyz_VA = 0d0; xyz_PTempEddA = 0d0
     xyz_SaltA = 0d0; xy_SurfHeightA = 0d0
+    xy_SurfPressA = 0d0
     !$omp end workshare
 
 !!$    xyz_UB = xyz_UN; xyz_UN = xyz_UA; xyz_UA = 0d0

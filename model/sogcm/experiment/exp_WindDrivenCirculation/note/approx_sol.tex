@@ -1,0 +1,650 @@
+\chapter{支配方程式系の近似解: 赤道遠方}
+\markright{\arabic{chapter} 支配方程式系の近似解: 赤道遠方}
+本章では, 境界条件 (\ref{eq:BC_top_hVel_nodim})-(\ref{eq:BC_btm_vVel_nodim}) に対する, 
+支配方程式系(\ref{eq:x_momem_dim})-(\ref{eq:continuity_dim})の近似解を逓減摂動法を使って求める. 
+
+逓減摂動法を用いて, 非線形偏微分方程式である支配方程式系から, より簡単な方程式系を取り出すには, 
+以下のようなことを行う. 
+今, それぞれの変数の解は, $y,z,t$および無次元のパラメータ$\varepsilon, E_H, E_V$の関数である. 
+これらの無次元パラーメタの値が小さいとき, そのパラメータによってそれぞれの変数を級数展開することができる. 
+例えば, 変数のベクトル$\Dvect{q}=(u,v,w,p)$は, 
+%%
+\begin{equation}
+  \Dvect{q} = \Dvect{q}_0(y,z,t) + \Delta(\varepsilon,E_V,E_H)\Dvect{q}_1 (y,z,t) + ...
+\label{eq:variable_expand}
+\end{equation}
+%%
+と級数展開できる. 
+ここで, $\Delta$は小さなパラメータであり, $\varepsilon,E_V,E_H$の関数である. 
+今, その関数形の詳細は重要でないが,   
+$\varepsilon, E_V,E_H \to 0$のとき$\Delta \to 0$でなければならない. 
+これを, 支配方程式系(\ref{eq:x_momem_dim})-(\ref{eq:continuity_dim})に代入して, 
+小さなパラメーターの同じオーダー(O(1), O$(\Delta)$, ...)の項を集めることによって, 
+各オーダーに対するより簡単な方程式が得られる. 
+
+本論文で扱う方程式系において, 
+変数の最低次の解$\Dvect{q}_0$の解を決定するためには, 
+O(1) や O($\Delta$) の項をそれぞれ集めて, それぞれのオーダーに対する方程式を導き, 
+さらに境界層の解を考慮することによって, 
+$\Dvect{q}_0$で閉じた方程式系を導く必要がある. 
+
+\section{線形近似解(赤道遠方)} 
+\markright{\arabic{chapter}.\arabic{section} 線形近似解(線形遠方)}
+
+海洋の観測事実によれば, 定常的な速度は 2 $\sim$ 3 m/s を超えることはないので, 
+ロスビー数が 1 以上となるのは, 赤道の近傍か, あるいは中緯度では数 10 km の水平スケールを持つ運動(例えば, 慣性境界流)
+に限られる%
+\footnote{
+例えば, 緯度 40 度では, $f \sim 10^{-4}$ [s$^{-1}$] であるので, $U \sim 2$ [m] とするとき, 
+ロスビー数が 1 を超えるためには, 運動の水平スケールは 20 [km] 以下でなければならない. 
+
+一方, 低緯度域の水平スケール$L \sim 10^2$[km], $U \sim 2$ [m] の運動に対して,   
+ロスビー数が 1 を超えるためには, 緯度は 8 度以上でなければならない. 
+}. 
+したがって, 赤道の近傍を除く($\theta_0$が 10 度以上), 大規模な(水平スケールが $10^3$以上の)海洋循環に対する, 
+ロスビー数は 1 よりも十分に小さい. 
+本節では, 赤道近傍以外の, 内部領域と上・下端の境界層における支配方程式の近似解を求める. 
+
+\subsection{内部領域における最低次の循環: O(1) のバランス}
+
+変数の最低次$\Dvect{q}_0$は, 級数展開(\ref{eq:variable_expand})から, 
+%%
+\begin{equation}
+  \Dvect{q}_0 = \lim_{\scriptsize (y,z,t)\;\; {\rm fixed} \atop \scriptsize E_V, \varepsilon, E_H \to 0} \; \Dvect{q}
+\end{equation}
+%%
+なる極限によって定義される. 
+したがって, (\ref{eq:variable_expand})は内部領域の流れに対する適切な表現を与える. 
+しかし, 上の極限により定義される$\Dvect{q_0}$自体は. 境界条件を満足しないだろう. 
+そのため, 境界条件を満足させるための修正が必要である.  
+
+
+\subsubsection*{内部領域の O(1) のバランス}
+%%
+(\ref{eq:x_momem_nondim})-(\ref{eq:continuity_nondim})に(\ref{eq:variable_expand})を適用して, 
+O(1) の項を集めれば, 
+%%
+\begin{subequations}
+ \begin{align}
+   u_0 &= - \DP{p_0}{y}, 
+   \label{eq:y_momem_nondim_order1} \\
+   v_0 &= 0,             
+   \label{eq:x_momem_nondim_order1}  \\
+   0   &= \DP{p_0}{z}, 
+   \label{eq:hydrostatic_nondim_order1} \\
+   \DP{w_0}{z} &= 0   
+   \label{eq:continuity_nondim_order1}
+ \end{align}
+\end{subequations}
+%%
+を得る. 
+ただし, (\ref{eq:continuity_nondim_order1}) を導く際に, 
+(\ref{eq:x_momem_nondim_order1}) を用いた. 
+したがって, 内部領域における O(1) の水平速度は地衡流である. 
+特に, $x$方向の一様性のために, $v_0$は恒等的にゼロである. 
+また, (\ref{eq:hydrostatic_nondim_order1}) より, 
+%%
+\begin{equation}
+  \DP{u_0}{z} = 0
+\end{equation}
+%%
+であるので, 内部領域の O(1) の速度は$z$に\textbf{独立}である. 
+
+(\ref{eq:y_momem_nondim_order1})-(\ref{eq:continuity_nondim_order1})は, 
+内部領域の O(1) の速度におけるバランスを与えるが, 依然としてそれらは\textbf{未知}である(地衡流縮退). 
+内部領域の O(1) の循環を決定するためには, O($\varepsilon$) の項のバランスによって与えられる, 
+$\Dvect{q}_0$の時間発展式が必要である. 
+また, その時間発展式を$\Dvect{q}_0$で閉じるには, 
+$z=0,-1$近傍の摩擦層(エクマン層)内の運動を調べて, それが内部領域に与える強制を$\Dvect{q}_0$を使って表現しなければならない.  
+その際, 境界条件 (\ref{eq:BC_top_hVel_nodim})-(\ref{eq:BC_btm_vVel_nodim}) は考慮される.
+ 
+\subsection{エクマン層とその内部領域に対する強制の定式化}
+$z=0,1$近傍のエクマン層の運動は, 境界層理論によって記述できる. 
+
+\subsubsection*{下部境界近傍のエクマン層}
+$z=0$の底面に発生するエクマン層の記述を, Pedlxosky(1987) の 4.5 節に従って行う. 
+今, 境界近傍における鉛直方向の場の急激な変化を O(1) で表現するために, 
+伸縮座標
+%%
+\begin{equation}
+  \xi = z/l 
+\label{eq:stretch_vcoord_lower}
+\end{equation}
+%%
+を導入する. 
+ここで, $l$は無次元の境界層の厚さである. 
+(\ref{eq:x_momem_nondim})-(\ref{eq:continuity_nondim}) に対して, 
+(\ref{eq:stretch_vcoord_lower})を適用すれば, 
+%%
+\begin{subequations}
+\begin{align}
+  \varepsilon \left( \DP{u}{t} + v\DP{u}{y} + \dfrac{w}{l}\DP{u}{\xi} - \beta y v \right) - v 
+       &= \dfrac{E_H}{2} \DP[2]{u}{y} + \dfrac{E_V}{2l^2} \DP[2]{u}{\xi}, \label{eq:x_momem_nondim_lowEkman} \\
+  \varepsilon \left( \DP{v}{t} + v\DP{v}{y} + \dfrac{w}{l}\DP{v}{\xi} + \beta y u \right) + u 
+       &= - \DP{p}{y} + \dfrac{E_H}{2} \DP[2]{v}{y} + \dfrac{E_V}{2l^2} \DP[2]{v}{\xi}, \label{eq:y_momem_nondim_lowEkman} \\
+  \dfrac{1}{l}\DP{p}{\xi} &= 0, \label{eq:hydrostatic_nondim_lowEkman} \\
+  \DP{v}{y} + \dfrac{1}{l} \DP{w}{\xi} &= 0. \label{eq:continuity_nondim_lowEkman}
+\end{align}
+\end{subequations}
+%%
+を得る. 
+したがって, $E_V$に比例する摩擦項が O(1) のコリオリ項とバランスするために, 
+%%
+\begin{equation}
+  l = E_V^{1/2}
+\end{equation}
+%%
+と選ぶ. 
+
+境界層において, 変数は
+%%
+\begin{equation}
+  \Dvect{q} = \tilde{\Dvect{q}}(y,\xi,t,E_V,E_H,\varepsilon)
+  = \tilde{\Dvect{q}}_0 (y,\xi,t) + ...
+\label{eq:variable_expand_lowEkman}
+\end{equation}
+%%
+と書かれる. 
+ここで, $(\tilde{\;\;})$は境界層近傍で適切な表現であることを示す. 
+また, 最右辺の小さなパラメータによる級数展開は, 
+固定した$\xi$に対して$E_V, E_H, \varepsilon \to 0$の極限により, 
+$\tilde{\Dvect{q}}_0$を定義する. 
+
+次に, (\ref{eq:continuity_nondim_lowEkman}) を用いて, $\tilde{w}$のスケールについて考える. 
+今, 
+%%
+\begin{equation}
+  \DP{\tilde{w}}{\xi} = - E_V^{1/2} \DP{\tilde{v}}{y}
+\end{equation}
+%%
+であるので, もし$\tilde{w}$が O($E_V^{1/2}$) より大きければ, 
+%%
+$\partial \tilde{w}/ \partial \xi = 0$
+%%
+であることを要求するだろう. 
+このとき, 鉛直速度の境界条件(\ref{eq:BC_btm_vVel_nodim})から, $\tilde{w}$は恒等的にゼロとなってしまう. 
+したがって, $\tilde{w} = O(E_V^{1/2})$でなければならない. 
+故に, 境界層の鉛直速度のスケールを次のようにとり直す. 
+%%
+\begin{equation}
+\begin{split}
+   \tilde{w}(y,\xi, t, \varepsilon, E_H, E_V) 
+  &=   E_V^{1/2} \tilde{W}(y,\xi, t, \varepsilon, E_H, E_V)  \\
+  &=   E_V^{1/2} \{ \tilde{W}_0 (y,\xi,t) + ... \}.
+\end{split}
+\end{equation}
+%%
+
+$\tilde{u},\tilde{v},\tilde{W},\tilde{p}$の小さなパラメータによる級数展開を, 
+(\ref{eq:x_momem_nondim_lowEkman})-(\ref{eq:continuity_nondim_lowEkman})に代入し, 
+O(1) の項だけ集めれば, 
+%%
+\begin{subequations}
+\begin{align}
+   - \tilde{v}_0 &= \DP[2]{u}{\xi}, 
+       \label{eq:x_momem_nondim_lowEkman_order1} \\
+   \tilde{u}_0    &= - \DP{\tilde{p}_0}{y} + \DP[2]{\tilde{v}_0}{\xi}, 
+       \label{eq:y_momem_nondim_lowEkman_order1} \\
+  \DP{\tilde{p}_0}{\xi} &= 0, 
+        \label{eq:hydrostatic_nondim_lowEkman_order1} \\
+  \DP{\tilde{W}_0}{\xi} &= - \DP{\tilde{v}_0}{y} 
+        \label{eq:continuity_nondim_lowEkman_order1}
+\end{align}
+\end{subequations}
+%%
+を得る. 
+
+(\ref{eq:hydrostatic_nondim_lowEkman_order1}) より, 
+境界層内の O(1) の圧力$\tilde{p}_0$は$\xi$に依存しない. 
+また, 境界層内の変数は, $\xi \to 0$のとき, 内部領域の解と滑らかに接続しなければならない(接合原理). 
+すなわち, 
+%%
+v\begin{equation}
+ \lim_{\xi \to \infty} \Dvect{\tilde{q}}_0
+ =  \lim_{z \to 0} \Dvect{q}_0
+\end{equation} 
+%%
+でなければならない. 
+したがって, すべての$\xi$に対して, 境界層内の O(1) の圧力勾配は内部領域の O(1) の
+圧力勾配によって与えられる. 
+このとき, \eqref{eq:x_momem_nondim_lowEkman_order1}, \eqref{eq:y_momem_nondim_lowEkman_order1} は, 
+%%
+\begin{equation}
+\begin{split}
+  \dfrac{1}{2}\DP[2]{\tilde{u}_0}{\xi}  + \tilde{v}_0 &= 0, \\
+  \dfrac{1}{2}\DP[2]{\tilde{v}_0}{\xi}  - \tilde{u}_0 &= u_0(y)
+\end{split}
+\label{eq:lowEkman_2orderOrdinaryEq}
+\end{equation}
+%%
+と書ける. 
+ただし, \eqref{eq:y_momem_nondim_order1}, \eqref{eq:x_momem_nondim_order1}によって,内部領域の O(1) の水平圧力勾配を水平速度で置き換えた. 
+今, $z=\xi=0$に対する滑りなし条件と水平速度に対する接合原理, 
+%%
+\begin{equation}
+\begin{split}
+  \tilde{u}_0 = 0, \;\; \tilde{v}_0 = 0 \;\;\;\;\;\; &{\rm at} \;\; \xi = 0, \\
+  \tilde{u}_0 = u_0(y), \;\; \tilde{v}_0 = v_0(y)=0 \;\;\;\;\;\; &{\rm at} \;\; \xi \to \infty 
+\end{split}
+\end{equation}
+%%
+のもとで, 
+\eqref{eq:lowEkman_2orderOrdinaryEq}の解を求めれば, 
+\begin{equation}
+\boxed{
+  \tilde{u}_0 = u_0(y) \left[1 - e^{-\xi}\cos{\xi} \right], \;\;\;\;
+  \tilde{v}_0 = u_0(y) e^{-\xi} \sin{\xi}  
+}
+\label{eq:EkmanSol_hVel_order1}
+\end{equation}
+%%
+を得る%
+\footnote{
+$x$方向の一様性を仮定しない場合には, エクマン層内の水平速度の最低次は, 
+ベクトル形式で書けば, 
+\begin{equation*}
+\boxed{
+  \Dvect{\tilde{u}}_0 = \Dvect{u}_0 (1 - e^{-\xi} \cos{\xi})
+         + (\Dvect{k} \times \Dvect{u}_0) e^{-\xi} \sin{\xi}
+}
+\end{equation*} 
+%%
+となる. 
+ここで, $\Dvect{\tilde{u}}_0=(\tilde{u}_0, \tilde{v}_0)$, $\Dvect{u}_0=(u_0, v_0)$とおいた.  
+また, $\Dvect{k}$は鉛直方向の単位ベクトルである. 
+}.
+
+次に, エクマン層における鉛直速度$\tilde{W}_0$を求める. 
+\eqref{eq:continuity_nondim_lowEkman_order1}に\eqref{eq:EkmanSol_hVel_order1}を代入し, 
+その結果を$\xi$について 0 から$\xi$まで積分すれば, 
+%%
+\begin{equation}
+\boxed{
+ \tilde{W}_0(y,\xi) = \dfrac{1}{2} \zeta_0 
+    \left[ 1 - e^{\xi}(\cos{\xi} + \sin{\xi} ) \right]
+}
+\label{eq:EkmanSol_vVel_order1}
+\end{equation}
+%%
+を得る%
+\footnote{
+$x$方向の一様性を仮定しない場合でも, 境界層の鉛直速度は同じ表現で与えられる. 
+}. 
+ただし, 積分定数の決定のために, $\xi=0$において$\tilde{W}_0=0$である境界条件を用いた. 
+また, $\zeta_0(=-\partial u_0/\partial y)$は内部領域の渦度の最低次を表す. 
+鉛直速度に対して接合原理を適用すれば, \eqref{eq:EkmanSol_vVel_order1}は$z=0$における内部領域の鉛直速度
+%%
+\begin{equation}
+\boxed{
+ w(y,0) = \dfrac{E_V^{1/2}}{2} \zeta_0 
+}
+\label{eq:BC_interior_btm_nodim}
+\end{equation}
+%%
+を与える. 
+したがって, 内部領域の流れに対する下部境界条件が得られた. 
+
+\subsubsection*{上部境界近傍のエクマン層}
+応力が加えられる流体表面の近傍に発生するエクマン層の記述を, Pedlosky(1987) の 4.10 節に従って行う. 
+手法は上で示した下部境界近傍のエクマン層の場合とほぼ同じであるので, 
+異なる部分以外は結果のみを示すことにする. 
+
+最初に, 伸縮座標を
+%%
+\begin{equation}
+ \overline{\xi} = \dfrac{1 - z}{E_V^{1/2}}
+\end{equation}
+%%
+と導入する. 
+さらに, \eqref{eq:variable_expand_lowEkman}と同様の小さなパラメータによる変数の級数展開を行えば, 
+境界層における O(1) の方程式系
+%%
+%%
+\begin{subequations}
+\begin{align}
+   - \tilde{v}_0 &= \DP[2]{u}{\overline{\xi}}, 
+       \label{eq:x_momem_nondim_upEkman_order1} \\
+   \tilde{u}_0    &= - \DP{\tilde{p}_0}{y} + \DP[2]{\tilde{v}_0}{\overline{\xi}}, 
+       \label{eq:y_momem_nondim_upEkman_order1} \\
+  - \DP{\tilde{p}_0}{\overline{\xi}} &= 0, 
+        \label{eq:hydrostatic_nondim_upEkman_order1} \\
+  - \DP{\tilde{W}_0}{\overline{\xi}} &= - \DP{\tilde{v}_0}{y} 
+        \label{eq:continuity_nondim_uperEkman_order1}
+\end{align}
+\end{subequations}
+%%
+を得る. 
+境界層における水平圧力勾配は, 下側のエクマン層と同様に内部領域の値を与えればよい. 
+また, \eqref{eq:x_momem_nondim_upEkman_order1}, \eqref{eq:y_momem_nondim_upEkman_order1}に対する
+$\overline{\xi}=0$における境界条件として, 
+\eqref{eq:BC_top_hVel_nodim}, すなわち,  
+%%
+\begin{equation}
+ \DP{\tilde{u}}{\overline{\xi}} = \alpha \tau_x (y), \;\;\;
+ \DP{\tilde{v}}{\overline{\xi}} = 0 \;\;\;\;\;\; {\rm at} \;\; \overline{\xi} = 0
+\end{equation}
+%%
+を課す. 
+ここで, 
+%%
+\begin{equation}
+ \alpha = \dfrac{2\tau_0}{\rho_0 f D E_V^{1/2} U}
+\end{equation}
+%%
+とおいた. 
+このとき, 境界条件を満足する境界層内の O(1) の水平速度は, 
+%%
+\begin{equation}
+\boxed{
+  \tilde{u} = u_0(y) + \dfrac{e^{-\overline{\xi}}}{2} \alpha \tau_x(y) \left[ - \sin{\overline{\xi}} + \cos{\overline{\xi}} \right], \;\;\;
+  \tilde{v} = - \dfrac{e^{-\overline{\xi}}}{2} \alpha \tau_x(y) \left[ \sin{\overline{\xi}} + \cos{\overline{\xi}} \right]
+}
+\label{eq:upEkmanSol_vVel_order1}
+\end{equation}
+%%
+と得られる%
+\footnote{
+$x$方向の一様性を仮定せず, また流体表面に加わる応力がより一般的な場合には, 
+境界層内の O(1) の水平速度は, 
+ベクトル形式において, 
+%%
+\begin{equation}
+ \tilde{u} = \Dvect{u}_0 + \dfrac{\alpha e^{-\overline{\xi}}}{2} 
+      [\Dvect{\tau}(\cos{\overline{\xi}} - \sin{\overline{\xi}}) - (\Dvect{k}\times\Dvect{\tau})(\cos{\overline{\xi}} + \sin{\overline{\xi}})]
+\label{eq:upEkmanSol_hVel_order1}
+\end{equation}
+%%
+となる. 
+}
+
+境界層内の鉛直速度もまた下側エクマン層と同様に求めることができる. 
+すなわち, \eqref{eq:upEkmanSol_vVel_order1}を\eqref{eq:continuity_nondim_uperEkman_order1}に代入し, 
+$\overline{\xi}$について 0 から$\overline{\xi}$まで積分すればよい. 
+rigid-lid 近似を適用するとき, $\overline{\xi}=0$における鉛直速度はゼロとするので, 
+結果的に境界層内の鉛直速度は, 
+%%
+\begin{equation}
+\boxed{
+ \tilde{W}_0(y,\bar{\xi}) = - \dfrac{\alpha}{2} \DP{\tau_x(y)}{y} \left[ 1 - e^{-\bar{\xi}} \cos \bar{\xi} \right]
+ \label{eq:upEkmanSol_vVel_order1}
+}
+\end{equation}
+%%
+と与えられる. 
+最後に, 鉛直速度に対して接合原理を適用すれば, \eqref{eq:upEkmanSol_vVel_order1}は, 
+$z=H$における内部領域の鉛直速度
+%%
+\begin{equation}
+\boxed{
+  w(y,H) = \alpha \dfrac{E_V^{1/2}}{2}\Dvect{k} \cdot {\rm curl \;} \Dvect{ \tau }
+}
+\label{eq:BC_interior_upper_nodim}
+\end{equation}
+%%
+を与える%
+\footnote{
+$x$方向の一様性を仮定せず, また一般的な応力分布を与える場合でも, 
+同じ形式の鉛直速度が得られる. 
+}. 
+ここで, 
+%%
+\begin{equation}
+  \Dvect{k} \cdot {\rm curl \;} \Dvect{\tau} = \DP{\tau_y}{x} - \DP{\tau_x}{y} = -\DP{\tau_x(y)}{y}
+\end{equation}
+%%
+である. 
+したがって, 内部領域の流れに対する上部境界条件が得られた. 
+
+\subsection{内部領域における最低次の循環: O($\varepsilon$) のバランス}
+
+\subsubsection*{展開パラメータ$\Delta$の決定}
+
+\eqref{eq:variable_expand}における展開パラメータ$\Delta$は, 
+実際の流れが O(1) の厳密な地衡流からどの程度ずれるかの指標である. 
+今の場合, 内部領域において, 地衡流からのずれを発生させる機構は, 
+%%
+\begin{itemize}
+ \item 流れの相対加速度(相対速度の移流)
+ \item エクマン・パンピングによる惑星渦管の伸縮  
+ \item 運動量の水平拡散
+\end{itemize}
+%%
+である. 
+1 つ目の機構は, O($\varepsilon$) の非地衡流を生じさせる. 
+一方, 2 つ目の機構は, O($E_V^{1/2}$) の相対渦度の変化を発生させる. 
+エクマン・パンピングによる惑星渦管伸縮と相対渦度の移流との比は,
+$$
+E_V^{1/2}/\varepsilon = (L/U)/\tau_{\rm spinup}
+$$
+で与えられる. 
+ここで, $\tau_{\rm spinup}=D/(2A_V f)^{1/2}$である. 
+これは, \eqref{eq:ratio_advect_EkmanSpinup_time}で定義される$r$に他ならず,  
+今$r={\rm O}(1)$を仮定している. 
+$r$が大きい, あるいは小さい場合については, $r$の極限をとることによって考慮される. 
+3 つ目の機構によるずれへの寄与は, O$(E_H)$である. 
+運動量の摩擦による水平拡散と相対加速度の比は, 
+$$
+ E_H/\varepsilon = \dfrac{2}{\rm Re}
+$$
+で与えられる. 
+ここで, Re$=UL/A_H$は内部領域の流れのレイノルズ数である. 
+通常, 地球流体力学の問題において, このレイノルズ数は十分に大きく, 
+比$E_H/\varepsilon=2/{\rm Re}$は小さい. 
+しかし, 滑りなし条件を課す水平境界が存在する場合, そこで水平拡散項が重要となるため, 
+O($E_H$)の水平拡散項を無視せずの残すことにする. 
+
+したがって, 小さなパラメータ$\Delta$による変数$\Dvect{q}$の級数展開は, 
+%%
+\begin{equation}
+\begin{split}
+   \Dvect{q} &= \Dvect{q}(y,z,t, \varepsilon, E_V, E_H) \\
+             &= \Dvect{q}_0(y,z,t, r, {\rm Re})
+                 + \varepsilon \Dvect{q}_1(y,z,t, r, {\rm Re}) + ...
+\label{eq:variable_expand_RossbyNum}
+\end{split}
+\end{equation}
+%%
+と書ける. 
+
+\subsubsection*{O(1)の変数の時間発展方程式}
+
+(\ref{eq:x_momem_nondim})-(\ref{eq:continuity_nondim}) に, 
+\eqref{eq:variable_expand_RossbyNum}を代入し, O(1) の項を集めれば, 
+やはり\eqref{eq:y_momem_nondim_order1}-\eqref{eq:continuity_nondim_order1}が得られる. 
+よって, O(1) の速度は$z$に依存しない. 
+今, $z=0$における鉛直速度の最低次は, \eqref{eq:BC_interior_btm_nodim}により O($E_V^{1/2}$) である. 
+$E_V^{1/2} \ll 1$であるので, 故に全ての$z$に対して, 
+%%
+\begin{equation}
+\boxed{
+  w_0 = 0
+}
+\label{eq:interior_wvel_order1}
+\end{equation}
+でなければならない. 
+
+O($\varepsilon$) の項を集め, さらに$u_0$が$z$に依存しないこと, 今$v_0,w_0$が内部領域において恒等的にゼロである事実を用いれば, 
+%%
+\begin{subequations}
+\begin{align}
+  \DP{u_0}{t}             - v_1 &=                 \dfrac{1}{\rm Re}\DP[2]{u_0}{y}, 
+  \label{eq:x_momem_nondim_orderRo} \\
+              - \beta u_0 + u_1 &= - \DP{p_1}{y}, 
+  \label{eq:y_momem_nondim_orderRo}  \\
+                              0 &= \DP{p_1}{z}, 
+  \label{eq:hydrostatic_nondim_orderRo} \\
+  \DP{v_1}{y} + \DP{w_1}{z}     &= 0 
+  \label{eq:continuity_nondim_orderRo}
+\end{align}
+\end{subequations}
+%%
+を得る. 
+次に, 渦度方程式は($x$方向の一様性に注意), 
+%%
+\begin{equation}
+\begin{split}
+    \DP{\zeta_0}{t} &= - \DP{v_1}{y} + \dfrac{1}{\rm Re}\DP[2]{\zeta_0}{y} \\
+                    &=   \DP{w_1}{y} + \dfrac{1}{\rm Re}\DP[2]{\zeta_0}{y}   
+\end{split}   
+\end{equation}
+%%
+と求まる. 
+ここで, $\zeta_0$は内部領域における O(1) の相対渦度であり, 今の場合$\zeta_0 = -\DP{u_0}{y}$
+最低次の運動は$z$に依存しないので, $z$について 0 から 1 まで簡単に積分できる. 
+その結果, 
+%%
+\begin{equation}
+  \DP{\zeta_0}{t} = w_1(y,1) - w_1(y,0) + \dfrac{1}{\rm Re}\DP[2]{\zeta_0}{y} 
+\end{equation}
+%%
+を得る. 
+この時点で, $z=0,1$における摩擦層の存在が重要になる. 
+\eqref{eq:BC_interior_btm_nodim}と\eqref{eq:variable_expand_RossbyNum}から, 
+%%
+\begin{equation}
+  w(y,0,t) = \varepsilon w_1(y,0,t) + ... = \dfrac{E_V^{1/2}}{2} \zeta_0
+\end{equation}
+%%
+であるので, 
+%%
+\begin{equation}
+\boxed{
+  w_1(y,0,t) = \dfrac{r}{2} \zeta_0(y,0,t)
+}
+\end{equation}
+%%
+vとなる. 
+同様に, \eqref{eq:BC_interior_upper_nodim}と\eqref{eq:variable_expand_RossbyNum}から, 
+%%
+\begin{equation}
+\boxed{
+  w_1(y,H,t) = \left(\dfrac{\tau_0}{\rho_0 f_0 U D \varepsilon} \right) \Dvect{k} \cdot {\rm curl \tau}
+}
+\end{equation}
+%%
+となる.
+したがって, O($\varepsilon$) までの系のポテンシャル渦度方程式, 
+%%
+\begin{equation}
+ \boxed{
+   \DP{}{t} \DP[2]{\psi}{y} = 
+     \left[\dfrac{\tau_0}{\rho_0 f_0 U D \varepsilon}  \right] \Dvect{k} \cdot {\rm curl \;} \tau 
+     - \dfrac{r}{2}\DP[2]{\psi}{y} + \dfrac{1}{\rm Re}\DP[4]{\psi}{y}
+ }
+\label{eq:interior_PV}
+\end{equation}
+%%
+が得られる%
+\footnote{
+本論文では, $x$方向の一様性, 地形なし, および流体表面において rigid-lid を仮定したため, 
+内部領域の運動に対するポテンシャル渦度方程式\eqref{eq:interior_PV}の右辺は,
+$zeta_0$の局所時間微分の項しか残らない. 
+
+一方, より一般的な場合には, 
+すなわち地形や摩擦が存在し, 流体表面が自由表面である場合には, 
+準地衡流ポテンシャル渦度方程式は Pedlosky(1987) の式(4.1.12) によって, 
+%%
+\begin{equation*}
+\boxed{
+ \begin{split}
+   \left[ \DP{}{t} + \DP{\psi}{x}\DP{}{y} - \DP{\psi}{y}\DP{}{x} \right]
+     &\left[\nabla^2 \psi - F \psi + \beta y + \eta_B \right] \\
+     &= \left[\dfrac{\tau_0}{\rho_0 f_0 U D \varepsilon}  \right] \Dvect{k} \cdot {\rm curl \;} \tau 
+     - \dfrac{r}{2}\nabla^2\ psi + \dfrac{1}{\rm Re} \nabla^4 \psi
+ \end{split}
+}
+\end{equation*}
+%% 
+と与えられる.
+ここで, $\psi$は内部領域の O(1) の水平速度に対する流線関数, 
+$F=L^2/(gD/f^2)$はフルード数である. 
+また, 
+$$
+\eta_0=\psi, \;\;\;\; 
+\varepsilon \eta_B(x,y)=\dfrac{h_{B*}}{D}
+$$
+である. ただし, $h_{B*}$は有次元の地形の高さであり, $h_{B*}/D = {\rm O}(\varepsilon)$で
+ある(流体層の厚さに対して, 地形高度は十分に小さい)ことを仮定している. 
+}. 
+ここで, $\psi$は O(1) の水平速度に対する流線関数であり, 
+$\partial^2 \psi/ \partial y^2=\zeta_0$
+である. 
+
+\subsection{内部領域における最低次の循環:定常解}
+%%
+次に, \eqref{eq:interior_PV}の定常解を求める. 
+
+明らかに, 流体表面で加えられる応力の回転(右辺一項目)による強制は, 下部エクマン層における散逸とバランスするだろう. 
+したがって, $U$のスケールを
+%%
+\begin{equation}
+  U = \dfrac{2}{r} \dfrac{\tau_0}{\rho_0 f_0 D \varepsilon}  = \dfrac{2 \tau_0}{\rho_0 f_0 \delta_E}
+\end{equation}
+%%
+のように取る. 
+ここで, $\delta_E = E_V^{1/2} D$はエクマン層の特徴的な厚さである. 
+このとき, \eqref{eq:interior_PV}から, $\zeta_0$の$y$に対する二階の線形常微分方程式,  
+%%
+\begin{equation}
+  - \dfrac{1}{r {\rm Re}}\DD[4]{\psi}{y} + \DD[2]{\psi}{y} = \Dvect{k} \cdot {\rm curl} \; \Dvect{\tau}(y)
+\label{eq:interior_PV_steady}
+\end{equation}
+%%
+を得る. 
+ただし, 今レイノルズ数は, 
+%%
+\begin{equation}
+   {\rm Re} = \dfrac{UL}{A_H} = \dfrac{2 \tau_0 L}{A_H \rho_0 f_0 \delta_E}
+\end{equation}
+%%
+と計算される. 
+あるいは, 東西流速を用いれば, \eqref{eq:interior_PV_steady} は
+%%
+\begin{equation}
+   \dfrac{1}{r {\rm Re}}\DD[3]{u}{y} - \DD{u}{y} 
+  = \Dvect{k} \cdot {\rm curl} \; \Dvect{\tau}(y)
+\label{eq:interior_PV_steady_withU}
+\end{equation}
+%%
+とも書ける. 
+
+\subsubsection*{$r {\rm Re} \gg 1$に対する漸近級数解}
+%%
+赤道近傍を除けば風成循環の水平スケールは大規模であり, 
+その循環に対する水平レイノルズ数 Re は 1 より十分大きい. 
+また, エクマン層に伴うスピンアップ・タイムが, 移流時間スケールより短い場合(すなわち$r < 1$)を
+ここでは考えることにする. 
+このとき, 変数を${\rm Re}^{-1} (\ll 1)$によって
+%%
+\begin{equation}
+   u = \sum_{n=0}^\infty (u_0)_n (r {\rm Re})^{-n}
+\label{eq:u_expandWithRe}
+\end{equation}
+%%
+のように級数展開し, 
+\eqref{eq:interior_PV_steady_withU}の漸近級数解を求める. 
+
+\eqref{eq:u_expandWithRe}を\eqref{eq:interior_PV_steady_withU}に代入し, 
+O(1) の項を集めれば, 
+%%
+\begin{equation}
+  - \DD{(u_0)_n}{y} 
+  = \Dvect{k} \cdot {\rm curl} \; \Dvect{\tau}(y) 
+ \end{equation}
+%%
+を得る. 
+さらに, O($(r {\rm Re})^{-m}$) の項を集めれば, 
+%%
+\begin{equation}
+  \DD{(u_0)_{m}}{y} = \DD[3]{\; (u_0)_{m-1}}{y}
+\end{equation}
+%%
+なる関係式を得る. 
+今$|y| \to \infty$で$u_n$はゼロに収束することを仮定すれば, 
+上の二式から
+%%
+\begin{equation}
+  (u_0)_n = \DD[2n]{}{y} \tau_x(y)
+\end{equation}
+%%
+を得る. 

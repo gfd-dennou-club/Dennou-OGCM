@@ -13,7 +13,7 @@ module InitCond_mod
 
   use VariableSet_mod, only: &
        & xyz_UN, xyz_VN, xyz_SigDot, &
-       & xyz_PTempEddN, &
+       & xyz_PTempEddN, xy_SurfPressN, &
        & xy_WindStressU, xy_WindStressV
 
 
@@ -49,6 +49,7 @@ contains
     xyz_UN = 0d0; xyz_VN = 0d0; xyz_SigDot = 0d0
     xyz_PTempEddN = 0d0
     xy_WindStressU = 0d0; xy_WindStressV = 0d0;
+    xy_SurfPressN = 0d0;
 
   end subroutine InitCond_Init
 

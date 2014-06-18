@@ -204,7 +204,7 @@ contains
     call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
     call HistoryAutoPut(CurrentTime, "Div", xyz_wz(wz_Div))
     call HistoryAutoPut(CurrentTime, "Vor", xyz_wz(wz_Vor))
-    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFPRESS, xy_SurfPress)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFPRESS, xy_SurfPressN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SIGDOT, xyz_SigDot)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_BAROCPRESS, xyz_PressBaroc)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLON, xy_WindStressU)

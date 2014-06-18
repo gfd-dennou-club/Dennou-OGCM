@@ -220,7 +220,7 @@
 
 - 温位の比較
 
- #+CALL: create_FigsTable(" t=300yr における温位[K]の子午面分布の比較.", "exp_Kh800T42L{20,60}/yz_PTemp_mplane.jpg", "./data/") :results value raw :exports results
+ #+CALL: create_FigsTable(" t=300yr における温位[K]の子午面分布の比較.", "exp_Kh800T42L{20,60}/yz_PTemp_mplane_300yr.jpg", "./data/") :results value raw :exports results
 
  #+CALL: create_FigsTable(" 海面における温位[K]の時間発展の比較.", "exp_Kh800T42L{20,60}/tz_PTemp_SeaSurf.jpg", "./data/") :results value raw :exports results
 

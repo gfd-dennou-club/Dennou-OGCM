@@ -85,6 +85,8 @@ contains
     use Constants_mod, only: &
          & Grav, ThermalExpanCoef, PI, RPlanet, RefTemp
 
+    use gtool_history
+
     ! 宣言文; Declaration statement
     !
     
@@ -113,7 +115,7 @@ contains
     lpos = l_nm(n, m)
     wz_Chi = 0d0
     wz_Chi(lpos,:) = 1d0
-    if( m /= 0 ) wz_Chi(lpos,:) = wz_Chi(lpos,:)/sqrt(2d0)
+    wz_Chi(lpos,:) = wz_Chi(lpos,:)/sqrt(2d0)
 
     xyz_UN = xya_GradLon_wa(wz_Chi)/RPlanet
     xyz_VN = xya_GradLat_wa(wz_Chi)/RPlanet

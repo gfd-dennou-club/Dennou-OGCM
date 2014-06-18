@@ -1,0 +1,70 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験: 計算結果 ~ 水平粘性依存性
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./data/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 計算結果
+
+** 水平粘性依存性(ケース Kh800T85L60, Kh800Pr10T85L60, Kh800HAh85L60)
+
+- 海面東西流の比較 
+
+  #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Kh800T42L60, Kh800Pr10T42L60, Kh800HAhT42L60)の比較", "{exp_Kh800{,Pr10,HAh}T42L60/xy_U_SeaSurf}.jpg", "./data/") :results value raw :exports results
+
+  #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60)の比較", "{exp_Kh800{,Pr10,HAh}T85L60/xy_U_SeaSurf}.jpg", "./data/") :results value raw :exports results
+
+  #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Kh800T170L60, Kh800Pr10T170L60, Kh800HAhT170L60)の比較 ", "{exp_Kh800{,Pr10,HAh}T170L60/xy_U_SeaSurf}.jpg", "./data/") :results value raw :exports results
+
+  - Pr10, 超粘性ともに大規模な構造に影響を与えないが, T85,T170 で見られる赤道近傍の狭い西向きの流れは 1/2~1/4 倍程度に弱まる. 
+
+
+- 質量流線関数の比較
+
+  #+CALL: create_FigsTable(" t=300 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Kh800T42L60, Kh800Pr10T42L60, Kh800HAhT42L60)の比較. ", "exp_Kh800{,Pr10,HAh}T42L60/yz_MassStreamFunc_mplane.jpg", "./data/") :results value raw :exports results
+
+  #+CALL: create_FigsTable(" t=300 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60)の比較. ", "exp_Kh800{,Pr10,HAh}T85L60/yz_MassStreamFunc_mplane.jpg", "./data/") :results value raw :exports results
+
+  #+CALL: create_FigsTable(" t=300 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Kh800T170L60, Kh800Pr10T170L60, Kh800HAhT170L60)の比較. ", "exp_Kh800{,Pr10,HAh}T170L60/yz_MassStreamFunc_mplane.jpg", "./data/") :results value raw :exports results
+
+  - T170 の水平方向の数値的なノイズは, 水平粘性を強めることで抑制できる. 
+  - Pr10, 超粘性ともに大規模な構造に影響を与えない.  
+
+- 運動エネルギーの全球平均値, 収支の時間発展
+
+    #+CALL: create_FigsTable("運動エネルギー[m^2/(s^2*kg)] の全球平均値の時間発展(点線:Pr1, 実線:Pr10, 破線:超粘性)の比較(左から順に T42, T85, T170). ", "KEAvg_HCompari_T{42,85,170}.jpg", "./data/HViscCompare/") :results value raw :exports results
+
+    - 超粘性に設定した値の大きさは, 水平渦粘性に比べて総観規模の運動にはあまり効かないので, 運動エネルギーの全球平均値の大きさは Pr1 > (超粘性) > Pr10 となる. 
+    - 定常状態では, Pr1 と超粘性の間で値の差はほとんどない. 
+
+
+    #+CALL: create_FigsTable(" 運動エネルギーの全球平均値の収支解析(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60)の比較. 各図において, 破線:運動エネルギーの注入率, 実線:正味の変化率, 二点跳び破線:水平渦粘性による散逸, 跳び破線:移流項の仕事, 一点破線:ポテンシャルエネルギーへの変換, 点線:鉛直渦粘性による散逸を表す", "exp_Kh800{,Pr10,HAh}T85L60/KEBudget.jpg", "./data/") :results value raw :exports results
+
+
+- 温位の比較
+
+ #+CALL: create_FigsTable(" t=300yr における温位[K]の子午面分布(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60)の比較.", "exp_Kh800{,Pr10,HAh}T85L60/yz_PTemp_mplane_300yr.jpg", "./data/") :results value raw :exports results
+
+ #+CALL: create_FigsTable(" 海面における温位[K]の時間発展(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60)の比較.", "exp_Kh800{,Pr10,HAh}T85L60/tz_PTemp_SeaSurf.jpg", "./data/") :results value raw :exports results
+
+  -  大きな違いは見られない. 
+
+

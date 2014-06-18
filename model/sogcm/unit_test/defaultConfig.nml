@@ -1,7 +1,7 @@
 /
 &grid_nml
- nLat = 8
- nLon = 16
+ nLat = 8,
+ nLon = 16, 
  nZ = 20
 /
 /

@@ -1,0 +1,114 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験: 計算結果 ~ 解像度依存性
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./data/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 計算結果
+
+** 水平解像度依存性(ケース Kh800T42L60, Kh800T85L60, Kh800T170L60)
+
+- 東西流の比較 
+
+  - 海面分布
+    #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Kh800T42L60, Kh800T85L60, Kh800T170L60)", "exp_Kh800T{42,85,170}L60/xy_U_SeaSurf.jpg", "./data/") :results value raw :exports results
+
+     - 水平解像度が高いほど, 赤道近傍における西向きの流れは強く, 狭くなる. 
+     - 赤道近傍以外では, 海面の東西流速の構造は T42 の水平解像度で収束する. 
+
+  - 子午面分布
+    #+CALL: create_FigsTable("東西流[m]の子午面分布(左から順に Kh800T42L60, Kh800T85L60, Kh800T170L60)", "exp_Kh800T{42,85,170}L60/yz_U_mplane.jpg", "./data/") :results value raw :exports results
+
+   - 内部領域における東西流の構造は, T42 の水平解像度で収束する.  
+   - 赤道近傍の表層における西向きの流れの鉛直構造は, 水平解像度に依存する. 
+
+- 子午面循環の比較
+
+    #+CALL: create_FigsTable(" t=300 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Kh800T42L60, Kh800T85L60, Kh800T170L60)の比較. ", "exp_Kh800T{42,85,170}L60/yz_MassStreamFunc_mplane.jpg", "./data/") :results value raw :exports results
+
+   - 赤道近傍以外の子午面循環の構造は, T42 の水平解像度で収束する. 
+   - 赤道湧昇流と対応した赤道近傍の局所的な循環セルは, 水平解像度に強く依存する. 
+     - 解像度が高くなるほど, 狭く強くなる. 
+     - T170 では, 赤道域の局所的な構造により数値的に生じるノイズが顕著で, 
+       10000 日以後は赤道から離れた場所の子午面循環の構造を乱す. 
+
+- 運動エネルギーの全球平均値, 収支の時間発展
+
+    #+CALL: create_FigsTable("運動エネルギー[m^2/(s^2*kg)] の全球平均値の時間発展(破線:Kh800T42L60, 実線:Kh800T85L60, 点線:Kh800T170L60)の比較", "HCompare/KEAvg_HCompari.jpg", "./data/") :results value raw :exports results
+
+    - 水平解像度が高いほど極値は大きくなるが, T85 と T170 の間で違いはない. 
+
+
+    #+CALL: create_FigsTable(" 運動エネルギーの全球平均値の収支解析(左から順に Kh800T42L60, Kh800T85L60, Kh800T170L60)の比較. 各図において, 破線:運動エネルギーの注入率, 実線:正味の変化率, 二点跳び破線:水平渦粘性による散逸, 跳び破線:移流項の仕事, 一点破線:ポテンシャルエネルギーへの変換, 点線:鉛直渦粘性による散逸を表す", "exp_Kh800T{42,85,170}L60/KEBudget.jpg", "./data/") :results value raw :exports results
+
+- 温位の比較
+
+ #+CALL: create_FigsTable(" t=300yr における温位[K]の子午面分布の比較.", "exp_Kh800T{42,85,170}L60/yz_PTemp_mplane_300yr.jpg", "./data/") :results value raw :exports results
+
+ #+CALL: create_FigsTable(" 海面における温位[K]の時間発展の比較.", "exp_Kh800T{42,85,170}L60/tz_PTemp_SeaSurf.jpg", "./data/") :results value raw :exports results
+
+  - T42,T85,T170 の間で大きな違いは見られない. 
+
+
+** 鉛直解像度依存性(ケース Kh800T85L40, Kh800T85L60, Kh800T85L80)
+
+  風成循環計算における Chebyshev 多項式展開についての考察[fn:Consider_ChebyshevExpand]から予期されるように, 
+  本パラメータ設定では鉛直格子点が 60 点程度あれば, 鉛直方向の解の構造は収束する. 
+
+[fn:Consider_ChebyshevExpand] [[file:~/workspace/DQGModel/model/sogcm/misc/chebyshev/chebyshevCheck.html]]
+
+
+- 東西流の比較 
+
+  - 海面分布
+    #+CALL: create_FigsTable("海面東西流[m]の時間発展(左から順に Kh800T85L40, Kh800T85L60, Kh800T85L80)", "exp_Kh800T85L{40,60,80}/xy_U_SeaSurf.jpg", "./data/") :results value raw :exports results
+
+
+  - 子午面分布
+    #+CALL: create_FigsTable("東西流[m]の子午面分布(左から順に Kh800T85L40, Kh800T85L60, Kh800T85L80)", "exp_Kh800T85L{40,60,80}/yz_U_mplane.jpg", "./data/") :results value raw :exports results
+
+
+- 子午面循環の比較
+
+    #+CALL: create_FigsTable(" t=300 yr の質量流線関数[kg*m^2/s]の子午面分布(左から順に Kh800T85L40, Kh800T85L60, Kh800T85L80)の比較. ", "exp_Kh800T85L{40,60,80}/yz_MassStreamFunc_mplane.jpg", "./data/") :results value raw :exports results
+
+    - L40 では鉛直方向のギブス振動が残るが, 
+      上下端の境界層を解像できる L60,L80  の場合では発生しない. 
+
+
+- 運動エネルギーの全球平均値, 収支の時間発展の比較
+
+    #+CALL: create_FigsTable("運動エネルギー[m^2/(s^2*kg)] の全球平均値の時間発展(破線:Kh800T85L40, 実線:Kh800T85L60, 点線:Kh800T85L80)の比較", "LCompare/KEAvg_LCompari.jpg", "./data/") :results value raw :exports results
+
+    - L40 の運動エネルギーは, L60,L80 よりも約0.1倍大きい(ちなみに, L20 は約２倍大きい).   
+
+
+    #+CALL: create_FigsTable(" 運動エネルギーの全球平均値の収支解析(左から順に Kh800T85L40, Kh800T85L60, Kh800T85L80)の比較. 各図において, 破線:運動エネルギーの注入率, 実線:正味の変化率, 二点跳び破線:水平渦粘性による散逸, 跳び破線:移流項の仕事, 一点破線:ポテンシャルエネルギーへの変換, 点線:鉛直渦粘性による散逸を表す", "exp_Kh800T85L{40,60,80}/KEBudget.jpg", "./data/") :results value raw :exports results
+
+
+- 温位の比較
+
+ #+CALL: create_FigsTable(" t=300yr における温位[K]の子午面分布の比較.", "exp_Kh800T85L{40,60,80}/yz_PTemp_mplane_300yr.jpg", "./data/") :results value raw :exports results
+
+ #+CALL: create_FigsTable(" 海面における温位[K]の時間発展の比較.", "exp_Kh800T85L{40,60,80}/tz_PTemp_SeaSurf.jpg", "./data/") :results value raw :exports results
+
+  - L40,L60,L80 の間で大きな違いは見られない. 
+

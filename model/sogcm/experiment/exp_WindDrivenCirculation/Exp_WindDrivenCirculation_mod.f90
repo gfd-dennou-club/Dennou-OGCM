@@ -121,7 +121,7 @@ contains
     TempAvg = IntSig_BtmToTop(z_PTemp)
     z_PTempBasic = TempAvg
     do k=0, kMax
-       xyz_PTempEddN(:,:,k) = z_PTemp(k) - TempAvg
+       xyz_PTempEddN(:,:,k) = 0d0!z_PTemp(k) - TempAvg
     end do
 
 !!$write(*,*) "-- WindStressU --"

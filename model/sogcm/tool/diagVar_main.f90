@@ -1,8 +1,20 @@
 program diagVar_main
 
+  ! モジュール引用; Use statements
+  !
+
+  !* gtool
+  !
   use dc_types
   use dc_message
+  use gtool_history
+  use dc_calendar, only: &
+         & DCCalCreate, DCCalDateCreate, &
+         & DCCalConvertByUnit, DCCalDateDifference, &
+         & DCCalDateInquire, DCCalDateEval
 
+  !* Dennou-OGCM
+  !
   use Constants_mod
   use TemporalIntegSet_mod, only: &
        & TemporalIntegSet_Init, TemporalIntegSet_Final, &
@@ -18,21 +30,21 @@ program diagVar_main
 
   use EOSDriver_mod
 
-  use DiagVarSet_mod
-  use DiagVarFileSet_mod
-  use DiagVarEval_mod
-  use BudgetAnalysis_mod
-
-  use gtool_history
-   use dc_calendar, only: &
-         & DCCalCreate, DCCalDateCreate, &
-         & DCCalConvertByUnit, DCCalDateDifference, &
-         & DCCalDateInquire, DCCalDateEval
-
   use Exp_WindDrivenCirculation_mod, only: &
        & Exp_Init => Exp_WindDrivenCirculation_Init, &
        & Exp_Final => Exp_WindDrivenCirculation_Final, &
        & Exp_SetInitCond => SetInitCondition
+
+  !* DiagVar
+  !
+
+  use DiagVarSet_mod
+  use DiagVarFileSet_mod
+  use DiagVarEval_mod
+  use BudgetAnalysis_mod
+  use SpectralAnalysis_mod
+
+
 
   implicit none
 
@@ -44,6 +56,7 @@ program diagVar_main
   character(TOKEN), pointer :: ogcmOutputVarsName(:) => null()
   character(TOKEN), pointer :: diagVarsName(:) => null()
   character(TOKEN), pointer :: BudgetTypesName(:) => null()
+  character(TOKEN), pointer :: SpectralTypesName(:) => null()
 
   real(DP) :: CurrentTimeSec, EndTimeSec, TimeIntSec
 
@@ -167,6 +180,7 @@ contains
     call DiagVarEval_Init()
     call DiagVarFileSet_Init(configNmlFile, diagVar_gthsInfo)
     call BudgetAnalysis_Init(diagVar_gthsInfo, BudgetTypesName)
+    call SpectralAnalysis_Init(diagVar_gthsInfo, SpectralTypesName)
 
     !
 
@@ -196,6 +210,8 @@ contains
     call DiagVarEval_Final()
     call DiagVarFileSet_Final()
     call BudgetAnalysis_Final()
+    call SpectralAnalysis_Final()
+
     call DiagVarSet_Final()
 
     if( associated(diagVarsName) ) deallocate(diagVarsName)
@@ -254,6 +270,7 @@ contains
     character(STRING) :: Name, FilePrefix
 
     character(STRING) :: BudgetTypes
+    character(STRING) :: SpectralTypes
 
     ! NAMELIST 変数群
     ! NAMELIST group name
@@ -267,6 +284,9 @@ contains
     namelist /budgetAnalysis_nml/ &
          & BudgetTypes
 
+    namelist /spectralAnalysis_nml/ &
+         & SpectralTypes
+
     ! 実行文; Executable statements
 
     ! デフォルト値の設定
@@ -274,6 +294,8 @@ contains
     !
     Name = ''
     FilePrefix = ''
+    BudgetTypes = ''
+    SpectralTypes = ''
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -301,6 +323,11 @@ contains
        read( unit_nml, &           ! (in)
             & nml = budgetAnalysis_nml, iostat = iostat_nml )   ! (out)
 
+       !
+       rewind( unit_nml )
+       read( unit_nml, &           ! (in)
+            & nml = spectralAnalysis_nml, iostat = iostat_nml )   ! (out)
+
        close( unit_nml )
     end if
 
@@ -313,12 +340,16 @@ contains
     BudgetTypes = Replace(BudgetTypes, " ", "")
     call Split(trim(BudgetTypes), BudgetTypesName, ",")
 
+    SpectralTypes = Replace(SpectralTypes, " ", "")
+    call Split(trim(SpectralTypes), SpectralTypesName, ",")
+
     ! 印字 ; Print
     !
     call MessageNotify( 'M', PROGRAM_NAME, '----- Initialization Messages -----' )
     call MessageNotify( 'M', PROGRAM_NAME, ' ogcm configure file   = %c', c1=trim(ogcmConfigNml) )
     call MessageNotify( 'M', PROGRAM_NAME, ' diagnostic variables  = %c', c1=Name )
     call MessageNotify( 'M', PROGRAM_NAME, ' budget analysis types  = %c', c1=BudgetTypes )
+    call MessageNotify( 'M', PROGRAM_NAME, ' spectral analysis types  = %c', c1=SpectralTypes )
     
   end subroutine readNml
 
@@ -421,7 +452,7 @@ contains
          & VARSET_KEY_U, VARSET_KEY_V, VARSET_KEY_SURFPRESS, VARSET_KEY_BAROCPRESS, VARSET_KEY_SURFHEIGHT, VARSET_KEY_PTEMPEDD, &
          & VARSET_KEY_UB, VARSET_KEY_VB, VARSET_KEY_PTEMPEDDB, &
          & VARSET_KEY_SIGDOT, VARSET_KEY_PTEMPBASIC, VARSET_KEY_TOTDEPTHBASIC, &
-         & xyz_UN, xyz_VN, xy_SurfPress, xy_SurfHeightN, xyz_PTempEddN, xyz_SaltN, &
+         & xyz_UN, xyz_VN, xy_SurfPressN, xy_SurfHeightN, xyz_PTempEddN, xyz_SaltN, &
          & xyz_UB, xyz_VB, xyz_PTempEddB, &
          & xyz_SigDot, z_PTempBasic, xy_totDepthBasic
 
@@ -470,7 +501,7 @@ contains
          & VARSET_KEY_SIGDOT, xyz_SigDot, range=rangeStr )
 
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SURFPRESS) // NCEXT, &
-         & VARSET_KEY_SURFPRESS, xy_SurfPress, range=rangeStr )
+         & VARSET_KEY_SURFPRESS, xy_SurfPressN, range=rangeStr )
 
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_BAROCPRESS) // NCEXT, &
          & VARSET_KEY_BAROCPRESS, xyz_BarocPress, range=rangeStr )
@@ -489,7 +520,7 @@ contains
 
     forAll(k=0:kMax) xyz_PTemp(:,:,k) = z_PTempBasic(k) + xyz_PTempEddN(:,:,k)
 
-    xyz_PressEdd = eval_PressEdd(xy_SurfPress, xyz_BarocPress)
+    xyz_PressEdd = eval_PressEdd(xy_SurfPressN, xyz_BarocPress)
     xyz_DensEdd = eval_DensEdd(xyz_PTemp, xyz_SaltN, xy_totDepth )
 
     do varID=1, size(diagVarsName)
@@ -504,15 +535,20 @@ contains
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PRESSEDD, var3D=xyz_PressEdd )
           case (DVARKEY_MASSSTREAMFUNC)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_MASSSTREAMFUNC, &
-                  & var2D=eval_MassStreamFunc(xyz_VN) )
+                  & var2D=eval_MassStreamFunc(xyz_VN, xy_totDepth) )
+          case (DVARKEY_STATICSTABILITY)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_STATICSTABILITY, &
+                  & var3D=eval_StaticStability(xyz_PTemp, xy_totDepth) )
           case (DVARKEY_PTEMP)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PTEMP, &
                   & var3D=xyz_PTemp )                
        end select
     end do
 
-    call BudgetAnalysis_perform()
+    ! Call some subroutines associated with budget and spectral analaysis.
 
+    call SpectralAnalysis_Perform()
+    call BudgetAnalysis_perform()
     
   end subroutine diagnose_outputVariables
 

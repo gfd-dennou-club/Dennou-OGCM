@@ -105,6 +105,7 @@ contains
           energyBudgAnaFlag = .true.
        case (BUDGETANAKEY_ANGMOMBUDGET) 
           angMomBudgAnaFlag = .true.
+       case ('')
        case Default
           call MessageNotify('E', module_name, &
                & "The specified type of budget analysis '%c' is invalid.", c1=trim(budgetAnaName(n)) )
@@ -268,8 +269,8 @@ use HydroBouEqSolver_mod
          & xyz_Vor, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xy_w(wz_Tmp(:,0)), xyz_DensEdd, &
          & xyz_PressEddTmp, Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
 
-      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
-           & xy_SurfPress, wz_xyz(xyz_Div), xy_totDepth, vDiffCoef, DelTime)
+!!$      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
+!!$           & xy_SurfPressN, wz_xyz(xyz_Div), xy_totDepth, vDiffCoef, DelTime)
 
       wz_TmpPsi = wz_InvLapla2D_wz( wz_VorRHS  )
       wz_TmpChi = wz_InvLapla2D_wz( wz_DivRHS  ) + wz_xyz(xyz_PressEddTmp/RefDens)
@@ -314,8 +315,8 @@ use HydroBouEqSolver_mod
            & hDiffCoef, 0.5d0*vDiffCoef, hHyperViscCoef, vHyperViscCoef, &
            & spread(xy_totDepth,3,kMax+1))
 
-      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
-           & xy_SurfPress, wz_DivTmp, xy_totDepth, vDiffCoef, DelTime)
+!!$      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
+!!$           & xy_SurfPressN, wz_DivTmp, xy_totDepth, vDiffCoef, DelTime)
 
       wz_VorA = wz_xyz(xyz_Vor) + wz_VorRHS*DelTime
       wz_DivA = wz_xyz(xyz_Div) + wz_DivRHS*DelTime
@@ -324,7 +325,8 @@ use HydroBouEqSolver_mod
 
       wt_Vor = wt_wz(wz_VorA); wt_Div = wt_wz(wz_DivA); 
       call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &
-           & xy_WindStressU, xy_WindStressV, xy_totDepth, vDiffCoef, DelTime, &
+           & xy_WindStressU, xy_WindStressV, xy_totDepth, &
+           & 0.5d0*vViscCoef, 0.5d0*vDiffCoef, vViscCoef, DelTime, &
            & DynBC_Surface, DynBC_Bottom )
 
       wz_TmpPsi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
@@ -341,7 +343,7 @@ use HydroBouEqSolver_mod
            & ))
 
       wz_Tmp = 0d0
-      xyz_PressEdd = xyz_PressEdd + spread(xy_SurfPress,3,kMax+1)
+      xyz_PressEdd = xyz_PressEdd + spread(xy_SurfPressN,3,kMax+1)
       xyz_PressWork = - ( &
            &   xyz_UTmp * xyz_CosLat*xyz_AlphaOptr_wz(wz_xyz(xyz_PressEdd/RefDens), wz_Tmp) &
            & + xyz_VTmp * xyz_CosLat*xyz_AlphaOptr_wz(wz_Tmp, wz_xyz(xyz_PressEdd/RefDens)) &
@@ -381,7 +383,7 @@ write(*,*) "* DKEDt=", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyz_dKdt ))
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!> @brief 
+  !> @brief 
   !!
   !!
   subroutine prepair_Output(diagVar_gthsInfo)

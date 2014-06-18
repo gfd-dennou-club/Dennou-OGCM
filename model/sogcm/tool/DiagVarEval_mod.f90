@@ -38,9 +38,12 @@ module DiagVarEval_mod
   ! Public procedure
   !
   public :: DiagVarEval_Init, DiagVarEval_Final
-  public :: eval_Vor, eval_Div, eval_PressEdd, eval_DensEdd
 
+  public :: eval_Vor, eval_Div, eval_StreamPot
   public :: eval_MassStreamFunc
+  public :: eval_PressEdd, eval_DensEdd
+  public :: eval_StaticStability
+
   public :: eval_potentialEnergyAvg, eval_kineticEnergyAvg
   public :: eval_angularMomAvg
 
@@ -130,6 +133,34 @@ contains
   !!
   !! @return 
   !!
+  subroutine eval_StreamPot(xyz_Psi, xyz_Chi, & ! (out)
+       & xyz_u, xyz_v) !(in)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(out), optional :: xyz_Psi(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(out), optional :: xyz_Chi(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_u(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_v(0:iMax-1,jMax,0:kMax)
+
+    ! 実行文; Executable statement
+    !
+    
+    if (present(xyz_Psi)) then
+       xyz_Psi = xyz_wz( wz_InvLapla2D_wz(wz_xyz(eval_Vor(xyz_u, xyz_v))) )
+    end if
+
+    if (present(xyz_Chi)) then
+       xyz_Chi = xyz_wz( wz_InvLapla2D_wz(wz_xyz(eval_Div(xyz_u, xyz_v))) )
+    end if
+
+
+  end subroutine eval_StreamPot
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
   function eval_DensEdd(xyz_PTemp, xyz_Salt, xy_totDepth) result(xyz_DensEdd)
     
     use EOSDriver_mod, only: EOSDriver_Eval
@@ -178,15 +209,46 @@ contains
     end do
   end function eval_PressEdd
 
-  !> @brief 
+  !> @brief Calculate mass streamfunction from meridional velocity.
+  !! 
+  !! In this module, Sv is used as the unit for mass streamfunction. 
+  !! The 1 Sv is equivalent to rho0 * 10^6 m3.s-1 = 10^9 kg.s-1.
+  !! (We follow the definition of Sv in Marshall et al.(2007).)
   !!
-  !!
-  function eval_MassStreamFunc(xyz_V) result(yz_MassStreamFunc)
+  function eval_MassStreamFunc(xyz_V, xy_totDepth) result(yz_MassStreamFunc)
     
     ! 宣言文; Declaration statement
     !
     real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1, jMax)
     real(DP) :: yz_MassStreamFunc(jMax,0:kMax)
+    
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP), parameter :: OneSvUnit = 1d09
+    
+    ! 実行文; Executable statement
+    !
+    
+    yz_MassStreamFunc = RPlanet*ya_IntLon_xya( &
+         & xyz_IntSig_SigToTop_xyz( &
+         & - RefDens*xyz_V*spread(xy_totDepth, 3, kMax+1) ) &
+         & ) / OneSvUnit
+
+  end function eval_MassStreamFunc
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
+  function eval_StaticStability(xyz_PTemp, xy_totDepth) result(xyz_Stability)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1, jMax)
+    real(DP) :: xyz_Stability(0:iMax-1,jMax,0:kMax)
     
     ! 局所変数
     ! Local variables
@@ -195,9 +257,12 @@ contains
     
     ! 実行文; Executable statement
     !
-    
-    yz_MassStreamFunc = ya_AvrLon_xya( xyz_IntSig_SigToTop_xyz( - RefDens*xyz_V ) )
-  end function eval_MassStreamFunc
+    xyz_Stability = Grav/xyz_PTemp * xyz_xyt( & 
+         & xyt_DSig_xyt(xyt_xyz(xyz_PTemp/spread(xy_totDepth, 3, kMax+1))) & 
+         & )
+
+
+  end function eval_StaticStability
 
 
 !!!!!!!!!!!!!! Subroutines for Energy Calculation

@@ -22,7 +22,8 @@ module TemporalIntegUtil_mod
   ! Public procedure
   !
   public :: TemporalIntegUtil_Init, TemporalIntegUtil_Final
-
+  public :: TemporalIntegUtil_SetDelTime
+  public :: TemporalIntegUtil_GetDDtCoef
   public :: xyz_timeIntEuler, xy_timeIntEuler, wt_timeIntEuler
   public :: xyz_timeIntRK2, xy_timeIntRK2, wt_timeIntRK2
   public :: xyz_timeIntRK4, xy_timeIntRK4, wt_timeIntRK4
@@ -40,8 +41,11 @@ module TemporalIntegUtil_mod
   integer :: iMax, jMax, kMax, lMax, tMax
 
   real(DP) :: dt
-  real(DP) :: RK4_coef(4)
-  real(DP) :: RK2_coef(2)
+  real(DP), parameter  :: Euler_coef(1) = (/ 1d0 /)
+  real(DP), parameter :: RK2_coef(2) = (/ 0.5d0, 0.5d0 /)
+  real(DP), parameter  :: RK4_coef(4) = (/ 1d0, 0.5d0, 0.5d0, 1d0 /)
+  real(DP), parameter  :: LFTR_coef(2) = (/ 2d0, 1d0 /)
+  real(DP), parameter  :: LFAM3_coef(2) = (/ 2d0, 1d0 /)
 
 contains
 
@@ -62,9 +66,6 @@ contains
     lMax = lm; tMax = tm
     dt = DelTime
 
-    RK2_coef(:) = (/ 0.5d0, 0.5d0 /)
-    RK4_coef(:) = (/ 1d0, 0.5d0, 0.5d0, 1d0 /)
-
   end subroutine TemporalIntegUtil_Init
 
   !>
@@ -76,6 +77,60 @@ contains
     !
 
   end subroutine TemporalIntegUtil_Final
+
+  !> @brief 
+  !!
+  !!
+  subroutine TemporalIntegUtil_SetDelTime(newDelTime)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: newDelTime
+    
+    
+    ! 実行文; Executable statement
+    !
+    dt = newDelTime
+
+  end subroutine TemporalIntegUtil_SetDelTime
+
+  !> @brief 
+  !!
+  !!
+  function TemporalIntegUtil_GetDDtCoef(timeIntMode, stage) result(coef)
+    
+    use TemporalIntegSet_mod, only: &
+         & timeIntMode_Euler, timeIntMode_LFTR, timeIntMode_LFAM3, &
+         & timeIntMode_RK2, timeIntMode_RK4
+
+    ! 宣言文; Declaration statement
+    !
+    integer, intent(in) :: timeIntMode
+    integer, intent(in) :: stage
+    real(DP) :: coef
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+    select case(timeIntMode)
+    case(timeIntMode_Euler)
+       coef = Euler_coef(stage)
+    case(timeIntMode_RK2)
+       coef = RK2_coef(stage)
+    case(timeIntMode_RK4)
+       coef = RK4_coef(stage)
+    case(timeIntMode_LFTR)
+       coef = LFTR_coef(stage)
+    case(timeIntMode_LFAM3)
+       coef = LFAM3_coef(stage)
+    end select
+
+  end function TemporalIntegUtil_GetDDtCoef
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
