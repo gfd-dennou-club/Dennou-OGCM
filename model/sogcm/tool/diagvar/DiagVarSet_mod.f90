@@ -82,7 +82,8 @@ contains
     allocate(xyz_DensEdd(0:iMax-1,jMax,0:kMax))
 
     do varID=1, size(diagVarsName)
-       write(*,*) diagVarsName(varID)
+       call MessageNotify('M', module_name, &
+            & "register '%c'..",  c1=trim(diagVarsName(varID)) )
 
        select case( diagVarsName(varID) )
           case( DVARKEY_DIV )

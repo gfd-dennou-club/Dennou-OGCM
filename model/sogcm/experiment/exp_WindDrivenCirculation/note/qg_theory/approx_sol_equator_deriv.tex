@@ -1,0 +1,173 @@
+\subsection*{付録 B: 赤道近傍における上側・下側エクマン層内の解の導出}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\renewcommand{\theequation}{B.\arabic{equation}}
+\setcounter{equation}{0}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{上側エクマン層内の解$P_{\rm e1}$の導出}
+%%
+%%
+\begin{equation*}
+  \DP[2]{P_{\rm e1}}{\tilde{z}} + \DP[2]{P_{\rm e1}}{y} - iy P_{\rm e1} = 0
+\tag{\ref{eq:EBLgoverneq_linear_Pe1}}
+\end{equation*}
+%%
+の解を導出する. 
+ただし, 求める解は次の境界条件, 
+%%
+ \begin{align*}
+    \DP{P_{\rm e1}}{\tilde{z}} \to -1  \;\;\;\;\;\;\;\; &{\rm as} \;\;\;\; \tilde{z} \to -0, \\
+    P_{\rm e1} \to 0 \;\;\;\;\;\;\;\; &{\rm as} \;\;\;\; \tilde{z} \to - \infty, \\
+    P_{\rm e1} \sim \dfrac{-1 \pm i}{2 \sqrt{|y|}} \exp{\left[ \tilde{z} (1+i) \sqrt{|y|/2} \right]}
+       \;\;\;\; &{\rm as} \;\;\;\; |y| \to  \infty. 
+  \tag{\ref{eq:BC_for_Pe1}}
+ \end{align*}
+%%
+を満たすものとする. 
+
+今, 境界条件\eqref{eq:BC_for_Pe1}の 2 つ目を満たすような解として, 
+%%
+\begin{equation}
+  P_{\rm e1} = \int_{C} F(y, k) e^{k\tilde{z}} \; dk
+\label{eq:P_e1_solution_form}
+\end{equation}
+%%
+を考える. 
+ただし, $C$は複素$k$平面上の経路であり, 後ほど決定する. 
+また, 
+%%
+\begin{equation}
+  {\rm Re} (k) \geq 0 \;\;\;\;\; {\rm on} \;\;\; C
+\end{equation}
+%%
+でなければならない. 
+
+次に, 核$F$が満たす方程式を求める. 
+\eqref{eq:P_e1_solution_form}を\eqref{eq:EBLgoverneq_linear_Pe1}に代入すれば, 
+%%
+\begin{equation}
+  \DP[2]{F}{y} + (k^2 - iy) F = B(k,y)
+\label{eq:ODE_for_F}
+\end{equation}
+%%
+を得る. 
+ここで, 
+\begin{equation}
+  \int_C B(k,y) \; dk = 0.
+\end{equation}
+%%
+
+さらに, 
+%%
+\begin{equation}
+  F(y,k) = \int_D \tilde{F} (l,k) e^{-ily} \; dl
+\label{eq;F_solution_form}
+\end{equation}
+%%
+なる形式の$F(y,k)$を求める. 
+ここで, $D$は複素$l$面上の経路であり後ほど決定される. 
+\eqref{eq::F_solution_form}を\eqref{eq:ODE_for_F}に代入し, 
+部分積分を実行すれば, 
+%%
+\begin{equation}
+  \int_D \big[ (-l^2 + k^2) \tilde{F} + - \DP{\tilde{F}}{l} \big] e^{-ily} \; dl
+  = - \left[\tilde{F} e^{-ily} \right]_D + B(k,y)
+\label{eq:F_fourierCoef_1}
+\end{equation}
+%%
+を得る. 
+今, 右辺がゼロとなるように, 経路$D$を取ることにすれば, 
+%%
+\begin{equation}
+ \DP{\tilde{F}}{l} = (k^2 - l^2) \tilde{F}
+\label{eq:F_fourierCoef_ODE}
+\end{equation}
+%%
+を得る. 
+ただし, 
+%%
+\begin{equation}
+  \left[ \tilde{F} e^{-ily} \right]_D = B(k,y)
+\label{eq:relation_with_contour_D_and_B}
+\end{equation}
+%%
+でなければならない. 
+
+\eqref{eq:F_fourierCoef_ODE}を解けば, 
+%%
+\begin{equation}
+  \tilde{F} = C(k) \exp \big[ -\dfrac{l^3}{3} + k^2 l \big]. 
+\end{equation}
+%%
+ここで, $C(k)$は$k$の任意関数である. 
+これを, \ref{eq:relation_with_contour_D_and_B}に代入すれば, 
+%%
+\begin{equation}
+  C(k) \left[ \exp \big( -\dfrac{l^3}{3} + k^2 l - ily \big) \right]_D = B(k,y)
+\end{equation}
+%%
+を得る. 
+さらに, 
+%%
+\begin{equation}
+  \left[ \exp \big( -\dfrac{l^3}{3} + k^2 l - ily \big) \right]_D = 1
+\label{eq:contour_D_constraint}
+\end{equation}
+%%
+を満たすように, 経路$D$を選ぶことによって, 任意関数$C(k)$は, 
+%%
+\begin{equation}
+  C(k) = B
+\end{equation}
+%%
+と決まる. 
+したがって, $B$は$y$には依存しない. 
+なお, \eqref{eq:contour_D_constraint}を満たす$D$は正の実軸である. 
+以上より, 
+%%
+\begin{equation}
+  P_{\rm e1} = - \int_C \int_{l=0}^\infty B(k) 
+                  \exp \big( -\dfrac{l^3}{3} + k^2 l - ily + k\tilde{z} \big) \; dl dk
+ \label{eq:P_e1_solution_applyBC2}
+\end{equation}
+%%
+を得る. 
+
+次に, 境界条件\eqref{eq:BC_for_Pe1}の 3 つ目を考慮することを考える. 
+\eqref{eq:P_e1_solution_applyBC2}に対して, $\tilde{z}$の一階微分をとり, 
+さらに部分積分を実行すれば, 
+%%
+\begin{equation}
+\begin{split}
+  \DP{P_{\rm e1}}{\tilde{z}} &= 
+                  - \int_C \int_{l=0}^\infty k B(k) 
+                    \exp \big( -\dfrac{l^3}{3} + k^2 l - ily + k\tilde{z} \big) \; dl dk \\
+  &= \int_C \left\{ \left[ 
+              \dfrac{k B(k) e^{k\tilde{z}}}{iy - k^2 + l^2} \exp \big( -\dfrac{l^3}{3} + k^2l -ily \big)
+             \right]_{l=0}^\infty \right\} dk + {\rm O}(y^{-2})
+\end{split} 
+\label{eq:dP_e1dz_form1}
+\end{equation}
+%%
+を得る. 
+今, $|y| \to \infty$かつ$C$上で${\rm Re}(k^2) < 0$の場合を考えるとき, 
+\eqref{eq:dP_e1dz_form1}は, 
+%%
+\begin{equation}
+  - \int_C \dfrac{k B(k) e^{k\tilde{z}}}{iy - k^2} \; dk
+\label{eq:dP_e1_dz_form1_yinfty}
+\end{equation}
+%%
+と漸近的に等しくなる. 
+\eqref{eq:dP_e1_dz_form1_yinfty}をさらに変形すれば, 
+%%
+\begin{equation}
+  - \int_C \dfrac{k B(k) e^{k\tilde{z}}}{iy - k^2} \; dk
+ = \int_C \left[ \dfrac{1}{\sqrt{iy} + k} - \dfrac{1}{\sqrt{iy} - k}\right] \dfrac{B(k)e^{k\tilde{z}}}{2} \; dk  
+\end{equation}
+%%
+である. 
+したがって, 
+今, 経路$C$は${\rm Re}(k^2) < 0$かつ${\rm Re}(k) \geq 0$
+
+
+

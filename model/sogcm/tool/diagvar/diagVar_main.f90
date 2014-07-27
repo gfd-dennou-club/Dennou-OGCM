@@ -63,7 +63,6 @@ program diagVar_main
   type(gtool_historyauto_info) :: diagVar_gthsInfo
   type(gtool_historyauto_info) :: ogcm_gthsInfo
 
-  real(DP), pointer :: ogcm_outputTime(:) => null()
 
   
   ! 実行文; Executable statement
@@ -74,10 +73,7 @@ program diagVar_main
   call setup()
 
   !
-  EndTimeSec = DCCalConvertByUnit(ogcm_outputTime(size(ogcm_outputTime)), ogcm_gthsInfo%intUnit, "sec")
-  TimeIntSec = DCCalConvertByUnit(diagVar_gthsInfo%intValue, diagVar_gthsInfo%intUnit, 'sec')
 
-  CurrentTimeSec = RestartTime
   do while(CurrentTimeSec <= EndTimeSec)
      call MessageNotify('M', PROGRAM_NAME, "%f [%c]..", &
           & d=(/ DCCalConvertByUnit(CurrentTimeSec, 'sec', ogcm_gthsInfo%intUnit) /), c1=trim(ogcm_gthsInfo%intUnit) )
@@ -127,6 +123,9 @@ contains
     ! 実行文; Executable statement
     !
 
+    EndTimeSec = -1d0
+    CurrentTimeSec = RestartTime
+
     call OptionParser_Init()
     call OptionParser_GetInfo(configNmlFile,   & !(out)
          & defaultConfigNml=DEFAULT_CONFIG_NML ) 
@@ -134,8 +133,9 @@ contains
     
     call MessageNotify('M', PROGRAM_NAME, &
          & "Read configure file ' %c ' ..", c1=trim(configNmlFile) )
+
     call readNml(configNmlFile, &  ! (in)
-         & ogcmConfigNmlFile ) ! (out)
+         & ogcmConfigNmlFile )     ! (out)
     call readOgcmNml(ogcmConfigNmlFile)
 
     call Constants_Init(ogcmConfigNmlFile)
@@ -167,14 +167,7 @@ contains
 
     !
     call MessageNotify('M', PROGRAM_NAME, &
-         & "Some modules is initialized.. ")
-
-    write(*,*) ogcmOutputVarsName
-    call HistoryGetPointer( &
-         & trim(ogcm_gthsInfo%FilePrefix) // trim(ogcmOutputVarsName(1)) // '.nc', &
-         & 't', ogcm_outputTime)
-    write(*,*) 'outputTime', size(ogcm_outputTime), ogcm_outputTime
-    diagVar_gthsInfo%origin = ogcm_outputTime(1)
+         & "Some modules is initialized..")
 
     call DiagVarSet_Init(diagVarsName)
     call DiagVarEval_Init()
@@ -182,7 +175,12 @@ contains
     call BudgetAnalysis_Init(diagVar_gthsInfo, BudgetTypesName)
     call SpectralAnalysis_Init(diagVar_gthsInfo, SpectralTypesName)
 
-    !
+     !
+     call MessageNotify('M', PROGRAM_NAME, &
+          & "Period %f - % f [%c]..", &
+          & d=(/ DCCalConvertByUnit(CurrentTimeSec, 'sec', ogcm_gthsInfo%intUnit),    &
+          &      DCCalConvertByUnit(EndTimeSec, 'sec', ogcm_gthsInfo%intUnit) /),     &
+          & c1=trim(ogcm_gthsInfo%intUnit) )
 
   end subroutine setup
 
@@ -265,8 +263,8 @@ contains
 
     character(TOKEN) :: pos_nml
 
-    real(DP) :: IntValue
-    character(TOKEN) :: IntUnit
+    real(DP) :: StartTime, EndTime, IntValue
+    character(TOKEN) :: TimeUnit, IntUnit
     character(STRING) :: Name, FilePrefix
 
     character(STRING) :: BudgetTypes
@@ -276,7 +274,7 @@ contains
     ! NAMELIST group name
     !
     namelist /diagVar_nml/ &
-         & ogcmConfigNml
+         & ogcmConfigNml, StartTime, EndTime, TimeUnit
 
     namelist /gtool_historyauto_nml/ &
          & IntValue, IntUnit, Name, FilePrefix
@@ -292,10 +290,17 @@ contains
     ! デフォルト値の設定
     ! Default values settings
     !
+    
+    ogcmConfigNml = 'config.nml'
+    EndTime = -1d0
+    StartTime = 0d0
+    TimeUnit = 'day'
+
     Name = ''
     FilePrefix = ''
     BudgetTypes = ''
     SpectralTypes = ''
+    
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -331,6 +336,7 @@ contains
        close( unit_nml )
     end if
 
+
     Name = Replace(Name, " ", "")
     call Split(trim(Name), diagVarsName, ",")
 
@@ -342,6 +348,11 @@ contains
 
     SpectralTypes = Replace(SpectralTypes, " ", "")
     call Split(trim(SpectralTypes), SpectralTypesName, ",")
+
+
+    CurrentTimeSec = DCCalConvertByUnit(StartTime, TimeUnit, "sec")
+    TimeIntSec = DCCalConvertByUnit(diagVar_gthsInfo%intValue, diagVar_gthsInfo%intUnit, 'sec')
+    if ( EndTime >= 0d0 ) EndTimeSec = DCCalConvertByUnit(EndTime, TimeUnit, "sec")
 
     ! 印字 ; Print
     !
@@ -392,6 +403,8 @@ contains
     character(TOKEN) :: IntUnit
     character(STRING) :: Name, FilePrefix
 
+    real(DP), pointer :: ogcm_outputTime(:) => null()
+
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
@@ -430,6 +443,16 @@ contains
 
     ogcm_gthsInfo = gtool_historyauto_info( intValue=intValue, intUnit=intUnit, &
          &                                     FilePrefix=FilePrefix, Name=Name, origin=0d0 )
+
+
+    if(EndTimeSec < 0d0 ) then
+       call HistoryGetPointer( &
+            & trim(ogcm_gthsInfo%FilePrefix) // trim(ogcmOutputVarsName(1)) // '.nc', &
+            & 't', ogcm_outputTime)
+       write(*,*) 'outputTime', size(ogcm_outputTime), ogcm_outputTime
+       CurrentTimeSec = DCCalConvertByUnit(ogcm_outputTime(1), ogcm_gthsInfo%intUnit, "sec")
+       EndTimeSec = DCCalConvertByUnit(ogcm_outputTime(size(ogcm_outputTime)), ogcm_gthsInfo%intUnit, "sec")
+    end if
 
     ! 印字 ; Print
     !

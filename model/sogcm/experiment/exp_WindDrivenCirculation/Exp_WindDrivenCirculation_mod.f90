@@ -98,6 +98,7 @@ contains
     integer :: i, j, m
     real(DP) :: TempAvg
     real(DP) :: z_PTemp(0:kMax)
+real(DP) :: w(lMax)
 
     ! 実行文; Executable statement
     !
@@ -125,11 +126,15 @@ contains
     end do
 
 !!$write(*,*) "-- WindStressU --"
-!!$write(*,*) xy_WindStressU(1,:)
+!!$w = w_xy(xy_WindStressU*cos(xy_lat))
+!!$do m=1, lMax
+!!$   write(*,*) m, nm_l(m), "*", w(m)
+!!$end do
 !!$stop
 !!$write(*,*) "-- PTempBasic --"
 !!$write(*,*) z_PTempBasic
 !!$stop
+
   end subroutine setInitCondition
   
   function construct_WindStressU_Marshall07(xy_lat) result(windStressU)

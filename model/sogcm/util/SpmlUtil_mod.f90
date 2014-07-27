@@ -79,11 +79,13 @@ module SpmlUtil_mod
   ! Cascade
   public :: w_xy, xy_w
   public :: xya_GradLon_wa, xya_GradLambda_wa, xya_GradLat_wa, xya_GradMu_wa
+  public :: xy_GradLon_w, xy_GradLambda_w, xy_GradLat_w, xy_GradMu_w
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: l_nm, nm_l
   public :: xy_Lon, xy_Lat, x_Lon, y_Lat
   public :: xya_wa, wa_xya 
-  public :: AvrLonLat_xy, ya_AvrLon_xya, ya_IntLon_xya
+  public :: IntLonLat_xy, ya_IntLon_xya
+  public :: AvrLonLat_xy, ya_AvrLon_xya
   public :: a_Interpolate_wa, Interpolate_w
   
   public :: nma_EnergyFromStreamfunc_wa, na_EnergyFromStreamfunc_wa

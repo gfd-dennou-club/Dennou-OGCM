@@ -1,7 +1,8 @@
 \chapter{支配方程式系の近似解: 赤道遠方}
 \markright{\arabic{chapter} 支配方程式系の近似解: 赤道遠方}
 本章では, 境界条件 (\ref{eq:BC_top_hVel_nodim})-(\ref{eq:BC_btm_vVel_nodim}) に対する, 
-支配方程式系(\ref{eq:x_momem_dim})-(\ref{eq:continuity_dim})の近似解を逓減摂動法を使って求める. 
+支配方程式系(\ref{eq:x_momem_dim})-(\ref{eq:continuity_dim})の近似解を, 
+\citet[chapter 4]{pedlosky1987geophysical} を参考にして, 逓減摂動法を使って求める. 
 
 逓減摂動法を用いて, 非線形偏微分方程式である支配方程式系から, より簡単な方程式系を取り出すには, 
 以下のようなことを行う. 
@@ -102,7 +103,7 @@ $z=0,-1$近傍の摩擦層(エクマン層)内の運動を調べて, それが�
 $z=0,1$近傍のエクマン層の運動は, 境界層理論によって記述できる. 
 
 \subsubsection*{下部境界近傍のエクマン層}
-$z=0$の底面に発生するエクマン層の記述を, Pedlxosky(1987) の 4.5 節に従って行う. 
+$z=0$の底面に発生するエクマン層の記述を, \citet[section 4.5]{pedlosky1987geophysical} に従って行う. 
 今, 境界近傍における鉛直方向の場の急激な変化を O(1) で表現するために, 
 伸縮座標
 %%
@@ -285,7 +286,7 @@ $x$方向の一様性を仮定しない場合でも, 境界層の鉛直速度は
 したがって, 内部領域の流れに対する下部境界条件が得られた. 
 
 \subsubsection*{上部境界近傍のエクマン層}
-応力が加えられる流体表面の近傍に発生するエクマン層の記述を, Pedlosky(1987) の 4.10 節に従って行う. 
+応力が加えられる流体表面の近傍に発生するエクマン層の記述を, \citet[section 4.10]{pedlosky1987geophysical} に従って行う. 
 手法は上で示した下部境界近傍のエクマン層の場合とほぼ同じであるので, 
 異なる部分以外は結果のみを示すことにする. 
 
@@ -538,7 +539,7 @@ vとなる.
 \footnote{
 本論文では, $x$方向の一様性, 地形なし, および流体表面において rigid-lid を仮定したため, 
 内部領域の運動に対するポテンシャル渦度方程式\eqref{eq:interior_PV}の右辺は,
-$zeta_0$の局所時間微分の項しか残らない. 
+$\zeta_0$の局所時間微分の項しか残らない. 
 
 一方, より一般的な場合には, 
 すなわち地形や摩擦が存在し, 流体表面が自由表面である場合には, 
@@ -586,38 +587,45 @@ $\partial^2 \psi/ \partial y^2=\zeta_0$
 このとき, \eqref{eq:interior_PV}から, $\zeta_0$の$y$に対する二階の線形常微分方程式,  
 %%
 \begin{equation}
-  - \dfrac{1}{r {\rm Re}}\DD[4]{\psi}{y} + \DD[2]{\psi}{y} = \Dvect{k} \cdot {\rm curl} \; \Dvect{\tau}(y)
+  - \dfrac{1}{\tilde{\rm Re}} \DD[4]{\psi}{y} + \DD[2]{\psi}{y} = \Dvect{k} \cdot {\rm curl} \; \Dvect{\tau}(y)
 \label{eq:interior_PV_steady}
 \end{equation}
 %%
 を得る. 
-ただし, 今レイノルズ数は, 
+ただし, 
+%%
+\begin{equation}
+  {\rm \tilde{Re}} = \dfrac{r{\rm Re}}{2}
+\end{equation}
+%%
+とおき直した. 
+なお, 今レイノルズ数は, 
 %%
 \begin{equation}
    {\rm Re} = \dfrac{UL}{A_H} = \dfrac{2 \tau_0 L}{A_H \rho_0 f_0 \delta_E}
 \end{equation}
 %%
 と計算される. 
-あるいは, 東西流速を用いれば, \eqref{eq:interior_PV_steady} は
+また, \eqref{eq:interior_PV_steady}を最低次の東西流速$u_0$を用いて書くならば, 
 %%
 \begin{equation}
-   \dfrac{1}{r {\rm Re}}\DD[3]{u}{y} - \DD{u}{y} 
+   \dfrac{1}{{\rm \tilde{Re}}}\DD[3]{u_0}{y} - \DD{u_0}{y} 
   = \Dvect{k} \cdot {\rm curl} \; \Dvect{\tau}(y)
 \label{eq:interior_PV_steady_withU}
 \end{equation}
 %%
-とも書ける. 
+と書ける. 
 
-\subsubsection*{$r {\rm Re} \gg 1$に対する漸近級数解}
+\subsubsection*{$ \tilde{\rm Re}^{-1} \ll 1$に対する漸近級数解}
 %%
 赤道近傍を除けば風成循環の水平スケールは大規模であり, 
 その循環に対する水平レイノルズ数 Re は 1 より十分大きい. 
-また, エクマン層に伴うスピンアップ・タイムが, 移流時間スケールより短い場合(すなわち$r < 1$)を
+また, エクマン層に伴うスピンアップ・タイムが, 移流時間スケールより短い場合(すなわち$r > 1$)を
 ここでは考えることにする. 
-このとき, 変数を${\rm Re}^{-1} (\ll 1)$によって
+このとき, 変数を${\rm \tilde{Re}}^{-1} (\ll 1)$によって
 %%
 \begin{equation}
-   u = \sum_{n=0}^\infty (u_0)_n (r {\rm Re})^{-n}
+   u_0 = \sum_{n=0}^\infty [u_0]_n ({\rm \tilde{Re}})^{-n}
 \label{eq:u_expandWithRe}
 \end{equation}
 %%
@@ -628,7 +636,7 @@ $\partial^2 \psi/ \partial y^2=\zeta_0$
 O(1) の項を集めれば, 
 %%
 \begin{equation}
-  - \DD{(u_0)_n}{y} 
+  - \DD{[u_0]_n}{y} 
   = \Dvect{k} \cdot {\rm curl} \; \Dvect{\tau}(y) 
  \end{equation}
 %%
@@ -636,7 +644,7 @@ O(1) の項を集めれば,
 さらに, O($(r {\rm Re})^{-m}$) の項を集めれば, 
 %%
 \begin{equation}
-  \DD{(u_0)_{m}}{y} = \DD[3]{\; (u_0)_{m-1}}{y}
+  \DD{[u_0]_{m}}{y} = \DD[3]{\; [u_0]_{m-1}}{y}
 \end{equation}
 %%
 なる関係式を得る. 
@@ -644,7 +652,9 @@ O(1) の項を集めれば,
 上の二式から
 %%
 \begin{equation}
-  (u_0)_n = \DD[2n]{}{y} \tau_x(y)
+  [u_0]_n = \DD[2n]{}{y} \tau_x(y)
 \end{equation}
 %%
 を得る. 
+したがって, $[u_0]_0$は単に$\tau_x(y)$であり, 
+水平渦粘性の効果はそれより高次の項によって考慮される. 

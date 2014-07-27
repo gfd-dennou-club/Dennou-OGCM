@@ -1,0 +1,62 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 1: 均質流体 ~ 水平渦粘性依存性(Ah1e3Pl341L60, Ah1e4Pl341L60, Ah1e5Pl341L60)
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_homoFluid/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 計算結果: 水平渦粘性依存性(Ah1e3Pl341L60, Ah1e4Pl341L60, Ah1e5Pl341L60)
+
+** 循環の全球的な分布の比較
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "exp_Ah1e{3,4,5}Pl341L60/yz_U_mplane.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "exp_Ah1e{3,4,5}Pl341L60/yz_MassStreamFunc_mplane.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("運動エネルギーの全球平均値[J/(m^3*kg)]の時間発展の比較. Ah1e3(破線), Ah1e4(実線), Ah1e5(点線)", "HViscCompare/KEAvg_HViscCompari.jpg") :results value raw :exports results
+
+   - 東西流
+     - 水平渦粘性の増加につれて小さくなる. 
+     - 分布:
+       - 水平渦粘性ゼロの極限では, 風応力の南北分布をそのまま反映する. 
+       - 水平渦粘性が大きくなると, 赤道近傍における東西流の分布は一様となる(渦度ゼロ). 
+   - 子午面循環
+     - 分布:
+       - 水平渦粘性ゼロの極限では, 南北流はエクマン層内のみで生じる また, 内部領域では鉛直流は鉛直方向に変化しない. 
+       - 水平渦粘性が大きくなると, 内部領域でも南北流が生じる. その分だけ, 内部領域の鉛直流や下側エクマン層内の循環は弱まる. 
+   - 水平渦粘性の変化による運動エネルギー収支の変化
+     - Ah1e3,4 では, 運動エネルギーのバランスは, 海面応力による運動エネルギーの注入と海底摩擦による運動エネルギーの散逸で主に決まる. 
+     - Ah1e5 では水平渦粘性による運動エネルギーの散逸の寄与が, 海面応力による運動エネルギーの注入と同程度重要になる
+   - 水平渦粘性の変化による渦度収支の変化
+     - Ah1e3,4 では, 渦度のバランスは, 上側と下側のエクマン層からのエクマンパンピングにより主に決まり, 水平渦粘性による渦度の散逸の寄与は小さい. 
+     - Ah1e5 では, Ah1e3,4 と比べて, エクマンパンピングによる渦管の伸縮と水平渦粘性による渦度の散逸が同程度重要になる. 
+
+** 赤道近傍における循環の分布の比較
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "exp_Ah1e{3,4,5}Pl341L60/yz_U_mplane_eq.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "exp_Ah1e{3,4,5}Pl341L60/yz_MassStreamFunc_mplane_eq.jpg") :results value raw :exports results
+
+   - 東西流
+     - 赤道境界層内では, 内部領域の東西流は南北に一様に分布
+   - 子午面循環
+     - 水平渦粘性の増加とともに, 循環セルの幅は広くなり, 強度は小さくなる.
+       - 赤道境界層の理論によれば, 循環セルの幅は (水平エクマン数)^{1/3} に比例.  

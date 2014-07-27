@@ -1,4 +1,4 @@
-SUBDIRS = util setup dynamics experiment unit_test
+SUBDIRS = util setup dynamics experiment unit_test tool
 
 # util dynamics
 
@@ -38,13 +38,4 @@ dsogcm_SOURCES =\
 
 
 #############################
-bin_PROGRAMS += diagVar
-diagVar_SOURCES =\
-	tool/DiagVarSet_mod.f90 \
-	tool/DiagVarEval_mod.f90 \
-	tool/DiagVarFileSet_mod.f90 \
-	tool/BudgetAnalysis_mod.f90 \
-	tool/SpectralAnalysis_mod.f90 \
-	tool/diagVar_main.f90
-
 

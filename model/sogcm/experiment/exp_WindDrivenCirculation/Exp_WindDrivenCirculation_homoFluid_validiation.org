@@ -1,0 +1,128 @@
+#+TITLE: 水惑星設定における軸対称風成循環の数値実験:解析的な近似解との比較(赤道遠方)
+
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_homoFluid/exp_RefSolComp/"
+    require 'pathname'
+
+    caption = "海面の流れの数値解(x印), 解析的な近似解(実線), Ah=0 の場合の解析的な近似解(破線) の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5" if caption.length == 0
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* はじめに
+
+実装した海洋大循環モデルから得たテスト計算の結果の妥当性を, 
+解析的に得た近似解との比較によって確認した. 
+今, 密度一様・軸対称の仮定により, 解析解(漸近級数解)を導くことが可能である. 
+
+数値解には, Ah1e3T682L90, Ah1e4PlT341L90, Ah1e5PlT341L90 の計算結果を用いる. 
+
+* 準備
+
+** 軸対称風成循環の力学の記述と解析的な近似解の導出
+
+- [[file:./../../../../../note_OModeling/ogcirc_formul/main.pdf][海洋大循環を記述するための方程式系]]
+- [[./note/axisym_windcirc_homoFluid/main.pdf][軸対称風成循環の漸近級数解の導出]]
+
+以下に示す解析的な近似解とは, *水平渦粘性の効果を考慮した, ロスビー数による漸近級数解の最低次* である. 
+
+** 無次元パラメータの値
+解析的な近似解を実際計算するときに用いる, 各無次元パラメータの値は以下のものを用いる. 
+(無次元パラメータの定義の詳細は, 近似解の導出ノートを参照)
+
+- ロスビー数 $R_o$ : 1.4 \times 10^{-4}
+- 水平エクマン数 $E_H$  : (Ah1e3) 3.4 \times 10^{-7}, (Ah1e4) 3.4 \times 10^{-6}, (Ah1e5) 3.4 \times 10^{-5}  
+- 鉛直エクマン数 $E_V$ : 5.1 \times 10^{-6}
+- 漸近級数解を求めるときに現れるパラメータ $r_{H,V}= E_H/E_V^{1/2}$ : (Ah1e3) 1.5 \times 10^{-4}, (Ah1e4) 1.5 \times 10^{-3}, (Ah1e5) 1.5 \times 10^{-2}
+
+  
+* 解析的な近似解と数値解の比較
+** 水平分布
+
+- 海面 
+  - 東西流速[m/s] 
+    #+CALL: create_FigsTable("", "{Ah1e{3Pl682,4Pl341,5Pl341}L90_U_surf.jpg}") :results value raw :exports results
+
+  - 南北流速[m/s] 
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_surf.jpg") :results value raw :exports results
+
+- 内部領域 (深さ 2.6km)
+
+  - 東西流速[m/s] 
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_interior.jpg") :results value raw :exports results
+
+  - 南北流速[m/s] 
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_interior.jpg") :results value raw :exports results
+
+  - 鉛直流速[m/s] 
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_interior.jpg") :results value raw :exports results
+
+
+- 海底近傍 (海底から高さ 6.8 m)
+
+  - 東西流速[m/s] 
+    #+CALL: create_FigsTable("", "{Ah1e{3Pl682,4Pl341,5Pl341}L90_U_btm.jpg}") :results value raw :exports results
+
+  - 南北流速[m/s] 
+    #+CALL: create_FigsTable("", "{Ah1e{3Pl682,4Pl341,5Pl341}L90_V_btm.jpg}") :results value raw :exports results
+
+
+** 鉛直分布
+
+- 全体構造
+
+  - 東西流速[m/s] (緯度 45 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_Lat45.jpg") :results value raw :exports results
+
+  - 南北流速[m/s] (緯度 45 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_Lat45.jpg") :results value raw :exports results
+
+  - 鉛直流速[m/s] (緯度 30 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_Lat30.jpg") :results value raw :exports results
+
+
+- 上側エクマン層
+
+  - 東西流速[m/s] (緯度 45 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_upEkmanLat45.jpg") :results value raw :exports results
+
+  - 南北流速[m/s] (緯度 45 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_upEkmanLat45.jpg") :results value raw :exports results
+
+  - 鉛直流速[m/s] (緯度 30 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_upEkmanLat30.jpg") :results value raw :exports results
+
+
+- 下側エクマン層
+
+  - 東西流速[m/s] (緯度 45 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_lowEkmanLat45.jpg") :results value raw :exports results
+
+  - 南北流速[m/s] (緯度 45 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_lowEkmanLat45.jpg") :results value raw :exports results
+
+  - 鉛直流速[m/s] (緯度 30 度)
+   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_lowEkmanLat30.jpg") :results value raw :exports results
+
+
+
+
+
+

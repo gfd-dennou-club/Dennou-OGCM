@@ -5,23 +5,25 @@ include NumRu
 include NMath
 
 Av = 1e-02
-Ah = 8e2
-HAh = 2e14
+Ah = 1e3
+HAh = 0e14
 TAU0 = 0.12
 Dens = 1.027e03
-NLAT = 361
+NLAT = 721
 NZ   = 1001
 PI = acos(-1.0)
 Omega = 7.292115e-5
 Depth = 5.2e03
 RPlanet = 6371e03
-TIME = 2000
+TIME = 108000
 
-EXPSPECIFIC="Ah800HAh2e13T170L100dt45min"
+SphericalDOptr=true
+
+EXPSPECIFIC="Ah1e3T341L60"
 RUNSPECIFIC="Run1"
 GENNCFILE_SUFFIX = "_#{EXPSPECIFIC}"
-EXPDATADIR = "/home/ykawai/Dennou-OGCM/model/sogcm/exp/"
-#EXPDATADIR = "/home/ykawai/exp_backup/current/exp_Kh800#{EXPSPECIFIC}"
+#EXPDATADIR = "/home/ykawai/Dennou-OGCM/model/sogcm/exp/"
+EXPDATADIR = "/home/ykawai/exp_backup/current/exp_#{EXPSPECIFIC}"
 GRIDNCFILE = "#{EXPDATADIR}/#{RUNSPECIFIC}_U.nc"
 
 ##########################
@@ -80,23 +82,41 @@ def printInfo(str, dat, lat)
 end
 
 def calc_interiorBarotFlow(lat, isNonDim=false, n_dlat=0)
-  f = 2*Omega*sin(lat)
-  reInv = Ah*Dens*sqrt(2.0*Av*f.abs) / (2.0*TAU0*RPlanet)
-  ro = 2.0*TAU0/(Dens*sqrt(2*Av*f))/(f*RPlanet)
-#  puts "Re^-1 = #{reInv[NLAT/4]}"
-#  puts "Ro = #{ro[170]}"
 
+  f = 2*Omega*sin(lat)
+  ev = 2.0*Av / (f.abs*Depth**2)
+  velScale = 2.0*TAU0 / (Dens*sqrt(2.0*Av*f.abs))
+  reInv = Ah / (velScale*RPlanet)
+  ro = velScale / (f.abs*RPlanet)
+  r = sqrt(ev)/ro
+
+  coef = 2*reInv/r
   u0 = NArray.float(lat.length)
   u0[true] = 0.0
-  for n in 0..0
-    u0 = u0 + reInv**(n) * gen_taux_dnLat(lat,2.0*n+n_dlat)/TAU0
+  for n in 0..2
+    u0 = u0 + coef**(n) * gen_taux_dnLat(lat,2.0*n+n_dlat)/TAU0
+  end
+  p coef
+
+  if n_dlat==0 then
+    u0 = u0 + coef*( \
+                         -tan(lat)*gen_taux_dnLat(lat,1) - gen_taux(lat)/cos(lat)**2  \
+                      )/TAU0
+    u0 = u0 + coef**2*( \
+                         -tan(lat)*gen_taux_dnLat(lat,2) - gen_taux_dnLat(lat,1)/cos(lat)**2  \
+                      )/TAU0
   end
 
-  if isNonDim then
-    return u0
-  else
-    return 2.0*TAU0/(Dens*sqrt(2*Av*f)) * u0
-  end
+  return isNonDim ? u0 : velScale*u0
+end
+
+def get_velScale(lat)
+  f = 2.0*Omega*sin(lat)
+  
+  velScale = 2.0*TAU0/(Dens*sqrt(2.0*Av*f.abs))
+  velScale_y = - velScale/(2*tan(lat))
+  velScale_yy = - 0.5*(velScale_y/(tan(lat)) - velScale/(sin(lat)**2))
+
 end
 
 def calc_interiorV0(lat, isNonDim=false, n_dlat=0)
@@ -111,15 +131,35 @@ def calc_interiorV0(lat, isNonDim=false, n_dlat=0)
   velScale_yy = - 0.5*(velScale_y/(tan(lat)) - velScale/(sin(lat)**2))
   velScale_yyy = - ( velScale_yy/tan(lat) - 2*velScale_y/sin(lat)**2 + 2.0*velScale*cos(lat)/sin(lat)**3 )
   
-  taux = gen_taux(lat)
+  taux = gen_taux_dnLat(lat, 0)
   taux_y = gen_taux_dnLat(lat, 1)
+  taux_yy = gen_taux_dnLat(lat, 2)
+
+  if (n_dlat==1) then
+    v0_y = NArray.float(lat.length)
+    v0_y[true] = - eh0*( \
+                       velScale*gen_taux_dnLat(lat, 3)              \
+                       + 0*2*velScale_y*gen_taux_dnLat(lat, 2) \
+                       + 0*velScale_yy*taux_y                                    \
+                       - tan(lat)*velScale*taux_yy      \
+                       - 0*tan(lat)*velScale_y*taux_y      \
+                       - 0*velScale*taux_y/cos(lat)**2   \
+                       + 0*2*velScale*taux_y \
+             )/(TAU0*velScale)
+    
+    v0_y[true] = v0_y[true] + 0*eh4*( \
+                                velScale*gen_taux_dnLat(lat,5) \
+                                )/(TAU0*velScale)
+
+    return v0_y
+  end
 
   v0 = NArray.float(lat.length)
   v0[true] = - eh0*( \
-                     velScale*gen_taux_dnLat(lat, 2+n_dlat)              \
+                     velScale*gen_taux_dnLat(lat, 2)              \
                      + 2.0*velScale_y*taux_y \
                      + velScale_yy*taux                                    \
-                     - tan(lat)*velScale*gen_taux_dnLat(lat,1+n_dlat)      \
+                     - tan(lat)*velScale*taux_y      \
                      - tan(lat)*velScale_y*taux      \
                      - velScale*taux/cos(lat)**2   \
                      + 2*velScale*taux \
@@ -132,11 +172,7 @@ def calc_interiorV0(lat, isNonDim=false, n_dlat=0)
                + 0*2*velScale*gen_taux_dnLat(lat,2) \
             )/(velScale*TAU0)
 
-  if isNonDim then
-    return v0
-  else
-    return velScale * v0
-  end
+  return isNonDim ? v0 : velScale*v0
 
 end
 
@@ -197,7 +233,6 @@ def calc_sigDot(lat, sig)
   velScale = 2.0*TAU0/(Dens*f.abs*deltaE*Depth)
   velScale_y = - velScale/(tan(lat))
 
-  ro = velScale/(f.abs*RPlanet)
 
   taux = gen_taux(lat)/TAU0
   taux_y = gen_taux_dnLat(lat, 1)/TAU0
@@ -207,12 +242,16 @@ def calc_sigDot(lat, sig)
                          velScale*calc_interiorBarotFlow(lat, true, 1) + velScale_y*barotU \
                        - velScale*barotU*tan(lat)  )
 
+  v0_interior = calc_interiorV0(lat,true)
+  v0_interior_divy =   velScale*calc_interiorV0(lat, true, 1) \
+                     + velScale_y*v0_interior  \
+                     - velScale*v0_interior*tan(lat)
+
   uekmanMassFlux_divy   = 0.5*deltaE*( \
                                      velScale*taux_y + velScale_y*taux \
-                                     - velScale*taux*tan(lat) \
+                                       - velScale*taux*tan(lat) \
                                      )
 
-  v0_interior_y = calc_interiorV0(lat, true, 1)
 
   sigDot = NArray.float(lat.length, sig.length)
   
@@ -220,11 +259,9 @@ def calc_sigDot(lat, sig)
     xiB = (1.0 + sig[k])/deltaE
     xiT = - sig[k]/deltaE
     sigDot[true,k] = - ( \
-                           lekmanMassFlux_divy * ( 1.0 - Math.sqrt(2)*exp(-xiB)*sin(xiB + PI/4.0) ) \
+                           ( lekmanMassFlux_divy + 0*v0_interior_divy*(-sig[k]) )*( 1.0 - Math.sqrt(2)*exp(-xiB)*sin(xiB + PI/4.0) ) \
                          - uekmanMassFlux_divy * exp(-xiT)*cos(xiT)  \
                        )/RPlanet
-
-# + ro*(velScale*v1_interior_y[true]) * (sig[k] + 1.0) 
   end
 
   return sigDot

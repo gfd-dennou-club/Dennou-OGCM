@@ -1,0 +1,374 @@
+\chapter{海洋大循環を記述するための方程式系}
+%%%%
+\section{基礎方程式}
+%%
+風成循環や中規模渦といった, 鉛直スケールより水平スケールがずっと大きな海洋循環を表す支配方程式系は, 
+静力学ブシネスク方程式系であり, 以下のように書かれる. 
+%%
+\begin{subequations} %16:32の式群
+  \begin{align}
+    \DD{u_*}{t_*} - f_* v_* - \dfrac{u_* v_*}{a} \tan \theta  &= - \dfrac{1}{\rho_0} \dfrac{1}{a \cos \theta} \DP{p_*}{\lambda} + \mathscr{F}_{u_*}, \\
+    \DD{v_*}{t_*} + f_* u_* + \dfrac{u_*^2}{a} \tan \theta &= - \dfrac{1}{\rho_0} \dfrac{1}{a} \DP{p_*}{\theta} + \mathscr{F}_{v_*}, \\
+    \DP{p_*}{z_*} &= - \rho_* g, \\
+    \dfrac{1}{a \cos \theta} \left( \DP{u_*}{\lambda} + \DP{ (v_* \cos{\theta})}{\theta} \right)  + \DP{w_*}{z_*} &= 0, \\
+    \DD{}{t_*} (\Theta_*, S_*) &= (\mathscr{F}_{\Theta_*}, \mathscr{F}_{S_*}), \\
+    \rho_* &= \rho_* (\theta_*, S_*). 
+  \end{align}
+  \label{eq:basic_system}
+\end{subequations}
+%%
+ここで, $(u_*,v_*,w_*)$は緯度経度座標系における速度の各方向成分, 
+$\rho_*$は密度, $p_*$は圧力, $\Theta_*$は温位, $S_*$は塩分である. 
+また, $\rho_0$は参照密度, $f_*$はコリオリパラメータ, $g$は重力加速度, 
+$a$は地球半径である. 
+さらに, 
+%%
+\begin{equation}
+  \DD{}{t_*} =  \DP{}{t_*} + \dfrac{u_*}{a \cos \theta}\DP{}{\lambda} + \dfrac{v_*}{a} \DP{}{\theta} + w_* \DP{}{z_*}
+\end{equation}
+%%
+である. 
+なお, 上の方程式系には, 静力学近似, ブジネスク近似に加えて, 
+浅い流体に対する近似, 伝統的近似が適用されていることに注意されたい. 
+また, 以下では, 温位の式と塩分の式と海水の状態方程式をまとめて, 密度を用いて書かれた熱力学方程式, 
+%%
+\begin{align}
+ \DD{\rho_*}{t} = \left(\DP{\rho_*}{S_*}\right)_{\Theta_*} \mathscr{F}_{S_*} + \left(\DP{\rho_*}{\Theta_*}\right)_{S_*} \mathscr{F}_{\Theta_*} 
+\end{align}
+%%
+を用いることにする. 
+さらに, ここでは温位や塩分がラグランジュ保存する場合を考えることにすれば, 
+上式の右辺はゼロである. 
+
+\eqref{eq:basic_system}を無次元化した形式を導くために,  
+次のように各変数をスケーリングする. 
+%%
+\begin{align*}
+  & z_*=Dz, \;\;\;\;  t_* = (L/U)t, \;\;\;\; f_* = f_0 f, \\
+  & (u_*,v_*) = U (u, v), \;\;\;\; w_* = (D/L)U \; w \\
+  & p_* = - \rho_0 g z_* + p_{s*}(z_*) +  (\rho_0 f_0 U L) p, \;\;\;\;
+   \rho = \rho_0 + \rho_{s*}(z_*) + (\rho_0 \dfrac{f_0 UL}{gD}) \rho. 
+\end{align*}
+%%
+ここで, $L, D$はそれぞれ水平, 鉛直スケールである. 
+また, $U$は水平速度スケール, $f_0$はコリオリパラメータのスケールである. 
+$\rho_{s*}(z)$は密度の基本場, $p_{s*}$は圧力の基本場であり, 
+%%
+$$
+ \DP{p_{s*}}{z_*} = - \rho_{s*} g
+$$
+%% 
+を満たす. 
+上で定義された無次元変数を使って, \eqref{eq:basic_system}を無次元化すれば, 
+%%
+\begin{subequations} %16:32の式群
+  \begin{align}
+    R_o \left( \DD{u}{t} - \gamma uv \tan\theta \right)  - f v  &= - \dfrac{\gamma}{\cos \theta} \DP{p}{\lambda} + \mathscr{F}_u, \\
+    R_o \left( \DD{v}{t} - \gamma u^2 \tan\theta \right)   + fu &= - \gamma \DP{p}{\theta} + \mathscr{F}_v, \\
+    \DP{p}{z} &= - \rho, \\
+    \dfrac{1}{\cos \theta} \left( \DP{u}{\lambda} + \DP{ (v \cos{\theta})}{\theta} \right)  + \DP{w}{z} &= 0, \\
+  \end{align}
+\label{eq:basic_system_nondim}
+\end{subequations}
+%%
+を得る. 
+ただし, 
+%%
+\begin{align}
+  \gamma = \dfrac{L}{a}
+\end{align}
+%%
+と定義した. また, 
+%%
+\begin{equation}
+  \DD{}{t} =  \DP{}{t} + \gamma \dfrac{u}{\cos \theta}\DP{}{\lambda} + \gamma v \DP{}{\theta} + w\DP{}{z}
+\end{equation}
+%%
+である. 
+一方, 密度を用いて書かれた熱力学方程式は, 
+内部変形半径$L_d(=NH/f_0)$を用いて, 
+%%
+\begin{align}
+   R_o \DD{\rho}{t} + (L_d/L)^2 w = 0
+\label{eq:basic_system_densEq_nondim}  
+\end{align}
+%%
+と無次元化される. 
+ここで, $N=g/\rho_0 (d\rho_{s*}/dz_*)$は静的安定度である. 
+
+
+\section{惑星地衡流方程式(PGE: Planetary Geostrophic Equation)}
+
+今, 
+%%
+\begin{itemize}
+\vspace{-0.5cm}
+ \item ロスビー数は十分に小さい($Ro = U/(f_0 L) \ll 1$)
+ \item 運動のスケール$L$は変形スケール$L_d$より十分に大きく($L_d/L \ll 1$), 
+       $R_o (L/L_d)^2 = {\rm O}(1)$である 
+ \item 時間スケールを移流時間で決める($T=L/U$)  
+\vspace{-0.5cm}
+\end{itemize}
+%%
+ということを仮定する. 
+
+一番目の仮定からロスビー数は十分に小さいので, 
+各無次元変数をロスビー数を用いて展開する. 
+例えば, 
+$$
+ u = u_{(0)} + R_o u_{(1)} + \cdots. 
+$$ 
+これらを\eqref{eq:basic_system_nondim}に代入し, 最低次の項を集めれば, 
+%%
+%%
+\begin{subequations} %16:32の式群
+  \begin{align}
+    - f v_{(0)}  &= - \dfrac{\gamma}{\cos \theta} \DP{p_{(0)}}{\lambda}, \\
+    fu_{(0)} &= - \gamma \DP{p_{(0)}}{\theta}, \\
+    \DP{p_{(0)}}{z} &= - \rho_{(0)}, \\
+    \dfrac{1}{\cos \theta} \left( \DP{u_{(0)}}{\lambda} + \DP{ (v_{(0)} \cos{\theta})}{\theta} \right)  + \DP{w_{(0)}}{z} &= 0
+  \end{align}
+\label{eq:PGE1_nondim}
+\end{subequations}
+%%
+を得る. 
+ここで, 無次元化したコリオリパラメータ$f$は定数でなく, O(1) だけ変化できる量であることに注意されたい. 
+また, 熱力学方程式は, 2 番目の仮定から, ロスビー数の最低次に対して, 
+%%
+\begin{align}
+  R_o (L/L_d)^2 \;  \DD{\rho_{(0)}}{t} + w_{(0)} = 0
+\label{eq:PGE2_nondim}
+\end{align}
+%%
+と得られる. 
+
+以上の\eqref{eq:PGE1_nondim}, \eqref{eq:PGE2_nondim} を用いて系の時間発展を記述できる. 
+一方, 次に示す準地衡流方程式系では, 最低次には密度の時間微分項は現れず, 
+ロスビー数の最低次のバランスだけで系の時間発展を記述できない. 
+また, 均質流体($L_d \to 0$)の場合にも, 時間発展項を失うので, やはり最低次のバランスだけでは, 
+系の時間発展は記述できず, O($R_o$) のバランスまで考慮する必要がある. 
+
+\section{準地衡流方程式(QGE: Quasi-Geostrophic Equation)}
+
+次に, 運動のスケール$L$が O$(L_d)$である循環を記述するための方程式系を導く. 
+
+\subsubsection*{仮定}
+%%
+\begin{itemize}
+ \item ロスビー数が小さい($R_o \ll 1$)
+ \item 運動のスケールが, 変形スケールよりずっと大きくない($R_o (L/L_d)^2 = {\rm O}(R_o)$)
+ \item コリオリパラメータの変化が小さい($|\beta|L \ll |f_0|$)
+ \item 時間スケールは移流時間でとる($T=L/U$)
+\end{itemize}
+%%
+ということを仮定する. 
+ここで, $\beta=a^{-1} df_*/d\theta$である. 
+また, ここでは, 地球の大気・海洋の運動のように, 
+変形半径の大きさがコリオリパラメータの変化のスケールより小さい場合のみを考える%
+\footnote{
+一般には, 変形半径$L_d$がコリオリパラメータの変化のスケール(O($a$))より大きい場合も考えらる. 
+例えば, 自転速度がより小さい場合や, 成層がより強い場合には, 変形半径は大きくなる.  
+しかし, ここではそのような場合は考えないことにする. 
+}.  
+
+\subsubsection*{準備}
+コリオリパラメータを中心緯度$\theta_0$の周りでテイラー展開すれば, 
+%%
+\begin{equation}
+  f_* = f_0 + \beta|_{\theta=\theta_0} \; y_* + {\rm O(\gamma^2)}. 
+\end{equation}
+今, 仮定より$L_d/a < 1$であるので, 
+%%
+コリオリパラメータを線形近似(ベータ平面近似)しても良いだろう. 
+また, $\beta L$が相対渦度のオーダと同程度の場合に興味があるので, 
+このとき$\beta$は O$(U/L^2)$ と見積もれる. 
+したがって, 無次元のコリオリパラメータは, 
+%%
+\begin{equation}
+  f = 1 + R_o \beta_0 y 
+\label{eq:f_beta_plane_nondim}
+\end{equation}
+%%
+と書ける. 
+ここで, $y=L^{-1}y_*$, $\beta_0=(U/L^2)^{-1}\beta$である. 
+
+次に, $(\lambda, \theta)=(0,\theta_0)$を中心とする無次元の局所直交座標系
+%%
+\begin{equation}
+  x = \gamma^{-1} \; \lambda \cos{\theta_0}, \;\;\; 
+  y = \gamma^{-1} \; (\theta - \theta_0)
+\label{eq:local_cartesian_coord}
+\end{equation} 
+%%
+を導入する. 
+\eqref{eq:basic_system_nondim}に対して\eqref{eq:f_beta_plane_nondim}, \eqref{eq:local_cartesian_coord}を代入し, 整理すれば,   
+%%
+\begin{subequations} %16:32の式群
+  \begin{align}
+    R_o \left( \DD{u}{t} - \gamma uv \tan\theta_0 - \beta_0 y v \right)  - v  
+      &= - \left(1+\gamma \tan{\theta_0}y \right)\DP{p}{x} + \mathscr{F}_u, \\
+    R_o \left( \DD{v}{t} - \gamma u^2 \tan\theta_0 + \beta_0 y u\right)   + u 
+      &= - \DP{p}{y} + \mathscr{F}_v, \\
+    \DP{p}{z} &= - \rho, \\
+    \left(1 + \gamma \tan\theta_0 \right) \DP{u}{x} 
+      + \DP{v}{y} - \gamma \tan\theta_0 \; v + \DP{w}{z} &= 0 
+  \end{align}
+\label{eq:basic_system_nondim_beta_plane}
+\end{subequations}
+%%
+を得る. 
+ただし, 三角関数を含む項に関しては, 中心緯度まわりにとテイラー展開し, 
+O($\gamma^2$) の項は無視した. 
+この近似は, ベータ平面近似と整合的である. 
+以上で, 準地衡流方程式を導くための準備は整った. 
+
+\subsubsection*{O(1) のバランス}
+前節と同様に, 各無次元変数をロスビー数$R_o$によって展開し, 
+\eqref{eq:basic_system_nondim_beta_plane}に代入すれば, 
+O(1) に対して, 
+%%
+\begin{subequations} %17:25の式群
+\begin{align}
+  - v_{(0)} &= - \DP{p_{(0)}}{x}, \\
+   u_{(0)}  &= - \DP{p_{(0)}}{y}, \\
+   \DP{p_0}{z} &= - \rho_{(0)}, \\
+   \DP{u_0}{x} + \DP{v_0}{y} + \DP{w_0}{z} &= 0
+\end{align}
+\label{eq:qg_order1}
+\end{subequations}
+%%
+が得られる. 
+
+したがって, 最低次の水平速度は地衡流である. 
+ベータ平面近似により, 最低次ではコリオリパラメータの寄与は定数であるため, 
+最低次の水平速度は非発散であり, 
+結果
+%%
+\begin{equation}
+  \DP{w_{(0)}}{z} = 0
+\end{equation}
+%%
+を得る. 
+よって, 領域の上下境界が剛体壁である場合には, 
+領域の至る所で, $w_{(0)}$はゼロでなければならない. 
+一方, 粘性境界層が存在するとき, エクマンパンピングに伴う鉛直速度が生じ得るが, 
+そのオーダーは無次元単位で (鉛直エクマン数)$^{1/2}$ であるので, 
+やはり, O(1) の鉛直速度はゼロでなければならない.  
+$w_{(0)}$がゼロでなければならないことは, 熱力学方程式\eqref{eq:basic_system_densEq_nondim}から得られる
+最低次のバランスと矛盾しないことに注意されたい. 
+
+惑星地衡流方程式の場合と異なり, 最低次のバランスから$\rho_{(0)}$の時間発展式を得られないので, 
+この時点において$p_{(0)}$故に$u_0,v_0$を完全に決定することはできない. 
+そのため, O($R_o$)のバランスを考慮する必要がある. 
+
+\subsubsection*{O($R_o$)のバランス}
+
+次に, O($R_o$) の項を集めれば, 
+%%
+\begin{subequations} %18:25の式群
+\begin{align}
+  \DD{_0}{t} u_{(0)}  - v_{(1)}  - \beta_0 y v_{(0)}
+     &= - \DP{p_{(1)}}{x} - \tilde{\gamma} y \DP{p_{(0)}}{x}, 
+\label{eq:qg_x_momentum_orderRo} \\
+  \DD{_0}{t} v_{(0)}  + u_{(1)}  + \beta_0 y u_{(0)}
+     &= - \DP{p_{(1)}}{y}, 
+\label{eq:qg_y_momentum_orderRo} \\
+  \DP{p_{(1)}}{z} &= - \rho_{(1)},
+\label{eq:gq_hydrostatic_orderRo} \\
+  \DP{u_{(1)}}{x} + \DP{v_{(1)}}{y} 
+     + \tilde{\gamma} \left(- y \DP{u_0}{x} + v_{(0)} \right) + \DP{w_{(1)}}{z} &= 0
+\label{eq:qg_continious_orderRo}
+\end{align}
+\label{eq:qg_orderRo}
+\end{subequations}
+%%
+を得る. 
+ここで, 
+%%
+\begin{equation}
+  \DD{_0}{t} = \DP{}{t} + u_{(0)} \DP{}{x} + v_{(0)} \DP{}{y}, 
+\end{equation}
+%%
+\begin{equation}
+  \tilde{\gamma} = \dfrac{\gamma \tan\theta_0}{R_o}
+\end{equation}
+である. 
+
+\eqref{eq:qg_x_momentum_orderRo}, \eqref{eq:qg_y_momentum_orderRo}に現れる
+コリオリパラメータの緯度変化による項や 
+メトリック($\cos{\theta}^{-1}$に比例する因子)による項は, 
+O($R_o$) の運動量バランスにおいて, 一般には無視できないことに注意されたい. 
+しかし, 渦度方程式にはこの O($\gamma/R_o$) と関係した項が陽には現れないことが以下で分かる. 
+
+一方, 熱力学方程式における O($R_o$) のバランスは, 
+%%
+\begin{equation}
+  \DD{_0}{t} \rho_{(0)} + F^{-1} w_{(1)} = 0
+\label{eq:gq_dens_order_Ro}
+\end{equation}
+%%
+と得られる. 
+ここで, $F=(L/L_d)^2$である. 
+
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{ポテンシャル渦度方程式}
+%%
+\eqref{eq:qg_y_momentum_orderRo}を$x$, \eqref{eq:qg_x_momentum_orderRo}を$y$で微分した後に両者を引き, 
+O($R_o$)の水平発散を\eqref{eq:qg_continious_orderRo}, $p_0$を\eqref{eq:qg_order1}を用いて消去すれば, 
+渦度方程式
+%%
+\begin{equation} %19:11の式群
+ \DD{_0}{t} \{ \zeta_{(0)} + \beta_o y \} = \DP{w_{(1)}}{z} 
+\label{eq:qg_vorticy_order1}
+\end{equation}
+%%
+を得る. 
+ここで, 
+%%
+\begin{equation}
+  \zeta_{(0)} = \DP{v_{(0)}}{x} - \DP{u_{(0)}}{y}. 
+\end{equation}
+%%
+
+$w_{(1)}$を\eqref{eq:gq_dens_order_Ro}を用いて消去すれば, 
+\eqref{eq:qg_vorticy_order1}は, 
+%%
+\begin{equation}
+ \DD{_0}{t} \{ \zeta_{(0)} + \beta_o y \} = - \DP{}{z} \left[ \DD{_0}{t} (F\rho_{(0)}) \right]
+\end{equation}
+%%
+となる. 
+さらに, 左辺は, 
+$$
+ \DP{}{z}\DD{_0}{t} \left[ F  \rho_{(0)} \right]
+ = \DD{_0}{t} \DP{}{z}\left[ F  \rho_{(0)} \right] + \DP{\Dvect{u}_{(0)}}{z} \cdot \nabla \rho_{(0)}
+$$
+%%
+と計算できるが, 二項目は\eqref{eq:qg_order1}から結局ゼロとなる.  
+したがって, 
+%%
+\begin{equation}
+ \DD{_0}{t} \left[ \zeta_{(0)} + \beta_o y + \DP{}{z}(F\rho_{(0)}) \right] = 0
+\label{eq:qg_pv_derivTmp1}
+\end{equation}
+%%
+となる. 
+ここで, 最低次の水平速度は非発散であるので, 流れ関数$\psi$を導入する. 
+このとき, $\psi = p_{(0)}$なる関係を得る. 
+$\rho_{(0)}$を静水圧平衡の式を使って消去し, 
+\eqref{eq:qg_pv_derivTmp1}を$\psi$だけを使って書けば, 
+準地衡流ポテンシャル渦度方程式
+%%
+\begin{equation}
+ \DD{_0}{t} \left[ \nabla^2 \psi + \beta_o y + \DP{}{z}(F \DP{\psi}{z}) \right] = 0  
+\end{equation}
+%%
+を得る. 
+有次元単位で書けば, 
+%%
+\begin{equation}
+ \DD{}{t_*} \left[ \nabla_*^2 \psi_* + \beta y_* + f_0^2 \DP{}{z_*}( N^{-2} \DP{\psi_*}{z_*}) \right] = 0  
+\end{equation}
+%%
+である. 

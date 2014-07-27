@@ -1,0 +1,182 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 1: 均質流体
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_link
+#+BEGIN_SRC ruby :: result value raw :exports none :var labels="hoge1,hoge2,hoge3" :var fileName="exp_Ah1e{3,4,5}Pl341L60/config.nml" :var fileDirPath="./expdata_homoFluid/"
+  require 'pathname'
+  labelStrs = labels.split(",")
+
+  str = "| "
+
+  fileNameStr = Dir.glob("#{fileDirPath}#{fileName}")
+  labelStrs.each_with_index{|label,i|
+     str << " [[file:#{fileNameStr[i]}][#{label}]] |"
+  }
+
+  return str
+#+END_SRC
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./data/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 概要 
+
+  海洋の表層循環は, 海面に吹く偏西風や貿易風の応力によりエクマン層を介して駆動される. 
+  陸の存在する海洋における表層循環の基本的な力学は, 解析的な数理モデル\cite{stommel1948westward}\cite{munk1950wind}\cite{pedlosky1987geophysical}
+  や数値実験により理解されてきた. 
+
+  近年, 気候状態に対する大気と海洋の相互作用の仕組みを理解する目的で, 
+  大気・海洋大循環結合モデルを用いた水惑星実験が行われている\cite{smith2006global}\cite{marshall2007mean}\cite{enderton2009explorations}. 
+  そこで示された陸のない海洋循環の特徴は岸の存在する場合の循環と大きく異なるため, 
+  両者の間で力学の違いが存在することが示唆されている. 
+  また, \cite{marshall2007mean} では, 同等の実験設定を行った水惑星実験にも関わらず, 
+  \cite{smith2006global} の計算により得られた平衡状態の気候が大きく異なる問題を挙げている. 
+  この理由については, \cite{marshall2007mean} は, 海洋モデルの(特に混合過程の)定式化に違いのために, 
+  計算される海洋循環や温度構造, そして海洋の熱輸送が異なるためだと主張している. 
+
+
+  水惑星設定における海洋循環もまた気候状態に重要な影響を与えることが予期されるが, 
+  一方で, その循環の基本的な力学は, 陸の存在する海洋循環と比較してまだ広く調べられていない.   
+  ここでは, 
+    - 大気・海洋結合モデルによる水惑星実験に向けて実装した, 海洋大循環モデルの妥当性の検証
+    - 水惑星設定における海洋循環の基本構造(軸対称構造)の理解
+  を行うために, 静止した海洋に対して東西一様な海面応力を与えたとき, 
+  どのような循環が駆動されるかを数値実験する. 
+  
+  また, \cite{smith2006global}\cite{marshall2007mean}\cite{enderton2009explorations} では, 
+  単一のパラメータ設定に対する数値実験の結果のみを示している. ここでは, 水惑星における
+  海洋大循環の数値実験を様々なパラメータに対して行い, 
+  その循環の基本的な特徴について議論する. ただし, 議論を簡単にするために, 密度が一定の場合を
+  ここでは取り扱うことにする(密度の変化が存在する場合は, 別のレポートを参照のこと). 
+  加えて, 3 次元計算では避けられない低解像度において発生する問題を整理し, その対策案を示す.  
+  
+* 水惑星設定における軸対称な風成循環の記述
+
+- [[file:./../../../../../note_OModeling/ogcirc_formul/main.pdf][海洋大循環を記述するための方程式系]]
+- [[./note/axisym_windcirc_homoFluid/main.pdf][軸対称風成循環の漸近級数解の導出]]
+
+* 実験設定
+
+** ケース間で共通な設定
+
+*** 計算領域
+
+- 全球的に広がる水深 $H= 5.2$ km の海洋. 
+  海底地形や陸は存在しない.  
+- 軸対称(経度方向に一様)な循環を計算. 
+
+*** モデルの記述
+
+- 海洋大循環モデルの支配方程式
+  - 静力学ブジネスク方程式
+    - 軸対称設定(経度方向の微分はゼロ)
+    - 密度が一様な場合を考える(実際には温位や塩分の時間発展は解かない). 
+
+- 海水の状態方程式
+  - 線形近似\cite{vallis2006atmospheric}
+    - 参照密度 $\rho_0=1.027$ [kg/m^{3}]
+- 粘性
+  - 水平方向の渦粘性係数 $A_h$ の設定
+    - 大きさは, 次の各ケース設定を参照. 
+  - 鉛直方向の渦粘性係数 $A_v$ の設定
+    - 海面流速が \cite{marshall2007mean} と同程度になるように, $A_v=1.0 \times 10^{-2}$ [m^2 s^{-1}] にとる. 
+
+*** 境界条件
+
+- 海面応力
+  - \cite{marshall2007mean} における準平衡状態での地表風速から計算された, 
+    海面応力の東西平均場を与える.  
+  
+  \[ 
+     \rho_0 A_v \dfrac{\partial u}{\partial z} = \tau_{zx}, \;\;\; 
+     \rho_0 A_v \dfrac{\partial v}{\partial z} = 0          \;\;\;\;\;\; {\rm at} \; z=0.         
+  \]
+
+  #+CAPTION: 海面応力(\tau_zx) [ N/m^{2} ].   
+  | [[./data/common/windStressLon.jpg][file:./expdata_homoFluid/common/windStressLon_thumb.png]]  |
+  
+*** 初期条件  
+
+- 運動場: 静止状態
+
+
+** 各実験設定
+
+   #+CAPTION: Pl: ルジャンドル陪関数の次数, L: 鉛直レベル数, Ah:水平渦粘性係数[m^2 s^{-1}], dt: 時間刻み幅[hour]. 
+  | 実験名                  | 解像度　 | Ah              |  dt |
+  |-------------------------+----------+-----------------+-----|
+  | Ah1e4Pl341L60 (標準実験) | Pl341L60 | 1.0 \times 10^4 |   1 |
+  | Ah1e4Pl170L60           | Pl170L60 | 1.0 \times 10^4 |   1 |
+  | Ah1e4Pl682L60           | Pl682L60 | 1.0 \times 10^4 |   1 |
+  | Ah1e4Pl341L30           | Pl341L30 | 1.0 \times 10^4 |   1 |
+  | Ah1e4Pl341L120          | Pl341L120 | 1.0 \times 10^4 | 0.5 |
+  | Ah1e3Pl341L60           | Pl341L60 | 1.0 \times 10^3 |   1 |
+  | Ah1e5Pl341L60           | Pl341L60 | 1.0 \times 10^5 | 0.5 |
+
+   
+- 実験シリーズの目的
+  - ケース Ah1e4T341L60 は, 水平・鉛直解像度および水平粘性係数の依存性を調べるための標準実験である. 
+    - 本計算で最も水平格子点数の少ない T170 において赤道境界層を数値的に安定に表現できるように, 
+      水平渦粘性係数を $A_h=1.0 \times 10^4$ [m^2 s^{-1}] に設定した. 
+  - 水平解像度の依存性: Ah1e4T170L60, Ah1e4T341L60, Ah1e4T682L60 の計算結果を比較
+  - 鉛直解像度の依存性: Ah1e4T341L30, Ah1e4T341L60, Ah1e4T341L120 の計算結果を比較
+  - 水平渦粘性係数の依存性: Ah1e3T341L60, Ah1e4T341L60, Ah1e5T341L60 の計算結果を比較
+
+- 各実験の設定ファイル
+
+  #+CALL: create_link("Ah1e3Pl341L60(標準実験),Ah1e4Pl170L60,Ah1e4Pl682L60,Ah1e4Pl341L30,Ah1e4Pl341L120,Ah1e3Pl341L60,Ah1e5Pl341L60", "{exp_Ah1e4Pl{341,170,682}L60,exp_Ah1e4Pl341L{30,120},exp_Ah1e{3,5}Pl341L60}/config.nml") :results value raw :exports results
+
+* 計算結果
+** [[file:./Exp_WindDrivenCirculation_homoFluid_result_refexp.html][標準実験]]
+
+** [[file:./Exp_WindDrivenCirculation_homoFluid_horiResolComp.html][水平解像度依存性]]
+
+** [[file:./Exp_WindDrivenCirculation_homoFluid_vertResolComp.html][鉛直解像度依存性]]
+
+** [[file:./Exp_WindDrivenCirculation_homoFluid_horiEddViscComp.html][水平渦粘性依存性]]
+
+
+* 計算結果の解析
+
+** 運動エネルギーの収支解析
+** [[file:./Exp_WindDrivenCirculation_homoFluid_validiation.html][解析的な近似解との比較]]
+
+* [[file:./Exp_WindDrivenCirculation_homoFluid_consider.html][考察]]
+
+
+* まとめ
+
+大気・海洋結合モデルによる水惑星実験に向けて開発中の海洋大循環モデルの妥当性を確認するために, 簡単な設定の海洋大循環の問題(水惑星設定における密度一様・軸対称風成循環)の数値実験を行った. 
+本数値実験の結果を, 近似的に得られる解析解と比較した. 
+両者は近似的な解析解が許容する精度の範囲で一致し, 
+(非線形項を除く)数値モデルの実装の妥当性を確認することができた. 
+また, 水惑星設定の海洋大循環の力学の理解を深めるために, 本数値実験を通して, 
+水惑星設定における海洋大循環の基本場形成と定常状態の力学バランスについても考察した. 
+
+
+
+* 参考文献
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist plain limit:t
+
+
+
+

@@ -1,0 +1,287 @@
+\chapter{支配方程式系の近似解: 赤道近傍}
+\markright{\arabic{chapter} 支配方程式系の近似解: 赤道近傍}
+
+本章では, $\varepsilon_{eq}$が 1 より十分小さい場合を考えて, 
+\eqref{eq:x_momem_nondim_eq} - \eqref{eq:continuity_nondim_eq} の線形解の導出を, 
+\citet{gill1971421,dowden1972equatorial}に従って行う. 
+彼らによれば, 海面応力の詳細な分布は赤道境界層の力学に対して重要でない.  
+そのため, 本ノートにおいても, 簡単化のために南北方向に一様な海面応力を与える. 
+すなわち, 
+%%
+\begin{equation}
+  \tau_x(y) = -1
+\end{equation}
+%%
+の場合を考えることにする. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+\section{線形近似解(赤道近傍)}
+%%
+\eqref{eq:x_momem_nondim_eq} - \eqref{eq:continuity_nondim_eq} において, 
+非線形項を無視すれば, 
+%%
+\begin{subequations}
+ \begin{align}
+   - yv &= \DP[2]{u}{y} + \delta_E^2 \DP[2]{u}{z}, \\
+     yu &= - \DP{p}{y} + \DP[2]{v}{y} + \delta_E^2 \DP[2]{u}{z}, \\
+   \DP{u}{y} + \DP{w}{z} &= 0
+ \end{align}
+\label{eq:EBLgoverneq_linear}
+\end{subequations}
+%%
+となる. 
+以下では, 流れを順圧成分と傾圧成分に分割して, \eqref{eq:EBLgoverneq_linear} の解を求める. 
+初めに, 流れの順圧成分$(\bar{u}, \bar{v})$を
+%%
+\begin{align}
+  (\bar{u}, \bar{v}) = \int_0^1 (u, v) \; dz
+\end{align}
+%%
+と定義する. 
+一方で, 流れの傾圧成分$(\hat{u}, \hat{v})$は, 流れの順圧成分からのずれによって定義する. 
+すなわち, 
+%%
+\begin{align}
+  (\hat{u}, \hat{v}) = (u, v) - (\bar{u}, \bar{v}). 
+\end{align}
+%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{流れの順圧成分}
+%%
+流れの順圧成分に対する方程式を得るために, 
+\eqref{eq:EBLgoverneq_linear}を$z$について 0 から 1 まで積分し, 
+上下端における境界条件を適用すれば, 
+%%
+\begin{subequations}
+ \begin{align}
+   - y\bar{v} &=  \DP[2]{\bar{u}}{y} + \delta_E \left[ -1 - \delta_E \left(\DP{\hat{u}}{z}\right)_{z=0} \; \right], \\
+     y\bar{u} &= - \DP{p}{y} + \DP[2]{\bar{v}}{y} + \delta_E \left[ \;\;\;\;\;  - \delta_E \left(\DP{\hat{v}}{z}\right)_{z=0} \; \right], \\
+   \DP{\bar{v}}{y}  &= 0
+ \end{align}
+\label{eq:EBLgoverneq_linear_barotropic}
+\end{subequations}
+%%
+が得られる. 
+
+\eqref{eq:EBLgoverneq_linear_barotropic}を満たす解について考える. 
+例えば, $|y|=y_\infty$において, $\bar{u} = \bar{u}_\infty$となる, 
+\eqref{eq:EBLgoverneq_linear_barotropic}の解を求めることにしよう. 
+O($\delta_E$) の項を無視することにすれば, 
+%%
+\begin{align}
+  \bar{v} &= 0, \;\;\;\;\;\; \bar{u} = \bar{u}_\infty, \\
+  p &= - \dfrac{\bar{u}}{2} y^2 + ({\rm const}). 
+\end{align}
+%%
+が得られる. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{流れの傾圧成分}
+%%
+流れの傾圧成分に対する方程式を得るために, 
+\eqref{eq:EBLgoverneq_linear}を\eqref{eq:EBLgoverneq_linear_barotropic}で引けば, 
+%%
+%%
+\begin{subequations}
+ \begin{align}
+   - y\hat{v} &=  \DP[2]{\hat{u}}{y} + \delta_E^2 \DP[2]{\hat{u}}{z} + \delta_E \left[ 1 + \delta_E \left(\DP{\hat{u}}{z}\right)_{z=0} \; \right], \\
+     y\hat{u} &=  \DP[2]{\hat{v}}{y} + \delta_E^2 \DP[2]{\hat{v}}{z} + \delta_E \left[ \;\;\;\;\;\;  \delta_E \left(\DP{\hat{v}}{z}\right)_{z=0} \; \right], \\
+   \DP{\hat{v}}{y} + \DP{w}{z} &= 0
+ \end{align}
+\label{eq:EBLgoverneq_linear_baroc}
+\end{subequations}
+%%
+を得る. 
+今, 
+%%
+\begin{equation}
+  P = \hat{u} + i \hat{v}
+\end{equation}
+%%
+とおけば, \eqref{eq:EBLgoverneq_linear_baroc}は, 
+%%
+\begin{equation}
+\boxed{
+  \delta_E^2 \DP[2]{P}{z} + \DP[2]{P}{y} - iyP = \delta_E \left[ 1 + \delta_E \left(\DP{P}{z}\right)_{z=0} \right]
+}
+\label{eq:EBLgoverneq_linear_baroc_P}
+\end{equation}
+%%
+と書ける. 
+
+\subsubsection*{流れの傾圧成分の分解}
+次に, 流れの傾圧成分に対する線形の方程式\eqref{eq:EBLgoverneq_linear_baroc}の解を, 
+それぞれ内部領域, 上側エクマン層, 下側エクマン層内の寄与に分割して考えるために, $P$を 
+%%
+\begin{equation}
+  P = P_I + P_{\rm e1} + P_{\rm e2}
+\end{equation}
+%%
+と分解する. 
+ここで, $P_I, P_{\rm e1}, P_{\rm e2}$を以下のように定義する. 
+%%
+\begin{itemize}
+ \item $P_I$: 内部領域の流れの速度. ただし, $P_I$に関する鉛直拡散項はゼロする.  
+ \item $P_{e1}$: 上側エクマン層内の流れの速度. ただし, その外側ではゼロとする. 
+ \item $P_{e1}$: 下側エクマン層内の流れの速度. ただし, その外側ではゼロとする. 
+\end{itemize}
+
+\subsubsection*{流れの傾圧成分の決定: (i) 内部領域}
+%%
+$P_I$に対する方程式は, \eqref{eq:EBLgoverneq_linear_baroc_P}から, 
+%%
+\begin{equation}
+ \DP[2]{P_I}{y} - iyP_I = \delta_E \left[ 1 + \delta_E \left(\DP{P}{z}\right)_{z=0} \right]
+\end{equation}
+%%
+と得られる. 
+ここで, O($\delta_E$) 以下の項を無視することにすれば, 
+%%
+\begin{equation}
+ \DP[2]{P_I}{y} - iyP_I = 0
+\end{equation}
+%%
+となる. 
+今, $|y| \to \infty$において, 
+%%
+\begin{equation}
+  - iy P_I = 0
+\end{equation}
+%%
+に漸近的に収束する条件を課せば,
+%%
+\begin{equation}
+  P_I = 0
+\end{equation}
+%%
+を得る. 
+したがって, O($\delta_E$) までに対して, 
+内部領域における流れの傾圧成分$P_I$は\textbf{ゼロ}である. 
+
+\subsubsection*{流れの傾圧成分の決定: (ii) 上側エクマン層}
+%%
+今, 上端エクマン層内の流れの表現に適した座標
+%%
+\begin{equation}
+  \tilde{z} = \dfrac{z-1}{\delta_E}
+\end{equation}
+%%
+を導入する. 
+この$\tilde{z}$を用いて, \eqref{eq:EBLgoverneq_linear_baroc_P}を書き直し, 
+その結果を\eqref{eq:EBLgoverneq_linear_barotropic}で引けば, 
+上側エクマン層内の流れ$P_{e1}$に対する方程式
+%%
+\begin{equation}
+  \DP[2]{P_{\rm e1}}{\tilde{z}} + \DP[2]{P_{\rm e1}}{y} - iy P_{\rm e1} = 0
+\label{eq:EBLgoverneq_linear_Pe1}
+\end{equation}
+%%
+を得る. 
+
+\eqref{eq:EBLgoverneq_linear_Pe1}に対して, 以下の境界条件を課す.  
+%%
+\begin{subequations}
+ \begin{align}
+    \DP{P_{\rm e1}}{\tilde{z}} \to -1  \;\;\;\;\;\;\;\; &{\rm as} \;\;\;\; \tilde{z} \to -0, \\
+    P_{\rm e1} \to 0 \;\;\;\;\;\;\;\; &{\rm as} \;\;\;\; \tilde{z} \to - \infty, \\
+    P_{\rm e1} \sim \dfrac{-1 \pm i}{2 \sqrt{|y|}} \exp{\left[ \tilde{z} (1+i) \sqrt{|y|/2} \right]}
+       \;\;\;\; &{\rm as} \;\;\;\; |y| \to  \infty. 
+ \end{align}
+\label{eq:BC_for_Pe1}
+\end{subequations}
+%%
+最後の境界条件により, 赤道から十分に遠方では, $P_{e1}$はエクマン解と接続しなければならない. 
+
+境界条件\eqref{eq:BC_for_Pe1}を満たす\eqref{eq:EBLgoverneq_linear_Pe1}の解は, 最終的には以下のように得られる. 
+その導出過程については, 付録を参照されたい. 
+%%
+\begin{align}
+\boxed{
+  P_{e1} = - \dfrac{1}{\sqrt{\pi}} \int_0^\infty \dfrac{1}{\sqrt{l}} 
+             \exp{\left( -\dfrac{l^3}{3} - ily - \dfrac{\tilde{z}^2}{4l} \right)} \; dl
+}
+\end{align}
+%%
+また, 上の$P_{e1}$と連続の式を用いて, 上側エクマン層内の鉛直速度を求めれば, 
+%%
+\begin{align}
+\boxed{
+  w_{e1} = \dfrac{\delta_E}{\sqrt{\pi}} \int_0^\infty \sqrt{l} \exp \left(-\dfrac{l^3}{3} \right) \cos (ly) 
+              \int_0^{\tilde{z}} \exp \left(-\dfrac{\tilde{z}^2}{4l} \right) \;\; d\tilde{z} \; dl
+}
+\end{align}
+%%
+と得られる. 
+特に, $\tilde{z} \to -\infty$に対する鉛直速度は, 
+%%
+\begin{align}
+ w_{\rm e1} |_{\tilde{z} \to - \infty} = \delta_E \int_0^\infty l \exp \left(-\dfrac{l^3}{3}\right)  \cos(ly) \; dl
+\end{align}
+%%
+と書ける. 
+
+\subsubsection*{流れの傾圧成分の決定: (iii) 下側エクマン層}
+%%
+上側エクマン層の場合と同様な方法によって解を導出できる. 
+
+上側エクマン層と同様の手順により, 下側エクマン層の流れ$P_{\rm e2}$に対する方程式は, 
+%%
+\begin{equation}
+  \DP[2]{P_{\rm e2}}{\tilde{z}} + \DP[2]{P_{\rm e2}}{y} - iy P_{\rm e2} = 0
+\label{eq:EBLgoverneq_linear_Pe2}
+\end{equation}
+%%
+と得られる. 
+ただし, 伸縮座標$\tilde{z}$は
+\begin{align}
+  \tilde{z} = \dfrac{z}{\delta_E}
+\end{align}
+%%
+と導入した. 
+
+\eqref{eq:EBLgoverneq_linear_Pe2} に対して, 以下の境界条件を課すことにする. 
+%%
+\begin{subequations}
+ \begin{align}
+    P_{e2} = - (P_I + \bar{u} + i\bar{v}), \;\;\;\;\;\;\;\; &{\rm as} \;\;\;\; \tilde{z} = 0, \\
+    P_{\rm e2} \to 0 \;\;\;\;\;\;\;\; &{\rm as} \;\;\;\; \tilde{z} \to  \infty, \\
+    P_{\rm e2} \sim - (P_I + \bar{u}_\infty + i\bar{v}_\infty) \exp{\left[ \tilde{z} (1+i) \sqrt{|y|/2} \right]}
+       \;\;\;\; &{\rm as} \;\;\;\; |y| \to  \infty. 
+ \end{align}
+\label{eq:BC_for_Pe2}
+\end{subequations}
+%%
+最初の境界条件は, 下端境界における滑り無し条件である. 
+また, 最後の境界条件によって, 赤道から十分遠方では, $P_{e2}$と接続しなければならない. 
+
+境界条件\eqref{eq:BC_for_Pe2}を満たす\eqref{eq:EBLgoverneq_linear_Pe2}の解は, 最終的には以下のように得られる. 
+その導出過程については, 付録を参照されたい. 
+%%
+\begin{align}
+\boxed{
+  P_{\rm e2} = - \dfrac{\bar{u}_\infty}{2\sqrt{\pi}} \int_0^\infty \dfrac{\tilde{z}}{l^{3/2}} 
+             \exp{\left( -\dfrac{l^3}{3} - ily - \dfrac{\tilde{z}^2}{4l} \right)} \; dl
+}
+\end{align}
+%%
+また, 上の$P_{e1}$と連続の式を用いて, 上側エクマン層内の鉛直速度を求めれば, 
+%%
+\begin{align}
+\boxed{
+  w_{\rm e2} = \delta_E \dfrac{\bar{u}_\infty}{\sqrt{\pi}} \int_0^\infty \sqrt{l} \exp \left(-\dfrac{l^3}{3} \right) \cos (ly) 
+              \left[ 1 - \exp \left(-\dfrac{z^2}{4l} \right)\right] \; dl
+}
+\end{align}
+%%
+と得られる. 
+特に, $\tilde{z} \to \infty$に対する鉛直速度は, 
+%%
+\begin{align}
+ w_{\rm e2} |_{\tilde{z} \to - \infty} = \delta_E \dfrac{\bar{u}_\infty}{\sqrt{\pi}}
+              \int_0^\infty l \exp \left(-\dfrac{l^3}{3}\right)  \cos(ly) \; dl
+\end{align}
+%%
+と書ける. 
+

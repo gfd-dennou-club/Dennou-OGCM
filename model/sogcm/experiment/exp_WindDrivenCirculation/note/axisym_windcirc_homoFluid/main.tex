@@ -1,5 +1,6 @@
+%#BIBTEX jbibtex dynamics_description
 %
-%  水惑星設定における軸対称風成循環の力学の記述
+%  水惑星設定における風成循環
 %
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -15,7 +16,9 @@
 \usepackage{graphicx}
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{mathrsfs}
 \usepackage{framed}
+\usepackage[round]{natbib}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%            PageStyle Setting           %%%%%%%%
@@ -28,7 +31,7 @@
 %%  [ ] はヘッダに書き出される.
 %%  { } は表題 (\maketitle) に書き出される.
 
-\Dtitle{岸のない軸対称風成循環の力学}   % 変更不可
+\Dtitle{水惑星設定における風成循環}   % 変更不可
 \Dauthor{河合 佑太}            % ゼミ担当者の名前
 \Ddate{}        % ゼミの日時 (毎回変更すること)
 \Dfile{}
@@ -71,19 +74,13 @@
 %%%%%%%%             Text Start                 %%%%%%%%
 \begin{document}
 
-\chapter{はじめに}
-\markright{\arabic{chapter} はじめに}
-%%
-\input{model}
-%%
-\input{approx_sol}
-%%
-\input{approx_sol_form_applyBC}
-%%
-\input{approx_sol_equator}
+\input{intro}
+\input{axisym_windcirc}
 %%
 
-% ここから本文を書く
+%% 参考文献
+\bibliographystyle{plainnat}
+\bibliography{./../../Dennou-OGCM_reflist}
 
 \end{document}
 %%%%%%%%              Text End                  %%%%%%%%

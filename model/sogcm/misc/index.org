@@ -4,10 +4,28 @@
 #+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./org.css" />
 
-* 海洋力学・海洋モデリング 関連資料
+#+NAME: create_MeetingLogTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var fy="2013" :var dates="2013-{11-27}" :var parentDirPath="./../../../omeeting/"
+    require 'pathname'
+
+    str = "- #{fy}年度: ["
+    logPathes = Dir.glob("#{parentDirPath}fy#{fy}/#{dates}.txt")
+
+    logPathes.each{|path|
+      date = File.basename(path, ".txt").delete("-")
+      str << "[[file:#{path}][#{date}]], "
+    }
+
+    str << "]\n"
+    return str
+#+END_SRC
+
+
+* 海洋力学・海洋モデリング
 
 ** 海洋力学基礎ノート
   - [[file:./../../../../note_OModeling/fundamentals/fundamentals.pdf][熱力学]]
+  - [[file:./../../../../note_OModeling/ogcirc_formul/main.pdf][海洋大循環を記述するための方程式系]]
 
 ** 海洋の地学データ
   - [[./../../../../note_OModeling/basic_data/basic_data.html][海洋循環, 海水温, 塩分, 溶存酸素分布のグラフ]]
@@ -36,17 +54,26 @@
 
   - [[./../experiment/exp_BarotRossbyWave/Exp_BarotRossbyWave_mod.html][順圧ロスビー波の伝播テスト]]
   - [[./../experiment/exp_InternalGravWave/Exp_InternalGravWave_mod.html][内部重力波の伝播テスト]]
-  - [[./../experiment/exp_WindDrivenCirculation/Exp_WindDrivenCirculation.html][水惑星設定における風成循環の数値実験]]
-     - [[./../experiment/exp_WindDrivenCirculation/note/dynamics_description.pdf][力学定式化ノート]]
-     - [[./../experiment/exp_WindDrivenCirculation/note/EqBL_formulation.pdf][赤道境界層定式化ノート(暫定)]]
+  - 水惑星設定における軸対称風成循環の数値実験
+     - [[./../experiment/exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html][水惑星設定における軸対称風成循環の数値実験:均質流体]]
+       - [[./../experiment/exp_WindDrivenCirculation/note/axisym_windcirc_homoFluid/main.pdf][軸対称風成循環の漸近級数解の導出ノート]]
+     - [水惑星設定における風成循環の数値実験:成層流体]
 
 ** その他
 
   - [[./chebyshev/chebyshevCheck.html][風成循環計算における Chebyshev 多項式展開についての考察]]
 
-* 水惑星実験 関連論文
-  - 読書ノート
-    - [[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][Smith, et al.(2006)]] ([[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][発表資料]])
-    - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)]] ([[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][発表資料]])
 
-* 関連論文リスト
+* 水惑星実験 関連論文
+  - 読書ノート, 論文紹介資料
+    - [[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][Smith, et al.(2006)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131031_epasemi_ykawai/pub/][発表資料]])
+    - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131219_epasemi_ykawai/pub/][発表資料]])
+    - Enderton, et al.(2009) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/140619_epasemi_ykawai/pub/][発表資料]])
+
+
+* 海洋モデルミーティングログ
+
+#+CALL: create_MeetingLogTable("2014", "2014-{07-16,06-26,05-28,04-23}") :results value raw :exports results
+
+
+#+CALL: create_MeetingLogTable("2013", "{2014-{03-28,02-19,01-15},2013-11-27}") :results value raw :exports results

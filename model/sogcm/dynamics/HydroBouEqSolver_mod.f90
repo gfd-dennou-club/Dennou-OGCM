@@ -522,7 +522,7 @@ real(DP) :: wt_Tmp(lMax,0:tMax), xy_SurfPress(0:iMax-1,jMax)
          & )
 
     call calc_VDiffRHS(wz_PTempRHS,                              &  !(inout)
-         & wz_PTempEdd, vDiffTermCoef, 0d0, xyz_totDepth  &  !(in)
+         & wz_PTempEdd, vDiffTermCoef, 0d0, xyz_totDepth         &  !(in)
          & )
 
   end subroutine calc_GovernEqVViscRHS

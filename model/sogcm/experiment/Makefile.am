@@ -8,6 +8,7 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/fvm \
         $(MODPATHFLAG)$(srcdir)/../../../src/mesh2 \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
+        $(MODPATHFLAG)$(srcdir)/../ \
         $(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../util \
 	$(FCFLAGS) $(SYSFFLAGS)
@@ -19,12 +20,26 @@ CLEANFILES = *$(MODEXT)
 
 
 bin_PROGRAMS = \
-	exp_WindDrivenCirculation/script/numsol_check_eq
+	exp_WindDrivenCirculation/script/numsol_check_eq \
+	exp_WindDrivenCirculation/check_numsol
 
 
 exp_WindDrivenCirculation_script_numsol_check_eq_SOURCES= \
 	exp_WindDrivenCirculation/script/numsol_check_eq.f90
 
+
+exp_WindDrivenCirculation_check_numsol_SOURCES= \
+	exp_WindDrivenCirculation/check_numsol.f90
+
+exp_WindDrivenCirculation/check_numsol.f90: ../InitCond_mod.o
+
+exp_WindDrivenCirculation_check_numsol_LDADD= \
+	$(srcdir)/../InitCond_mod.o \
+	$(srcdir)/../experiment/libDSOGCMExp.la \
+	$(srcdir)/../setup/libDSOGCMSetup.la \
+	$(srcdir)/../util/libDSOGCMUtil.la \
+	$(srcdir)/../util/libSpmlUtil.la \
+	$(SYSLDFLAGS) $(SYSLDLIBS)
 
 
 noinst_LTLIBRARIES= libDSOGCMExp.la 

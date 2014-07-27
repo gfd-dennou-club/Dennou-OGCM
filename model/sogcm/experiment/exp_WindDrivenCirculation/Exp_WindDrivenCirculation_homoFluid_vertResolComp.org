@@ -1,0 +1,45 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 1: 均質流体 ~ 鉛直解像度依存性(Ah1e4Pl341L30, Ah1e4Pl341L60, Ah1e4Pl341L120)
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_homoFluid/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 計算結果: 鉛直解像度依存性(Ah1e4Pl341L30, Ah1e4Pl341L60, Ah1e4Pl341L120)
+
+** 流れの全球的な分布の比較
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, L30, L60, L120", "exp_Ah1e4Pl341L{30,60,120}/yz_U_mplane.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, L30, L60, L120", "exp_Ah1e4Pl341L{30,60,120}/yz_MassStreamFunc_mplane.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("運動エネルギーの全球平均値[J/(m^3*kg)]の時間発展の比較. L30(破線), L60(実線), L90(点線)", "LCompare/KEAvg_LCompari.jpg") :results value raw :exports results
+
+   - 上端・下端にあるエクマン層が流体層全体に比べずっと薄い(~1/500)ため, 十分な鉛直層数が必要. 
+     - 鉛直解像度が不足すると, スペクトル法に伴うギブス振動が生じる. 
+     - L30 では, 運動エネルギーの全球平均値からも確認できるように循環の振幅を過小評価する.  
+   
+** 赤道近傍における流れの分布の比較
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較(緯度-10~10度). 左から順に, L30, L60, L120", "exp_Ah1e4Pl341L{30,60,120}/yz_U_mplane_eq.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較(緯度-10~10度). 左から順に, 左から順に, L30, L60, L120", "exp_Ah1e4Pl341L{30,60,120}/yz_MassStreamFunc_mplane_eq.jpg") :results value raw :exports results
+
+   - 赤道近傍ではエクマン層が厚くなるため, L30 におけるギブス振動の影響は小さいが, 循環の振幅がやはり小さい. 

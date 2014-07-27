@@ -1,0 +1,359 @@
+\chapter{水惑星における風成循環}
+
+本章では, 水惑星における風成循環の問題を定式化し, その近似解を導く. 
+水惑星における風成循環の主な特徴は, 
+%%
+\begin{itemize}
+ \item 内部領域における順圧的な東西流
+ \item 弱い南北方向の輸送
+\end{itemize}
+%%
+である. 
+これらを完全に記述するためためには, 三次元静力学ブジネスク方程式を用いる必要がある. 
+しかし, その基本的な特徴はより簡単な系を使って記述することができる. 
+本章では, 最初に, 密度一様で軸対称な循環をもつ系において, 
+水惑星の風成循環を定式化し, その力学の考察を行う. 
+その後に, 密度成層の効果を取り入れることにする. 
+
+\section{密度一様・軸対称設定における風成循環の近似解の導出}
+\subsection{モデルの定式化}
+
+本節では, 
+%%
+\begin{itemize}
+ \item 密度一様
+ \item 軸対称(経度微分ゼロ)
+ \item 循環のスケールは, 惑星半径$a$と同じオーダである. 
+ \item 総観規模の渦の効果は, 水平渦粘性によって粗く表現する
+\end{itemize}
+%%
+であることを仮定する. 
+1, 2 番目は, 水惑星の海洋風成循環の基本的特徴を, 
+できるだけ簡単に記述するために導入した仮定である. 
+3 番目の仮定は, 地球でみられるような風成循環において当てはまる仮定である%
+\footnote{
+木星大気のように, 東西ジェットが南北に多数存在する場合には, 
+その東西ジェットによって駆動される海洋大循環のスケールは, $a$よりずっと小さくなるだろう. 
+その場合は, 3 番目の仮定は当てはまらない. 
+}.
+
+循環のスケールが惑星半径と同じオーダーである場合には, 
+その循環を惑星地衡流方程式系%%
+\footnote{
+詳細は, 別ノート「海洋大循環を記述するための方程式系」における, 惑星地衡流方程式系の導出を参考されたい. 
+}
+を使って記述するのが適切である. 
+今,  密度一様と軸対称の仮定を考慮しよう. 
+また, 長さのスケールを惑星半径$a$, 速度のスケールを$U$, 時間スケールを移流時間スケールでとるとき, 
+無次元化した支配方程式系は,  
+%%
+\begin{subequations} %16:32の式群
+  \begin{align}
+　 R_o \left( \DD{u}{t} - uv\tan{\theta}\right) - \sin{\theta} v 
+     &= - \dfrac{E_H}{2} \DP{}{\theta} \mathscr{D}[u] + \dfrac{E_V}{2} \DP[2]{u}{z}
+   ,\\
+　 R_o \left( \DD{v}{t} - u^2\tan{\theta}\right) - \sin{\theta} u 
+     &= - \DP{p}{\theta} + \dfrac{E_H}{2} \DP{}{\theta} \mathscr{D}[v] + \dfrac{E_V}{2} \DP[2]{v}{z}
+   , \\
+   \mathscr{D}[v] + \DP{w}{z} &= 0
+  \end{align}
+\label{eq:PGE1_nondim_axisym}
+\end{subequations}
+%%
+と書かれる. 
+今, 各無次元数を次のように定義した. 
+%%
+\begin{subequations} %12:17の式群
+  \begin{equation}
+     \textrm{ロスビー数:} \;\;\; 
+     R_o = \dfrac{U}{2\Omega a},
+  \end{equation}
+  \begin{equation}
+     \textrm{水平エクマン数:} \;\;\; 
+     E_H = \dfrac{2A_h}{2\Omega a^2}, 
+  \end{equation}
+  \begin{equation}
+     \textrm{鉛直エクマン数:} \;\;\; 
+     E_V = \dfrac{2A_v}{2\Omega D^2}.
+  \end{equation}
+\end{subequations}
+%%
+ここで, $\Omega$は自転角速度, $D$は流体層の厚さ, $A_h, A_v$はそれぞれ水平・鉛直渦粘性係数である. 
+また, 発散演算子と関係した微分演算子を, 
+%%
+\begin{equation}
+  \mathscr{D}[(\;)] = \dfrac{1}{\cos{\theta}} \DP{((\;)\cos{\theta})}{\theta}
+\end{equation}
+%%
+と定義した. 
+さらに, 今, ラグランジュ微分は, 
+%%
+\begin{equation}
+  \DD{}{t} = \DP{}{t} + v\DP{}{\theta} + w\DP{}{z}
+\end{equation}
+%%
+と書かれる. 
+
+\eqref{eq:PGE1_nondim_axisym}に対して, 上下端における境界条件を以下のように課す. 
+下端境界は剛体壁であり, 
+%%
+\begin{equation}
+  w = 0 \;\;\;\;\; {\rm at} \;\;\; z=0
+\end{equation}
+%%
+を課す. 
+また, 水平速度に対して, 滑り無し条件
+%%
+\begin{equation}
+  u, v = 0 \;\;\;\;\; {\rm at} \;\;\; z=0
+\end{equation}
+%%
+を課す. 
+一方, 上端境界は自由表面であり, 海面応力として, 
+%%
+\begin{equation}
+  \DP{u}{z} = \dfrac{A_V D \tau_0}{\rho_0 U} \tau_x(y), \;\;\; \DP{v}{z} = 0  \;\;\;\;\; {\rm at} \;\; z=1
+\end{equation}
+%%
+を与える. 
+ここでは, 上端境界において, rigid-lid 近似を適用し, 
+%%
+\begin{equation}
+  w = 0 \;\;\;\;\; {\rm at} \;\;\; z=1
+\end{equation}
+%%
+を課す. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{ポテンシャル渦度方程式の導出}
+%%%%%%%%%%%%%%%
+始めに, 各無次元変数をロスビー数によって展開する.  
+つまり, 
+%%
+\begin{equation}
+  u = u_{(0)} + R_o u_{(1)} + \dots
+\end{equation}
+%%
+のように展開する. 
+このとき, 水平・鉛直渦粘性項の係数は, それぞれ, 
+%%
+\begin{equation}
+  E_H = R_o \dfrac{2}{R_e}, \;\; E_V = R_o (\sqrt{E_V} r)
+\end{equation}
+%%
+と書き直す. 
+ここで, $R_e(=LU/A_h))$は水平レイノルズ数である. 
+また, $r=\sqrt{E_V}/{R_o}$はエクマンパンピングの時間スケールと移流時間スケールの比を表す. 
+海洋大循環において, 多くの場合, $R_e^{-1}$や$r$は 1 より十分小さいため, 
+ここではそのような場合を考える. 
+
+\subsubsection*{O(1) のバランス:}
+%%%%%%%
+\eqref{eq:PGE1_nondim_axisym}において, O(1) の項だけ取り出すと, 
+%%
+\begin{subequations} %16:32の式群
+  \begin{align}
+　  - \sin{\theta} \; v_{(0)} &= 0
+   ,\\
+　  - \sin{\theta} \; u_{(0)}
+     &= - \DP{p_{(0)}}{\theta}
+   , \\
+   \DP{p_{(0)}}{z} &= 0
+   , \\ 
+   \mathscr{D}[v_{(0)}] + \DP{w_{(0)}}{z} &= 0
+  \end{align}
+\label{eq:PGE1_nondim_axisym_order1}
+\end{subequations}
+%%
+を得る. 
+したがって, ロスビー数の最低次に対する速度場は, 
+%%
+\begin{equation}
+  v_{(0)} = 0, \;\;\; - \sin{\theta} \; u_{(0)} = - \DP{p_{(0)}}{\theta}, \;\; w_{(0)} = 0
+\end{equation}
+%%
+と決まる. 
+ここで, 上端・下端で鉛直速度はゼロであることを用いた. 
+また, 
+%%
+$$
+  - \sin{\theta} \; \DP{u_{(0)}}{z} = \DP{}{z}\DP{p_{(0)}}{\theta} = 0 
+$$
+%%
+より, $u_{(0)}$は, (エクマン層内を除いて)鉛直方向に変化しないことに注意されたい. 
+
+\subsubsection*{O($R_o$) のバランス:}
+%%
+\eqref{eq:PGE1_nondim_axisym}において, O($R_o$) の項だけ取り出すと, 
+%%
+\begin{subequations} %16:32の式群
+  \begin{align}
+　 \DP{u_{(0)}}{t} - \sin{\theta} v_{(1)} 
+     &= - \dfrac{1}{R_e} \mathscr{D}[u_{(0)}]
+   ,\\
+　  - u_{(0)}^2\tan{\theta} - \sin{\theta} u_{(1)}
+     &= - \DP{p_{(1)}}{\theta} 
+   , \\
+   \mathscr{D}[v_{(1)}] + \DP{w_{(1)}}{z} &= 0
+  \end{align}
+\label{eq:PGE1_nondim_axisym_Ro1}
+\end{subequations}
+%%
+を得る. 
+
+次に, \eqref{eq:PGE1_nondim_axisym_Ro1}の一式目に$-\mathscr{D}$を作用させて, 
+\eqref{eq:PGE1_nondim_axisym_Ro1}を用いて$\partial v_1/\partial \theta$を消去すれば, 
+渦度方程式
+%%
+\begin{equation}
+  \DP{\zeta_{(0)}}{t} - \cos{\theta} v_{(1)} = \sin{\theta} \DP{w_{(1)}}{z} + \dfrac{1}{R_e} \mathscr{L}[\zeta_{(0)}]
+\end{equation}
+%%
+を得る. 
+ここで, $\zeta_{(0)} = - \mathscr{D} [u_{(0)}]$である.   
+また, $\mathscr{L}[\;]=\mathscr{D}[\DP{}{\theta}[\;]]$は水平ラプラシアンである. 
+
+さらに, $u_{(0)}, v_{(1)}$が$z$に依存しないことに注意して, この両辺を$z=0$から$z=1$まで積分すれば, 
+%%
+\begin{equation}
+    \DP{\zeta_{(0)}}{t} - \cos{\theta} v_{(1)} 
+  = \sin{\theta} \Big[ w_{(1)} \Big]_{z=0}^{z=1} + \dfrac{1}{R_e} \mathscr{L}[\zeta_{(0)}]
+\end{equation}
+%%
+となる. 
+今, $z=0,1$における$w_1$として, エクマン層の線形理論から導かれるエクマン・パンピング速度
+%%
+\begin{align*}
+  w_* &= {\rm curl}_* \left(\dfrac{\Dvect{\tau}_*}{\rho_0 f_*}\right) \;\;\;\; {\rm at \;\;}z=1, \\
+  w_* &= {\rm curl}_* \left( \dfrac{\delta_E(\theta)}{2} \Dvect{u}_* \right) \;\;\;\; {\rm at \;\;}z=0 
+\end{align*}
+%%
+を与えることにする.  
+ここで, $\delta_E=(2A_V/f_*)^{1/2}$は, 緯度に依存するエクマン層の厚さである. 
+このとき, 均質流体対する惑星地衡流ポテンシャル渦度方程式
+%%
+\begin{equation}
+\boxed{
+  \DP{\zeta_{(0)}}{t} - \cos{\theta} v_{(1)}
+  = \sin{\theta} \left\{ \dfrac{\tau_0/\rho_0}{2\Omega U D R_o} \mathscr{D}[\dfrac{-\tau_x}{\sin{\theta}}] 
+                   - \dfrac{r}{2} \mathscr{D}[\dfrac{-u_{(0)}}{\sqrt{\sin{\theta}}}] \right\}
+    + \dfrac{1}{R_e} \mathscr{L}[\zeta_{(0)}]
+}
+\label{eq:PGE1_nondim_axisym_PV}
+\end{equation}
+%%
+を得る. 
+
+\subsection*{定常状態における漸近級数解の導出}
+\eqref{eq:PGE1_nondim_axisym_PV}の定常解を, 
+$r_{H,V}\ll 1$の場合の漸近級数解として得ることを考えよう. 
+
+定常状態において, \eqref{eq:PGE1_nondim_axisym_Ro1}の一式目は
+%%
+\begin{equation}
+  - \sin{\theta} v_{(1)} = - \dfrac{1}{R_e}\DP{}{\theta} \mathscr{D}[u_{(0)}]
+\label{eq:PGE1_nondim_axisym_Ro1_xmomentum_static}
+\end{equation}
+%%
+であるので, これを用いて, 
+\eqref{eq:PGE1_nondim_axisym_PV} の$v_1$を消去し, 
+少し変形を行えば, 定常状態において, 
+%%
+\begin{equation}
+ 0 = \left\{ \dfrac{\tau_0}{\rho_0 2\Omega U D R_o} \mathscr{D}[\dfrac{-\tau_x}{\sin{\theta}}] 
+                   - \dfrac{r}{2} \mathscr{D}[\dfrac{-u_{(0)}}{\sqrt{\sin{\theta}}}] \right\}
+    + r_{H,V} \mathscr{D}[\dfrac{1}{\sin{\theta}}\DP{\zeta_{(0)}}{\theta}]
+\label{eq:PGE1_nondim_axisym_PV_static}
+\end{equation}
+%%
+を得る. 
+
+今, 速度スケールを, 
+%%
+\begin{equation}
+  U = \dfrac{2\tau_0}{\rho_0 2\Omega E_V^{1/2} D}
+\end{equation}
+%%
+ととれば, \eqref{eq:PGE1_nondim_axisym_PV_static}は, 
+%%
+\begin{equation}
+ 0 = \left\{ \mathscr{D}[\dfrac{-\tau_x}{\sin{\theta}}] 
+                   - \mathscr{D}[\dfrac{-u_{(0)}}{\sqrt{\sin{\theta}}}] \right\}
+    + r_{H,V} \mathscr{D}[\dfrac{1}{\sin{\theta}}\DP{\zeta_{(0)}}{\theta}]
+\label{eq:PGE1_nondim_axisym_PV_static2}
+\end{equation}
+%%
+となる. 
+ここで, 
+%%
+\begin{equation}
+  r_{H,V} = \dfrac{E_H}{E_V^{1/2}}
+\end{equation}
+%%
+とおいた. 
+最後に, 極において$\tau_x=0, u_{(0)}=0$であるとし, 
+\eqref{eq:PGE1_nondim_axisym_PV_static2}を極から緯度$\theta$まで積分すれば, 
+$u_{(0)}$に対する方程式
+%%
+\begin{equation}
+%\boxed{
+  0 = \dfrac{\tau_x}{\sin{\theta}} - \dfrac{u_{(0)}}{\sqrt{\sin{\theta}}} 
+     + r_{H,V} \dfrac{1}{\sin{\theta}}\DP{}{\theta} \mathscr{D}[u_{(0)}]
+%}
+\label{eq:ode_forU0}
+\end{equation}
+%%
+を得る. 
+
+次に, $r_{H,V} \ll 1$の場合を考え, \eqref{eq:ode_forU0}の漸近級数解を導こう. 
+今, $u_{(0)}$を$r_{H,V}$によって, 
+$$
+ u_{(0)} = u_{(0,0)} + r_{H,V} u_{(0,1)} + \cdots
+$$
+と展開し, \eqref{eq:ode_forU0}に代入する. 
+このとき, $r_{H,V}$の最低次の項を集めれば, 
+%%
+\begin{equation}
+  u_{(0,0)} = \dfrac{\tau_x}{\sqrt{\sin\theta}}
+\end{equation}
+%%
+を得る. 
+さらに, $(r_{H,V})^m \;(m=1,2, \dots)$の項を集めれば, 
+%%
+\begin{equation}
+  u_{(0,m)} = \dfrac{1}{\sqrt{\sin\theta}}\DP{}{\theta}\mathscr{D}[u_{(0,m-1)}]
+\end{equation}
+%%
+を得る. 
+したがって, 最終的な\eqref{eq:ode_forU0}の漸近級数解の形式は, 
+%%
+\begin{equation}
+\boxed{
+  u_{(0)} = \sum_{m=0}^\infty 
+              \left(\dfrac{r_{H,V}}{\sqrt{\sin\theta}} \DP{}{\theta} \mathscr{L} \right)^m 
+                \left[\dfrac{\tau_x(\theta)}{\sqrt{\sin\theta}}\right]
+}
+\label{eq:u_RoOder1_asympt}
+\end{equation}
+%%
+と導かれる. 
+
+$u_{(0)}$以外の解は, 上で得た\eqref{eq:u_RoOder1_asympt}を用いて, 以下のように表される. 
+$v_{(1)}$は\eqref{eq:PGE1_nondim_axisym_Ro1_xmomentum_static}から,
+%%
+\begin{equation}
+\boxed{
+  v_{(1)} (\theta) = - E_H \dfrac{1}{\sin\theta} \DP{}{\theta} \mathscr{D}[u_{(0)}(\theta)]
+}
+\end{equation}
+%%
+と書かれる. 
+また, \eqref{eq:PGE1_nondim_axisym_Ro1}の三式目から, $w_{(1)}$は$v_{(1)}$を使って, 
+%%
+\begin{equation}
+\boxed{
+  w_{(1)}(\theta,z) = w_{(1)}|_{z=1}(\theta) + (1-z) \mathscr{L}[v_{(1)}(\theta)] 
+}
+\end{equation}
+%%
+と書かれる. 

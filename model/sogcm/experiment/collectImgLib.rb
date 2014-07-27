@@ -22,7 +22,7 @@ class Figure
   def createFigure(dirPath)
   end
 
-  @@DEFAULT_CONVERT_OPT = "-rotate 90 -trim -density 400x400 -scale 600x600 -units PixelsPerInch"
+  @@DEFAULT_CONVERT_OPT = "-rotate 90 -trim -density 600x600 -scale 900x900 -units PixelsPerInch"
 end
 
 

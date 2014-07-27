@@ -271,6 +271,7 @@ AC_CONFIG_FILES([
 		 model/sogcm/dynamics/Makefile
 		 model/sogcm/experiment/Makefile
 		 model/sogcm/unit_test/Makefile
+		 model/sogcm/tool/Makefile
  ])
 
 AC_OUTPUT

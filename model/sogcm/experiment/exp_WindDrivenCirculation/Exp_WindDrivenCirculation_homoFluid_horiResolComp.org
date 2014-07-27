@@ -1,0 +1,47 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 1: 均質流体 ~ 水平解像度依存性(Ah1e4Pl170L60, Ah1e4Pl341L60, Ah1e4Pl682L60)
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_homoFluid/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 計算結果: 水平解像度依存性(Ah1e4Pl170L60, Ah1e4Pl341L60, Ah1e4Pl682L60)
+
+** 流れの全球的な分布の比較
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, Pl170, Pl341, Pl682", "exp_Ah1e4Pl{170,341,682}L60/yz_U_mplane.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, Pl170, Pl341, Pl682", "exp_Ah1e4Pl{170,341,682}L60/yz_MassStreamFunc_mplane.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("運動エネルギーの全球平均値[J/(m^3*kg)]の時間発展の比較. Pl170(破線), Pl341(実線), Pl682(点線)", "HCompare/KEAvg_HCompari.jpg") :results value raw :exports results
+
+   - 赤道近傍以外の惑星スケールの循環に対しては, Pl170 でも数値解は収束する.  
+     - 中・高緯度では, 各水平解像度間で東西流や子午面循環の分布に違いは見られない. 
+     - 運動エネルギーの全球平均値の時間発展も, 各水平解像度間で違いは見られない. 
+
+** 赤道近傍における流れの分布の比較
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較(緯度-10~10度). 左から順に, Pl170, Pl341, Pl682", "exp_Ah1e4Pl{170,341,682}L60/yz_U_mplane_eq.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較(緯度-10~10度). 左から順に, Pl170, Pl341, Pl682", "exp_Ah1e4Pl{170,341,682}L60/yz_MassStreamFunc_mplane_eq.jpg") :results value raw :exports results
+
+   - 赤道近傍の循環は, Pl170 の水平解像度ではまだ収束しない. 
+     - 赤道近傍の循環は, 海洋大循環と比べてその南北スケールが小さく(~(水平エクマン数)^{1/3}), 精度よく表現するには, 
+       非常に高い水平解像度が必要. 
