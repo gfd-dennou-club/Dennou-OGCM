@@ -34,7 +34,11 @@ module HydroBouEqSolverVDiffProc_mod
   ! Public procedure
   !
   public :: HydroBouEqSolverVDiffProc_Init, HydroBouEqSolverVDiffProc_Final
-  public :: Advance_VDiffProc
+  public :: HydroBouEqSolverVDiffProc_constructMat
+  public :: HydroBouEqSolverVDiffProc_Advance
+
+  public :: Advance_VDiffProc, Advance_VDiffProc_DeltaForm
+
   public :: construct_vDiffProcMat, Solve
 
   ! 非公開手続き
@@ -83,6 +87,152 @@ contains
   !> @brief 
   !!
   !!
+  subroutine HydroBouEqSolverVDiffProc_constructMat( & 
+       & vViscTermCoef, vDiffTermCoef, dt, &
+       & xy_totDepth, DynBCSurf, DynBCBottom )
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: vViscTermCoef, vDiffTermCoef
+    real(DP), intent(in) :: dt
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    integer, intent(in) :: DynBCSurf
+    integer, intent(in) :: DynBCBottom    
+    
+    ! 局所変数
+    ! Local variables
+    !
+    character :: BCKindUpper, BCKindBottom
+    
+    ! 実行文; Executable statement
+    !
+
+    if (DynBCSurf == DynBCTYPE_NoSlip) then
+       BCKindUpper = 'N'
+    else
+       BCKindUpper = 'N'
+    end if
+    if (DynBCBottom == DynBCTYPE_NoSlip) then
+       BCKindBottom = 'D'
+    else
+       BCKindBottom = 'N'
+    end if
+
+    call construct_vDiffProcMat(vDiffProcMatVor, vDiffProcMatVorKp, &   !(inout)
+         & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+
+    call construct_vDiffProcMat2(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
+         & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )              !(in)
+!!$    call construct_vDiffProcMat(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
+!!$         & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+!!$    wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax))
+
+    !
+    call construct_vDiffProcMat(vDiffProcMatHeat, vDiffProcMatHeatKp,&
+         & vDiffTermCoef, dt, xy_totDepth, 'N', 'N')
+
+    
+  end subroutine HydroBouEqSolverVDiffProc_constructMat
+
+  !> @brief 
+  !!
+  !!
+  subroutine HydroBouEqSolverVDiffProc_Advance(wt_Vor, wt_Div, wt_PTempEdd, &
+    & xy_WindStressU, xy_WindStressV, xy_totDepth, &
+    & vViscCoef, &
+    & DynBCSurf, DynBCBottom )
+    
+    !
+    !
+    use Constants_mod, only: refDens
+use at_module_omp
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout), optional :: wt_Vor(lMax,0:tMax)
+    real(DP), intent(inout), optional :: wt_Div(lMax,0:tMax)
+    real(DP), intent(inout), optional :: wt_PTempEdd(lMax,0:tMax)
+    real(DP), intent(in) :: xy_WindStressU(0:iMax-1,jMax), xy_WindStressV(0:iMax-1,jMax)
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    real(DP), intent(in) :: vViscCoef
+    integer, intent(in) :: DynBCSurf
+    integer, intent(in) :: DynBCBottom
+!    logical, intent(in) :: isVMatReconst
+
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: xyz_Work(0:iMax-1,jMax,0:kMax+1)
+    real(DP),dimension(iMax*jMax,0:kMax) :: workRHS
+    integer :: l, k
+    real(DP) :: xy_CosLat(0:iMax-1,jMax)
+    real(dp) :: xy_DivSig(0:iMax-1,jMax)
+    real(dp) :: xyz_Div(0:iMax-1,jMax,0:kMax)
+    logical :: isVMatReconstFlag
+
+    ! 実行文; Executable statement
+    !
+
+    xy_CosLat = cos(xyz_Lat(:,:,0))
+    
+   
+    !
+    !
+
+
+    !
+    !
+    if( present(wt_Vor) ) then
+       xyz_Work(:,:,0:kMax) = xyz_wt(wt_Vor)
+       if (DynBCSurf == DynBCTYPE_NoSlip) then
+          xyz_Work(:,:,0) = xy_w( &
+               & w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat) &
+               & )/(RefDens*vViscCoef)
+       else
+          xyz_Work(:,:,0) = 0d0
+       end if
+       if (DynBCBottom == DynBCTYPE_NoSlip) then
+          xyz_Work(:,:,kMax) = 0d0 
+       else
+          xyz_Work(:,:,kMax) = 0d0
+       end if
+
+       wt_Vor(:,:) = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
+    end if
+
+    !
+    if( present(wt_Div) ) then
+       xyz_Work(:,:,0:kMax) = xyz_wt(wt_Div)
+       xyz_Work(:,:,kMax+1) = 0d0!xy_IntSig_BtmToTop_xyz(xyz_Work(:,:,0:kMax)) !0d0
+
+       if (DynBCSurf == DynBCTYPE_NoSlip) then 
+          xyz_Work(:,:,0) = xy_w( &
+               & w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat) &
+               & )/(RefDens*vViscCoef)
+       else
+          xyz_Work(:,:,0) = 0d0
+       end if
+       if (DynBCBottom == DynBCTYPE_NoSlip) then
+          xyz_Work(:,:,kMax) = 0d0 
+       else
+          xyz_Work(:,:,kMax) = 0d0
+       end if
+
+       wt_Div(:,:) = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
+    end if
+
+    if( present(wt_PTempEdd) ) then
+       !
+       xyz_Work(:,:,0:kMax) = xyz_wt(wt_PTempEdd)
+       xyz_Work(:,:,0) = 0d0 
+       xyz_Work(:,:,kMax) = 0d0 
+       wt_PTempEdd(:,:) = solve(vDiffProcMatHeat, vDiffProcMatHeatKp, xyz_Work(:,:,0:kMax))
+    end if
+
+  end subroutine HydroBouEqSolverVDiffProc_Advance
+
+  !> @brief 
+  !!
+  !!
   subroutine Advance_VDiffProc(wt_Vor, wt_Div, wt_PTempEdd, &
     & xy_WindStressU, xy_WindStressV, xy_totDepth, &
     & vViscTermCoef, vDiffTermCoef, vViscCoef, dt,  &
@@ -94,12 +244,133 @@ contains
 use at_module_omp
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: wt_Vor(lMax,0:tMax)
-    real(DP), intent(inout) :: wt_Div(lMax,0:tMax)
-    real(DP), intent(inout) :: wt_PTempEdd(lMax,0:tMax)
+    real(DP), intent(inout), optional :: wt_Vor(lMax,0:tMax)
+    real(DP), intent(inout), optional :: wt_Div(lMax,0:tMax)
+    real(DP), intent(inout), optional :: wt_PTempEdd(lMax,0:tMax)
     real(DP), intent(in) :: xy_WindStressU(0:iMax-1,jMax), xy_WindStressV(0:iMax-1,jMax)
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     real(DP), intent(in) :: vViscTermCoef, vDiffTermCoef, vViscCoef
+    real(DP), intent(in) :: dt
+    integer, intent(in) :: DynBCSurf
+    integer, intent(in) :: DynBCBottom
+!    logical, intent(in) :: isVMatReconst
+
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: xyz_Work(0:iMax-1,jMax,0:kMax+1)
+    real(DP),dimension(iMax*jMax,0:kMax) :: workRHS
+    integer :: l, k
+    real(DP) :: xy_CosLat(0:iMax-1,jMax)
+    character :: BCKindUpper, BCKindBottom
+    real(dp) :: xy_DivSig(0:iMax-1,jMax)
+    real(dp) :: xyz_Div(0:iMax-1,jMax,0:kMax)
+    logical :: isVMatReconstFlag
+
+    ! 実行文; Executable statement
+    !
+
+    xy_CosLat = cos(xyz_Lat(:,:,0))
+    
+   
+    !
+    !
+
+
+    !
+    !
+    if( present(wt_Vor) ) then
+       xyz_Work(:,:,0:kMax) = xyz_wt(wt_Vor)
+       if (DynBCSurf == DynBCTYPE_NoSlip) then
+          BCKindUpper = 'N'
+          xyz_Work(:,:,0) = xy_w( &
+               & w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat) &
+               & )/(RefDens*vViscCoef)
+       else
+          BCKindUpper = 'N'
+          xyz_Work(:,:,0) = 0d0
+       end if
+       if (DynBCBottom == DynBCTYPE_NoSlip) then
+          BCKindBottom = 'D'
+          xyz_Work(:,:,kMax) = 0d0 
+       else
+          BCKindBottom = 'N'
+          xyz_Work(:,:,kMax) = 0d0
+       end if
+
+       call construct_vDiffProcMat(vDiffProcMatVor, vDiffProcMatVorKp, &   !(inout)
+            & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+       wt_Vor(:,:) = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
+    end if
+
+    !
+    if( present(wt_Div) ) then
+       xyz_Work(:,:,0:kMax) = xyz_wt(wt_Div)
+       xyz_Work(:,:,kMax+1) = xy_IntSig_BtmToTop_xyz(xyz_Work(:,:,0:kMax)) !0d0
+
+       if (DynBCSurf == DynBCTYPE_NoSlip) then 
+          BCKindUpper = 'N'
+          xyz_Work(:,:,0) = xy_w( &
+               & w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat) &
+               & )/(RefDens*vViscCoef)
+       else
+          BCKindUpper = 'N'
+          xyz_Work(:,:,0) = 0d0
+       end if
+       if (DynBCBottom == DynBCTYPE_NoSlip) then
+          BCKindUpper = 'D'
+          xyz_Work(:,:,kMax) = 0d0 
+       else
+          BCKindUpper = 'N'
+          xyz_Work(:,:,kMax) = 0d0
+       end if
+
+       call construct_vDiffProcMat2(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
+            & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )              !(in)
+       wt_Div(:,:) = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
+!!$    call construct_vDiffProcMat(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
+!!$         & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
+!!$    wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax))
+
+    end if
+
+    if( present(wt_PTempEdd) ) then
+       !
+       call construct_vDiffProcMat(vDiffProcMatHeat, vDiffProcMatHeatKp,&
+            & vDiffTermCoef, dt, xy_totDepth, 'N', 'N')
+       xyz_Work(:,:,0:kMax) = xyz_wt(wt_PTempEdd)
+       xyz_Work(:,:,0) = 0d0 
+       xyz_Work(:,:,kMax) = 0d0 
+       wt_PTempEdd(:,:) = solve(vDiffProcMatHeat, vDiffProcMatHeatKp, xyz_Work(:,:,0:kMax))
+    end if
+
+  end subroutine Advance_VDiffProc
+
+  !> @brief 
+  !!
+  !!
+  subroutine Advance_VDiffProc_DeltaForm( &
+       & wt_Vor, wt_Div, wt_PTempEdd,                   & ! (out)
+       & wt_VorImplRHS, wt_DivImplRHS, wt_PTempImplRHS, & ! (out)
+       & xy_WindStressU, xy_WindStressV, xy_totDepth,   & ! (in)
+       & vViscTermCoef, vDiffTermCoef, dt,              & ! (in)
+       & DynBCSurf, DynBCBottom )                         ! (in)
+    
+    !
+    !
+    use Constants_mod, only: &
+         & refDens, vViscCoef, vHyperViscCoef, vDiffCoef
+
+    !use at_module_omp
+    use HydroBouEqSolverRHS_mod
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), dimension(lMax,0:tMax), intent(out) :: wt_Vor, wt_Div, wt_PTempEdd
+    real(DP), dimension(lMax,0:tMax), intent(out) :: wt_VorImplRHS, wt_DivImplRHS, wt_PTempImplRHS
+    real(DP), dimension(0:iMax-1,jMax), intent(in) :: xy_WindStressU, xy_WindStressV
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    real(DP), intent(in) :: vViscTermCoef, vDiffTermCoef
     real(DP), intent(in) :: dt
     integer, intent(in) :: DynBCSurf
     integer, intent(in) :: DynBCBottom
@@ -115,6 +386,10 @@ use at_module_omp
     real(dp) :: xy_DivSig(0:iMax-1,jMax)
     real(dp) :: xyz_Div(0:iMax-1,jMax,0:kMax)
 
+    real(DP), dimension(lMax, 0:kMax)  :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+    real(DP), dimension(lMax,0:tMax) :: wt_DVor, wt_DDiv, wt_DPTempEdd
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Tmp, xyz_DSigTmp
+
     ! 実行文; Executable statement
     !
 
@@ -123,67 +398,91 @@ use at_module_omp
 
     !
     !
-
+    call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS,                & ! (inout)  
+               & wz_wt(wt_Vor), wz_wt(wt_Div), wz_wt(wt_PTempEdd),                  & ! (in)
+               & vViscCoef, vHyperViscCoef, vDiffCoef,                              & ! (in)
+               & isRHSReplace=.true.)
 
     !
     !
 
-    xyz_Work(:,:,0:kMax) = xyz_wt(wt_Vor)
+    xyz_Work(:,:,0:kMax) = dt*xyz_wz(wz_VorRHS)
+    xyz_DSigTmp = xyz_wt(wt_DSig_wt(wt_Vor))
+    xyz_Tmp = xyz_wt(wt_Vor)
     if (DynBCSurf == DynBCTYPE_NoSlip) then
        BCKindUpper = 'N'
        xyz_Work(:,:,0) = xy_w( &
-            & w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat) &
-            & )/(RefDens*vViscCoef)
+            &    w_AlphaOptr_xy(xy_WindStressV*xy_CosLat, -xy_WindStressU*xy_CosLat)/(RefDens*vViscCoef) &
+            & ) - xyz_DSigTmp(:,:,0)/xy_totDepth
+
     else
        BCKindUpper = 'N'
-       xyz_Work(:,:,0) = 0d0
+       xyz_Work(:,:,0) = - xyz_DSigTmp(:,:,0)
     end if
     if (DynBCBottom == DynBCTYPE_NoSlip) then
        BCKindBottom = 'D'
-       xyz_Work(:,:,kMax) = 0d0 
+       xyz_Work(:,:,kMax) = - xyz_Tmp(:,:,kMax)
     else
        BCKindBottom = 'N'
-       xyz_Work(:,:,kMax) = 0d0
+       xyz_Work(:,:,kMax) = - xyz_DSigTmp(:,:,kMax)
     end if
 
     call construct_vDiffProcMat(vDiffProcMatVor, vDiffProcMatVorKp, &   !(inout)
          & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
-    wt_Vor(:,:) = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
+    wt_DVor(:,:) = solve(vDiffProcMatVor, vDiffProcMatVorKp, xyz_Work(:,:,0:kMax))
 
     !
-    xyz_Work(:,:,0:kMax) = xyz_wt(wt_Div)
-    xyz_Work(:,:,kMax+1) = xy_IntSig_BtmToTop_xyz(xyz_Work(:,:,0:kMax)) !0d0
+    !
+    xyz_Work(:,:,0:kMax) = dt*xyz_wz(wz_DivRHS)
+!    xyz_Work(:,:,kMax+1) = xy_IntSig_BtmToTop_xyz(xyz_Work(:,:,0:kMax))!- xy_IntSig_BtmToTop_xyz(xyz_wt(wt_Div)) 
+    xyz_Work(:,:,kMax+1) = - xy_IntSig_BtmToTop_xyz(xyz_wt(wt_Div)) !0d0
 
+    xyz_DSigTmp = xyz_wt(wt_DSig_wt(wt_Div))
+    xyz_Tmp = xyz_wt(wt_Div)
     if (DynBCSurf == DynBCTYPE_NoSlip) then 
        xyz_Work(:,:,0) = xy_w( &
-            & w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat) &
-            & )/(RefDens*vViscCoef)
+            &    w_AlphaOptr_xy(xy_WindStressU*xy_CosLat, xy_WindStressV*xy_CosLat)/(RefDens*vViscCoef) &
+            & ) - xyz_DSigTmp(:,:,0)/xy_totDepth
     else
-       xyz_Work(:,:,0) = 0d0
+       xyz_Work(:,:,0) = - xyz_DSigTmp(:,:,0)
     end if
     if (DynBCBottom == DynBCTYPE_NoSlip) then
-       xyz_Work(:,:,kMax) = 0d0 
+       xyz_Work(:,:,kMax) = - xyz_Tmp(:,:,kMax)
     else
-       xyz_Work(:,:,kMax) = 0d0
+       xyz_Work(:,:,kMax) = - xyz_DSigTmp(:,:,kMax)
     end if
 
     call construct_vDiffProcMat2(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
          & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )              !(in)
-    wt_Div(:,:) = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
+    wt_DDiv(:,:) = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax+1))
 
 !!$    call construct_vDiffProcMat(vDiffProcMatDiv, vDiffProcMatDivKp, &   !(inout)
 !!$         & vViscTermCoef, dt, xy_totDepth, BCKindUpper, BCKindBottom )             !(in)
-!!$    wt_Div = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax))
+!!$    wt_DDiv = solve(vDiffProcMatDiv, vDiffProcMatDivKp, xyz_Work(:,:,0:kMax))
 
     !
     call construct_vDiffProcMat(vDiffProcMatHeat, vDiffProcMatHeatKp,&
          & vDiffTermCoef, dt, xy_totDepth, 'N', 'N')
-    xyz_Work(:,:,0:kMax) = xyz_wt(wt_PTempEdd)
+    xyz_Work(:,:,0:kMax) = dt*xyz_wz(wz_PTempRHS)
     xyz_Work(:,:,0) = 0d0 
     xyz_Work(:,:,kMax) = 0d0 
-    wt_PTempEdd(:,:) = solve(vDiffProcMatHeat, vDiffProcMatHeatKp, xyz_Work(:,:,0:kMax))
+    wt_DPTempEdd(:,:) = solve(vDiffProcMatHeat, vDiffProcMatHeatKp, xyz_Work(:,:,0:kMax))
 
-  end subroutine Advance_VDiffProc
+    !
+    wt_Vor = wt_Vor + wt_DVor
+    wt_Div = wt_Div + wt_DDiv
+!xyz_Div(:,:,:) = xyz_wt(wt_Div)!xy_IntSig_BtmToTop_xyz(xyz_wz(dt*wz_DivRHS))
+!xyz_DSigTmp = xyz_wt(wt_DSig_wt(wt_Div))
+!write(*,*) xyz_Div(:,1:jMax/2,0)
+!write(*,*) "=-------------------="
+
+    wt_PTempEdd = wt_PTempEdd + wt_DPTempEdd
+    
+    wt_VorImplRHS = wt_DVor/dt
+    wt_DivImplRHS = wt_DDiv/dt
+    wt_PTempImplRHS = wt_DPTempEdd/dt
+
+  end subroutine Advance_VDiffProc_deltaForm
 
   function Solve(vDiffProcMat, vDiffProcMatKp, xyz_RHS) result(wt_ret)
 
@@ -259,11 +558,11 @@ use Constants_mod, only: RefDens
     
     if(.not. allocated(vDiffProcMat)) then
        allocate( vDiffProcMat(iMax*jMax,0:kMax+1,0:tMax+1), vDiffProcMatKp(iMax*jMax,0:kMax+1) )
-       vDiffProcMat = 0d0
-   else
-       return
+!   else
+!       return
     end if
 
+    vDiffProcMat = 0d0
     Depth(:) = reshape( xy_totDepth, shape(Depth) )
     
     
@@ -303,12 +602,12 @@ use Constants_mod, only: RefDens
        !$omp end parallel workshare
     end if
 
-!    iwork_tg_data = matmul(g_X_WEIGHT, tg_data)
-!    forall(t=0:tMax) vDiffProcMat(:,kMax+1,t) = dot_product(g_X_WEIGHT, tg_data(t,:))
+    iwork_tg_data = matmul(g_X_WEIGHT, tg_data)
+    forall(t=0:tMax) vDiffProcMat(:,kMax+1,t) = dot_product(g_X_WEIGHT, tg_data(t,:))
 
-    forall(t=0:tMax) &
-         & vDiffProcMat(:,kMax+1,t) = - dt*vDiffTermCoef/Depth**2 * (dwork_tg_data(t,0) - dwork_tg_data(t,kMax))
-    vDiffProcMat(:,kMax+1,tMax+1) = 0.5d0*dt
+!!$    forall(t=0:tMax) &
+!!$         & vDiffProcMat(:,kMax+1,t) = - dt*vDiffTermCoef/Depth**2 * (dwork_tg_data(t,0) - dwork_tg_data(t,kMax))
+!!$    vDiffProcMat(:,kMax+1,tMax+1) = 0.5d0*dt
 
     call ludecomp(vDiffProcMat, vDiffProcMatKp)
 
@@ -351,10 +650,11 @@ use Constants_mod, only: RefDens
     
     if(.not. allocated(vDiffProcMat)) then
        allocate( vDiffProcMat(iMax*jMax,0:kMax,0:tMax), vDiffProcMatKp(iMax*jMax,0:kMax) )
-    else
-       return
+!    else
+!       return
     end if
 
+    vDiffProcMat = 0d0
     Depth(:) = reshape( xy_totDepth, shape(Depth) )
 
     tt_I = 0d0

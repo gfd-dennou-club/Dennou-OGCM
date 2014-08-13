@@ -11,11 +11,20 @@ module VariableSet_mod
   ! モジュール引用; Use statements
   !
 
+  !* gtool
+
   use dc_types, only: &
        & DP, STRING, TOKEN 
 
+  !* Dennou-OGCM
+
   use TemporalIntegSet_mod, only: &
        & nLongTimeLevel
+
+  use BoundCondSet_mod, only: &
+       & ThermBCTYPE_FluxFixed, ThermBCTYPE_Adiabat, &
+       & ThermBCTYPE_TempFixed, ThermBCTYPELBL_TempRelaxed, &
+       & ThermBC_Surface
 
   ! 宣言文; Declareration statements
   !
@@ -45,8 +54,10 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_totDepthBasic(:,:)
   real(DP), public, save, allocatable :: z_PTempBasic(:)
   real(DP), public, save, allocatable :: xy_SurfPressA(:,:), xy_SurfPressN(:,:), xy_SurfPressB(:,:)
+
   real(DP), public, save, allocatable :: xy_WindStressU(:,:)
   real(DP), public, save, allocatable :: xy_WindStressV(:,:)
+  real(DP), public, save, allocatable :: xy_SeaSurfTemp(:,:), xy_SurfTempFlux(:,:)
 
   character(TOKEN), public, parameter :: VARSET_KEY_U = 'U'
   character(TOKEN), public, parameter :: VARSET_KEY_UB = 'UB'
@@ -85,9 +96,6 @@ contains
 
     ! モジュール引用; Use statements
     !
-    use PolyMesh_mod, only: &
-         & PolyMesh
-
     use GridSet_mod, only: &
          & iMax, jMax, kMax
 
@@ -110,7 +118,12 @@ contains
     call malloc2DVar(xy_totDepthBasic)
     call malloc1DVar(z_PTempBasic)
     call malloc2DVar(xy_SurfPressA);  call malloc2DVar(xy_SurfPressN); call malloc2DVar(xy_SurfPressB);
+
+    ! Variable used in applying the boundary condition at the surface. 
+
     call malloc2DVar(xy_WindStressU); call malloc2DVar(xy_WindStressV)
+    call malloc2DVar(xy_SurfTempFlux); call malloc2DVar(xy_SeaSurfTemp)
+
     !
     TracerNum = 2
     SaltTracerID = 1
@@ -160,6 +173,7 @@ contains
        deallocate( xy_totDepthBasic )
        deallocate( xy_SurfPressA, xy_SurfPressN, xy_SurfPressB )
        deallocate( xy_WindStressU, xy_WindStressV )
+       deallocate( xy_SurfTempFlux, xy_SeaSurfTemp )
     end if
 
   end subroutine VariableSet_Final

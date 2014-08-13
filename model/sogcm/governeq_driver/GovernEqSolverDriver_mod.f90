@@ -13,8 +13,12 @@ module GovernEqSolverDriver_mod
   use GovernEqSet_mod, only: &
        & EOSType
 
-  use HydroBouEqSolver_mod, only: &
-       & HydroBouEqSolver_Init, HydroBouEqSolver_Final, &
+!!$  use HydroBouEqSolver_mod, only: &
+!!$       & HydroBouEqSolver_Init, HydroBouEqSolver_Final, &
+!!$       & HydroBouEqSolver_AdvanceTStep
+
+  use HydroBoudEq_TimeInteg_mod, only: &
+       & HydroBouEq_TimeInteg_Init, HydroBouEq_TimeInteg_Final, &
        & HydroBouEqSolver_AdvanceTStep
 
   use EOSDriver_mod, only: &
@@ -55,7 +59,9 @@ contains
     !
 
     call EOSDriver_Init(EOSType)
-    call HydroBouEqSolver_Init()
+
+!!$    call HydroBouEqSolver_Init()
+    call HydroBouEq_TimeInteg_Init()
 
   end subroutine GovernEqSolverDriver_Init
 
@@ -66,10 +72,13 @@ contains
     
     ! モジュール引用; Use statement
     !
+    use TemporalIntegUtil_mod, only: &
+         & timeIntMode_RK4, timeIntMode_Euler
+
     use TemporalIntegSet_mod, only: &
          & CurrentTimeStep, DelTime, &
          & barocTimeIntMode, nStage_BarocTimeInt, isVarBUsed_BarocTimeInt, &
-         & timeIntMode_RK4, timeIntMode_Euler
+         & SemiImplicitFlag
 
     ! 宣言文; Declaration statement
     !
@@ -77,19 +86,27 @@ contains
     ! 局所変数
     ! Local variables
     !
-    
-    
+    integer :: timeIntMode
+    integer :: nStage
+    logical :: is_VarB_Used
+    logical :: is_VStiffTerm_Implicit
+
     ! 実行文; Executable statement
     !
 
-    if(CurrentTimeStep /= 1) then
-       call HydroBouEqSolver_AdvanceTStep( &
-            & DelTime, barocTimeIntMode, nStage_BarocTimeInt, isVarBUsed_BarocTimeInt )
-    else
+    timeIntMode = barocTimeIntMode
+    nStage = nStage_BarocTimeInt
+    is_VarB_Used = isVarBUsed_BarocTimeInt
+    is_VStiffTerm_Implicit = SemiImplicitFlag
+
+    if(CurrentTimeStep == 1) then
        ! For first time step, RK4 which  has an ability to self-start is used. 
-!       call HydroBouEqSolver_AdvanceTStep( DelTime, timeIntMode_RK4, 4, .false. )
-       call HydroBouEqSolver_AdvanceTStep( DelTime, timeIntMode_Euler, 1, .false. )
+       timeIntMode = timeIntMode_RK4; nStage=4; is_VarB_Used = .false.
+       is_VStiffTerm_Implicit = .false.
     end if
+
+    call HydroBouEqSolver_AdvanceTStep( &
+         & DelTime, timeIntMode, nStage, is_VarB_Used )
 
   end subroutine GovernEqSolverDriver_AdvanceTStep
 
@@ -101,11 +118,14 @@ contains
     ! 実行文; Executable statements
     !
 
-    call HydroBouEqSolver_Final()
+!!$    call HydroBouEqSolver_Final()
+    call HydroBouEq_TimeInteg_Final()
     call EOSDriver_Final()
 
   end subroutine GovernEqSolverDriver_Final
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 end module GovernEqSolverDriver_mod
 

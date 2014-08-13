@@ -1,9 +1,13 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2013 Kawai Yuta. All rights reserved.
+! Copyright (c) 2013-2014 Kawai Yuta. All rights reserved.
 !-------------------------------------------------------------
-!> @brief a template module
+!> @brief This module provides the subroutines to calculate the tendency of each time evolution equation 
+!!that hydrostaic boussinesq equation consist of.  
+!!
+!! @attention This module require that the initialization of EOSDriver_mod, DiagnoseUtil_mod has been finished.  
 !! 
 !! @author Kawai Yuta
+!! @since 2013
 !!
 !!
 module HydroBouEqSolverRHS_mod 
@@ -11,11 +15,15 @@ module HydroBouEqSolverRHS_mod
   ! モジュール引用; Use statements
   !
 
+  !* gtool 
+  
   use dc_types, only: &
        & DP, STRING 
 
   use dc_message, only: &
        & MessageNotify
+
+  !* Dennou-OGCM
 
   use Constants_mod, only: &
        & Omega, Grav, RPlanet, RefDens
@@ -26,6 +34,11 @@ module HydroBouEqSolverRHS_mod
 
   use SpmlUtil_mod
 
+  use EOSDriver_mod, only: &
+       & EOSDriver_Eval
+  
+  use DiagnoseUtil_mod, only: &
+       & Diagnose_SigDot, Diagnose_PressBaroc, Diagnose_GeoPot
 
   ! 宣言文; Declareration statements
   !
@@ -35,11 +48,17 @@ module HydroBouEqSolverRHS_mod
   ! 公開手続き
   ! Public procedure
   !
+
+  ! Driver routines
   public :: HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final
-  public :: calc_VorEqDivEqInvisRHS, calc_VorEqDivEqDiffRHS
-  public :: calc_TracerEqInvisRHS, calc_TracerEqDiffRHS
+  public :: calc_HydroBouEqInvisRHS
+  public :: calc_HydroBouEqHViscRHS, calc_HydroBouEqVViscRHS
+
+  ! Calculation routines
+  public :: calc_VorEqDivEqInvisRHS, calc_TracerEqInvisRHS
   public :: calc_HDiffRHS, calc_VDiffRHS
   public :: calc_SurfHeightRHS
+
   public :: correct_DivEqRHSUnderRigidLid, correct_DivEqRHSUnderRigidLid2
 
   ! 非公開手続き
@@ -74,7 +93,166 @@ contains
   end subroutine HydroBouEqSolverRHS_Final
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! * Driver routines in which some RHS calculation routines are called. 
+!   The called routines calculate the tendency of each process such as advection, diffusion and etc.
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_HydroBouEqInvisRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &
+       & xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, xyz_Salt, xy_SurfHeight, &
+       & xy_SurfPress, xy_totDepthBasic, z_PTempBasic )
+
+    ! モジュール引用; Use statements
+    !
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(out), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+    real(DP), intent(out), dimension(lMax) :: w_SurfHeightRHS
+    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, xyz_Salt
+    real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_SurfHeight, xy_SurfPress, xy_totDepthBasic
+    real(DP), intent(in), dimension(0:kMax) :: z_PTempBasic
+
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: xyz_SigDot(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_GeoPot(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_DensEdd(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_Press(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xy_totDepth(0:iMax-1, jMax)    
+    real(DP) :: xyz_PTemp(0:iMax-1, jMax, 0:kMax)
+    integer :: i, j
+
+    ! 実行文; Executable statement
+    !
+
+    xy_totDepth = xy_totDepthBasic! + xy_SurfHeightN
+    xyz_SigDot  = Diagnose_SigDot( xy_totDepth, xyz_Urf, xyz_Vrf, xyz_Div )
+    xyz_GeoPot  = Diagnose_GeoPot( xy_totDepth )
+
+    forAll(i=0:iMax-1,j=1:jMax) &
+         & xyz_PTemp(i,j,:) = xyz_PTempEdd(i,j,:) + z_PTempBasic(:)
+
+    call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
+         & theta=xyz_PTemp, S=xyz_Salt, p=-RefDens*xyz_GeoPot )     ! (in)
+
+    ! Calculate the pressure which is deviation from -RefDens*Grav*z).
+    !
+    xyz_Press(:,:,:) =   spread(xy_SurfPress, 3, kMax+1)                 &    ! barotropic component
+                &      + Diagnose_PressBaroc( xy_totDepth, xyz_DensEdd )      ! baroclinic component
+
+    !
+    !
+    call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
+         & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_Press, xyz_GeoPot, xyz_SigDot)
+
+    Call calc_TracerEqInvisRHS(wz_PTempRHS, &
+         & xyz_PTemp, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
+
+!!$    call calc_TracerEqInvisRHS(wz_SaltRHS, &
+!!$         & xyz_Salt, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
+    
+    call calc_SurfHeightRHS(w_SurfHeightRHS, &
+         & xyz_Urf, xyz_Vrf, xy_totDepth ) 
+    
+  end subroutine calc_HydroBouEqInvisRHS
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_HydroBouEqHViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
+       & wz_Vor, wz_Div, wz_PTempEdd, &
+       & hViscTermCoef, hHyperViscTermCoef, hDiffTermCoef, &
+       & isRHSReplace )
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+    real(DP), intent(in), dimension(lMax,0:kMax) :: wz_Vor, wz_Div, wz_PTempEdd
+    real(DP), intent(in) :: hViscTermCoef, hHyperViscTermCoef, hDiffTermCoef
+    logical, intent(in) :: isRHSReplace
+
+    ! 局所変数
+    ! Local variables
+    !
+
+
+    ! 実行文; Executable statement
+    !
+
+    call calc_HDiffRHS(wz_VorRHS,                          &  !(inout)
+         & wz_Vor, hViscTermCoef, hHyperViscTermCoef, 'V', &  !(in)
+         & isRHSReplace=isRHSReplace )
+
+    call calc_HDiffRHS(wz_DivRHS,                                &  !(inout)
+         & wz_Div, hViscTermCoef, hHyperViscTermCoef, 'V', 2d0,  &  !(in)
+         & isRHSReplace=isRHSReplace )
+
+    call calc_HDiffRHS(wz_PTempRHS,                     &  !(inout)
+         & wz_PTempEdd, hDiffTermCoef, 0d0,  'S',       &  !(in)
+         & isRHSReplace=isRHSReplace )
+
+
+  end subroutine calc_HydroBouEqHViscRHS
+
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
+       & wz_Vor, wz_Div, wz_PTemp, &
+       & vViscTermCoef, vHyperViscTermCoef, vDiffTermCoef, &
+       & isRHSReplace )
+    
+    !
+    !
+    use VariableSet_mod, only: &
+         & xy_totDepthBasic, z_PTempBasic
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+    real(DP), intent(in), dimension(lMax,0:kMax) :: wz_Vor, wz_Div, wz_PTemp
+    real(DP), intent(in) :: vViscTermCoef, vHyperViscTermCoef, vDiffTermCoef
+    logical, intent(in) :: isRHSReplace
+
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
+
+    ! 実行文; Executable statement
+    !
+
+
+    xyz_totDepth = spread(xy_totDepthBasic, 3, kMax+1)
+
+    call calc_VDiffRHS(wz_VorRHS,                                    &  !(inout)
+         & wz_Vor, vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
+         & isRHSReplace=isRHSReplace )
+
+    call calc_VDiffRHS(wz_DivRHS,                                    &  !(inout)
+         & wz_Div, vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
+         & isRHSReplace=isRHSReplace )
+
+    call calc_VDiffRHS(wz_PTempRHS,                               &  !(inout)
+         & wz_PTemp, vDiffTermCoef, 0d0, xyz_totDepth,         &  !(in)
+         & isRHSReplace=isRHSReplace )
+
+  end subroutine calc_HydroBouEqVViscRHS
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+! * Subroutines to calculate the right-side hand of each time evolution equation.  
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief 
   !!
   !!
@@ -147,64 +325,13 @@ real(DP) :: w(lMax)
 
   end subroutine calc_VorEqDivEqInvisRHS
 
-  !> @brief 
-  !!
-  !!
-  subroutine calc_VorEqDivEqDiffRHS(wz_RHSVor, wz_RHSDiv, &
-       & wz_Vor, wz_Div,&
-       & hViscCoef, vViscCoef, hHyperViscCoef, vHyperViscCoef, &
-       & xyz_totDepth, &
-       & overwrite )
-    
-
-    ! 宣言文; Declaration statement
-    !
-    real(DP), intent(inout) :: wz_RHSVor(lMax, 0:kMax)
-    real(DP), intent(inout) :: wz_RHSDiv(lMax, 0:kMax)
-    real(DP), intent(in) :: wz_Vor(lMax,0:kMax)
-    real(DP), intent(in) :: wz_Div(lMax,0:kMax)
-    real(DP), intent(in) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: hViscCoef, vViscCoef
-    real(DP), intent(in) :: hHyperViscCoef, vHyperViscCoef
-    logical, optional, intent(in) :: overWrite
-    
-    ! 局所変数
-    ! Local variables
-    !
-    real(DP) :: xyt_VorDIVDep2(0:iMax-1, jMax, 0:tMax)
-    real(DP) :: xyt_DivDIVDep2(0:iMax-1, jMax, 0:tMax)
-
-    ! 実行文; Executable statement
-    !
-    
-    if( present(overwrite) .and. overwrite ) then
-       wz_RHSVor = 0d0; wz_RHSDiv = 0d0
-    end if
-
-    xyt_VorDIVDep2 = xyt_xyz(xyz_wz(wz_Vor))/xyz_totDepth**2
-    wz_RHSVor = wz_RHSVor &
-         &      + hViscCoef* 2d0*wz_Vor/RPlanet**2 &
-         &      + wz_Lapla2D_wz(hViscCoef*wz_Vor - hHyperViscCoef*wz_Lapla2D_wz(wz_Vor))  &
-         &      + wz_xyz(xyz_xyt( &
-         &          xyt_DSigDSig_xyt( vViscCoef*xyt_VorDIVDep2 - vHyperViscCoef*xyt_DSigDSig_xyt(xyt_VorDIVDep2/xyz_totDepth**2) ) &
-         &      ))
-
-    xyt_DivDIVDep2 = xyt_xyz(xyz_wz(wz_Div))/xyz_totDepth**2
-    wz_RHSDiv = wz_RHSDiv &
-         &      + hViscCoef* 2d0*wz_Div/RPlanet**2 &
-         &      + wz_Lapla2D_wz(hViscCoef*wz_Div - hHyperViscCoef*wz_Lapla2D_wz(wz_Div))  &
-         &      + wz_xyz(xyz_xyt( &
-         &          xyt_DSigDSig_xyt( vViscCoef*xyt_DivDIVDep2 - vHyperViscCoef*xyt_DSigDSig_xyt(xyt_DivDIVDep2/xyz_totDepth**2) ) &
-         &      ))
-
-  end subroutine calc_VorEqDivEqDiffRHS
 
   !> @brief 
   !!
   !!
   subroutine calc_HDiffRHS(wz_RHSQuant, &
        & wz_Quant, hDiffCoef, hHyperDiffCoef, LhOptrType, LhOptrCoef, &
-       & overwrite )
+       & isRHSReplace )
     
 
     ! 宣言文; Declaration statement
@@ -214,7 +341,7 @@ real(DP) :: w(lMax)
     real(DP), intent(in) :: hDiffCoef, hHyperDiffCoef
     character(1), intent(in) :: LhOptrType              ! 'V': Vector, 'S': Scalar, Default setteing is 'S'
     real(DP), optional, intent(in) :: LhOptrCoef 
-    logical, optional, intent(in) :: overWrite
+    logical, optional, intent(in) :: isRHSReplace
     
     ! 局所変数
     ! Local variables
@@ -224,7 +351,7 @@ real(DP) :: w(lMax)
     ! 実行文; Executable statement
     !
     
-    if( present(overwrite) .and. overwrite ) then
+    if( present(isRHSReplace) .and. isRHSReplace ) then
        wz_RHSQuant = 0d0
     end if
 
@@ -248,9 +375,10 @@ real(DP) :: w(lMax)
   !> @brief 
   !!
   !!
-  subroutine calc_VDiffRHS(wz_RHSQuant, &
-       & wz_Quant, vDiffCoef, vHyperDiffCoef, &
-       & xyz_totDepth, overwrite )
+  subroutine calc_VDiffRHS(wz_RHSQuant,       & !(inout)
+       & wz_Quant, vDiffCoef, vHyperDiffCoef, & !(in)
+       & xyz_totDepth, isRHSReplace           & !(in)
+       & )
     
 
     ! 宣言文; Declaration statement
@@ -259,7 +387,7 @@ real(DP) :: w(lMax)
     real(DP), intent(in) :: wz_Quant(lMax,0:kMax)
     real(DP), intent(in) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: vDiffCoef, vHyperDiffCoef
-    logical, optional, intent(in) :: overWrite
+    logical, optional, intent(in) :: isRHSReplace
     
     ! 局所変数
     ! Local variables
@@ -269,7 +397,7 @@ real(DP) :: w(lMax)
     ! 実行文; Executable statement
     !
     
-    if( present(overwrite) .and. overwrite ) then
+    if( present(isRHSReplace) .and. isRHSReplace ) then
        wz_RHSQuant = 0d0
     end if
 
@@ -304,43 +432,6 @@ real(DP) :: w(lMax)
 !!$         &           + xyz_Tracer*xyz_wt(wt_DSig_wt(wt_xyz(xyz_SigDot))) )
 
   end subroutine calc_TracerEqInvisRHS
-
-  !> @brief 
-  !!
-  !!
-  subroutine calc_TracerEqDiffRHS(wz_RHSTracer, &
-       & wz_Tracer, Kh, Kv, xyz_totDepth, &
-       & overwrite )
-    
-
-    ! 宣言文; Declaration statement
-    !
-    real(DP), intent(inout) :: wz_RHSTracer(lMax, 0:kMax)
-    real(DP), intent(in) :: wz_Tracer(lMax,0:kMax)
-    real(DP), intent(in) :: Kh, Kv
-    real(DP), intent(in) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
-    logical, optional, intent(in) :: overWrite
-    
-    ! 局所変数
-    ! Local variables
-    !
-
-
-    ! 実行文; Executable statement
-    !
-    
-    if( present(overwrite) .and. overwrite ) then
-       wz_RHSTracer = 0d0
-    end if
-
-    wz_RHSTracer = wz_RHSTracer & 
-         & + Kh * wz_Lapla2D_wz(wz_Tracer) &
-         & + Kv * wz_wt( &
-         &          wt_DSig_wt(wt_DSig_wt( wt_xyz(xyz_wz(wz_Tracer)/xyz_totDepth**2) )) &
-         &        )
-
-  end subroutine calc_TracerEqDiffRHS
-
 
   subroutine calc_SurfHeightRHS( w_RHSSurfHeight, xyz_Urf, xyz_Vrf, xy_totDepth )
     real(DP), intent(out) :: w_RHSSurfHeight(lMax)

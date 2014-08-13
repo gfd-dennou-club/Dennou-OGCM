@@ -121,6 +121,8 @@ real(DP) :: w(lMax)
     
     TempAvg = IntSig_BtmToTop(z_PTemp)
     z_PTempBasic = TempAvg
+    xy_SeaSurfTemp = TempAvg
+
     do k=0, kMax
        xyz_PTempEddN(:,:,k) = 0d0!z_PTemp(k) - TempAvg
     end do

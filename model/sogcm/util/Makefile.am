@@ -35,7 +35,8 @@ nodist_libDSOGCMUtil_la_SOURCES= \
 	EOS_SimpleNonLinear_mod.f90 \
 	SeaWaterProp_FM83_mod.f90 \
 	EOS_JM95_mod.f90 \
-	EOSDriver_mod.f90
+	EOSDriver_mod.f90 \
+	TemporalIntegUtil_mod.f90
 
 
 # Dependency

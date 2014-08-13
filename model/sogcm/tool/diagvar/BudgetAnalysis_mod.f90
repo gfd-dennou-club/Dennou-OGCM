@@ -30,7 +30,7 @@ module BudgetAnalysis_mod
   use SpmlUtil_mod
 
   use HydroBouEqSolverRHS_mod
-  use HydroBouEqSolverVDiffProc_mod
+  use HydroBouEqSolverVImplProc_mod
 
   use DiagVarFileSet_mod
   use DiagnoseUtil_mod
@@ -115,7 +115,7 @@ contains
     call prepair_Output(diagVar_gthsInfo)
 
     call HydroBouEqSolverRHS_Init()
-    call HydroBouEqSolverVDiffProc_Init()
+    call HydroBouEqSolverVImplProc_Init()
 
   end subroutine BudgetAnalysis_Init
 
@@ -136,7 +136,7 @@ contains
     end if
 
     call HydroBouEqSolverRHS_Final()
-    call HydroBouEqSolverVDiffProc_Final()
+    call HydroBouEqSolverVImplProc_Final()
 
   end subroutine BudgetAnalysis_Final
 
@@ -310,10 +310,15 @@ use HydroBouEqSolver_mod
       xyz_InvisRHSU = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
       xyz_InvisRHSV = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
 
-      call calc_VorEqDivEqDiffRHS(wz_VorRHS, wz_DivRHS, &
-           & wz_xyz(xyz_Vor), wz_xyz(xyz_Div), &
-           & hDiffCoef, 0.5d0*vDiffCoef, hHyperViscCoef, vHyperViscCoef, &
-           & spread(xy_totDepth,3,kMax+1))
+      call calc_HydroBouEqHViscRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
+           & wz_VorTmp, wz_DivTmp, wz_PTempEddTmp, &
+           & hDiffCoef, hHyperViscCoef, hDiffCoef, &
+           & isRHSReplace=.false. )
+
+      call calc_HydroBouEqVViscRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
+           & wz_VorTmp, wz_DivTmp, wz_PTempEddTmp, &
+           & 0.5d0*vDiffCoef, vHyperViscCoef, 0.5d0*vDiffCoef, &
+           & isRHSReplace=.false. )
 
 !!$      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
 !!$           & xy_SurfPressN, wz_DivTmp, xy_totDepth, vDiffCoef, DelTime)
@@ -324,9 +329,9 @@ use HydroBouEqSolver_mod
 !!$      wz_DivA = wz_DivA + wz_DivRHS*0.5d0*DelTime
 
       wt_Vor = wt_wz(wz_VorA); wt_Div = wt_wz(wz_DivA); 
-      call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &
+      call Advance_VImplicitProc( wt_Vor, wt_Div, wt_PTempEdd, &
            & xy_WindStressU, xy_WindStressV, xy_totDepth, &
-           & 0.5d0*vViscCoef, 0.5d0*vDiffCoef, vViscCoef, DelTime, &
+           & 0.5d0, DelTime, &
            & DynBC_Surface, DynBC_Bottom )
 
       wz_TmpPsi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )

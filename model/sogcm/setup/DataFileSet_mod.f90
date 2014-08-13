@@ -169,7 +169,6 @@ contains
 
     if( mod(CurrentTime, outputIntTimeSec) /= 0 ) return 
 
-
     call MessageNotify("M", module_name, "Output data of some field at %f [%c] ..", &
          & d=(/ DCCalConvertByUnit(CurrentTime, 'sec', outputIntUnit) /), c1=trim(outputIntUnit) )
 

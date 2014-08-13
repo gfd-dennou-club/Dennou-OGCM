@@ -19,6 +19,10 @@ module TemporalIntegSet_mod
   use dc_calendar, only: &
        & DC_CAL, DC_CAL_DATE
 
+  use TemporalIntegUtil_mod, only: &
+       & TimeIntMode_Euler, &
+       & TemporalIntegUtil_getInfo
+
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -41,15 +45,6 @@ module TemporalIntegSet_mod
   integer, parameter, public :: nShortTimeLevel = 3
   integer, save, public :: Bs, Ns, As
 
-  !
-  integer, parameter, public :: timeIntMode_Euler = 1
-  integer, parameter, public :: timeIntMode_RK4 = 2
-  integer, parameter, public :: timeIntMode_LFTR = 3
-  integer, parameter, public :: timeIntMode_LFAM3 = 4
-  integer, parameter, public :: timeIntMode_RK2 = 5
-
-
-  !
 
   real(DP), save, public :: DelTime
   integer, save, public :: SubCycleNum
@@ -61,9 +56,13 @@ module TemporalIntegSet_mod
   real(DP), save, public :: IntegTime
   integer, save, public :: CurrentTimeStep
   integer, save, public :: CurrentShortTimeStep
+  
+  ! Temporal integration scheme
   integer, save, public :: BarocTimeIntMode
   logical, save, public :: isVarBUsed_BarocTimeInt
   integer, save, public :: nStage_BarocTimeInt
+  logical, save, public :: SemiImplicitFlag
+
 
   type(DC_CAL_DATE), save, public :: InitDate
   type(DC_CAL_DATE), save, public :: RestartDate
@@ -258,12 +257,12 @@ contains
     integer :: EndYear, EndMonth, EndDay, EndHour, EndMin
     real(DP) :: InitSec, EndSec
     character(TOKEN) :: InitDateStr, EndDateStr, RestartDateStr
-
+    
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
     namelist /temporalInteg_nml/ &
-         & barocTimeIntModeName, DelTimeVal, DelTimeUnit, &
+         & barocTimeIntModeName, DelTimeVal, DelTimeUnit, SemiImplicitFlag, &
          & IntegTimeVal, IntegTimeUnit, &
          & InitYear, InitMonth, InitDay, InitHour, InitMin, &
          & EndYear, EndMonth, EndDay, EndHour, EndMin, &
@@ -276,7 +275,11 @@ contains
     ! デフォルト値の設定
     ! Default values settings
     !
-    DelTIme     = 100d0
+    
+    barocTimeIntMode = TimeIntMode_Euler
+    DelTimeVal  = 10d0
+    DelTimeUnit = 'min'
+    SemiImplicitFlag = .true.
     SubCycleNum = 2
     
     RestartTimeVal  = 0d0
@@ -304,34 +307,17 @@ contains
        close( unit_nml )
     end if
 
-    select case(barocTimeIntModeName)
-       case('timeIntMode_Euler')
-          barocTimeIntMode = timeIntMode_Euler
-          isVarBUsed_BarocTimeInt = .false.
-          nStage_BarocTimeInt = 1
-       case('timeIntMode_LFTR')
-          barocTimeIntMode = timeIntMode_LFTR
-          isVarBUsed_BarocTimeInt = .true.
-          nStage_BarocTimeInt = 2
-       case('timeIntMode_LFAM3')
-          barocTimeIntMode = timeIntMode_LFAM3
-          isVarBUsed_BarocTimeInt = .true.
-          nStage_BarocTimeInt = 2
-       case('timeIntMode_RK2')
-          barocTimeIntMode = timeIntMode_RK2
-          isVarBUsed_BarocTimeInt = .false.
-          nStage_BarocTimeInt = 2
-       case('timeIntMode_RK4')
-          barocTimeIntMode = timeIntMode_RK4
-          isVarBUsed_BarocTimeInt = .false.
-          nStage_BarocTimeInt = 4
-       case default
-          call MessageNotify( "E", module_name, &
-               & "Specified name of temporal integration method '%a' is invalid", ca=(/barocTimeIntModeName/) )  
-    end select
-    
+    ! Determine the numerical scheme of temporal integration by reading a namelist 
+    ! and register some informations associated with the specified scheme. 
+    if ( TemporalIntegUtil_getInfo( barocTimeIntModeName,                 & ! (in)
+         & barocTimeIntMode, isVarBUsed_BarocTimeInt, nStage_BarocTimeInt & ! (out)
+         & ) .eqv. .false. ) then
 
-    !
+       call MessageNotify( "E", module_name, &
+            & "Specified name of temporal integration method '%a' is invalid", ca=(/barocTimeIntModeName/) )  
+    end if
+
+    ! Determine time to start and finish a temporal integration. 
     !
     call DCCalCreate(cal_type='Gregorian')
 
@@ -355,7 +341,7 @@ contains
     IntegTime = DCCalDateDifference(RestartDate, EndDate)
     EndTime = RestartTime + IntegTime
 
-    !
+    ! Determine the time interval to report the progress of temporal integration. 
     !
     if( ProgMessageIntVal < 0.0 ) then
        ProgMessageInterVal = 1d-02*IntegTime
@@ -368,6 +354,7 @@ contains
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, '  BarocTimeIntMode     = %a', ca=(/ barocTimeIntModeName /))
     call MessageNotify( 'M', module_name, '  DelTime              = %f [%c]', d=(/ DelTimeVal /), c1=trim(DelTimeUnit) )
+    call MessageNotify( 'M', module_name, '  SemiImplicitFlag     = %b     ', L=(/ SemiImplicitFlag /))
     call MessageNotify( 'M', module_name, '  SubCycleNum          = %d [time]', i=(/ SubCycleNum /))
     call MessageNotify( 'M', module_name, '  RestartTime          = %f [%c]', d=(/ RestartTimeVal /), c1=trim(RestartTimeUnit) )
     call MessageNotify( 'M', module_name, '  IntegTime            = %f [sec]', d=(/ IntegTime /))

@@ -11,7 +11,7 @@ module BoundCondSet_mod
   ! モジュール引用; Use statements
   !
   use dc_types, only: &
-       & TOKEN
+       & DP, TOKEN
 
   use dc_message,only: &
        & MessageNotify
@@ -25,25 +25,53 @@ module BoundCondSet_mod
   ! Public procedure
   !
   public :: BoundCondSet_Init, BoundCondSet_Final
+  public :: inquire_VBCSpecType
 
   ! 非公開手続き
   ! Private procedure
   !
+
+  ! Variables to save the boundary condition at the surface
   integer, public, save :: KinBC_Surface
   integer, public, save :: DynBC_Surface
   integer, public, save :: ThermBC_Surface
 
+  ! Variables to save the boundary condition at the bottom
   integer, public, save :: KinBC_Bottom
   integer, public, save :: DynBC_Bottom
   integer, public, save :: ThermBC_Bottom
 
+  ! IDs to identify the type of boundary condition
+  !
+  integer, public, parameter :: DynBCTYPE_NoSlip = 101
+  integer, public, parameter :: DynBCTYPE_Slip = 102
+  integer, public, parameter :: DynBCTYPE_SpecStress = 103
 
-  integer, public, parameter :: DynBCTYPE_NoSlip = 1
-  integer, public, parameter :: DynBCTYPE_Slip = 2
-  integer, public, parameter :: KinBCTYPE_FreeSurf = 3
-  integer, public, parameter :: KinBCTYPE_RigidLid = 4
-  integer, public, parameter :: ThermBCTYPE_Adiabat = 5
+  integer, public, parameter :: KinBCTYPE_FreeSurf = 201
+  integer, public, parameter :: KinBCTYPE_RigidLid = 202
 
+  integer, public, parameter :: ThermBCTYPE_Adiabat     = 301
+  integer, public, parameter :: ThermBCTYPE_FluxFixed   = 302
+  integer, public, parameter :: ThermBCTYPE_TempFixed   = 303
+  integer, public, parameter :: ThermBCTYPE_TempRelaxed = 304
+
+  ! Labels to identify the type of boundary condition
+  !
+  character(*), public, parameter :: DynBCTYPELBL_NoSlip = 'NoSlip'
+  character(*), public, parameter :: DynBCTYPELBL_Slip = 'Slip'
+  character(*), public, parameter :: DynBCTYPELBL_SpecStress = 'SpecStress'
+
+  character(*), public, parameter :: KinBCTYPELBL_FreeSurf = 'Free'
+  character(*), public, parameter :: KinBCTYPELBL_RigidLid = 'Rigid'
+
+  character(*), public, parameter :: ThermBCTYPELBL_Adiabat = 'Adiabat'
+  character(*), public, parameter :: ThermBCTYPELBL_FluxFixed = 'FluxFixed'
+  character(*), public, parameter :: ThermBCTYPELBL_TempFixed = 'TempFixed'
+  character(*), public, parameter :: ThermBCTYPELBL_TempRelaxed = 'TempRelaxed'
+
+  !
+  !
+  real(DP), public :: SurfTempRelaxedTime
 
   ! 非公開変数
   ! Private variable
@@ -84,6 +112,51 @@ contains
     !
 
   end subroutine BoundCondSet_Final
+
+
+  !> @brief Inquire the type of boundary condition. 
+  !! Inquire whether the type of vertical boundary condition is first-type or second-type. 
+  !!
+  !! @return 'D' or 'N'
+  !!
+  function inquire_VBCSpecType(VBCTypeID) result(VBCSpecType)
+    
+    ! 宣言文; Declaration statement
+    !
+    integer, intent(in) :: VBCTypeID
+    character :: VBCSpecType
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+    
+    select case(VBCTypeID)
+       case(KinBCTYPE_FreeSurf)
+       case(KinBCTYPE_RigidLid)
+       case(DynBCTYPE_Slip)
+          VBCSpecType = 'N'
+       case(DynBCTYPE_NoSlip)
+          VBCSpecType = 'D'
+       case(DynBCTYPE_SpecStress)
+          VBCSpecType = 'N'
+       case(ThermBCTYPE_Adiabat)
+          VBCSpecType = 'N'
+       case(ThermBCTYPE_TempFixed)
+          VBCSpecType = 'D'
+       case(ThermBCTYPE_TempRelaxed)
+          VBCSpecType = 'D'
+       case(ThermBCTYPE_FluxFixed)
+          VBCSpecType = 'N'
+       case Default
+          call MessageNotify("E", module_name, &
+               & "The ID of inquired boundary condition '%d' is not registered.", i=(/VBCTypeID/) ) 
+    end select
+
+  end function inquire_VBCSpecType
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -127,7 +200,8 @@ contains
     namelist /boundaryCondition_nml/ &
          & KinBCSurface, KinBCBottom, &
          & DynBCSurface, DynBCBottom, &
-         & ThermBCSurface, ThermBCBottom
+         & ThermBCSurface, ThermBCBottom, &
+         & SurfTempRelaxedTime
 
 
     ! 実行文; Executable statements
@@ -139,15 +213,17 @@ contains
 
     ! Set default boundary conditions
     !
-    KinBCSurface = "Rigid"
-    DynBCSurface = "Slip"
-    ThermBCSurface = "Adiabat"
 
-    KinBCBottom = "Rigid"
-    DynBCBottom = "Slip"
-    ThermBCBottom = "Adiabat"
+    KinBCSurface = KinBCTYPELBL_RigidLid
+    DynBCSurface = DynBCTYPELBL_NoSlip
+    ThermBCSurface = ThermBCTYPELBL_Adiabat
 
+    KinBCBottom = KinBCTYPELBL_RigidLid
+    DynBCBottom = DynBCTYPELBL_NoSlip
+    ThermBCBottom = ThermBCTYPELBL_Adiabat
 
+    SurfTempRelaxedTime = -1d0
+    
     ! NAMELIST からの入力
     ! Input from NAMELIST
     !
@@ -163,65 +239,20 @@ contains
        close( unit_nml )
     end if
 
-    ! Specify the boundary condition on upper surface.
+    ! Set the IDs of boundary condition on upper surface.
     !
+    call label2ID_verticalBCType( &
+         & KinBCSurface, DynBCSurface, ThermBCSurface,    &  ! (in)
+         & KinBC_Surface, DynBC_Surface, ThermBC_Surface, &  ! (out)
+         & .true. )
 
-    select case(KinBCSurface)
-       case("Free")
-          KinBC_Surface = KinBCTYPE_FreeSurf
-       case("Rigid")
-          KinBC_Surface = KinBCTYPE_RigidLid
-       case default
-          call MessageNotify("E", module_name, &
-               & "The Kinetic boundary condition '%c' imposed on the surface is invalid.", c1=KinBCSurface) 
-    end select
-
-    select case(DynBCSurface)
-       case("Slip")
-          DynBC_Surface = DynBCTYPE_Slip
-       case("NoSlip")
-          DynBC_Surface = DynBCTYPE_NoSlip
-       case default
-          call MessageNotify("E", module_name, &
-               & "The dynamical boundary condition '%c' imposed on the surface is invalid.", c1=DynBCSurface) 
-    end select
-
-    select case (ThermBCSurface)
-       case("Adiabat")
-          ThermBC_Surface = ThermBCTYPE_Adiabat
-       case default
-          call MessageNotify("E", module_name, &
-               & "The thermal boundary condition '%c' imposed on the surface is invalid.", c1=ThermBCSurface) 
-    end select
-
-    ! Specify the boundary condition on bottom surface.
+    ! Set  the IDs of boundary condition on bottom surface.
     !
+    call label2ID_verticalBCType( &
+         & KinBCBottom, DynBCBottom, ThermBCBottom,    & ! (in)
+         & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, & ! (out)
+         & .true. )
 
-    select case(KinBCBottom)
-       case("Rigid")
-          KinBC_Surface = KinBCTYPE_RigidLid
-       case default
-          call MessageNotify("E", module_name, &
-               & "The Kinetic boundary condition '%c' imposed on the bottom is invalid.", c1=KinBCBottom) 
-    end select
-
-    select case(DynBCBottom)
-       case("Slip")
-          DynBC_Bottom = DynBCTYPE_Slip
-       case("NoSlip")
-          DynBC_Bottom = DynBCTYPE_NoSlip
-       case default
-          call MessageNotify("E", module_name, &
-               & "The dynamical boundary condition '%c' imposed on the bottom is invalid.", c1=DynBCBottom) 
-    end select
-
-    select case (ThermBCBottom)
-       case("Adiabat")
-          ThermBC_Bottom = ThermBCTYPE_Adiabat
-       case default
-          call MessageNotify("E", module_name, &
-               & "The thermal boundary condition '%c' imposed on the bottom is invalid.", c1=ThermBCBottom) 
-    end select
 
     ! 印字 ; Print
     !
@@ -233,6 +264,76 @@ contains
     call MessageNotify( 'M', module_name, 'DynBC_Bottom         = %c', c1 = DynBCBottom  )
     call MessageNotify( 'M', module_name, 'ThermBC_Bottom       = %c', c1 = ThermBCBottom  )
 
+    if( ThermBC_Surface==ThermBCTYPE_TempRelaxed ) then
+       if ( SurfTempRelaxedTime >= 0d0 ) then
+          call MessageNotify('M', module_name, 'SurfTempRelaxedTime  = %f [sec]', d=(/ SurfTempRelaxedTime /))
+       else
+          call MessageNotify('E', module_name, ' &
+               & `ThermBC_Surface=ThermBCTYPE_TempRelaxed`, but `SurfTempRelaxedTime` is not specified.' &
+               & // 'Set the value of this parameter.' )
+       end if
+    end if
+
   end subroutine read_nmlData
+
+  !> @brief 
+  !!
+  !!
+  subroutine label2ID_verticalBCType( &
+       & KinBCLBL, DynBCLBL, ThermBCLBL, &  
+       & KinBCID, DynBCID, ThermBCID,    &
+       & isExceptionCatch )
+    
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: KinBCLBL, DynBCLBL, ThermBCLBL
+    integer, intent(out) :: KinBCID, DynBCID, ThermBCID
+    logical, intent(in) :: isExceptionCatch
+
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+
+    select case(KinBCLBL)
+       case(KinBCTYPELBL_FreeSurf)
+          KinBCID = KinBCTYPE_FreeSurf
+       case(KinBCTYPELBL_RigidLid)
+          KinBCID = KinBCTYPE_RigidLid
+       case default
+          call MessageNotify("E", module_name, &
+               & "The Kinetic boundary condition '%c' is not available.", c1=trim(KinBCLBL) ) 
+    end select
+
+    select case(DynBCLBL)
+       case(DynBCTYPELBL_Slip)
+          DynBCID = DynBCTYPE_Slip
+       case(DynBCTYPELBL_NoSlip)
+          DynBCID = DynBCTYPE_NoSlip
+       case(DynBCTYPELBL_SpecStress)
+          DynBCID = DynBCTYPE_SpecStress
+       case default
+          call MessageNotify("E", module_name, &
+               & "The dynamical boundary condition '%c' is not available.", c1=trim(DynBCLBL) )
+    end select
+
+    select case (ThermBCLBL)
+       case(ThermBCTYPELBL_Adiabat)
+          ThermBCID = ThermBCTYPE_Adiabat
+       case(ThermBCTYPELBL_TempFixed)
+          ThermBCID = ThermBCTYPE_TempFixed
+       case(ThermBCTYPELBL_FluxFixed)
+          ThermBCID = ThermBCTYPE_FluxFixed
+       case(ThermBCTYPELBL_TempRelaxed)
+          ThermBCID = ThermBCTYPE_TempRelaxed
+       case default
+          call MessageNotify("E", module_name, &
+               & "The thermal boundary condition '%c' is not available.", c1=trim(ThermBCLBL) )
+    end select
+
+  end subroutine label2ID_verticalBCType
 
 end module BoundCondSet_mod

@@ -71,13 +71,20 @@ module SpmlUtil_mod
   public :: IntSig_BtmToTop, xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz, w_IntSig_BtmToTop_wz
 
   ! Procedures for the data conversion between real and spectral space with the spectral methods.
-  public :: xyz_wt, wt_xyz, xyz_wz, wz_xyz, wz_wt, wt_wz, xyt_xyz, xyz_xyt
+  public :: xyz_wt, wt_xyz, wt_xyt, xyz_wz, wz_xyz, wz_wt, wt_wz, xyt_xyz, xyz_xyt
+  public :: wt_VorDiv2VectorCosLat
+  public :: wt_VectorCosLat2VorDiv, wz_VectorCosLat2VorDiv
 
   ! Procedures to statisfy the vertical boundary conditions.
   public :: apply_ZBoundaryCond
 
-  ! Cascade
+  !* Cascade
+  !
+
+  ! basic transformation
   public :: w_xy, xy_w
+
+  ! Derivate operator
   public :: xya_GradLon_wa, xya_GradLambda_wa, xya_GradLat_wa, xya_GradMu_wa
   public :: xy_GradLon_w, xy_GradLambda_w, xy_GradLat_w, xy_GradMu_w
   public :: w_DivLambda_xy, w_DivMu_xy
@@ -88,6 +95,7 @@ module SpmlUtil_mod
   public :: AvrLonLat_xy, ya_AvrLon_xya
   public :: a_Interpolate_wa, Interpolate_w
   
+  ! Operation for pectral analysis
   public :: nma_EnergyFromStreamfunc_wa, na_EnergyFromStreamfunc_wa
   public :: nma_EnstrophyFromStreamfunc_wa, na_EnstrophyFromStreamfunc_wa
 
@@ -123,7 +131,9 @@ module SpmlUtil_mod
   integer, allocatable :: lkMin(:), lkMax(:)
   integer, allocatable :: ltMin(:), ltMax(:)
   integer, allocatable :: lxyMin(:), lxyMax(:)
-  
+
+  real(DP), allocatable :: xy_CosLat(:,:)
+
 contains
 
   !>
@@ -164,7 +174,9 @@ contains
     
     Radius = RPlanet
 
-    !
+    ! Allocate the memory of work variables in this module. 
+    allocate(xy_CosLat(0:im-1,jm))
+    xy_CosLat = cos(xy_Lat)
     call construct_tr_vIntCoefMat()
     
     !
@@ -215,6 +227,7 @@ contains
     ! 実行文; Executable statements
     !
 
+    deallocate(xy_CosLat)
     deallocate(tr_vIntCoefMat)
 
   end subroutine SpmlUtil_Final
@@ -286,6 +299,19 @@ contains
       wz_xyz = wa_xya(xyz)
 
     end function wz_xyz
+
+    function wt_xyt(xyt)
+      !
+      ! 3 次元格子データから水平スペクトル・動径格子点データへ(正)変換する.
+      !
+      real(8), dimension(0:im-1,1:jm,0:tm), intent(in)   :: xyt
+      !(in) 3 次元経度緯度動径格子点データ
+      real(8), dimension(lm,0:tm)             :: wt_xyt
+      !(out) 2 次元球面調和函数スペクトル・動径格子点データ
+
+      wt_xyt = wa_xya(xyt)
+
+    end function wt_xyt
 
     function wz_wt(wt)
       !
@@ -374,6 +400,70 @@ contains
 
     end function xyz_xyt
 
+    !> @brief 
+    !!
+    !!
+    subroutine wt_VorDiv2VectorCosLat(  wt_Vor, wt_Div,  & ! (in)
+         & xyz_UCosLat, xyz_VCosLat                               & ! (out)
+         & )
+      
+      ! 宣言文; Declaration statement
+      !
+      real(8), dimension(lm,0:tm), intent(in) :: wt_Vor, wt_Div
+      real(8), dimension(0:im-1,jm,0:km), intent(out) :: xyz_UCosLat, xyz_VCosLat 
+      
+      ! 局所変数
+      ! Local variables
+      !
+      real(8), dimension(lm,0:km) :: wz_Psi, wz_Chi
+      real(8), dimension(0:im-1,jm,0:km) :: xyz_Cos2Lat
+
+      ! 実行文; Executable statement
+      !
+
+      xyz_Cos2Lat = spread(xy_CosLat**2, 3, km+1)
+
+      wz_Psi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
+      wz_Chi = wz_InvLapla2D_wz( wz_wt(wt_Div) )
+      xyz_UCosLat = xyz_Cos2Lat * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
+      xyz_VCosLat = xyz_Cos2Lat * xyz_AlphaOptr_wz(wz_Psi, wz_Chi)
+
+    end subroutine wt_VorDiv2VectorCosLat
+
+    subroutine wt_VectorCosLat2VorDiv(  xyz_UCosLat, xyz_VCosLat,  & ! (in)
+         & wt_Vor, wt_Div                                          & ! (out)
+         & )
+      
+      ! 宣言文; Declaration statement
+      !
+      real(8), dimension(0:im-1,jm,0:km), intent(in) :: xyz_UCosLat, xyz_VCosLat
+      real(8), dimension(lm,0:tm), intent(out) :: wt_Vor, wt_Div
+
+      ! 実行文; Executable statement
+      !
+
+      wt_Vor = wt_wz( wz_AlphaOptr_xyz(xyz_VCosLat, -xyz_UCosLat) )
+      wt_Div = wt_wz( wz_AlphaOptr_xyz(xyz_UCosLat,  xyz_VCosLat) )      
+
+    end subroutine wt_VectorCosLat2VorDiv
+
+    subroutine wz_VectorCosLat2VorDiv(  xyz_UCosLat, xyz_VCosLat,  & ! (in)
+         & wz_Vor, wz_Div                                          & ! (out)
+         & )
+      
+      ! 宣言文; Declaration statement
+      !
+      real(8), dimension(0:im-1,jm,0:km), intent(in) :: xyz_UCosLat, xyz_VCosLat
+      real(8), dimension(lm,0:km), intent(out) :: wz_Vor, wz_Div
+
+      ! 実行文; Executable statement
+      !
+
+      wz_Vor = wz_AlphaOptr_xyz(xyz_VCosLat, -xyz_UCosLat)
+      wz_Div = wz_AlphaOptr_xyz(xyz_UCosLat,  xyz_VCosLat)
+
+    end subroutine wz_VectorCosLat2VorDiv
+
   !--------------- 水平微分計算 -----------------
 
     function wt_DivLon_xyz(xyz)
@@ -449,10 +539,8 @@ contains
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
 
-      real(DP) :: xyz_Cos2Lat(0:im-1,jm,0:km)
       
-      xyz_Cos2Lat = spread(cos(xy_Lat)**2,3,km+1)
-      xyz_AlphaOptr_wz = ( xya_GradLambda_wa(wz_A) + xya_GradMu_wa(wz_B) )/ (Radius*xyz_Cos2Lat)
+      xyz_AlphaOptr_wz = (xya_GradLambda_wa(wz_A) + xya_GradMu_wa(wz_B))/ (Radius*spread(xy_CosLat**2,3,km+1))
 
     end function xyz_AlphaOptr_wz
 
@@ -469,7 +557,7 @@ contains
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
 
-      xy_AlphaOptr_w = ( xy_GradLambda_w(w_A) + xy_GradMu_w(w_B) )/ (Radius*cos(xy_Lat)**2)
+      xy_AlphaOptr_w = (xy_GradLambda_w(w_A) + xy_GradMu_w(w_B))/ (Radius*xy_CosLat**2)
 
     end function xy_AlphaOptr_w
 

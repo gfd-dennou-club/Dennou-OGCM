@@ -28,34 +28,36 @@ module HydroBouEqSolver_mod
        & iMax, jMax, kMax, lMax, nMax, tMax, &
        & xyz_Lat, xyz_Lon
 
+  use SpmlUtil_mod
+
   use BoundCondSet_mod, only: &
        & KinBC_Surface, DynBC_Surface, ThermBC_Surface, &
        & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom 
 
+  use TemporalIntegUtil_mod, only: &
+       & TemporalIntegUtil_Init, TemporalIntegUtil_Final, &
+       & timeIntMode_Euler, xy_timeIntEuler, wt_timeIntEuler, &
+       & timeIntMode_LFTR, xy_timeIntLFTR, wt_timeIntLFTR, &
+       & timeIntMode_LFAM3, xy_timeIntLFAM3, wt_timeIntLFAM3, &
+       & timeIntMode_RK2, xy_timeIntRK2, wt_timeIntRK2, &
+       & timeIntMode_RK4, xy_timeIntRK4, wt_timeIntRK4, &
+       & TemporalIntegUtil_GetDDtCoef, &
+       & TemporalIntegUtil_SetDelTime
+
   use TemporalIntegSet_mod, only: &
        & CurrentTimeStep, SubCycleNum, &
-       & nShortTimeLevel, &
-       & timeIntMode_Euler, timeIntMode_LFTR, timeIntMode_LFAM3, &
-       & timeIntMode_RK2, timeIntMode_RK4
-
-  use GovernEqSet_mod, only: &
-       & EOSType
-
-  use EOSDriver_mod, only: &
-       & EOSDriver_Eval
+       & SemiImplicitFlag, &
+       & nShortTimeLevel
 
 
-  use VariableSet_mod, only: &
-       & SaltTracerID, PTempTracerID, TracerNum
+  use HydroBouEqSolverRHS_mod, only: &
+       & HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final, &
+       & calc_VorEqDivEqInvisRHS, &
+       & calc_TracerEqInvisRHS, calc_SurfHeightRHS, &
+       & calc_HDiffRHS, calc_VDiffRHS, &
+       & correct_DivEqRHSUnderRigidLid
 
-  use HydroBouEqSolverRHS_mod
   use HydroBouEqSolverVDiffProc_mod
-
-!!$
-!!$  use BarotModeTimeFilter_mod, only: &
-!!$       & BarotModeTimeFilter_Init, BarotModeTimeFilter_Final
-
-  use SpmlUtil_mod
 
   use TemporalIntegUtil_mod
 
@@ -171,18 +173,22 @@ contains
     ! 局所変数
     ! Local variables
     !
+
+    real(DP), dimension(lMax, 0:tMax) :: wt_Vor, wt_VorN, wt_VorB
+    real(DP), dimension(lMax, 0:tMax) :: wt_Div, wt_DivN, wt_DivB
+    real(DP), dimension(lMax, 0:tMax) :: wt_PTempEdd, wt_PTempEddN, wt_PTempEddB
+    real(DP), dimension(lMax, 0:tMax) :: wt_Salt, wt_SaltN, wt_SaltB
+
     real(DP) :: xyz_CosLat(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xy_SurfHeight(0:iMax-1, jMax)
-
-    real(DP), dimension(0:iMax-1, jMax, 0:kMax) :: xyz_Urf, xyz_Vrf
-    real(DP), dimension(lMax, 0:tMax) :: wt_Vor, wt_VorN, wt_VorB, wt_VorRKTmp
-    real(DP), dimension(lMax, 0:tMax) :: wt_Div, wt_DivN, wt_DivB, wt_DivRKTmp
-    real(DP), dimension(lMax, 0:tMax) :: wt_PTempEdd, wt_PTempEddN, wt_PTempEddB, wt_PTempEddRKTmp
-    real(DP), dimension(lMax, 0:tMax) :: wt_Salt, wt_SaltN, wt_SaltB, wt_SaltRKTmp
-
     real(DP), dimension(lMax, 0:kMax)  :: wz_Psi, wz_Chi
+    real(DP), dimension(0:iMax-1, jMax, 0:kMax) :: xyz_Urf, xyz_Vrf
     real(DP), dimension(lMax, 0:kMax) ::  wz_VorRHS, wz_DivRHS, wz_PTempRHS
-    real(DP) :: w_SurfHeightRHS(lMax), xy_SurfHeightRKTmp(0:iMax-1,jMax)
+    real(DP) :: w_SurfHeightRHS(lMax)
+
+    ! Work variables only used when Runge=Kutta scheme is applied. 
+    real(DP), dimension(:,:), allocatable :: wt_VorRKTmp, wt_DivRKTmp, wt_PTempEddRKTmp, wt_SaltRKTmp
+    real(DP), dimension(:,:), allocatable ::  xy_SurfHeightRKTmp
 
     integer :: Stage
     character(TOKEN) :: TIntType_SurfPressTerm
@@ -201,7 +207,6 @@ real(DP) :: wt_Tmp(lMax,0:tMax), xy_SurfPress(0:iMax-1,jMax)
     wt_DivN = wt_wz( wz_AlphaOptr_xyz(xyz_Urf,  xyz_Vrf) )
     wt_PTempEddN = wt_xyz(xyz_PTempEddN)
     wt_SaltN = wt_xyz(xyz_SaltN)
-    xy_SurfPress = xy_SurfPressN
 
     if( isVarBUsed_BarocTimeInt ) then
        wt_VorB = wt_wz( wz_AlphaOptr_xyz(xyz_VB*xyz_CosLat, -xyz_UB*xyz_CosLat) )
@@ -209,11 +214,18 @@ real(DP) :: wt_Tmp(lMax,0:tMax), xy_SurfPress(0:iMax-1,jMax)
        wt_PTempEddB = wt_xyz(xyz_PTempEddB)
        wt_SaltB = wt_xyz(xyz_SaltB)
     end if
+
+    ! If Runge=Kutta scheme is used, work variables for RK scheme are allocated. 
+    if ( timeIntMode==timeIntMode_RK2 .or. timeIntMode==timeIntMode_RK4 ) then
+       allocate( &
+            & wt_VorRKTmp(lMax,0:tMax), wt_DivRKTmp(lMax,0:tMax), wt_PTempEddRKTmp(lMax,0:tMax), wt_SaltRKTmp(lMax,0:tMax), &
+            & xy_SurfHeightRKTmp(0:iMax-1,jMax) &
+            & )
+    end if
     
-    wt_Div = wt_DivN;  wt_Vor = wt_VorN
-    wt_PTempEdd = wt_PTempEddN
-    wt_Salt = wt_SaltN
+    wt_Div = wt_DivN;  wt_Vor = wt_VorN;  wt_PTempEdd = wt_PTempEddN; wt_Salt = wt_SaltN
     xy_SurfHeight = xy_SurfHeightN
+    xy_SurfPress = xy_SurfPressN
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -240,7 +252,7 @@ real(DP) :: wt_Tmp(lMax,0:tMax), xy_SurfPress(0:iMax-1,jMax)
 
              call calc_GovernEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS,         & ! (inout)  
                   & wz_wt(wt_VorN), wz_wt(wt_DivN), wz_wt(wt_PTempEddN),            & ! (in)
-                  & 0.5d0*vViscCoef, vHyperViscCoef, 0.5d0*vDiffCoef                & ! (in)
+                  & 0.5*vViscCoef, vHyperViscCoef, 0.5*vDiffCoef                & ! (in)
                   & )
 
           else
@@ -290,6 +302,12 @@ real(DP) :: wt_Tmp(lMax,0:tMax), xy_SurfPress(0:iMax-1,jMax)
 
        if( timeIntMode == timeIntMode_LFAM3 ) then
           if ( Stage /= nStage_BarocTimeInt ) then
+!!$             call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &  !(inout)
+!!$                  & xy_WindStressU, xy_WindStressV, xy_totDepthBasic+xy_SurfHeight, & 
+!!$                  & 0.5d0*vViscCoef, 0.5d0*vDiffCoef, & 
+!!$                  & vViscCoef, 2d0*DelTime, &
+!!$                  & DynBC_Surface, DynBC_Bottom )
+
           else
 
              xy_SurfPressA = &
@@ -298,23 +316,14 @@ real(DP) :: wt_Tmp(lMax,0:tMax), xy_SurfPress(0:iMax-1,jMax)
              call Advance_VDiffProc( wt_Vor, wt_Div, wt_PTempEdd, &  !(inout)
                   & xy_WindStressU, xy_WindStressV, xy_totDepthBasic+xy_SurfHeight, & 
                   & 0.5d0*vViscCoef, 0.5d0*vDiffCoef, & 
-                  & vDiffCoef, DelTime, &
+                  & vViscCoef, DelTime, &
                   & DynBC_Surface, DynBC_Bottom )
 
-!!$             call correct_DivEqRHSUnderRigidLid2( wt_Div, xy_SurfPressA, &
-!!$                  & wz_wt(wt_Div), xy_SurfPress, xy_SurfPressN, xy_SurfPressB, &
-!!$                  & 1d0 / (TemporalIntegUtil_GetDDtCoef(timeIntMode, Stage)*DelTime), &
-!!$                  & 'CRANKNIC' )
-
-!!$
-!!$             xy_SurfPressA = xy_SurfPressA &
-!!$             if( mod(CurrentTimeStep, 10) == 0) then
-!!$write(*,*) "-------------"
-                  xy_SurfPressA = xy_SurfPressA + &
+             xy_SurfPressA = xy_SurfPressA + &
                   &  2d0*RefDens * xy_w( w_InvLapla2D_w( 0.5d0*vViscCoef * &
                   &     w_IntSig_BtmToTop_wz(wz_wt(wt_DSigDSig_wt(wt_Div))) &
                   & ) )/xy_totDepthBasic**2
-!!$               end if
+
           end if
        end if
 
@@ -390,6 +399,9 @@ real(DP) :: wt_Tmp(lMax,0:tMax), xy_SurfPress(0:iMax-1,jMax)
 
     ! モジュール引用; Use statements
     !
+    use EOSDriver_mod, only: &
+         & EOSDriver_Eval
+
     use DiagnoseUtil_mod, only: &
          & Diagnose_SigDot, Diagnose_PressBaroc, Diagnose_GeoPot
 
@@ -571,13 +583,13 @@ real(DP) :: wt_Tmp(lMax,0:tMax), xy_SurfPress(0:iMax-1,jMax)
        call apply_ZBoundaryCond( wt_Vor, &
             & 'N', BtmBCType_HVel, &
             & w_SurfBCWork = &
-            &   w_AlphaOptr_xy(xy_WindStressV*xy_Coef, -xy_WindStressU*xy_Coef)/(RefDens*vDiffCoef) &
+            &   w_AlphaOptr_xy(xy_WindStressV*xy_Coef, -xy_WindStressU*xy_Coef)/(RefDens*vViscCoef) &
             & )
 
        call apply_ZBoundaryCond( wt_Div, &
             & 'N', BtmBCType_HVel, &
             & w_SurfBCWork = &
-            &   w_AlphaOptr_xy(xy_WindStressU*xy_Coef, xy_WindStressV*xy_Coef)/(RefDens*vDiffCoef) &
+            &   w_AlphaOptr_xy(xy_WindStressU*xy_Coef, xy_WindStressV*xy_Coef)/(RefDens*vViscCoef) &
             & )
 
     else

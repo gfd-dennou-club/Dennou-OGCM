@@ -21,14 +21,61 @@ module TemporalIntegUtil_mod
   ! 公開手続き
   ! Public procedure
   !
+
   public :: TemporalIntegUtil_Init, TemporalIntegUtil_Final
   public :: TemporalIntegUtil_SetDelTime
   public :: TemporalIntegUtil_GetDDtCoef
+  public :: TemporalIntegUtil_getInfo
+  
+  ! * For Euler
   public :: xyz_timeIntEuler, xy_timeIntEuler, wt_timeIntEuler
+
+  ! * For RK2
   public :: xyz_timeIntRK2, xy_timeIntRK2, wt_timeIntRK2
+
+  ! * For RK4
   public :: xyz_timeIntRK4, xy_timeIntRK4, wt_timeIntRK4
+
+  ! * For LFTR
   public :: xyz_timeIntLFTR, xy_timeIntLFTR, wt_timeIntLFTR
+
+  ! * For LFAM3
+  interface xy_timeIntLFAM3
+     module procedure xy_timeIntLFAM3_EX
+     module procedure xy_timeIntLFAM3_IMEX
+  end interface xy_timeIntLFAM3
+
+  interface wt_timeIntLFAM3
+     module procedure wt_timeIntLFAM3_EX
+     module procedure wt_timeIntLFAM3_IMEX
+  end interface wt_timeIntLFAM3
+
   public :: xyz_timeIntLFAM3, xy_timeIntLFAM3, wt_timeIntLFAM3
+
+  ! 公開変数
+  ! Public variable
+  !
+  integer, parameter, public :: TimeIntMode_Euler = 1
+  character(*), parameter, public :: TimeIntModeLBL_Euler = 'TimeIntMode_Eluer' 
+
+  integer, parameter, public :: TimeIntMode_RK4 = 2
+  character(*), parameter, public :: TimeIntModeLBL_RK4 = 'TimeIntMode_RK4' 
+
+  integer, parameter, public :: TimeIntMode_LFTR = 3
+  character(*), parameter, public :: TimeIntModeLBL_LFTR = 'TimeIntMode_LFTR' 
+
+  integer, parameter, public :: TimeIntMode_LFAM3 = 4
+  character(*), parameter, public :: TimeIntModeLBL_LFAM3 = 'TimeIntMode_LFAM3' 
+
+  integer, parameter, public :: TimeIntMode_RK2 = 5
+  character(*), parameter, public :: TimeIntModeLBL_RK2 = 'TimeIntMode_RK2' 
+
+  integer, parameter, public :: TimeIntMode_RK3 = 6
+  character(*), parameter, public :: TimeIntModeLBL_RK3 = 'TimeIntMode_RK3' 
+
+  integer, parameter, public :: TimeIntMode_PC23_AB2AM3CR = 7
+  character(*), parameter, public :: TimeIntModeLBL_PC23_AB2AM3CR = 'TimeIntMode_PC23_AB2AM3CR' 
+
 
   ! 非公開手続き
   ! Private procedure
@@ -43,9 +90,11 @@ module TemporalIntegUtil_mod
   real(DP) :: dt
   real(DP), parameter  :: Euler_coef(1) = (/ 1d0 /)
   real(DP), parameter :: RK2_coef(2) = (/ 0.5d0, 0.5d0 /)
+  real(DP), parameter :: RK3_coef(3) = (/ 0.5d0, 0.5d0, 0.5d0 /)
   real(DP), parameter  :: RK4_coef(4) = (/ 1d0, 0.5d0, 0.5d0, 1d0 /)
   real(DP), parameter  :: LFTR_coef(2) = (/ 2d0, 1d0 /)
   real(DP), parameter  :: LFAM3_coef(2) = (/ 2d0, 1d0 /)
+  real(DP), parameter  :: PC23_AB2AM3CR_coef(2) = (/ 1d0, 1d0 /)
 
 contains
 
@@ -81,6 +130,63 @@ contains
   !> @brief 
   !!
   !!
+  function TemporalIntegUtil_getInfo( tIntModeLabel, & !(in)
+       & tIntModeID, is_VarB_Used, nStage ) result(is_Registered)
+    
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: tIntModeLabel
+    integer, intent(out) :: tIntModeID
+    logical, intent(out) :: is_VarB_Used
+    integer, intent(out) :: nStage
+    logical :: is_Registered
+
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+
+    is_Registered = .true.
+    select case(tIntModeLabel)
+       case(TimeIntModeLBL_Euler)
+          tIntModeID = TimeIntMode_Euler
+          is_VarB_Used = .false.
+          nStage = 1
+       case(TimeIntModeLBL_LFTR)
+          tIntModeID = timeIntMode_LFTR
+          is_VarB_Used = .true.
+          nStage = 2
+       case(TimeIntModeLBL_LFAM3)
+          tIntModeID = timeIntMode_LFAM3
+          is_VarB_Used = .true.
+          nStage = 2
+       case(TimeIntModeLBL_RK2)
+          tIntModeID = timeIntMode_RK2
+          is_VarB_Used = .false.
+          nStage = 2
+       case(TimeIntModeLBL_RK4)
+          tIntModeID = timeIntMode_RK4
+          is_VarB_Used = .false.
+          nStage = 4
+       case(TimeIntModeLBL_PC23_AB2AM3CR)
+          tIntModeID = TimeIntMode_PC23_AB2AM3CR
+          is_VarB_Used = .true.
+          nStage = 2
+       case default
+          call MessageNotify( "W", module_name, &
+               & "Specified name of temporal integration method '%a' is invalid", ca=(/tIntModeLabel/) )  
+          is_Registered = .false.
+    end select
+    
+  end function TemporalIntegUtil_getInfo
+
+
+  !> @brief 
+  !!
+  !!
   subroutine TemporalIntegUtil_SetDelTime(newDelTime)
     
     ! 宣言文; Declaration statement
@@ -99,10 +205,6 @@ contains
   !!
   function TemporalIntegUtil_GetDDtCoef(timeIntMode, stage) result(coef)
     
-    use TemporalIntegSet_mod, only: &
-         & timeIntMode_Euler, timeIntMode_LFTR, timeIntMode_LFAM3, &
-         & timeIntMode_RK2, timeIntMode_RK4
-
     ! 宣言文; Declaration statement
     !
     integer, intent(in) :: timeIntMode
@@ -127,6 +229,8 @@ contains
        coef = LFTR_coef(stage)
     case(timeIntMode_LFAM3)
        coef = LFAM3_coef(stage)
+    case(TimeIntMode_PC23_AB2AM3CR)
+       coef = PC23_AB2AM3CR_coef(stage)
     end select
 
   end function TemporalIntegUtil_GetDDtCoef
@@ -136,6 +240,7 @@ contains
 !
 
   !*** Euler method
+
   function xyz_timeIntEuler(xyzN, xyzRHSN) result(xyzA)
     real(DP), intent(in) :: xyzN(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyzRHSN(0:iMax-1,jMax,0:kMax)
@@ -370,7 +475,7 @@ contains
 
   !*** Leap Frog with 3rd order Adams-Bashforth extrapolation (LF-AM3)
 
-  function xyz_timeIntLFAM3( valN, valB, RHS, stage) result(val)
+  function xyz_timeIntLFAM3( valN, valB, RHS, stage ) result(val)
     real(DP), intent(in) :: valN(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: valB(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: RHS(0:iMax-1,jMax,0:kMax)
@@ -394,7 +499,8 @@ contains
 
   end function xyz_timeIntLFAM3
 
-  function wt_timeIntLFAM3( valN, valB, RHS, stage) result(val)
+
+  function wt_timeIntLFAM3_EX( valN, valB, RHS, stage) result(val)
     real(DP), intent(in) :: valN(lMax,0:tMax)
     real(DP), intent(in) :: valB(lMax,0:tMax)
     real(DP), intent(in) :: RHS(lMax,0:tMax)
@@ -416,10 +522,10 @@ contains
        !$omp end parallel workshare
     end select
 
-  end function wt_timeIntLFAM3
+  end function wt_timeIntLFAM3_EX
 
 
-  function xy_timeIntLFAM3( valN, valB, RHS, stage) result(val)
+  function xy_timeIntLFAM3_EX( valN, valB, RHS, stage) result(val)
     real(DP), intent(in) :: valN(0:iMax-1,jMax)
     real(DP), intent(in) :: valB(0:iMax-1,jMax)
     real(DP), intent(in) :: RHS(0:iMax-1,jMax)
@@ -441,7 +547,70 @@ contains
        !$omp end parallel workshare
     end select
 
-  end function xy_timeIntLFAM3
+  end function xy_timeIntLFAM3_EX
+
+  function wt_timeIntLFAM3_IMEX( valN, valB, RHS, stage, implicitSolver) result(val)
+    real(DP), intent(in) :: valN(lMax,0:tMax)
+    real(DP), intent(in) :: valB(lMax,0:tMax)
+    real(DP), intent(in) :: RHS(lMax,0:tMax)
+    integer, intent(in) :: stage
+    real(DP) :: val(lMax,0:tMax)
+    
+    interface
+       ! Call a solver for the homogeneous problem, A (val**) = (val*). 
+       function implicitSolver(wt_val) result(wt_ret)
+         use dc_types, only: DP
+         use GridSet_mod, only: lMax, tMax
+         real(DP), intent(in) :: wt_val(lMax,0:tMax)
+         real(DP) :: wt_ret(lMax,0:tMax)
+       end function implicitSolver
+    end interface
+
+#ifdef DEBUG
+    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFTR", "The number of stage is invalid") 
+#endif
+
+    select case(stage)
+    case(1)
+       val = ( 5d0* implicitSolver(valB + 2d0*dt*RHS) + 8d0*valN - valB )/12d0
+    case(2)
+       val = implicitSolver(valN + dt*RHS)
+    end select
+
+  end function wt_timeIntLFAM3_IMEX
+
+
+  function xy_timeIntLFAM3_IMEX( valN, valB, RHS, stage, implicitSolver) result(val)
+    real(DP), intent(in) :: valN(0:iMax-1,jMax)
+    real(DP), intent(in) :: valB(0:iMax-1,jMax)
+    real(DP), intent(in) :: RHS(0:iMax-1,jMax)
+    integer, intent(in) :: stage
+    real(DP) :: val(0:iMax-1,jMax)
+
+    interface
+       ! Call a solver for the homogeneous problem, A (val**) = (val*). 
+       function implicitSolver(xy_val) result(xy_ret)
+         use dc_types, only: DP
+         use GridSet_mod, only: iMax, jMax
+         real(DP), intent(in) :: xy_val(0:iMax-1,jMax)
+         real(DP) :: xy_ret(0:iMax-1,jMax)
+       end function implicitSolver
+    end interface
+    
+#ifdef DEBUG
+    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFTR", "The number of stage is invalid") 
+#endif
+
+    select case(stage)
+    case(1)
+       val = ( 5d0*implicitSolver(valB + 2d0*dt*RHS) + 8d0*valN - valB )/12d0
+    case(2)
+       val = implicitSolver(valN + dt*RHS)
+    end select
+
+  end function xy_timeIntLFAM3_IMEX
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 end module TemporalIntegUtil_mod

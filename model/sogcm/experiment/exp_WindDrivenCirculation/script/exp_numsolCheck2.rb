@@ -8,8 +8,8 @@ include NMath
 Av = 1e-02
 #Ah = 1e5
 #Ah = 1e4
-#Ah = 1e3
-Ah = 1e2
+Ah = 1e3
+#Ah = 1e2
 HAh = 0e14
 TAU0 = 0.121
 Dens = 1.027e03
@@ -33,18 +33,20 @@ GRIDNCFILE = "/home/ykawai/workspace/DQGModel/model/sogcm/exp/Run1_U.nc"
 #=begin
 #EXPSPECIFIC="Ah1e5Pl341L60"
 #EXPSPECIFIC="Ah1e4Pl341L90"
+#EXPSPECIFIC="Ah1e2Pl341L90"
 #EXPSPECIFIC="Ah1e3Pl682L90"
-EXPSPECIFIC="Ah1e2Pl341L90"
-RUNSPECIFIC="Run1"
-GENNCFILE_SUFFIX = "_#{EXPSPECIFIC}"
-EXPDATADIR = "/home/ykawai/exp_backup/current/exp_#{EXPSPECIFIC}"
+#EXPSPECIFIC="Ah1e3Pl341L60"
+RUNSPECIFIC="Run4"
+GENNCFILE_SUFFIX = "_new"# #{EXPSPECIFIC}"
+EXPDATADIR = "/home/ykawai/workspace/DQGModel/model/sogcm/exp/"
+#EXPDATADIR = "/home/ykawai/exp_backup/current/exp_#{EXPSPECIFIC}"
 GRIDNCFILE = "#{EXPDATADIR}/#{RUNSPECIFIC}_U.nc"
 #=end
 
 ##########################
 
 def set_parameters(lat)
-  $L = 0.4*RPlanet
+  $L = 1.0*RPlanet
   $Eh0 = 2*Ah/( 2*Omega*$L**2 )
   $Ev0 = 2*Av/( 2*Omega*Depth**2 )
   $UVel = 2*TAU0/( Dens*2*Omega*Depth*Math.sqrt($Ev0) )
