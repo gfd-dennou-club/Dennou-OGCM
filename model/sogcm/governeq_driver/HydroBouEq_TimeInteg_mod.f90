@@ -38,8 +38,9 @@ module HydroBoudEq_TimeInteg_mod
        & inquire_VBCSpecType, &
        & DynBCTYPE_NoSlip, DynBCTYPE_Slip, DynBCTYPE_SpecStress, &
        & ThermBCTYPE_FluxFixed, ThermBCTYPE_Adiabat, ThermBCTYPE_TempFixed, ThermBCTYPE_TempRelaxed, & 
-       & KinBC_Surface, DynBC_Surface, ThermBC_Surface, &
-       & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom 
+       & SaltBCTYPE_FluxFixed, SaltBCTYPE_Adiabat, SaltBCTYPE_SaltFixed, SaltBCTYPE_SaltRelaxed, & 
+       & KinBC_Surface, DynBC_Surface, ThermBC_Surface, SaltBC_Surface, &
+       & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, SaltBC_Bottom 
 
   use TemporalIntegUtil_mod, only: &
        & TemporalIntegUtil_Init, TemporalIntegUtil_Final, &
@@ -174,9 +175,9 @@ contains
 
 
     real(DP), dimension(0:iMax-1, jMax, 0:kMax) :: xyz_Urf, xyz_Vrf
-    real(DP), dimension(lMax, 0:kMax) ::  wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS
+    real(DP), dimension(lMax, 0:kMax) ::  wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS
     real(DP) :: w_SurfHeightExplRHS(lMax)
-    real(DP), dimension(lMax, 0:kMax) ::  wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp
+    real(DP), dimension(lMax, 0:kMax) ::  wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltImplRHSTmp
 
     ! Work variables for some temporal schemes, such as Runge=Kutta scheme etc. 
     real(DP), dimension(lMax,0:tMax) :: wt_VorRHSTIntTmp, wt_DivRHSTIntTmp, wt_PTempRHSTIntTmp, &
@@ -187,7 +188,7 @@ contains
     character(TOKEN) :: TIntType_SurfPressTerm
     
     real(DP) :: xyz_CosLat(0:iMax-1, jMax, 0:kMax)
-    real(DP), dimension(lMax,2) :: wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS
+    real(DP), dimension(lMax,2) :: wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
 
     ! 実行文; Executable statement
     !
@@ -226,77 +227,76 @@ contains
        select case(timeIntMode) !======================================================================      
        case(timeIntMode_Euler)  !***** Using Euler scheme *******************
 
-          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, w_SurfHeightExplRHS, 'D' ); 
-          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, 'D', .true. ); 
-          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, 'D', 1d0, .false.); 
+          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, w_SurfHeightExplRHS, 'D' ); 
+          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
+          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.); 
           call add_ImplRHS_into_RHS(); 
           call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
-          call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS )
-          call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wt_Vor, wt_Div, wt_PTempEdd )
+          call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS )
+          call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, wt_Vor, wt_Div, wt_PTempEdd, wt_Salt )
 
           call timeInt_Euler()
 
        case(timeIntMode_RK2)    !***** Using RK2 scheme   *******************
 
-          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, w_SurfHeightExplRHS, 'D' ); 
-          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, 'D', .true. ); 
-          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, 'D', 1d0, .false.); 
+          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, w_SurfHeightExplRHS, 'D' ); 
+          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
+          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.); 
           call add_ImplRHS_into_RHS(); 
-          call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN); 
-          call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS )
-          call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wt_Vor, wt_Div, wt_PTempEdd )
+          call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
+          call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS )
+          call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, wt_Vor, wt_Div, wt_PTempEdd, wt_Salt )
 
           call timeInt_RK2(Stage)
 
        case(timeIntMode_RK4)    !***** Using RK4 scheme   *******************
 
-          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, w_SurfHeightExplRHS, 'D' ); 
-          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, 'D', .true. ); 
-          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, 'D', 1d0, .false.); 
+          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, w_SurfHeightExplRHS, 'D' ); 
+          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
+          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.); 
           call add_ImplRHS_into_RHS(); 
-          call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN); 
-          call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS )
-          call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wt_Vor, wt_Div, wt_PTempEdd )
+          call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
+          call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS )
+          call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, wt_Vor, wt_Div, wt_PTempEdd, wt_Salt )
 
           call timeInt_RK4(Stage)
 
        case(timeIntMode_LFTR)   !***** Using LFTR scheme   *******************
 
-          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, w_SurfHeightExplRHS, 'D' ); 
-          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, 'D', .true. ); 
-          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, 'D', 1d0, .false.); 
+          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, w_SurfHeightExplRHS, 'D' ); 
+          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
+          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.); 
           call add_ImplRHS_into_RHS(); 
-          call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN); 
-          call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS )
-          call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wt_Vor, wt_Div, wt_PTempEdd )
+          call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
+          call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS )
+          call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, wt_Vor, wt_Div, wt_PTempEdd, wt_Salt )
 
           call timeInt_LFTR(Stage)
 
        case(timeIntMode_LFAM3)  !***** Using LFAM3 scheme  *******************
 
-          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, w_SurfHeightExplRHS, 'D' ); 
-          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, 'D', .true. ); 
+          call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS,  w_SurfHeightExplRHS, 'D' ); 
+          call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
 
           select case(Stage)
              case(1)
-                call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, 'B', 0.5d0, .false.); 
+                call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltImplRHSTmp, 'B', 0.5d0, .false.); 
                 call add_ImplRHS_into_RHS(); 
                 call correct_DivEqRHS_RigidLid('CRANKNIC_WithLF', wt_DivB)
              case(2)
-                call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, 'N',0.5d0,.false.)!'N', 0.5d0, .false.); 
+                call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltImplRHSTmp, 'N',0.5d0,.false.)!'N', 0.5d0, .false.); 
                 call add_ImplRHS_into_RHS(); 
                 call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
              end select
 
-             call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS )
-             call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wt_Vor, wt_Div, wt_PTempEdd )
+             call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS )
 
              call timeInt_LFAM3(Stage)
 
        end select              !=====================================================================================
        
-       call apply_boundaryConditions2(wt_Vor, wt_Div, wt_PTempEdd, &
-            & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS )
+       call apply_boundaryConditions2(wt_Vor, wt_Div, wt_PTempEdd, wt_Salt, &
+            & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS )
 
        call wt_VorDiv2VectorCosLat( wt_Vor, wt_Div,      &  !(in)
             & xyz_Urf, xyz_Vrf                           &  !(out)
@@ -309,6 +309,7 @@ contains
 
     xyz_UA = xyz_Urf / xyz_CosLat;  xyz_VA = xyz_Vrf / xyz_CosLat 
     xyz_PTempEddA = xyz_wt(wt_PTempEdd)
+    xyz_SaltA = xyz_wt(wt_Salt)
 !    xy_SurfPressA = xy_SurfPress
     xy_SurfHeightA = xy_SurfHeight
 
@@ -317,9 +318,9 @@ contains
 
 
       subroutine calc_InvisRHS( &
-           & wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, & 
+           & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, & 
            & tLevel)
-        real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+        real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
         real(DP), dimension(lMax), intent(inout) :: w_SurfHeightRHS
         character, intent(in), optional :: tLevel
 
@@ -331,19 +332,19 @@ contains
         select case(tLvl)
            case('B')
               call calc_HydroBouEqInvisRHS( &
-                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &                  ! (out)
+                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &                  ! (out)
                    & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), xyz_wt(wt_Salt),    &  ! (in)
                    & xy_SurfHeight, xy_SurfPress, xy_totDepthBasic, z_PTempBasic                                &  ! (in)
                    & )
            case('N')
               call calc_HydroBouEqInvisRHS( &
-                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &                  ! (out)
+                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &                  ! (out)
                    & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), xyz_wt(wt_Salt),    &  ! (in)
                    & xy_SurfHeight, xy_SurfPress, xy_totDepthBasic, z_PTempBasic                                &  ! (in)
                    & )
            case default
               call calc_HydroBouEqInvisRHS( &
-                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &                  ! (out)
+                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &                  ! (out)
                    & xyz_Urf, xyz_Vrf, xyz_wt(wt_Vor), xyz_wt(wt_Div), xyz_wt(wt_PTempEdd), xyz_wt(wt_Salt),    &  ! (in)
                    & xy_SurfHeight, xy_SurfPress, xy_totDepthBasic, z_PTempBasic                                &  ! (in)
                    & )
@@ -351,10 +352,10 @@ contains
       end subroutine calc_InvisRHS
 
       subroutine calc_HViscRHS( &
-           & wz_VorRHS, wz_DivRHS, wz_PTempRHS, & 
+           & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, & 
            & tLevel, isRHSAppend)
 
-        real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+        real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
         character, intent(in), optional :: tLevel
         logical, intent(in), optional :: isRHSAppend
 
@@ -370,16 +371,16 @@ contains
         select case(tLvl)
         case('B')
            call calc_HydroBouEqHViscRHS( &
-                & wz_VorRHS, wz_DivRHS, wz_PTempRHS,                   & ! (inout)  
-                & wz_wt(wt_VorB), wz_wt(wt_DivB), wz_wt(wt_PTempEddB),             & ! (in)
-                & hViscCoef, hHyperViscCoef, hDiffCoef,                            & ! (in)
+                & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,                          & ! (inout)  
+                & wz_wt(wt_VorB), wz_wt(wt_DivB), wz_wt(wt_PTempEddB), wz_wt(wt_SaltB),   & ! (in)
+                & hViscCoef, hHyperViscCoef, hDiffCoef,                                   & ! (in)
                 & isRHSReplace=isRHSReplace )
 
         case default
            call calc_HydroBouEqHViscRHS( &
-                & wz_VorRHS, wz_DivRHS, wz_PTempRHS,                 & ! (inout)  
-                & wz_wt(wt_Vor), wz_wt(wt_Div), wz_wt(wt_PTempEdd),              & ! (in)
-                & hViscCoef, hHyperViscCoef, hDiffCoef,                          & ! (in)
+                & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,                        & ! (inout)  
+                & wz_wt(wt_Vor), wz_wt(wt_Div), wz_wt(wt_PTempEdd), wz_wt(wt_Salt),     & ! (in)
+                & hViscCoef, hHyperViscCoef, hDiffCoef,                                 & ! (in)
                 & isRHSReplace=isRHSReplace )
         end select
       end subroutine calc_HViscRHS
@@ -392,10 +393,10 @@ contains
       ! and \theta is a coefficent of $F(q^m)$.
       ! 
       subroutine calc_VViscRHS( &
-           & wz_VorRHS, wz_DivRHS, wz_PTempRHS, & 
+           & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, & 
            & tLevel, vViscTermCoef, isRHSAppend)
 
-        real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+        real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
         character, intent(in), optional :: tLevel
         real(DP), intent(in), optional :: vViscTermCoef
         logical, intent(in), optional :: isRHSAppend
@@ -422,19 +423,19 @@ contains
         !
         select case(tLvl)
         case('B')
-           call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS,                 & ! (inout)  
-                & wz_wt(wt_VorB), wz_wt(wt_DivB), wz_xyz(xyz_PTempBasic+xyz_PTempEddB),     & ! (in)
-                & theta*vViscCoef, vHyperViscCoef, theta*vDiffCoef,                         & ! (in)
+           call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,                           & ! (inout)  
+                & wz_wt(wt_VorB), wz_wt(wt_DivB), wz_xyz(xyz_PTempBasic/theta + xyz_PTempEddB), wz_wt(wt_SaltB),  & ! (in)
+                & theta*vViscCoef, vHyperViscCoef, theta*vDiffCoef,                                               & ! (in)
                 & isRHSReplace=isRHSReplace )     
         case('N')
-           call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS,                 & ! (inout)  
-                & wz_wt(wt_VorN), wz_wt(wt_DivN), wz_xyz(xyz_PTempBasic+xyz_PTempEddN),     & ! (in)
-                & theta*vViscCoef, vHyperViscCoef, theta*vDiffCoef,                         & ! (in)
+           call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,                            & ! (inout)  
+                & wz_wt(wt_VorN), wz_wt(wt_DivN), wz_xyz(xyz_PTempBasic/theta + xyz_PTempEddN), wz_wt(wt_SaltN), & ! (in)
+                & theta*vViscCoef, vHyperViscCoef, theta*vDiffCoef,                                                & ! (in)
                 & isRHSReplace=isRHSReplace )     
-        case default
-           call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS,                   & ! (inout)  
-                & wz_wt(wt_Vor), wz_wt(wt_Div), wz_xyz(xyz_PTempBasic)+wz_wt(wt_PTempEdd),    & ! (in)
-                & theta*vViscCoef, vHyperViscCoef, theta*vDiffCoef,                           & ! (in)
+        case default 
+           call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,                            & ! (inout)  
+                & wz_wt(wt_Vor), wz_wt(wt_Div), wz_xyz(xyz_PTempBasic/theta) + wz_wt(wt_PTempEdd), wz_wt(wt_Salt), & ! (in)
+                & theta*vViscCoef, vHyperViscCoef, theta*vDiffCoef,                                                & ! (in)
                 & isRHSReplace=isRHSReplace )
         end select
 
@@ -445,6 +446,7 @@ contains
         wz_VorExplRHS = wz_VorExplRHS + wz_VorImplRHSTmp
         wz_DivExplRHS = wz_DivExplRHS + wz_DivImplRHSTmp
         wz_PTempExplRHS = wz_PTempExplRHS + wz_PTempImplRHSTmp
+        wz_SaltExplRHS  = wz_SaltExplRHS + wz_SaltImplRHSTmp
 
       end subroutine add_ImplRHS_into_RHS
 
@@ -470,10 +472,11 @@ contains
          real(DP) :: wt_ret(lMax,0:tMax)
 
          wt_ret = wt_val
+         
+         call Update_VBCRHS(wa_VorBCRHS=wa_VorBCRHS, wt_Vor=wt_ret)
          call Advance_VImplicitProc(wt_Vor=wt_ret, &
-              & wa_VorBCRHS=wa_VorBCRHS, wa_DivBCRHS=wa_DivBCRHS, wa_PTempEddBCRHS=wa_PTempEddBCRHS, &
-              & xy_totDepth=xy_totDepthBasic+xy_SurfHeight, vViscDiffTermCoef=0.5d0, &
-              & dt=TemporalIntegUtil_GetDDtCoef(timeIntMode, Stage)*DelTime,  &
+              & wa_VorBCRHS=wa_VorBCRHS, xy_totDepth=xy_totDepthBasic+xy_SurfHeight, &
+              & vViscDiffTermCoef=0.5d0, dt=TemporalIntegUtil_GetDDtCoef(timeIntMode, Stage)*DelTime,  &
               & DynBCSurf=DynBC_Surface, DynBCBottom=DynBC_Bottom )
        end function wt_implicitSolver_Vor
 
@@ -482,10 +485,11 @@ contains
          real(DP) :: wt_ret(lMax,0:tMax)
 
          wt_ret = wt_val
+
+         call Update_VBCRHS(wa_DivBCRHS=wa_DivBCRHS, wt_Div=wt_ret)
          call Advance_VImplicitProc(wt_Div=wt_ret, &
-              & wa_VorBCRHS=wa_VorBCRHS, wa_DivBCRHS=wa_DivBCRHS, wa_PTempEddBCRHS=wa_PTempEddBCRHS, &
-              & xy_totDepth=xy_totDepthBasic+xy_SurfHeight, vViscDiffTermCoef=0.5d0, &
-              & dt=TemporalIntegUtil_GetDDtCoef(timeIntMode, Stage)*DelTime,  &
+              & wa_DivBCRHS=wa_DivBCRHS, xy_totDepth=xy_totDepthBasic+xy_SurfHeight, &
+              & vViscDiffTermCoef=0.5d0, dt=TemporalIntegUtil_GetDDtCoef(timeIntMode, Stage)*DelTime,  &
               & DynBCSurf=DynBC_Surface, DynBCBottom=DynBC_Bottom )
        end function wt_implicitSolver_Div
 
@@ -494,13 +498,26 @@ contains
          real(DP) :: wt_ret(lMax,0:tMax)
 
          wt_ret = wt_val
+         call Update_VBCRHS(wa_PTempEddBCRHS=wa_PTempEddBCRHS, wt_PTempEdd=wt_ret)
          call Advance_VImplicitProc(wt_PTempEdd=wt_ret, &
-              & wa_VorBCRHS=wa_VorBCRHS, wa_DivBCRHS=wa_DivBCRHS, wa_PTempEddBCRHS=wa_PTempEddBCRHS, &
-              & xy_totDepth=xy_totDepthBasic+xy_SurfHeight, vViscDiffTermCoef=0.5d0, &
-              & dt=TemporalIntegUtil_GetDDtCoef(timeIntMode, Stage)*DelTime,  &
+              & wa_PTempEddBCRHS=wa_PTempEddBCRHS, xy_totDepth=xy_totDepthBasic+xy_SurfHeight, &
+              & vViscDiffTermCoef=0.5d0, dt=TemporalIntegUtil_GetDDtCoef(timeIntMode, Stage)*DelTime,  &
               & ThermBCSurf=ThermBC_Surface, ThermBCBottom=ThermBC_Bottom )
 
        end function wt_implicitSolver_PTemp
+
+       function wt_implicitSolver_Salt(wt_val) result(wt_ret)
+         real(DP), intent(in) :: wt_val(lMax,0:tMax)
+         real(DP) :: wt_ret(lMax,0:tMax)
+
+         wt_ret = wt_val
+         call Update_VBCRHS(wa_SaltBCRHS=wa_SaltBCRHS, wt_Salt=wt_ret)
+         call Advance_VImplicitProc(wt_Salt=wt_ret, &
+              & wa_SaltBCRHS=wa_SaltBCRHS, xy_totDepth=xy_totDepthBasic+xy_SurfHeight, &
+              & vViscDiffTermCoef=0.5d0, dt=TemporalIntegUtil_GetDDtCoef(timeIntMode, Stage)*DelTime,  &
+              & SaltBCSurf=SaltBC_Surface, SaltBCBottom=SaltBC_Bottom )
+
+       end function wt_implicitSolver_Salt
 
        function xy_implicitSolver_SurfHeight(xy_val) result(xy_ret)
          real(DP), intent(in) :: xy_val(0:iMax-1,jMax)
@@ -516,6 +533,7 @@ contains
          wt_Vor = wt_timeIntEuler( wt_VorN, wt_wz(wz_VorExplRHS) )
          wt_Div = wt_timeIntEuler( wt_DivN, wt_wz(wz_DivExplRHS) )
          wt_PTempEdd = wt_timeIntEuler( wt_PTempEddN, wt_wz(wz_PTempExplRHS) )
+         wt_Salt = wt_timeIntEuler( wt_SaltN, wt_wz(wz_SaltExplRHS) )
          xy_SurfHeight = xy_timeIntEuler( xy_SurfHeightN, xy_w(w_SurfHeightExplRHS) )
        end subroutine timeInt_Euler
        
@@ -524,6 +542,7 @@ contains
          wt_Vor = wt_timeIntRK2( wt_VorN, wt_wz(wz_VorExplRHS), RKStage, wt_VorRHSTIntTmp )
          wt_Div = wt_timeIntRK2( wt_DivN, wt_wz(wz_DivExplRHS), RKStage, wt_DivRHSTIntTmp )
          wt_PTempEdd = wt_timeIntRK2( wt_PTempEddN, wt_wz(wz_PTempExplRHS), RKStage, wt_PTempRHSTIntTmp )
+         wt_Salt = wt_timeIntRK2( wt_SaltN, wt_wz(wz_SaltExplRHS), RKStage, wt_SaltRHSTIntTmp )
          xy_SurfHeight = xy_timeIntRK2( xy_SurfHeightN, xy_w(w_SurfHeightExplRHS), RKStage, xy_SurfHeightRHSTIntTmp )
        end subroutine timeInt_RK2
 
@@ -532,6 +551,7 @@ contains
          wt_Vor = wt_timeIntRK4( wt_VorN, wt_wz(wz_VorExplRHS), RKStage, wt_VorRHSTIntTmp )
          wt_Div = wt_timeIntRK4( wt_DivN, wt_wz(wz_DivExplRHS), RKStage, wt_DivRHSTIntTmp )
          wt_PTempEdd = wt_timeIntRK4( wt_PTempEddN, wt_wz(wz_PTempExplRHS), RKStage, wt_PTempRHSTIntTmp )
+         wt_Salt = wt_timeIntRK4( wt_SaltN, wt_wz(wz_SaltExplRHS), RKStage, wt_SaltRHSTIntTmp )
          xy_SurfHeight = xy_timeIntRK4( xy_SurfHeightN, xy_w(w_SurfHeightExplRHS), RKStage, xy_SurfHeightRHSTIntTmp )
        end subroutine timeInt_RK4
 
@@ -540,6 +560,7 @@ contains
          wt_Vor = wt_timeIntLFTR( wt_VorN, wt_VorB, wt_wz(wz_VorExplRHS), Stage )
          wt_Div = wt_timeIntLFTR( wt_DivN, wt_DivB, wt_wz(wz_DivExplRHS), Stage )
          wt_PTempEdd = wt_timeIntLFTR( wt_PTempEddN, wt_PTempEddB, wt_wz(wz_PTempExplRHS), Stage )
+         wt_Salt = wt_timeIntLFAM3( wt_SaltN, wt_SaltB, wt_wz(wz_SaltExplRHS), Stage )
          xy_SurfHeight = xy_timeIntLFTR( xy_SurfHeightN, xy_SurfHeightB, xy_w(w_SurfHeightExplRHS), Stage )
        end subroutine timeInt_LFTR
 
@@ -548,29 +569,30 @@ contains
          wt_Vor = wt_timeIntLFAM3( wt_VorN, wt_VorB, wt_wz(wz_VorExplRHS), Stage, wt_implicitSolver_Vor )
          wt_Div = wt_timeIntLFAM3( wt_DivN, wt_DivB, wt_wz(wz_DivExplRHS), Stage, wt_implicitSolver_Div )
          wt_PTempEdd = wt_timeIntLFAM3( wt_PTempEddN, wt_PTempEddB, wt_wz(wz_PTempExplRHS), Stage, wt_implicitSolver_PTemp )
+         wt_Salt = wt_timeIntLFAM3( wt_SaltN, wt_SaltB, wt_wz(wz_SaltExplRHS), Stage, wt_implicitSolver_Salt )
          xy_SurfHeight = xy_timeIntLFAM3( xy_SurfHeightN, xy_SurfHeightB, xy_w(w_SurfHeightExplRHS), Stage )
        end subroutine timeInt_LFAM3
 
 
-       subroutine replace_RHS_with_VBCTIntRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS )
+       subroutine replace_RHS_with_VBCTIntRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS )
 
          ! モジュール引用; Use statements
          !
          use VariableSet_mod, only: &
-              & xy_SeaSurfTemp
+              & xy_SeaSurfTemp, xy_SeaSurfSalt
 
          use BoundCondSet_mod, only: &
-              & SurfTempRelaxedTime
+              & SurfTempRelaxedTime, SurfSaltRelaxedTime
 
          ! 宣言文; Declaration statement
          !
-         real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+         real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
          
 
          ! 作業変数
          ! Work variables
          !
-         real(DP) :: wz_PTemp(lMax,0:kMax)
+         real(DP), dimension(lMax,0:kMax) :: wz_PTemp, wz_Salt
 
          ! 実行文; Executable statement
          !
@@ -585,6 +607,16 @@ contains
             wz_PTempRHS(:,kMax) = 0d0
          end if
 
+         !
+         wz_Salt = wz_wt(wt_Salt)
+         if(SaltBC_Surface == SaltBCTYPE_SaltRelaxed) then
+            wz_SaltRHS(:,0) = - ( wz_Salt(:,0) - w_xy(xy_SeaSurfSalt) )/SurfSaltRelaxedTime
+         end if
+
+         if(SaltBC_Bottom == SaltBCTYPE_SaltRelaxed) then
+            wz_SaltRHS(:,kMax) = 0d0
+         end if
+
        end subroutine replace_RHS_with_VBCTIntRHS
 
   end subroutine HydroBouEqSolver_AdvanceTStep
@@ -595,8 +627,8 @@ contains
   !!
   !!
   subroutine update_VBCRHS( &
-       & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, &
-       & wt_Vor, wt_Div, wt_PTempEdd )
+       & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, &
+       & wt_Vor, wt_Div, wt_PTempEdd, wt_Salt )
 
     
     ! モジュール引用; Use statements
@@ -604,66 +636,108 @@ contains
     use VariableSet_mod, only: &
          & xy_WindStressU, xy_WindStressV, &
          & xy_SeaSurfTemp, xy_SurfTempFlux, &
+         & xy_SeaSurfSalt, xy_SurfSaltFlux, &
          & xy_totDepthBasic, z_PTempBasic
 
     ! 宣言文; Declaration statement
     !
-    real(DP), dimension(lMax, 1:2), intent(inout) :: wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS
-    real(DP), dimension(lMax,0:tMax), intent(in) :: wt_Vor, wt_Div, wt_PTempEdd
+    real(DP), dimension(lMax, 1:2), intent(inout), optional :: &
+         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
+    real(DP), dimension(lMax,0:tMax), intent(in), optional :: wt_Vor, wt_Div, wt_PTempEdd, wt_Salt
 
     ! 作業変数
     ! Work variables
     !
     real(DP) :: xy_Coef(0:iMax-1,jMax)
-    real(DP) :: xyz_PTempTmp(0:iMax-1,jMax,0:kMax), wz_PTempTmp(lMax, 0:kMax)
+    real(DP) :: xyz_PTempTmp(0:iMax-1,jMax,0:kMax)
+    real(DP) :: wz_PTempTmp(lMax,0:kMax), wz_SaltTmp(lMax,0:kMax)
     integer :: k
+    logical :: isVorUpdate, isDivUpdate, isPTempEddUpdate, isSaltUpdate
 
     ! 実行文; Executable statement
     !
 
     xy_Coef = xy_totDepthBasic*cos(xyz_Lat(:,:,1))
 
-    select case(DynBC_Surface)
-    case(DynBCTYPE_NoSlip)
-       wa_VorBCRHS(:,1) = 0d0; wa_DivBCRHS(:,1) = 0d0
-    case(DynBCTYPE_SpecStress)
-       wa_VorBCRHS(:,1) = w_AlphaOptr_xy(xy_WindStressV*xy_Coef, -xy_WindStressU*xy_Coef)/(RefDens*vViscCoef)
-       wa_DivBCRHS(:,1) = w_AlphaOptr_xy(xy_WindStressU*xy_Coef,  xy_WindStressV*xy_Coef)/(RefDens*vViscCoef)
-    case(DynBCTYPE_Slip)
-       wa_VorBCRHS(:,1) = 0d0; wa_DivBCRHS(:,1) = 0d0
-    end select
+    isVorUpdate = .false.; isDivUpdate = .false.; isPTempEddUpdate = .false.; isSaltUpdate = .false.
+    if(present(wa_VorBCRHS)) isVorUpdate = .true.
+    if(present(wa_DivBCRHS)) isDivUpdate = .true.
+    if(present(wa_PTempEddBCRHS)) isPTempEddUpdate = .true.
+    if(present(wa_SaltBCRHS)) isSaltUpdate = .true.
 
-    select case(DynBC_Bottom)
-    case(DynBCTYPE_NoSlip)
-       wa_VorBCRHS(:,2) = 0d0; wa_DivBCRHS(:,2) = 0d0
-    case(DynBCTYPE_SpecStress)
-    case(DynBCTYPE_Slip)
-       wa_VorBCRHS(:,2) = 0d0; wa_DivBCRHS(:,2) = 0d0
-    end select
+    if(isVorUpdate .or. isDivUpdate ) then
+       select case(DynBC_Surface)
+       case(DynBCTYPE_NoSlip)
+          if(isVorUpdate) wa_VorBCRHS(:,1) = 0d0
+          if(isDivUpdate) wa_DivBCRHS(:,1) = 0d0
+       case(DynBCTYPE_SpecStress)
+          if(isVorUpdate) &
+               & wa_VorBCRHS(:,1) = w_AlphaOptr_xy(xy_WindStressV*xy_Coef, -xy_WindStressU*xy_Coef)/(RefDens*vViscCoef)
+          if(isDivUpdate) &
+               & wa_DivBCRHS(:,1) = w_AlphaOptr_xy(xy_WindStressU*xy_Coef,  xy_WindStressV*xy_Coef)/(RefDens*vViscCoef)
+       case(DynBCTYPE_Slip)
+          if(isVorUpdate) wa_VorBCRHS(:,1) = 0d0
+          if(isDivUpdate) wa_DivBCRHS(:,1) = 0d0
+       end select
 
-    select case(ThermBC_Surface)
-    case(ThermBCTYPE_Adiabat)
-       forAll(k=0:kMax) xyz_PTempTmp(:,:,k) = z_PTempBasic(k)
-       wz_PTempTmp = wz_wt(wt_DSig_wt(wt_xyz(xyz_PTempTmp)))
-       wa_PTempEddBCRHS(:,1) = - wz_PTempTmp(:,0)
-    case(ThermBCTYPE_FluxFixed)
-       wa_PTempEddBCRHS(:,1) = w_xy(xy_SurfTempFlux)
-    case(ThermBCTYPE_TempFixed)
-       wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp)
-    case(ThermBCTYPE_TempRelaxed)
-       wz_PTempTmp = wz_wt(wt_PTempEdd)
-       wa_PTempEddBCRHS(:,1) = wz_PTempTmp(:,0)
-    end select
+       select case(DynBC_Bottom)
+       case(DynBCTYPE_NoSlip)
+          if(isVorUpdate) wa_VorBCRHS(:,2) = 0d0
+          if(isDivUpdate) wa_DivBCRHS(:,2) = 0d0
+       case(DynBCTYPE_SpecStress)
+       case(DynBCTYPE_Slip)
+          if(isVorUpdate) wa_VorBCRHS(:,2) = 0d0
+          if(isDivUpdate) wa_DivBCRHS(:,2) = 0d0
+       end select
+    end if
 
-    select case(ThermBC_Bottom)
-    case(ThermBCTYPE_Adiabat)
-       forAll(k=0:kMax) xyz_PTempTmp(:,:,k) = z_PTempBasic(k)
-       wz_PTempTmp = wz_wt(wt_DSig_wt(wt_xyz(xyz_PTempTmp)))
-       wa_PTempEddBCRHS(:,2) = wz_PTempTmp(:,kMax)
-    case(ThermBCTYPE_FluxFixed)
-    case(ThermBCTYPE_TempFixed)
-    case(ThermBCTYPE_TempRelaxed)
-    end select
+    if (isPTempEddUpdate) then
+       select case(ThermBC_Surface)
+       case(ThermBCTYPE_Adiabat)
+          forAll(k=0:kMax) xyz_PTempTmp(:,:,k) = z_PTempBasic(k)
+          wz_PTempTmp = wz_wt(wt_DSig_wt(wt_xyz(xyz_PTempTmp)))
+          wa_PTempEddBCRHS(:,1) = - wz_PTempTmp(:,0)
+       case(ThermBCTYPE_FluxFixed)
+          wa_PTempEddBCRHS(:,1) = w_xy(xy_SurfTempFlux)
+       case(ThermBCTYPE_TempFixed)
+          wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp)
+       case(ThermBCTYPE_TempRelaxed)
+          wz_PTempTmp = wz_wt(wt_PTempEdd)
+          wa_PTempEddBCRHS(:,1) = wz_PTempTmp(:,0)
+       end select
+
+       select case(ThermBC_Bottom)
+       case(ThermBCTYPE_Adiabat)
+          forAll(k=0:kMax) xyz_PTempTmp(:,:,k) = z_PTempBasic(k)
+          wz_PTempTmp = wz_wt(wt_DSig_wt(wt_xyz(xyz_PTempTmp)))
+          wa_PTempEddBCRHS(:,2) = - wz_PTempTmp(:,kMax)
+       case(ThermBCTYPE_FluxFixed)
+       case(ThermBCTYPE_TempFixed)
+       case(ThermBCTYPE_TempRelaxed)
+       end select
+    end if
+
+    if (isSaltUpdate) then
+       select case(SaltBC_Surface)
+       case(SaltBCTYPE_Adiabat)
+          wa_SaltBCRHS(:,1) = 0d0
+       case(SaltBCTYPE_FluxFixed)
+          wa_SaltBCRHS(:,1) = w_xy(xy_SurfSaltFlux)
+       case(SaltBCTYPE_SaltFixed)
+          wa_SaltBCRHS(:,1) = w_xy(xy_SeaSurfSalt)
+       case(SaltBCTYPE_SaltRelaxed)
+          wz_SaltTmp = wz_wt(wt_Salt)
+          wa_SaltBCRHS(:,1) = wz_SaltTmp(:,0)
+       end select
+
+       select case(SaltBC_Bottom)
+       case(SaltBCTYPE_Adiabat)
+          wa_SaltBCRHS(:,2) = 0d0
+       case(SaltBCTYPE_FluxFixed)
+       case(SaltBCTYPE_SaltFixed)
+       case(SaltBCTYPE_SaltRelaxed)
+       end select
+    end if
 
   end subroutine Update_VBCRHS
 
@@ -672,16 +746,17 @@ contains
   !!
   !!
   subroutine apply_boundaryConditions2( &
-       & wt_Vor, wt_Div, wt_PTempEdd, &
-       & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS )
+       & wt_Vor, wt_Div, wt_PTempEdd, wt_Salt, &
+       & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS )
     
     ! モジュール引用; Use statements
     !
 
     ! 宣言文; Declaration statement
     !
-    real(DP), dimension(lMax,0:tMax), intent(inout) :: wt_Vor, wt_Div, wt_PTempEdd
-    real(DP), dimension(lMax, 1:2), intent(in) :: wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS
+    real(DP), dimension(lMax,0:tMax), intent(inout) :: wt_Vor, wt_Div, wt_PTempEdd, wt_Salt
+    real(DP), dimension(lMax, 1:2), intent(in) :: &
+         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
     
     ! 実行文; Executable statement
     !
@@ -697,6 +772,10 @@ contains
     call apply_ZBoundaryCond( wt_PTempEdd, &
          & inquire_VBCSpecType(ThermBC_Surface), inquire_VBCSpecType(ThermBC_Bottom), &
          & w_SurfBCWork=wa_PTempEddBCRHS(:,1), w_BtmBCWork=wa_PTempEddBCRHS(:,2) )
+
+    call apply_ZBoundaryCond( wt_Salt, &
+         & inquire_VBCSpecType(SaltBC_Surface), inquire_VBCSpecType(SaltBC_Bottom), &
+         & w_SurfBCWork=wa_SaltBCRHS(:,1), w_BtmBCWork=wa_SaltBCRHS(:,2) )
 
   end subroutine apply_boundaryConditions2
 

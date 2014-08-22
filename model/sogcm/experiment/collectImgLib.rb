@@ -22,7 +22,7 @@ class Figure
   def createFigure(dirPath)
   end
 
-  @@DEFAULT_CONVERT_OPT = "-rotate 90 -trim -density 600x600 -scale 900x900 -units PixelsPerInch"
+  @@DEFAULT_CONVERT_OPT = "-rotate 90  -trim -density 600x600 -geometry 800x800"
 end
 
 
@@ -38,13 +38,17 @@ class AnimFig < Figure
   end
 
   def createFigure(dirPath)
+
     for t in 0..(@animTimeInfo.end - @animTimeInfo.init)/@animTimeInfo.intrv
       time = @animTimeInfo.init + @animTimeInfo.intrv*t
       p "command gpview #{@ncFilePath}@#{@varName},#{@cutpos},t=#{time} #{@gpviewOpt}`"
       `gpview #{@ncFilePath}@#{@varName},#{@cutpos},t=#{time} #{@gpviewOpt}`
       
-      timePadd = format("%04d", "#{time}".to_i)
+      endTimeNum = Math.log10(@animTimeInfo.end).to_i
+      timePadd = format("%0#{endTimeNum+1}d", "#{time}".to_i)
       `mv dcl.ps #{@name}_#{timePadd}.ps`
+#p      "mv dcl.ps #{@name}_#{timePadd}.ps"
+
     end
 
     animFigPath = "#{dirPath}#{@name}_#{animTimeInfo.init}-#{@animTimeInfo.end}.#{@figPicExt}"
@@ -128,6 +132,7 @@ class Exp
 
     fig = AnimFig.new(figName, ncFilePath, varName, cutPos, animTimeInfo, figIntrv, figRange, gpOpts)
     @figList.push(fig)
+
     return figName
   end
 

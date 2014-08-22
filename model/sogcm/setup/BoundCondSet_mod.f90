@@ -35,11 +35,13 @@ module BoundCondSet_mod
   integer, public, save :: KinBC_Surface
   integer, public, save :: DynBC_Surface
   integer, public, save :: ThermBC_Surface
+  integer, public, save :: SaltBC_Surface
 
   ! Variables to save the boundary condition at the bottom
   integer, public, save :: KinBC_Bottom
   integer, public, save :: DynBC_Bottom
   integer, public, save :: ThermBC_Bottom
+  integer, public, save :: SaltBC_Bottom
 
   ! IDs to identify the type of boundary condition
   !
@@ -55,6 +57,11 @@ module BoundCondSet_mod
   integer, public, parameter :: ThermBCTYPE_TempFixed   = 303
   integer, public, parameter :: ThermBCTYPE_TempRelaxed = 304
 
+  integer, public, parameter :: SaltBCTYPE_Adiabat     = 401
+  integer, public, parameter :: SaltBCTYPE_FluxFixed   = 402
+  integer, public, parameter :: SaltBCTYPE_SaltFixed   = 403
+  integer, public, parameter :: SaltBCTYPE_SaltRelaxed = 404
+
   ! Labels to identify the type of boundary condition
   !
   character(*), public, parameter :: DynBCTYPELBL_NoSlip = 'NoSlip'
@@ -69,9 +76,15 @@ module BoundCondSet_mod
   character(*), public, parameter :: ThermBCTYPELBL_TempFixed = 'TempFixed'
   character(*), public, parameter :: ThermBCTYPELBL_TempRelaxed = 'TempRelaxed'
 
+  character(*), public, parameter :: SaltBCTYPELBL_Adiabat = 'Adiabat'
+  character(*), public, parameter :: SaltBCTYPELBL_FluxFixed = 'FluxFixed'
+  character(*), public, parameter :: SaltBCTYPELBL_SaltFixed = 'SaltFixed'
+  character(*), public, parameter :: SaltBCTYPELBL_SaltRelaxed = 'SaltRelaxed'
+
   !
   !
   real(DP), public :: SurfTempRelaxedTime
+  real(DP), public :: SurfSaltRelaxedTime
 
   ! 非公開変数
   ! Private variable
@@ -135,21 +148,29 @@ contains
     !
     
     select case(VBCTypeID)
-       case(KinBCTYPE_FreeSurf)
+       case(KinBCTYPE_FreeSurf)      !-- kinetic boundary condition ------------ 
        case(KinBCTYPE_RigidLid)
        case(DynBCTYPE_Slip)
           VBCSpecType = 'N'
-       case(DynBCTYPE_NoSlip)
+       case(DynBCTYPE_NoSlip)        !-- dynamical boundary condition ------------ 
           VBCSpecType = 'D'
        case(DynBCTYPE_SpecStress)
           VBCSpecType = 'N'
-       case(ThermBCTYPE_Adiabat)
+       case(ThermBCTYPE_Adiabat)     !-- thermal boundary condition ------------ 
           VBCSpecType = 'N'
        case(ThermBCTYPE_TempFixed)
           VBCSpecType = 'D'
        case(ThermBCTYPE_TempRelaxed)
           VBCSpecType = 'D'
        case(ThermBCTYPE_FluxFixed)
+          VBCSpecType = 'N'
+       case(SaltBCTYPE_Adiabat)     !-- Salinity boundary condition ------------ 
+          VBCSpecType = 'N'
+       case(SaltBCTYPE_SaltFixed)
+          VBCSpecType = 'D'
+       case(SaltBCTYPE_SaltRelaxed)
+          VBCSpecType = 'D'
+       case(SaltBCTYPE_FluxFixed)
           VBCSpecType = 'N'
        case Default
           call MessageNotify("E", module_name, &
@@ -192,7 +213,8 @@ contains
     character(TOKEN) :: &
          & KinBCSurface, KinBCBottom, &
          & DynBCSurface, DynBCBottom, &
-         & ThermBCSurface, ThermBCBottom
+         & ThermBCSurface, ThermBCBottom, &
+         & SaltBCSurface, SaltBCBottom
 
     ! NAMELIST 変数群
     ! NAMELIST group name
@@ -201,7 +223,8 @@ contains
          & KinBCSurface, KinBCBottom, &
          & DynBCSurface, DynBCBottom, &
          & ThermBCSurface, ThermBCBottom, &
-         & SurfTempRelaxedTime
+         & SaltBCSurface, SaltBCBottom, &
+         & SurfTempRelaxedTime, SurfSaltRelaxedTime
 
 
     ! 実行文; Executable statements
@@ -217,12 +240,15 @@ contains
     KinBCSurface = KinBCTYPELBL_RigidLid
     DynBCSurface = DynBCTYPELBL_NoSlip
     ThermBCSurface = ThermBCTYPELBL_Adiabat
+    SaltBCSurface = SaltBCTYPELBL_Adiabat
 
     KinBCBottom = KinBCTYPELBL_RigidLid
     DynBCBottom = DynBCTYPELBL_NoSlip
     ThermBCBottom = ThermBCTYPELBL_Adiabat
+    SaltBCBottom = SaltBCTYPELBL_Adiabat
 
     SurfTempRelaxedTime = -1d0
+    SurfSaltRelaxedTime = -1d0
     
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -242,15 +268,15 @@ contains
     ! Set the IDs of boundary condition on upper surface.
     !
     call label2ID_verticalBCType( &
-         & KinBCSurface, DynBCSurface, ThermBCSurface,    &  ! (in)
-         & KinBC_Surface, DynBC_Surface, ThermBC_Surface, &  ! (out)
+         & KinBCSurface, DynBCSurface, ThermBCSurface, SaltBCSurface,     &  ! (in)
+         & KinBC_Surface, DynBC_Surface, ThermBC_Surface, SaltBC_Surface, &  ! (out)
          & .true. )
 
     ! Set  the IDs of boundary condition on bottom surface.
     !
     call label2ID_verticalBCType( &
-         & KinBCBottom, DynBCBottom, ThermBCBottom,    & ! (in)
-         & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, & ! (out)
+         & KinBCBottom, DynBCBottom, ThermBCBottom, SaltBCBottom,     & ! (in)
+         & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, SaltBC_Bottom, & ! (out)
          & .true. )
 
 
@@ -280,14 +306,14 @@ contains
   !!
   !!
   subroutine label2ID_verticalBCType( &
-       & KinBCLBL, DynBCLBL, ThermBCLBL, &  
-       & KinBCID, DynBCID, ThermBCID,    &
-       & isExceptionCatch )
+       & KinBCLBL, DynBCLBL, ThermBCLBL, SaltBCLBL, &   ! (in)
+       & KinBCID, DynBCID, ThermBCID, SaltBCID,     &   ! (out)
+       & isExceptionCatch )                             ! (in)
     
     ! 宣言文; Declaration statement
     !
-    character(*), intent(in) :: KinBCLBL, DynBCLBL, ThermBCLBL
-    integer, intent(out) :: KinBCID, DynBCID, ThermBCID
+    character(*), intent(in) :: KinBCLBL, DynBCLBL, ThermBCLBL, SaltBCLBL
+    integer, intent(out) :: KinBCID, DynBCID, ThermBCID, SaltBCID
     logical, intent(in) :: isExceptionCatch
 
     ! 局所変数
@@ -332,6 +358,20 @@ contains
        case default
           call MessageNotify("E", module_name, &
                & "The thermal boundary condition '%c' is not available.", c1=trim(ThermBCLBL) )
+    end select
+
+    select case (SaltBCLBL)
+       case(SaltBCTYPELBL_Adiabat)
+          SaltBCID = SaltBCTYPE_Adiabat
+       case(SaltBCTYPELBL_SaltFixed)
+          SaltBCID = SaltBCTYPE_SaltFixed
+       case(SaltBCTYPELBL_FluxFixed)
+          SaltBCID = SaltBCTYPE_FluxFixed
+       case(SaltBCTYPELBL_SaltRelaxed)
+          SaltBCID = SaltBCTYPE_SaltRelaxed
+       case default
+          call MessageNotify("E", module_name, &
+               & "The salinity boundary condition '%c' is not available.", c1=trim(SaltBCLBL) )
     end select
 
   end subroutine label2ID_verticalBCType

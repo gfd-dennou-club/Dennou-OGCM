@@ -20,20 +20,26 @@ program ogcm_main
   use GovernEqSolverDriver_mod
 
 !!$  use Exp_W94_Case2_mod, only: &
+!------------------------------------------------
 !!$  use Exp_BarotRossbyWave_mod, only: &
 !!$       & Exp_Init => Exp_BarotRossbyWave_Init, &
 !!$       & Exp_Final => Exp_BarotRossbyWave_Final, &
 !!$       & Exp_SetInitCond => SetInitCondition 
+!------------------------------------------------
 !!$  use Exp_InternalGravWave_mod, only: &
 !!$       & Exp_Init => Exp_InternalGravWave_Init, &
 !!$       & Exp_Final => Exp_InternalGravWave_Final, &
 !!$       & Exp_SetInitCond => SetInitCondition
-  
-  use Exp_WindDrivenCirculation_mod, only: &
-       & Exp_Init => Exp_WindDrivenCirculation_Init, &
-       & Exp_Final => Exp_WindDrivenCirculation_Final, &
+!------------------------------------------------  
+!!$  use Exp_WindDrivenCirculation_mod, only: &
+!!$       & Exp_Init => Exp_WindDrivenCirculation_Init, &
+!!$       & Exp_Final => Exp_WindDrivenCirculation_Final, &
+!!$       & Exp_SetInitCond => SetInitCondition
+!------------------------------------------------  
+  use Exp_APEOGCirc_mod, only: &
+       & Exp_Init => Exp_APEOGCirc_Init, &
+       & Exp_Final => Exp_APEOGCirc_Final, &
        & Exp_SetInitCond => SetInitCondition
-
 
   use InitCond_mod
 

@@ -56,6 +56,7 @@ module BudgetAnalysis_mod
   !
   character(*), parameter:: module_name = 'BudgetAnalysis_mod' !< Module Name
 
+  character(*), parameter, public :: BUDGETANAKEY_GLOBALMEANENERGY = 'GlobalMeanEnergy'
   character(*), parameter, public :: BUDGETANAKEY_ENERGYBUDGET = 'EnergyBudget'
   character(*), parameter, public :: BUDGETANAKEY_TEAVG = 'TEAvg'
   character(*), parameter, public :: BUDGETANAKEY_KEAVG = 'KEAvg'
@@ -72,10 +73,14 @@ module BudgetAnalysis_mod
   character(*), parameter, public :: BUDGETANAKEY_ANGMOMBUDGET = 'AngMomBudget'
   character(*), parameter, public :: BUDGETANAKEY_ANGMOMAVG = 'AngMomAvg'
 
-  logical :: energyBudgAnaFlag
-  logical :: angMomBudgAnaFlag
+  type(gt_history) :: hst_globalMeanEnergy
+  logical :: globalMeanEnergyFlag
+
   type(gt_history) :: hst_energyBudget
+  logical :: energyBudgAnaFlag
+
   type(gt_history) :: hst_angMomBudget
+  logical :: angMomBudgAnaFlag
 
 contains
 
@@ -96,11 +101,14 @@ contains
     ! 実行文; Executable statements
     !
 
+    globalMeanEnergyFlag = .false.
     energyBudgAnaFlag = .false.
     angMomBudgAnaFlag = .false.
 
     do n=1, size(budgetAnaName)
        select case(budgetAnaName(n))
+       case (BUDGETANAKEY_GLOBALMEANENERGY)
+          globalMeanEnergyFlag = .true.
        case (BUDGETANAKEY_ENERGYBUDGET) 
           energyBudgAnaFlag = .true.
        case (BUDGETANAKEY_ANGMOMBUDGET) 
@@ -126,6 +134,9 @@ contains
 
     ! 実行文; Executable statements
     !
+    if( globalMeanEnergyFlag ) then
+       call HistoryClose(hst_globalMeanEnergy)
+    end if
 
     if( energyBudgAnaFlag ) then
        call HistoryClose(hst_energyBudget)
@@ -143,7 +154,7 @@ contains
   subroutine BudgetAnalysis_perform( )
 
     use VariableSet_mod, only: &
-         & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_PTempEddB, &
+         & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_PTempEddB, xy_SurfHeightN, &
          & xy_totDepthBasic
 
     ! 宣言文; Declare statements
@@ -152,10 +163,29 @@ contains
     ! 実行文; Executable statements
     !
     
+    if( globalMeanEnergyFlag) call analyze_globalMeanEnergy()
     if( energyBudgAnaFlag ) call analyze_energyBudget()
     if( angMomBudgAnaFlag ) call analyze_angMomBudget()
 
   contains
+    subroutine analyze_globalMeanEnergy()
+
+      use DiagVarSet_mod, only: xyz_DensEdd
+
+      real(DP) :: KEnAvg, PEnAvg
+      real(DP) :: xy_totDepth(0:iMax-1,jMax)
+
+      call MessageNotify("M", module_name, "Calculate global mean of each energy ..")
+
+      xy_totDepth = xy_totDepthBasic + xy_SurfHeightN
+
+      KEnAvg = eval_kineticEnergyAvg(xyz_UN, xyz_VN)
+      PEnAvg = eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth) 
+      call HistoryPut( BUDGETANAKEY_KEAVG, KEnAvg, hst_globalMeanEnergy )
+      call HistoryPut( BUDGETANAKEY_PEAVG, PEnAvg, hst_globalMeanEnergy )
+      call HistoryPut( BUDGETANAKEY_TEAVG, KEnAvg + PEnAvg, hst_globalMeanEnergy )
+    end subroutine analyze_globalMeanEnergy
+
     subroutine analyze_energyBudget()
 
 use DiagVarSet_mod, only: xyz_DensEdd
@@ -310,15 +340,15 @@ use HydroBouEqSolver_mod
       xyz_InvisRHSU = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpChi, -wz_TmpPsi)
       xyz_InvisRHSV = xyz_CosLat*xyz_AlphaOptr_wz(wz_TmpPsi,  wz_TmpChi)
 
-      call calc_HydroBouEqHViscRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
-           & wz_VorTmp, wz_DivTmp, wz_PTempEddTmp, &
-           & hDiffCoef, hHyperViscCoef, hDiffCoef, &
-           & isRHSReplace=.false. )
+!!$      call calc_HydroBouEqHViscRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
+!!$           & wz_VorTmp, wz_DivTmp, wz_PTempEddTmp, &
+!!$           & hDiffCoef, hHyperViscCoef, hDiffCoef, &
+!!$           & isRHSReplace=.false. )
 
-      call calc_HydroBouEqVViscRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
-           & wz_VorTmp, wz_DivTmp, wz_PTempEddTmp, &
-           & 0.5d0*vDiffCoef, vHyperViscCoef, 0.5d0*vDiffCoef, &
-           & isRHSReplace=.false. )
+!!$      call calc_HydroBouEqVViscRHS(wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
+!!$           & wz_VorTmp, wz_DivTmp, wz_PTempEddTmp, &
+!!$           & 0.5d0*vDiffCoef, vHyperViscCoef, 0.5d0*vDiffCoef, &
+!!$           & isRHSReplace=.false. )
 
 !!$      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
 !!$           & xy_SurfPressN, wz_DivTmp, xy_totDepth, vDiffCoef, DelTime)
@@ -329,10 +359,10 @@ use HydroBouEqSolver_mod
 !!$      wz_DivA = wz_DivA + wz_DivRHS*0.5d0*DelTime
 
       wt_Vor = wt_wz(wz_VorA); wt_Div = wt_wz(wz_DivA); 
-      call Advance_VImplicitProc( wt_Vor, wt_Div, wt_PTempEdd, &
-           & xy_WindStressU, xy_WindStressV, xy_totDepth, &
-           & 0.5d0, DelTime, &
-           & DynBC_Surface, DynBC_Bottom )
+!!$      call Advance_VImplicitProc( wt_Vor, wt_Div, wt_PTempEdd, &
+!!$           & xy_WindStressU, xy_WindStressV, xy_totDepth, &
+!!$           & 0.5d0, DelTime, &
+!!$           & DynBC_Surface, DynBC_Bottom )
 
       wz_TmpPsi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
       wz_TmpChi = wz_InvLapla2D_wz( wz_wt(wt_Div) )
@@ -403,6 +433,32 @@ write(*,*) "* DKEDt=", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyz_dKdt ))
     
     ! 実行文; Executable statement
     !
+    if ( globalMeanEnergyFlag ) then
+       call HistoryCreate( & 
+            & file= trim(diagVar_gthsInfo%FilePrefix) // 'GlobalMeanEnergy.nc', title='global mean of each energy', &
+            & source='Dennou-OGCM', &
+            & institution='Dennou-OGCM project', &
+            & dims=(/'t'/), dimsizes=(/ 0 /), &
+            & longnames=(/'time'/),&
+            & units=(/ diagVar_gthsInfo%intUnit /), &
+            & origin=real(diagVar_gthsInfo%origin), interval=real(diagVar_gthsInfo%intValue), &
+            & history=hst_globalMeanEnergy )  
+
+        call HistoryAddVariable( & 
+             & varname=BUDGETANAKEY_TEAVG, dims=(/'t'/), &
+             & longname='global mean of total energy', units='J*m-3*kg-1', xtype='double',&
+             & history=hst_globalMeanEnergy)
+
+        call HistoryAddVariable( & 
+             & varname=BUDGETANAKEY_KEAVG, dims=(/'t'/), &
+             & longname='global mean of kinetic energy', units='J*m-3*kg-1', xtype='double',&
+             & history=hst_globalMeanEnergy)
+
+        call HistoryAddVariable( & 
+             & varname=BUDGETANAKEY_PEAVG, dims=(/'t'/), &
+             & longname='global mean of pertubated potential energy', units='J*m-3*kg-1', xtype='double',&
+             & history=hst_globalMeanEnergy)
+     end if
 
     if ( energyBudgAnaFlag ) then
        call HistoryCreate( & 

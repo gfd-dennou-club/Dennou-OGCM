@@ -71,10 +71,10 @@ contains
   !> @brief 
   !!
   !!
-  subroutine Advance_VImplicitProc(wt_Vor, wt_Div, wt_PTempEdd, &
-    & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, xy_totDepth, &
+  subroutine Advance_VImplicitProc(wt_Vor, wt_Div, wt_PTempEdd, wt_Salt, &
+    & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, xy_totDepth, &
     & vViscDiffTermCoef, dt,  &
-    & DynBCSurf, DynBCBottom, ThermBCSurf, ThermBCBottom )
+    & DynBCSurf, DynBCBottom, ThermBCSurf, ThermBCBottom, SaltBCSurf, SaltBCBottom )
     
     !
     !
@@ -83,15 +83,16 @@ use at_module_omp
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout), optional :: wt_Vor(lMax,0:tMax)
-    real(DP), intent(inout), optional :: wt_Div(lMax,0:tMax)
-    real(DP), intent(inout), optional :: wt_PTempEdd(lMax,0:tMax)
-    real(DP), dimension(lMax,2), intent(in) :: wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS
+    real(DP), dimension(lMax,0:tMax), intent(inout), optional :: &
+         & wt_Vor, wt_Div, wt_PTempEdd, wt_Salt
+    real(DP), dimension(lMax,2), intent(in), optional :: &
+         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     real(DP), intent(in) :: vViscDiffTermCoef
     real(DP), intent(in) :: dt
     integer, intent(in), optional :: DynBCSurf, DynBCBottom
     integer, intent(in), optional :: ThermBCSurf, ThermBCBottom
+    integer, intent(in), optional :: SaltBCSurf, SaltBCBottom
 
 
     ! 局所変数
@@ -99,9 +100,7 @@ use at_module_omp
     !
     real(DP) :: xyz_RHSWork(0:iMax-1,jMax,0:kMax+1)
     integer :: t
-    real(DP) :: xy_CosLat(0:iMax-1,jMax)
-    character :: BCKindUpper, BCKindBottom
-
+  
     real(DP) :: gt_VImplMat(0:kMax+1,0:tMax+1)
     real(DP), dimension(0:tMax,0:tMax) :: tt_I
     real(DP), dimension(0:kMax,0:tMax) :: gt_Mat, gt_DSig1Mat, gt_DSig2Mat
@@ -110,8 +109,6 @@ use at_module_omp
     ! 実行文; Executable statement
     !
 
-    xy_CosLat = cos(xyz_Lat(:,:,0))
-    
     !
     !
     tt_I = 0d0
@@ -130,11 +127,9 @@ use at_module_omp
        xyz_RHSWork(:,:,0:kMax) = xyz_wt(wt_Vor)
        xyz_RHSWork(:,:,0) = xy_w(wa_VorBCRHS(:,1))
        xyz_RHSWork(:,:,kMax) = xy_w(wa_VorBCRHS(:,2))
-       BCKindUpper = inquire_VBCSpecType(DynBCSurf)
-       BCKindBottom = inquire_VBCSpecType(DynBCBottom)
 
-       wt_Vor = solve(xyz_RHSWork(:,:,0:kMax), BCKindUpper, BCKindBottom, vViscDiffTermCoef*vViscCoef, .false.)
-
+       wt_Vor = solve( xyz_RHSWork(:,:,0:kMax), &
+            & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), vViscDiffTermCoef*vDiffCoef, .false. )
     end if
 
     !
@@ -143,20 +138,27 @@ use at_module_omp
        xyz_RHSWork(:,:,0) = xy_w(wa_DivBCRHS(:,1))
        xyz_RHSWork(:,:,kMax) = xy_w(wa_DivBCRHS(:,2))
        xyz_RHSWork(:,:,kMax+1) = 0d0
-       BCKindUpper = inquire_VBCSpecType(DynBCSurf)
-       BCKindBottom = inquire_VBCSpecType(DynBCBottom)
 
-       wt_Div = solve(xyz_RHSWork(:,:,0:kMax+1), BCKindUpper, BCKindBottom, vViscDiffTermCoef*vViscCoef, .true.)
+       wt_Div = solve( xyz_RHSWork(:,:,0:kMax+1), &
+            & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), vViscDiffTermCoef*vDiffCoef, .true. )
     end if
 
     if( present(wt_PTempEdd) ) then
        xyz_RHSWork(:,:,0:kMax) = xyz_wt(wt_PTempEdd)
        xyz_RHSWork(:,:,0) = xy_w(wa_PTempEddBCRHS(:,1))
        xyz_RHSWork(:,:,kMax) = xy_w(wa_PTempEddBCRHS(:,2))
-       BCKindUpper = inquire_VBCSpecType(ThermBCSurf)
-       BCKindBottom = inquire_VBCSpecType(ThermBCBottom)
 
-       wt_PTempEdd = solve(xyz_RHSWork(:,:,0:kMax), BCKindUpper, BCKindBottom, vViscDiffTermCoef*vDiffCoef, .false.)
+       wt_PTempEdd = solve( xyz_RHSWork(:,:,0:kMax), & 
+            & inquire_VBCSpecType(ThermBCSurf), inquire_VBCSpecType(ThermBCBottom), vViscDiffTermCoef*vDiffCoef, .false. )
+    end if
+
+    if( present(wt_Salt) ) then
+       xyz_RHSWork(:,:,0:kMax) = xyz_wt(wt_Salt)
+       xyz_RHSWork(:,:,0) = xy_w(wa_SaltBCRHS(:,1))
+       xyz_RHSWork(:,:,kMax) = xy_w(wa_SaltBCRHS(:,2))
+
+       wt_Salt = solve( xyz_RHSWork(:,:,0:kMax), &
+            & inquire_VBCSpecType(SaltBCSurf), inquire_VBCSpecType(SaltBCBottom), vViscDiffTermCoef*vDiffCoef, .false. )
     end if
 
     contains

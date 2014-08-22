@@ -179,11 +179,13 @@ contains
     call HistoryAutoPut(CurrentTime, VARSET_KEY_V, xyz_VN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHEIGHT, xy_SurfHeightN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_PTEMPEDD, xyz_PTempEddN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SALT, xyz_SaltN)
 
     call HistoryAutoPut(CurrentTime, VARSET_KEY_UB, xyz_UB)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_VB, xyz_VB)
 !    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHEIGHT, xy_SurfHeightN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_PTEMPEDDB, xyz_PTempEddB)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SALTB, xyz_SaltB)
     
     xyz_CosLat = cos(xyz_Lat)
     wz_Vor = wz_AlphaOptr_xyz(xyz_VN*xyz_CosLat, -xyz_UN*xyz_CosLat) 
@@ -314,6 +316,12 @@ contains
 
     call HistoryAutoAddVariable( varname=VARSET_KEY_PTEMPEDDB, &
          & dims=dims_XYZT, longname='eddy component of potential temperature ', units='K')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SALT, &
+         & dims=dims_XYZT, longname='salinity', units='psu')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SALTB, &
+         & dims=dims_XYZT, longname='salinity', units='psu')
 
 
     ! Regist diagnostic variables

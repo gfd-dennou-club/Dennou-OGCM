@@ -34,14 +34,14 @@ module UnitConversion_mod
 
 contains
 
-pure function  bar2Pa(bar) result(Pa)
+elemental function  bar2Pa(bar) result(Pa)
   real(DP), intent(in) :: bar
   real(DP) :: Pa
 
   Pa = 1d05 * bar
 end function bar2Pa
 
-pure function  bar2dbar(bar) result(dbar)
+elemental function  bar2dbar(bar) result(dbar)
   real(DP), intent(in) :: bar
   real(DP) :: dbar
 
@@ -49,7 +49,7 @@ pure function  bar2dbar(bar) result(dbar)
 
 end function bar2dbar
 
-pure function  degC2K(degC) result(K)
+elemental function  degC2K(degC) result(K)
   real(DP), intent(in) :: degC
   real(DP) :: K
 

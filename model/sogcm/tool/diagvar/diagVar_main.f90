@@ -124,7 +124,6 @@ contains
     !
 
     EndTimeSec = -1d0
-    CurrentTimeSec = RestartTime
 
     call OptionParser_Init()
     call OptionParser_GetInfo(configNmlFile,   & !(out)
@@ -450,6 +449,9 @@ contains
             & trim(ogcm_gthsInfo%FilePrefix) // trim(ogcmOutputVarsName(1)) // '.nc', &
             & 't', ogcm_outputTime)
        write(*,*) 'outputTime', size(ogcm_outputTime), ogcm_outputTime
+
+       ogcm_gthsInfo%origin = ogcm_outputTime(1)
+       diagVar_gthsInfo%origin = ogcm_outputTime(1)
        CurrentTimeSec = DCCalConvertByUnit(ogcm_outputTime(1), ogcm_gthsInfo%intUnit, "sec")
        EndTimeSec = DCCalConvertByUnit(ogcm_outputTime(size(ogcm_outputTime)), ogcm_gthsInfo%intUnit, "sec")
     end if

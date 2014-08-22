@@ -24,7 +24,11 @@ module VariableSet_mod
   use BoundCondSet_mod, only: &
        & ThermBCTYPE_FluxFixed, ThermBCTYPE_Adiabat, &
        & ThermBCTYPE_TempFixed, ThermBCTYPELBL_TempRelaxed, &
-       & ThermBC_Surface
+       & ThermBC_Surface, &
+       & SaltBCTYPE_FluxFixed, SaltBCTYPE_Adiabat, &
+       & SaltBCTYPE_SaltFixed, SaltBCTYPELBL_SaltRelaxed, &
+       & SaltBC_Surface
+
 
   ! 宣言文; Declareration statements
   !
@@ -58,14 +62,16 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_WindStressU(:,:)
   real(DP), public, save, allocatable :: xy_WindStressV(:,:)
   real(DP), public, save, allocatable :: xy_SeaSurfTemp(:,:), xy_SurfTempFlux(:,:)
+  real(DP), public, save, allocatable :: xy_SeaSurfSalt(:,:), xy_SurfSaltFlux(:,:)
 
-  character(TOKEN), public, parameter :: VARSET_KEY_U = 'U'
+  character(TOKEN), public, parameter :: VARSET_KEY_U  = 'U'
   character(TOKEN), public, parameter :: VARSET_KEY_UB = 'UB'
-  character(TOKEN), public, parameter :: VARSET_KEY_V = 'V'
+  character(TOKEN), public, parameter :: VARSET_KEY_V  = 'V'
   character(TOKEN), public, parameter :: VARSET_KEY_VB = 'VB'
-  character(TOKEN), public, parameter :: VARSET_KEY_PTEMPEDD = 'PTempEdd'
+  character(TOKEN), public, parameter :: VARSET_KEY_PTEMPEDD  = 'PTempEdd'
   character(TOKEN), public, parameter :: VARSET_KEY_PTEMPEDDB = 'PTempEddB'
-  character(TOKEN), public, parameter :: VARSET_KEY_SALT = 'Salt'
+  character(TOKEN), public, parameter :: VARSET_KEY_SALT  = 'Salt'
+  character(TOKEN), public, parameter :: VARSET_KEY_SALTB = 'SaltB'
   character(TOKEN), public, parameter :: VARSET_KEY_SURFHEIGHT = 'SurfHeight'
 
   character(TOKEN), public, parameter :: VARSET_KEY_SIGDOT = 'SigDot'
@@ -123,6 +129,7 @@ contains
 
     call malloc2DVar(xy_WindStressU); call malloc2DVar(xy_WindStressV)
     call malloc2DVar(xy_SurfTempFlux); call malloc2DVar(xy_SeaSurfTemp)
+    call malloc2DVar(xy_SurfSaltFlux); call malloc2DVar(xy_SeaSurfSalt)
 
     !
     TracerNum = 2
@@ -174,6 +181,7 @@ contains
        deallocate( xy_SurfPressA, xy_SurfPressN, xy_SurfPressB )
        deallocate( xy_WindStressU, xy_WindStressV )
        deallocate( xy_SurfTempFlux, xy_SeaSurfTemp )
+       deallocate( xy_SurfSaltFlux, xy_SeaSurfSalt )
     end if
 
   end subroutine VariableSet_Final

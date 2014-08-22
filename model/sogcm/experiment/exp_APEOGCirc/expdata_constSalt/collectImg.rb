@@ -11,10 +11,10 @@
 DCMODEL_THUM_ORIGIN = "/home/ykawai/dcmodel-thum.rb"
 
 # End day of time integration
-LAST_DAY=10950
+LAST_DAY=109600  #[day]
 
 # Path of parent directory where the simulation results are saved.
-DATASTORAGE_DIR="/home/ykawai/exp_backup/current/"
+DATASTORAGE_DIR="/home/ykawai/exp_backup/APEOGCirc/"
 
 # Path of parent directory where the figures of simulation results are saved.
 FIGSTORAGE_DIR="./"
@@ -34,53 +34,53 @@ xz_Div_lat0_init = VarNoAnimFig.new("", "Div", "t=0,lat=0",  "1e-13", "-8e-13:8e
 xz_Div_lat45_init = VarNoAnimFig.new("", "Div", "t=0,lat=45",  "1e-13", "-8e-13:8e-13", "xz", "lat45_init","") 
 
 #tz_SigDot_lat0lon180 = VarNoAnimFig.new("SigDot", "lat=0,lon=180",  "2.5e-14", "-3e-13:3e-13", "tz", "lat0lon180", "--exch")
-xy_U_SeaSurf = VarNoAnimFig.new("", "U", "lon=0,sig=0", "0.025", "-0.5:0.5", "xy", "SeaSurf", "--clrmap 10 --title 'U' ")
-yz_U_mplane = VarNoAnimFig.new("", "U", "lon=0,t=#{LAST_DAY}", "0.025", "-0.5:0.5", "yz", "mplane", "--clrmap 10 --title 'U' ")
-yz_U_mplane_eq = VarNoAnimFig.new("", "U", "lat=-10:10,lon=0,t=#{LAST_DAY}", "0.01", "-0.2:0.2", "yz", "mplane_eq", "--clrmap 10 --title 'U' ")
-yz_PressEdd_mplane = VarNoAnimFig.new("", "PressEdd", "lon=0,t=#{LAST_DAY}", "5e04", "-1e06:1e05", "yz", "mplane", "--clrmap 10 --title 'PressEdd' ")
-yz_MassStrFunc_mplane = VarNoAnimFig.new("", "MassStreamFunc", "t=#{LAST_DAY},lat=-90:90", "10", "-120:120", "yz", "mplane", "--title 'MassStreamFunc'")
-yz_MassStrFunc_mplane_eq = VarNoAnimFig.new("", "MassStreamFunc", "t=#{LAST_DAY},lat=-10:10", "20", "-220:220", "yz", "mplane_eq", "--title 'MassStreamFunc'")
-tz_PTempEdd_SeaSurf = VarNoAnimFig.new("", "PTemp", "lon=0,sig=0", "0.1", "275.5:277.5", "tz", "SeaSurf", "--title 'PTemp'")
-yz_PTempEdd_mplane_30yr = VarNoAnimFig.new("", "PTemp", "lon=0,t=10950", "0.1", "275.5:277.5", "yz", "mplane_30yr", "--title 'PTemp'")
-yz_PTempEdd_mplane_100yr = VarNoAnimFig.new("", "PTemp", "lon=0,t=36500", "0.1", "275.5:277.5", "yz", "mplane_100yr", "--title 'PTemp'")
-yz_PTempEdd_mplane = VarNoAnimFig.new("", "PTemp", "lon=0,t=#{LAST_DAY}", "0.1", "275.5:277.5", "yz", "mplane_300yr", "--title 'PTemp'")
-t_KEAvg = VarNoAnimFig.new("EnergyBudget", "KEAvg", "", "", "0:0.01", "t", "", "--title 'K.E.(global mean)'" )
+yt_U_SeaSurf = VarNoAnimFig.new("", "U", "lon=0,sig=0", "0.05", "-1.2:1.2", "xy", "SeaSurf", "--clrmap 10 --title 'U' ")
+yz_U_mplane = VarNoAnimFig.new("", "U", "lon=0,t=#{LAST_DAY}", "0.5", "-1.2:1.2", "yz", "mplane_300yr", "--clrmap 10 --title 'U' ")
+yz_U_mplane_eq = VarNoAnimFig.new("", "U", "lat=-10:10,lon=0,t=#{LAST_DAY}", "0.01", "-0.2:0.2", "yz", "mplane_eq_300yr", "--clrmap 10 --title 'U' ")
+#yz_PTemp_mplane = VarNoAnimFig.new("", "PTemp", "lon=0,t=#{LAST_DAY}", "5e04", "-1e06:1e05", "yz", "mplane", "--clrmap 10 --title 'PressEdd' ")
+yz_MassStrFunc_mplane = VarNoAnimFig.new("", "MassStreamFunc", "t=#{LAST_DAY},lat=-90:90", "10", "-100:100", "yz", "mplane_300yr", "--title 'MassStreamFunc'")
+yz_MassStrFunc_mplane_eq = VarNoAnimFig.new("", "MassStreamFunc", "t=#{LAST_DAY},lat=-10:10", "10", "-100:100", "yz", "mplane_eq_300yr", "--title 'MassStreamFunc'")
+yt_PTemp_SeaSurf = VarNoAnimFig.new("", "PTemp", "lon=0,sig=0", "2", "270:310", "tz", "SeaSurf", "--title 'PTemp'")
+#yz_PTempEdd_mplane_30yr = VarNoAnimFig.new("", "PTemp", "lon=0,t=10950", "0.1", "275.5:277.5", "yz", "mplane_30yr", "--title 'PTemp'")
+#yz_PTempEdd_mplane_100yr = VarNoAnimFig.new("", "PTemp", "lon=0,t=36500", "0.1", "275.5:277.5", "yz", "mplane_100yr", "--title 'PTemp'")
+yz_PTemp_mplane = VarNoAnimFig.new("", "PTemp", "lon=0,t=#{LAST_DAY}", "2", "270:310", "yz", "mplane_300yr", "--title 'PTemp'")
+t_KEAvg = VarNoAnimFig.new("", "KEAvg", "", "", "0:0.05", "t", "", "--title 'K.E.(global mean)'" )
 
 
 exps = [
-        Exp.new("exp_Ah1e4Pl170L60",     "#{DATASTORAGE_DIR}/exp_Ah1e4Pl170L60/", "Run1_"),      
-        Exp.new("exp_Ah1e4Pl341L60",     "#{DATASTORAGE_DIR}/exp_Ah1e4Pl341L60/", "Run1_"),      
-        Exp.new("exp_Ah1e4Pl682L60",     "#{DATASTORAGE_DIR}/exp_Ah1e4Pl682L60/", "Run1_"),      
-        Exp.new("exp_Ah1e4Pl341L30",     "#{DATASTORAGE_DIR}/exp_Ah1e4Pl341L30/", "Run1_"),      
-        Exp.new("exp_Ah1e4Pl341L120",     "#{DATASTORAGE_DIR}/exp_Ah1e4Pl341L120/", "Run1_"),      
-        Exp.new("exp_Ah1e3Pl341L60",     "#{DATASTORAGE_DIR}/exp_Ah1e3Pl341L60/", "Run1_"),      
-        Exp.new("exp_Ah1e5Pl341L60",     "#{DATASTORAGE_DIR}/exp_Ah1e5Pl341L60/", "Run1_"),      
+        Exp.new("exp_constSalt",     "#{DATASTORAGE_DIR}/exp_APEOGCirc_constSalt/", ""),      
 ]
 
 noAnimFigVars = []
 exp_noAnimFigs =  [ \
-                    t_KEAvg, xy_U_SeaSurf, yz_U_mplane, yz_MassStrFunc_mplane, yz_PressEdd_mplane, \
-                     yz_U_mplane, yz_U_mplane_eq, \
-                      yz_MassStrFunc_mplane, yz_MassStrFunc_mplane_eq
+                    t_KEAvg, \
+                    yt_U_SeaSurf, yz_U_mplane, yz_U_mplane_eq, \
+                    yt_PTemp_SeaSurf, yz_PTemp_mplane, \
+                    yz_MassStrFunc_mplane, yz_MassStrFunc_mplane_eq
                   ]
 
 # 
-animTimeInfo = AnimTimeInfo.new(0, LAST_DAY, 500.0, "day")
+animTimeInfo = AnimTimeInfo.new(0, LAST_DAY, 1600.0, "day")
 animFigFlag = false
 
 animFigVars = []
-exp_AnimFigs =  [ VarAnimFig.new("SigDot", "lat=0", "2.5e-14", "-3e-13:3e-13", animTimeInfo, "yz", "anim", "") ]
+exp_AnimFigs =  [ 
+                 VarAnimFig.new("U", "lon=0", "0.05", "-1.2:1.2", animTimeInfo, "yz", "anim", ""),  
+                 VarAnimFig.new("PTemp", "lon=0", "2", "270:310", animTimeInfo, "yz", "anim", ""),
+                 VarAnimFig.new("MassStreamFunc", "lat=-90:90", "10", "-100:100", animTimeInfo, "yz", "anim", "") 
+                ]
 
 
 
 
 #################################
 
-extra_exps = [ Exp.new("exp_comm", "./common/"), 
-               Exp.new("exp_LComp", "./LCompare/"),
-               Exp.new("exp_HComp", "./HCompare/"), 
-               Exp.new("exp_HViscComp", "./HViscCompare/"), 
-               Exp.new("exp_RefSolComp", "./exp_RefSolComp")
+extra_exps = [ 
+              Exp.new("exp_comm", "./common/"), 
+#              Exp.new("exp_LComp", "./LCompare/"),
+#              Exp.new("exp_HComp", "./HCompare/"), 
+#              Exp.new("exp_HViscComp", "./HViscCompare/"), 
+#              Exp.new("exp_RefSolComp", "./exp_RefSolComp")
              ]
 
 
@@ -99,6 +99,7 @@ extra_exps.each_with_index{|exp, i|
   @expsHash[exp.name.gsub("exp_", "")] = exp
 }
 
+=begin
 ####################################
 
 def getExpDirPath(expHashKey)
@@ -133,6 +134,7 @@ extra_exps.each{|exp|
 exit
 
 ####################################################
+=end
 
 exps.each_with_index{|exp, i|
   puts "= experiment: #{exp.name}"
@@ -154,7 +156,7 @@ exps.each_with_index{|exp, i|
   exp.create_thumb(DCMODEL_THUM_ORIGIN, "gif") if animFigVars[i].size > 0 and animFigFlag
 
   p "Move created figures from '#{exp.dirPath}' to '#{FIGSTORAGE_DIR}/#{exp.name}'"
-  FileUtils.mv(Dir.glob("#{exp.dirPath}/*.{png,jpg}"), "#{FIGSTORAGE_DIR}/#{exp.name}/")
+  FileUtils.mv(Dir.glob("#{exp.dirPath}/*.{png,jpg,gif}"), "#{FIGSTORAGE_DIR}/#{exp.name}/")
 
 
   config_nml = Dir.glob("#{exp.dirPath}/config*.nml")[0]

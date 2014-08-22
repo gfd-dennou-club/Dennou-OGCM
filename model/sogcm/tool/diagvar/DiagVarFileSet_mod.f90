@@ -187,8 +187,7 @@ contains
     ! 実行文; Executable statement
     !
 
-
-    call MessageNotify("M", module_name, "Output data of field '%c' at %d [sec] ..", c1=varName, i=(/ int(CurrentTime) /))
+    call MessageNotify("M", module_name, "Output data of field '%c' at %f [sec] ..", c1=varName, d=(/ CurrentTime /))
 
     if(present(varScalar)) &
          call HistoryAutoPut(CurrentTime, varName, varScalar)

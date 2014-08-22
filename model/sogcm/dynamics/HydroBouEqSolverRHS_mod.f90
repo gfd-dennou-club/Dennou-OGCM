@@ -103,7 +103,7 @@ contains
   !> @brief 
   !!
   !!
-  subroutine calc_HydroBouEqInvisRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, w_SurfHeightRHS, &
+  subroutine calc_HydroBouEqInvisRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &
        & xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, xyz_Salt, xy_SurfHeight, &
        & xy_SurfPress, xy_totDepthBasic, z_PTempBasic )
 
@@ -112,7 +112,7 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(out), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
+    real(DP), intent(out), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
     real(DP), intent(out), dimension(lMax) :: w_SurfHeightRHS
     real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, xyz_Salt
     real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_SurfHeight, xy_SurfPress, xy_totDepthBasic
@@ -155,8 +155,8 @@ contains
     Call calc_TracerEqInvisRHS(wz_PTempRHS, &
          & xyz_PTemp, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
 
-!!$    call calc_TracerEqInvisRHS(wz_SaltRHS, &
-!!$         & xyz_Salt, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
+    call calc_TracerEqInvisRHS(wz_SaltRHS, &
+         & xyz_Salt, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
     
     call calc_SurfHeightRHS(w_SurfHeightRHS, &
          & xyz_Urf, xyz_Vrf, xy_totDepth ) 
@@ -166,15 +166,15 @@ contains
   !> @brief 
   !!
   !!
-  subroutine calc_HydroBouEqHViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
-       & wz_Vor, wz_Div, wz_PTempEdd, &
+  subroutine calc_HydroBouEqHViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, &
+       & wz_Vor, wz_Div, wz_PTempEdd, wz_Salt, &
        & hViscTermCoef, hHyperViscTermCoef, hDiffTermCoef, &
        & isRHSReplace )
     
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
-    real(DP), intent(in), dimension(lMax,0:kMax) :: wz_Vor, wz_Div, wz_PTempEdd
+    real(DP), intent(inout), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
+    real(DP), intent(in), dimension(lMax,0:kMax) :: wz_Vor, wz_Div, wz_PTempEdd, wz_Salt
     real(DP), intent(in) :: hViscTermCoef, hHyperViscTermCoef, hDiffTermCoef
     logical, intent(in) :: isRHSReplace
 
@@ -198,6 +198,9 @@ contains
          & wz_PTempEdd, hDiffTermCoef, 0d0,  'S',       &  !(in)
          & isRHSReplace=isRHSReplace )
 
+    call calc_HDiffRHS(wz_SaltRHS,                      &  !(inout)
+         & wz_Salt, hDiffTermCoef, 0d0,  'S',           &  !(in)
+         & isRHSReplace=isRHSReplace )
 
   end subroutine calc_HydroBouEqHViscRHS
 
@@ -205,8 +208,8 @@ contains
   !> @brief 
   !!
   !!
-  subroutine calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, &
-       & wz_Vor, wz_Div, wz_PTemp, &
+  subroutine calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, &
+       & wz_Vor, wz_Div, wz_PTemp, wz_Salt, &
        & vViscTermCoef, vHyperViscTermCoef, vDiffTermCoef, &
        & isRHSReplace )
     
@@ -217,8 +220,8 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS
-    real(DP), intent(in), dimension(lMax,0:kMax) :: wz_Vor, wz_Div, wz_PTemp
+    real(DP), intent(inout), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
+    real(DP), intent(in), dimension(lMax,0:kMax) :: wz_Vor, wz_Div, wz_PTemp, wz_Salt
     real(DP), intent(in) :: vViscTermCoef, vHyperViscTermCoef, vDiffTermCoef
     logical, intent(in) :: isRHSReplace
 
@@ -242,7 +245,11 @@ contains
          & isRHSReplace=isRHSReplace )
 
     call calc_VDiffRHS(wz_PTempRHS,                               &  !(inout)
-         & wz_PTemp, vDiffTermCoef, 0d0, xyz_totDepth,         &  !(in)
+         & wz_PTemp, vDiffTermCoef, 0d0, xyz_totDepth,            &  !(in)
+         & isRHSReplace=isRHSReplace )
+
+    call calc_VDiffRHS(wz_SaltRHS,                               &  !(inout)
+         & wz_Salt, vDiffTermCoef, 0d0, xyz_totDepth,            &  !(in)
          & isRHSReplace=isRHSReplace )
 
   end subroutine calc_HydroBouEqVViscRHS
