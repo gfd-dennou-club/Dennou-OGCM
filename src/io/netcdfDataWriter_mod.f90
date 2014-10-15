@@ -178,14 +178,11 @@ end subroutine netcdfDataWriter_WriteGlobalAttr
 subroutine netcdfDataWriter_writeGridMetaData(writer)
   type(netcdfDataWriter), intent(inout), target :: writer
 
-  integer :: pointNum, cellNum
   type(Mesh2_ncInfo), pointer :: meshInfo
   integer :: timeVarId
-  
-  meshInfo => writer%mesh2Info
-  cellNum = getCellListSize(writer%mesh)
-  pointNum = getPointListSize(writer%mesh)
+  integer :: i
 
+  meshInfo => writer%mesh2Info
 
   ! NetCDF ファイルに次元要素 node を定義する.
   call ncdef_dimension(writer, meshInfo%node )
@@ -196,21 +193,31 @@ subroutine netcdfDataWriter_writeGridMetaData(writer)
 
 
   ! NetCDF ファイルに次元要素 face を定義する.
-  call ncdef_dimension(writer, writer%Mesh2Info%face )
+  call ncdef_dimension(writer, meshInfo%face )
 
   ! NetCDF ファイルに座標要素 : face_x, face_y を定義する.
   call ncdef_mesh_coordinate(writer, meshInfo%face_x )
   call ncdef_mesh_coordinate(writer, meshInfo%face_y )
 
   ! NetCDF ファイルに次元要素 edge を定義する.
-  call ncdef_dimension(writer, writer%Mesh2Info%edge )
+  call ncdef_dimension(writer, meshInfo%edge )
 
   ! NetCDF ファイルに座標要素 : edge_x, edge_y を定義する.
   call ncdef_mesh_coordinate(writer, meshInfo%edge_x )
   call ncdef_mesh_coordinate(writer, meshInfo%edge_y )
 
   ! NetCDF ファイルに次元要素 layers を定義する.
-  call ncdef_dimension(writer, writer%Mesh2Info%layers )
+  call ncdef_dimension(writer, meshInfo%layers )
+
+  !
+  if(meshInfo%domainBoundarySet%num > 0) then
+     call ncdef_dimension(writer, meshInfo%domainBoundarySet)
+
+     do i=1, meshInfo%domainBoundarySet%num
+        call ncdef_dimension(writer, meshInfo%boundaryPts(i))
+        call ncdef_mesh_domainBoundary(writer, meshInfo%domain_boundary(i))
+     end do
+  end if
 
   ! NetCDF ファイルに時間座標を定義する.
   call check_nf90_status( &
@@ -248,9 +255,9 @@ subroutine netcdfDataWriter_writeGridData(writer)
   type(pointScalarField) :: p_lon, p_lat
   type(surfaceScalarField) :: s_lon, s_lat
   integer, allocatable :: cell_points(:,:), cell_faces(:,:), face_points(:,:), face_links(:,:)
-  integer :: pointNum, cellNum, cellId
-  integer :: ptNum, ptId
-
+  integer :: pointNum, cellNum, boundaryNum
+  integer :: cellId, ptId
+  type(DomainBoundary), pointer :: boundary => null()
   type(Vector3d) :: geoPos
   integer :: i
 
@@ -258,6 +265,7 @@ subroutine netcdfDataWriter_writeGridData(writer)
   meshInfo => writer%mesh2Info
   cellNum = getCellListSize(mesh)
   pointNum = getPointListSize(mesh)
+  boundaryNum = getBoundaryListSize(mesh)
 
   call GeometricField_Init(v_lon, mesh, "v_lon", vlayerNum=1)
   call GeometricField_Init(v_lat, mesh, "v_lat", vlayerNum=1)
@@ -313,6 +321,14 @@ subroutine netcdfDataWriter_writeGridData(writer)
 
   call check_nf90_status( &
        nf90_put_var( writer%ncID, meshInfo%face_links%varID, face_links(:,:)) , message="define face_links" )
+
+  !
+  do i=1, meshInfo%domainBoundarySet%num
+     boundary => PolyMesh_getDomainBoundary(mesh,i)
+     call check_nf90_status( &
+          & nf90_put_var( writer%ncId, meshInfo%domain_boundary(i)%varId, boundary%boundaryElemIdList(:)), &
+          & message="output the information of boundary around domain." )
+  end do
 
 end subroutine netcdfDataWriter_writeGridData
 
@@ -480,5 +496,45 @@ subroutine ncdef_mesh_connectivity(self, connectivity_element)
 
 
 end subroutine ncdef_mesh_connectivity
+
+subroutine ncdef_mesh_domainBoundary(self, domainBoundary_element)
+
+  ! 宣言文 ; Declaration statements
+  !
+  type(netcdfDataWriter), intent(in) :: self
+  type(Mesh_domainBoundary_element), intent(inout) :: domainBoundary_element
+
+  ! 作業変数
+  ! Work variables
+  !
+
+  ! 実行文 ; Executable statements
+  !
+
+
+  ! 座標変数を定義する.
+  call check_nf90_status( &
+    & nf90_def_var( &
+       & self%ncID, &
+       & domainBoundary_element%element_name, NF90_INT, &
+       & (/ domainBoundary_element%boundary_element%dimId /), &
+       & domainBoundary_element%varID &
+       & ), &
+       & message = "define mesh domainBoundary: " // trim(domainBoundary_element%element_name) &
+     & )
+
+  ! 座標変数のメタ情報を加える.
+  !
+
+  call check_nf90_status( &
+    & nf90_put_att( self%ncID, domainBoundary_element%varID, 'name', domainBoundary_element%element_name ) &
+    & )
+
+  call check_nf90_status( &
+    & nf90_put_att( self%ncID, domainBoundary_element%varID, 'long_name', domainBoundary_element%long_name ) &
+    & )
+
+
+end subroutine ncdef_mesh_domainBoundary
 
 end module netcdfDataWriter_mod

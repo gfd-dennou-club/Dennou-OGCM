@@ -444,6 +444,8 @@ write(*,*) "* DKEDt=", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyz_dKdt ))
             & origin=real(diagVar_gthsInfo%origin), interval=real(diagVar_gthsInfo%intValue), &
             & history=hst_globalMeanEnergy )  
 
+write(*,*) diagVar_gthsInfo%origin
+
         call HistoryAddVariable( & 
              & varname=BUDGETANAKEY_TEAVG, dims=(/'t'/), &
              & longname='global mean of total energy', units='J*m-3*kg-1', xtype='double',&

@@ -106,6 +106,7 @@ subroutine vtkDataWriter_Regist(writer, &
   type(volVectorField), target, optional :: volVectorFields(:)
   type(pointScalarField), target, optional :: pointScalarFields(:)
 
+
   if(present(volScalarFields)) then
     writer%ref_VScalarFList => volScalarFields
   end if
@@ -177,7 +178,7 @@ subroutine write_GridData(writer)
       end if
     end do
 
-    write(writer%outputNo,'(i0,6i7)') faceLNum, vxIds(1:faceLNum) - 1
+    write(writer%outputNo,'(i0,20i7)') faceLNum, vxIds(1:faceLNum) - 1
   end do
   write(writer%outputNo,*)
 

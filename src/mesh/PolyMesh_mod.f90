@@ -6,7 +6,7 @@ module PolyMesh_mod
   implicit none
   private
 
-  integer, parameter, public :: MAX_FACE_VERTEX_NUM = 6
+  integer, parameter, public :: MAX_FACE_VERTEX_NUM =  20
 
   type, public :: Face
      integer :: vertNum
@@ -14,22 +14,26 @@ module PolyMesh_mod
 
      integer :: ownCellId
      integer :: neighCellId
-
+     logical :: isBoundary
   end type Face
 
-  integer, parameter, public :: MAX_CELL_FACE_NUM = 6
+  integer, parameter, public :: MAX_CELL_FACE_NUM =  20
 
   type, public :: Cell
      integer :: faceNum
      integer :: faceIdList(MAX_CELL_FACE_NUM)
-
   end type Cell
+
+  type, public :: DomainBoundary
+     integer, pointer :: boundaryElemIdList(:) => null()
+  end type DomainBoundary
 
   type, public :: PolyMesh
      type(Face), pointer :: faceList(:) => null()
      type(Cell), pointer :: cellList(:) => null()
      type(Vector3d), pointer :: pointPosList(:) => null()
      type(Vector3d), pointer :: cellPosList(:) => null()
+     type(DomainBoundary), pointer :: boundaryList(:) => null()
      integer :: vlayerNum = 1
   end type PolyMesh
 
@@ -43,12 +47,14 @@ module PolyMesh_mod
     module procedure getFaceVertex2
   end interface getFaceVertex
   
-  public :: Face_Init, Cell_Init
+  public :: Face_Init, Cell_Init, DomainBoundary_Init
+  public :: DomainBoundary_Final
   public :: PolyMesh_Init, PolyMesh_Final
   public :: PolyMesh_dataAlloc
   public :: PolyMesh_SetPoint, PolyMesh_SetFace, PolyMesh_SetCell
   public :: PolyMesh_getConnectivity, PolyMesh_setConnectivity
-  public :: getPointListSize, getFaceListSize, getCellListSize, getVLayerSize
+  public :: PolyMesh_getDomainBoundary, PolyMesh_setDomainBoundary
+  public :: getPointListSize, getFaceListSize, getCellListSize, getVLayerSize, getBoundaryListSize
   public :: getFaceVertex
 
 contains
@@ -71,31 +77,56 @@ subroutine Cell_Init(cell_, faceIds)
 
 end subroutine Cell_Init
 
-subroutine PolyMesh_Init1(mesh, ptNum, faceNum, cellNum, vlayerNum)
+subroutine DomainBoundary_Init(boundary, boundaryElemIds)
+  type(DomainBoundary), intent(inout) :: boundary
+  integer, intent(in) :: boundaryElemIds(:)
+  
+  allocate( boundary%boundaryElemIdList(size(boundaryElemIds)) )
+  boundary%boundaryElemIdList(:) = boundaryElemIds
+
+end subroutine DomainBoundary_Init
+
+subroutine DomainBoundary_Final(boundary)
+  type(DomainBoundary), intent(inout) :: boundary
+
+  if(associated(boundary%boundaryElemIdList)) then
+     deallocate(boundary%boundaryElemIdList)
+     boundary%boundaryElemIdList => null()
+  end if
+
+end subroutine DomainBoundary_Final
+
+subroutine PolyMesh_Init1(mesh, ptNum, faceNum, cellNum, boundaryNum, vlayerNum)
   type(PolyMesh), intent(inout) :: mesh
-  integer, intent(in) :: ptNum, faceNum, cellNum
+  integer, intent(in) :: ptNum, faceNum, cellNum, boundaryNum
   integer, optional, intent(in) :: vlayerNum
 
-  call PolyMesh_dataAlloc(mesh, ptNum, faceNum, cellNum)
+  call PolyMesh_dataAlloc(mesh, ptNum, faceNum, cellNum, boundaryNum)
   if( present(vlayerNum) ) mesh%vlayerNum = vlayerNum
 
 end subroutine PolyMesh_Init1
 
-subroutine PolyMesh_Init2(mesh, pointsPos, cellsPos, faces, cells, vlayerNum)
+subroutine PolyMesh_Init2(mesh, pointsPos, cellsPos, faces, cells, boundarys, vlayerNum)
   type(PolyMesh), intent(inout) :: mesh
   type(Vector3d), intent(in) :: pointsPos(:)
   type(Vector3d), intent(in) :: cellsPos(:)
   type(Face), intent(in) :: faces(:)
   type(Cell), intent(in) :: cells(:)
+  type(DomainBoundary), intent(in) :: boundarys(:)
   integer, optional, intent(in) :: vlayerNum
+  
+  integer :: i
 
-  call PolyMesh_dataAlloc(mesh, size(pointsPos), size(faces), size(cells))
+  call PolyMesh_dataAlloc(mesh, size(pointsPos), size(faces), size(cells), size(boundarys))
 
   mesh%cellList(:) = cells(:)
   mesh%faceList(:) = faces(:)  
   mesh%pointPosList(:) = pointsPos(:)
   mesh%cellPosList(:) = cellsPos(:)
-
+  
+  do i=1, size(boundarys)
+     call PolyMesh_setDomainBoundary(mesh, i, boundarys(i))
+  end do
   if( present(vlayerNum) ) mesh%vlayerNum = vlayerNum
 
 end subroutine PolyMesh_Init2
@@ -120,6 +151,18 @@ pure function getCellListSize(mesh) result(listSize)
 
   listSize = size(mesh%cellList)
 end function getCellListSize
+
+pure function getBoundaryListSize(mesh) result(boundarySize)
+  type(PolyMesh), intent(in) :: mesh
+  integer :: boundarySize
+
+  if(.not. associated(mesh%boundaryList)) then
+     boundarySize = 0
+  else
+     boundarySize = size(mesh%boundaryList)
+  end if
+
+end function getBoundaryListSize
 
 pure function getVLayerSize(mesh) result(vlyrNum)
   type(PolyMesh), intent(in) :: mesh
@@ -163,30 +206,48 @@ function getFaceVertex2(mesh, cellGId, faceLId) result(vxs)
 
 end function getFaceVertex2
 
-subroutine PolyMesh_dataAlloc(mesh, ptNum, faceNum, cellNum)
+function PolyMesh_getDomainBoundary(mesh, boundaryId) result(boundary)
+  type(PolyMesh), intent(in) :: mesh
+  integer, intent(in) :: boundaryId
+  type(DomainBoundary), pointer :: boundary
+
+  boundary => mesh%boundaryList(boundaryId)
+
+end function PolyMesh_getDomainBoundary
+
+subroutine PolyMesh_dataAlloc(mesh, ptNum, faceNum, cellNum, boundaryNum)
   type(PolyMesh), intent(inout) :: mesh
-  integer, intent(in) :: ptNum, faceNum, cellNum
+  integer, intent(in) :: ptNum, faceNum, cellNum, boundaryNum
 
   if(associated(mesh%pointPosList)) deallocate(mesh%pointPosList)
   if(associated(mesh%cellPosList)) deallocate(mesh%cellPosList)
   if(associated(mesh%faceList)) deallocate(mesh%faceList)
   if(associated(mesh%cellList)) deallocate(mesh%cellList)
   if(associated(mesh%cellPosList)) deallocate(mesh%cellPosList)
+  if(associated(mesh%boundaryList)) deallocate(mesh%boundaryList)
 
   allocate( mesh%pointPosList(ptNum) )
   allocate( mesh%cellPosList(cellNum) )
   allocate( mesh%faceList(faceNum) )
   allocate( mesh%cellList(cellNum) )
   allocate( mesh%cellPosList(cellNum) )
-
+  allocate( mesh%boundaryList(boundaryNum) )
+ 
 end subroutine PolyMesh_dataAlloc
 
 subroutine PolyMesh_Final(mesh)
   type(PolyMesh), intent(inout) :: mesh
-
+  integer :: i
   if(associated(mesh%pointPosList)) deallocate(mesh%pointPosList)
   if(associated(mesh%faceList)) deallocate(mesh%faceList)
   if(associated(mesh%cellList)) deallocate(mesh%cellList)
+
+  if(associated(mesh%boundaryList)) then
+     do i=1, getBoundaryListSize(mesh)
+        call DomainBoundary_Final(mesh%boundaryList(i))
+     end do
+     deallocate(mesh%boundaryList)
+  end if
 
 end subroutine PolyMesh_Final
 
@@ -219,6 +280,18 @@ subroutine PolyMesh_setCell(mesh, cellId, cell_, cellPos)
   mesh%cellPosList(cellId) = cellPos
 
 end subroutine PolyMesh_setCell
+
+subroutine PolyMesh_setDomainBoundary( &
+     & mesh, boundaryId, boundary )
+  type(PolyMesh), intent(inout) :: mesh
+  integer, intent(in) :: boundaryId
+  type(DomainBoundary), intent(in) :: boundary
+
+  call DomainBoundary_Final(mesh%boundaryList(boundaryId))
+
+  call DomainBoundary_Init(mesh%boundaryList(boundaryId),  boundary%boundaryElemIdList)
+  
+end subroutine PolyMesh_setDomainBoundary
 
 subroutine PolyMesh_getConnectivity( &
      & mesh, cell_points, cell_faces, face_points, face_links )

@@ -162,7 +162,7 @@ contains
   !! @param [in] Pref   Reference pressure    [bar]
   !! @return potential temperature [degree C]
   !!
-  function EOS_JM95_Temp2PTemp(P0, S0, T0, Pref) result(PTemp)
+  elemental function EOS_JM95_Temp2PTemp(P0, S0, T0, Pref) result(PTemp)
 
     ! 宣言文; Declaration statement
     !
@@ -189,7 +189,7 @@ contains
   !! @param [in] Pref   Reference pressure    [bar]
   !! @return in-situ temperature [degree C]
   !!
-  function EOS_JM95_PTemp2Temp(P0, S0, PTemp, Pref) result(InSituTemp)
+  elemental function EOS_JM95_PTemp2Temp(P0, S0, PTemp, Pref) result(InSituTemp)
     
     ! 宣言文; Declaration statement
     !

@@ -30,6 +30,8 @@ nodist_libDQGModelMath_la_SOURCES = \
 	dotProd_vector3d_mod.f90 \
 	crossProd_mod.f90 \
 	VectorSpace_mod.f90 \
+	LinearMapping_mod.f90 \
 	SphericalCoord_mod.f90 \
+	geometry2D_mod.f90 \
 	geometry_mod.f90 
 

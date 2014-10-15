@@ -18,6 +18,7 @@ LDADD = \
 	$(srcdir)/util/libDOGCMUtil.la \
 	$(srcdir)/setup/libDOGCMSetup.la \
 	$(srcdir)/../../src/io/libDQGModelIO.la \
+	$(srcdir)/../../src/fvm/libDQGModelFVM_HexCGrid.la \
 	$(srcdir)/../../src/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 

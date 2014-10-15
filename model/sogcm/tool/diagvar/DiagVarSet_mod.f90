@@ -45,6 +45,7 @@ module DiagVarSet_mod
   character(*), parameter, public :: DVARKEY_DENSEDD = 'DensEdd'
   character(*), parameter, public :: DVARKEY_MASSSTREAMFUNC = 'MassStreamFunc'
   character(*), parameter, public :: DVARKEY_PTEMP = 'PTemp'
+  character(*), parameter, public :: DVARKEY_TEMP = 'Temp'
   character(*), parameter, public :: DVARKEY_STATICSTABILITY = 'StaticStability'
   
 
@@ -95,6 +96,7 @@ contains
           case (DVARKEY_MASSSTREAMFUNC )
              allocate( yz_MassStreamFunc(jMax, 0:kMax) )
           case (DVARKEY_PTEMP)
+          case (DVARKEY_TEMP)
           case (DVARKEY_STATICSTABILITY)
           case Default
              call MessageNotify('E', module_name, &

@@ -26,6 +26,7 @@ LDADD = \
 	$(srcdir)/setup/libDSOGCMSetup.la \
 	$(srcdir)/util/libDSOGCMUtil.la \
 	$(srcdir)/util/libSpmlUtil.la \
+	$(srcdir)/../../src/fvm/libDQGModelFVM_HexCGrid.la \
 	$(srcdir)/../../src/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 

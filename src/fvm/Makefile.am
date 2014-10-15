@@ -25,10 +25,10 @@ CLEANFILES = *$(MODEXT)
 #IGModel_NHRM_SOURCES = \
 	main.f90
 
-noinst_LTLIBRARIES = libDQGModelFVM.la
-nodist_libDQGModelFVM_la_SOURCES = \
-	fvMeshInfo_mod.f90 \
-	fvCalculus_mod.f90
+lib_LTLIBRARIES = libDQGModelFVM_HexCGrid.la
+libDQGModelFVM_HexCGrid_la_SOURCES = \
+	Hex_C-Grid/fvMeshInfo_mod.f90 \
+	Hex_C-Grid/fvCalculus_mod.f90
 
 
 

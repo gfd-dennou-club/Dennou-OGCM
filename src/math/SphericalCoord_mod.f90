@@ -14,15 +14,26 @@ module SphericalCoord_mod
      module procedure SphToCartVec2
   end interface SphToCartVec
 
+  interface CartToSphVec
+     module procedure CartToSphVec1
+     module procedure CartToSphVec2
+  end interface CartToSphVec
+
   public :: SphToCartPos, CartToSphPos
-  public :: SphToCartVec
+  public :: SphToCartVec, CartToSphVec
   public :: RadToDegUnit, DegToRadUnit
 
-  public :: geodesicArcLength, sphericalTriArea
+  public :: geodesicArcLength, sphericalTriArea, isPtInsideSphericalTri
 
   real(DP), save  :: PI = acos(-1d0)
 
 contains
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Coordinate transformation between Cartesian and spherical coordinates
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 function SphToCartPos1(lambda, phi, r) result(cartPos)
   real(DP), intent(in) :: lambda, phi, r
   type(Vector3d) :: cartPos
@@ -39,7 +50,6 @@ function SphToCartPos2(lonlatVec) result(cartPos)
   cartPos = SphToCartPos1(lonlatVec%v_(1), lonlatVec%v_(2), lonlatVec%v_(3))
 
 end function SphToCartPos2
-
 
 function SphToCartVec1(u, v, w, cartPos) result(cartVec)
   real(DP), intent(in) :: u, v, w
@@ -66,6 +76,36 @@ function SphToCartVec2(sphVec, cartPos) result(cartVec)
 
 end function SphToCartVec2
 
+function CartToSphVec1(v1, v2, v3, cartPos) result(sphVec)
+  real(DP), intent(in) :: v1, v2, v3
+  type(vector3d), intent(in) :: cartPos
+  type(vector3d) :: sphVec
+
+  type(vector3d) :: geoPos
+
+  geoPos = CartToSphPos(cartPos)
+
+  sphVec%v_(3) =   v1*cos(geoPos%v_(2))*cos(geoPos%v_(1)) &
+       &         + v2*cos(geoPos%v_(2))*sin(geoPos%v_(1)) &
+       &         + v3*sin(geoPos%v_(2))
+
+  sphVec%v_(2) = - v1*sin(geoPos%v_(2))*cos(geoPos%v_(1)) &
+       &         - v2*sin(geoPos%v_(2))*sin(geoPos%v_(1)) &
+       &         + v3*cos(geoPos%v_(2))
+
+  sphVec%v_(1) = - v1*sin(geoPos%v_(1)) &
+       &         + v2*cos(geoPos%v_(1))
+end function CartToSphVec1
+
+function CartToSphVec2(cartVec, cartPos) result(sphVec)
+  type(vector3d), intent(in) :: cartVec
+  type(vector3d), intent(in) :: cartPos
+  type(vector3d) :: sphVec
+  
+  sphVec = CartToSphVec1(cartVec%v_(1), cartVec%v_(2), cartVec%v_(3), cartPos)
+
+end function CartToSphVec2
+
 function CartToSphPos(cartPos) result(sphPos)
   type(Vector3d), intent(in) :: cartPos
   type(Vector3d) :: sphPos
@@ -82,6 +122,10 @@ function CartToSphPos(cartPos) result(sphPos)
   end if
 
 end function CartToSphPos
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Utility associated with the geometry on a sphere
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 function geodesicArcLength(p1, p2) result(dist)
   type(Vector3d), intent(in) :: p1, p2
@@ -114,6 +158,27 @@ function sphericalTriArea(p1, p2, p3) result(area)
     & )
   
 end function sphericalTriArea
+
+function isPtInsideSphericalTri(p, p1, p2, p3) result(ret)
+  type(vector3d), intent(in) :: p, p1, p2, p3
+  logical :: ret
+
+  real(DP), parameter :: EPS = 1d-10
+
+  if( abs( &
+         &   sphericalTriArea(p1,p2,p3) &
+         & - sphericalTriArea(p,p1,p2)-sphericalTriArea(p,p2,p3)-sphericalTriArea(p,p3,p1) &
+         & ) > 1d-10 ) then
+     ret = .false.; return
+  end if
+
+  ret = .true.
+end function isPtInsideSphericalTri
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Conversion of the unit between radian and degree. 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 function RadToDegUnit(radPos) result(degPos)
   type(Vector3d), intent(in) :: radPos

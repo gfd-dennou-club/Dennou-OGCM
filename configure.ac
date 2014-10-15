@@ -1,9 +1,9 @@
-#                                               -*- Autoconf -*-
+# -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
 # Package name, version, email address for bug report
-AC_INIT([DQGModel],[1.0.0],[ykawai@gfd-dennou.org])
+AC_INIT([Dennou-OGCM],[1.0.0],[ykawai@gfd-dennou.org])
 
 # Set macro directory
 AC_CONFIG_MACRO_DIR([m4])
@@ -260,7 +260,8 @@ AC_CONFIG_FILES([
 		 test/Makefile
 		 test/unitTests/Makefile
 		 tool/Makefile
-		 model/globalSWModel/Makefile
+		 model/globalSWModel_FVM/Makefile
+		 model/globalSWModel_DG/Makefile
 		 model/ogcm/Makefile
 		 model/ogcm/setup/Makefile
 		 model/ogcm/util/Makefile

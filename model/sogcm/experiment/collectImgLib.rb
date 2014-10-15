@@ -11,7 +11,7 @@ class Figure
     @varName = varName
     @cutpos = cutpos
 
-    @gpviewOpt = "--wsn 2 "
+    @gpviewOpt = "--wsn 4 -sw:lwnd=f"
     @gpviewOpt << " --range #{range}" if range.length != 0
     @gpviewOpt << " --int #{intrv}" if intrv.length != 0
     @gpviewOpt << " #{gpOpts}" if gpOpts.length != 0
@@ -22,7 +22,7 @@ class Figure
   def createFigure(dirPath)
   end
 
-  @@DEFAULT_CONVERT_OPT = "-rotate 90  -trim -density 600x600 -geometry 800x800"
+  @@DEFAULT_CONVERT_OPT = "-trim -delay 20"
 end
 
 
@@ -46,15 +46,15 @@ class AnimFig < Figure
       
       endTimeNum = Math.log10(@animTimeInfo.end).to_i
       timePadd = format("%0#{endTimeNum+1}d", "#{time}".to_i)
-      `mv dcl.ps #{@name}_#{timePadd}.ps`
+      `mv dcl_001.png #{@name}_#{timePadd}.png`
 #p      "mv dcl.ps #{@name}_#{timePadd}.ps"
 
     end
 
     animFigPath = "#{dirPath}#{@name}_#{animTimeInfo.init}-#{@animTimeInfo.end}.#{@figPicExt}"
-    p "convert.. ps => gif animation (options #{@convertOpt})"
-    `convert #{@convertOpt} #{@name}_*.ps #{animFigPath}`
-    `rm #{@name}_*.ps` 
+    p "convert.. png => gif animation (options #{@convertOpt})"
+    `convert #{@convertOpt} #{@name}_*.png #{animFigPath}`
+    `rm #{@name}_*.png` 
   end 
 
 end
@@ -70,8 +70,8 @@ class NoAnimFig < Figure
     p "command: gpview #{@ncFilePath}@#{@varName},#{@cutpos} #{@gpviewOpt}"
     `gpview #{@ncFilePath}@#{@varName},#{@cutpos} #{@gpviewOpt}`
     p "convert.. ps => #{figPicExt} (options #{@convertOpt}"    
-    `convert #{@convertOpt} dcl.ps #{dirPath}#{@name}.#{figPicExt}`
-    `rm dcl.ps`
+    `convert #{@convertOpt} dcl_001.png #{dirPath}#{@name}.#{figPicExt}`
+    `rm dcl_001.png`
   end 
 end
 
@@ -97,8 +97,8 @@ class NoAnimOverplotFig < Figure
     p "command: gpview #{targets} #{@gpviewOpt}"
     `gpview #{targets} #{@gpviewOpt}`
     p "convert.. ps => #{dirPath}#{@name}.#{figPicExt} (options #{@convertOpt})"    
-    `convert #{@convertOpt} dcl.ps #{dirPath}#{@name}.#{figPicExt}`
-    `rm dcl.ps`
+    `convert #{@convertOpt} dcl_001.png #{dirPath}#{@name}.#{figPicExt}`
+    `rm dcl_001.png`
   end 
 end
 

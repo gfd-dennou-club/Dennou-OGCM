@@ -30,7 +30,11 @@ module HexTriIcMesh_mod
      real(DP) :: radius = 1d0
   end type HexTriIcMesh
 
-  
+  interface HexTriIcMesh_generate
+     module procedure HexTriIcMesh_generate_uniformMesh
+     module procedure HexTriIcMesh_generate_nonuniformMesh
+  end interface HexTriIcMesh_generate
+
   public :: HexTriIcMesh_Init, HexTriIcMesh_Final
   public :: HexTriIcMesh_getLocalMesh
   public :: HexTriIcMesh_generate, HexTriIcMesh_ConfigFvMeshInfo
@@ -80,7 +84,29 @@ subroutine HexTriIcMesh_Final(htiMesh, radius)
 
 end subroutine HexTriIcMesh_Final
 
-subroutine HexTriIcMesh_generate(htiMesh, glevel, scvMaxItrNum)
+subroutine HexTriIcMesh_generate_uniformMesh(htiMesh, glevel, scvMaxItrNum, boundarys)
+
+  use SCVoronoiGen_mod, only: ClosedCurve
+
+  type(HexTriIcMesh), intent(inout) :: htiMesh
+  integer, intent(in) :: glevel
+  integer, intent(in), optional :: scvMaxItrNum
+  type(ClosedCurve), intent(inout), optional :: boundarys(:)
+
+  call HexTriIcMesh_generate_nonuniformMesh(htiMesh, glevel, uniform_density, scvMaxItrNum, boundarys)
+
+contains 
+function uniform_density(x) result(density)
+  type(Vector3d), intent(in) :: x
+  real(DP) :: density
+
+  density = 1d0
+end function uniform_density  
+
+end subroutine HexTriIcMesh_generate_uniformMesh
+
+subroutine HexTriIcMesh_generate_nonuniformMesh( &
+     & htiMesh, glevel, density_func, scvMaxItrNum, boundarys )
 
   use SCVoronoiGen_mod
 !  use SVoronoiGen2_mod
@@ -88,19 +114,33 @@ subroutine HexTriIcMesh_generate(htiMesh, glevel, scvMaxItrNum)
   type(HexTriIcMesh), intent(inout) :: htiMesh
   integer, intent(in) :: glevel
   integer, intent(in), optional :: scvMaxItrNum
+  type(ClosedCurve), intent(inout), optional :: boundarys(:)
+
+  interface
+     function density_func(x) result(density)
+       use dc_types, only: DP
+       use VectorSpace_mod, only: Vector3d
+       type(Vector3d), intent(in) :: x
+       real(DP) :: density
+     end function density_func
+  end interface
 
   integer :: i
   integer :: siteNum
   integer :: vertNum
   integer :: maxItrNum
+  integer :: nBoundary
 
   siteNum = 10*4**glevel + 2
   vertNum = 2*siteNum - 4
 
+  nBoundary = 0
+  if(present(boundarys)) nBoundary = size(boundarys)
+
   !
   if( htiMesh%internalGenFlag ) then
      allocate(htiMesh%globalMesh)
-     call PolyMesh_Init(htiMesh%globalMesh, vertNum, siteNum+vertNum-2, siteNum)
+     call PolyMesh_Init(htiMesh%globalMesh, vertNum, siteNum+vertNum-2, siteNum, nBoundary)
      call construct_icosahedralGrid(glevel, htiMesh%globalMesh%cellPosList)
   end if
 
@@ -111,15 +151,29 @@ subroutine HexTriIcMesh_generate(htiMesh, glevel, scvMaxItrNum)
 
   maxItrNum = 1
   if(present(scvMaxItrNum)) maxItrNum = scvMaxItrNum
-  call SCVoroniDiagram_Generate(htiMesh%globalMesh%cellPosList, getInit4IcGridPtId(glevel), maxItrNum)
-  call SCVoronoi_SetTopology(htiMesh%globalMesh)
+
+  if(present(boundarys)) then
+     call SCVoroniDiagram_Generate(htiMesh%globalMesh%cellPosList, getInit4IcGridPtId(glevel), maxItrNum, density_func, &
+          & boundarys) 
+  else
+     call SCVoroniDiagram_Generate(htiMesh%globalMesh%cellPosList, getInit4IcGridPtId(glevel), maxItrNum, density_func )
+  end if
+
+  call MessageNotify('M', module_name, "Set the topology of HexTriIcMesh..")
+
+  if(present(boundarys)) then
+     call SCVoronoi_SetTopology(htiMesh%globalMesh, boundarys)
+  else
+     call SCVoronoi_SetTopology(htiMesh%globalMesh)
+  end if
 
   call SCVoronoiGen_Final()
 
   !
   call projectPosVecIntoSphere(htiMesh)
+  
 
-end subroutine HexTriIcMesh_generate
+end subroutine HexTriIcMesh_generate_nonuniformMesh
 
 function HexTriIcMesh_getLocalMesh(htiMesh, localMeshID) result(localMesh)
   type(HexTriIcMesh), intent(in), target :: htiMesh
@@ -146,7 +200,7 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo, localMeshID)
 
   integer :: cellGId, faceGId, pointGId, faceLId, faceNum
   type(HexTriIcLocalMesh), pointer :: localMesh
-  type(PolyMesh), pointer :: mesh
+  type(PolyMesh), pointer :: mesh => null()
   real(DP) :: areas(6), faceArea
   type(Vector3d) :: faceNormal, edgeVxs(2)
   type(Face), pointer :: face_
@@ -163,8 +217,11 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo, localMeshID)
   call GeometricField_Init( v_cellVolume, mesh, "v_cellVolume")
   call GeometricField_Init( s_faceAreaVec, mesh, "s_faceAreaVec") 
   call GeometricField_Init( s_faceCenter, mesh, "s_faceCenter") 
-  call GeometricField_Init( s_dualMeshFaceArea, mesh, "s_dualMeshFaceArea")
-  call GeometricField_Init( p_dualMeshCellVol, mesh, "p_dualMeshCellVol")
+
+  if(fvInfo%dualMeshFlag) then
+     call GeometricField_Init( s_dualMeshFaceArea, mesh, "s_dualMeshFaceArea")
+     call GeometricField_Init( p_dualMeshCellVol, mesh, "p_dualMeshCellVol")
+  end if
 
   !
 
@@ -197,30 +254,41 @@ subroutine HexTriIcMesh_configfvMeshInfo(htiMesh, fvInfo, localMeshID)
      s_faceAreaVec%data%v_(1,faceGId) =  faceArea * faceNormal
 
 
-
-     s_dualMeshFaceArea%data%v_(1,faceGId) = &
-          & geodesicArcLength(mesh%cellPosList(face_%ownCellId), mesh%cellPosList(face_%neighCellId))
+     if(fvInfo%dualMeshFlag) then
+        s_dualMeshFaceArea%data%v_(1,faceGId) = &
+             & geodesicArcLength(mesh%cellPosList(face_%ownCellId), mesh%cellPosList(face_%neighCellId))
+     end if
   end do
 
-  do pointGId=1, getPointListSize(mesh)
-     do faceLId=1, 3
-        cellIds(:) = fvInfo%Face_CellId(1:2, fvInfo%Point_FaceId(faceLId,pointGId))
-        areas(faceLId) = sphericalTriArea( mesh%pointPosList(pointGId), mesh%cellPosList(cellIds(1)), mesh%cellPosList(cellIds(2)) )
+  if(fvInfo%dualMeshFlag) then
+     do pointGId=1, getPointListSize(mesh)
+        do faceLId=1, 3
+           cellIds(:) = fvInfo%Face_CellId(1:2, fvInfo%Point_FaceId(faceLId,pointGId))
+           areas(faceLId) = &
+                & sphericalTriArea( mesh%pointPosList(pointGId), mesh%cellPosList(cellIds(1)), mesh%cellPosList(cellIds(2)) )
+        end do
+        p_dualMeshCellVol%data%v_(1,pointGId) = sum(areas(1:3))
      end do
-     p_dualMeshCellVol%data%v_(1,pointGId) = sum(areas(1:3))
-  end do
+  end if
 
   !
-  call fvMeshInfo_prepair(fvInfo, &
-       & v_cellVolume, s_faceAreaVec, s_faceCenter, &
-       & s_dualMeshFaceArea, p_dualMeshCellVol)
 
   !
+  if(fvInfo%dualMeshFlag) then
+     call fvMeshInfo_prepair(fvInfo, &
+          & v_cellVolume, s_faceAreaVec, s_faceCenter, &
+          & s_dualMeshFaceArea, p_dualMeshCellVol)
+
+     call GeometricField_Final(s_dualMeshFaceArea)
+     call GeometricField_Final(p_dualMeshCellVol)
+  else
+     call fvMeshInfo_prepair(fvInfo, &
+          & v_cellVolume, s_faceAreaVec, s_faceCenter )
+  end if
+
   call GeometricField_Final(v_cellVolume)
   call GeometricField_Final(s_faceAreaVec)
   call GeometricField_Final(s_faceCenter)
-  call GeometricField_Final(s_dualMeshFaceArea)
-  call GeometricField_Final(p_dualMeshCellVol)
 
 end subroutine Hextriicmesh_configfvMeshInfo
 
@@ -262,6 +330,9 @@ function getInit4IcGridPtId(glevel) result(iniPtsId4)
 end function getInit4IcGridPtId
 
 subroutine construct_icosahedralGrid(glevel, pts)
+
+  use LinearMapping_mod, only: rotateZ
+
   integer, intent(in) :: glevel
   type(Vector3d), intent(inout), pointer :: pts(:)
 
@@ -289,7 +360,7 @@ subroutine construct_icosahedralGrid(glevel, pts)
   icpts(1,lcEnd, 6) = icLv0Vx(8)
   icpts(lcEnd,lcEnd, 6) = icLv0Vx(12)
 
-   call split_LCRCSubLCRC(1,lCEnd, 1, lcEnd, icpts(:,:,1))
+  call split_LCRCSubLCRC(1,lCEnd, 1, lcEnd, icpts(:,:,1))
   call split_LCRCSubLCRC(1,lCEnd, 1, lcEnd, icpts(:,:,6))
   do j=1, lcEnd
     do i=1, lcEnd
@@ -326,15 +397,6 @@ subroutine construct_icosahedralGrid(glevel, pts)
   end do
 
 contains
-function rotateZ(vec, angle) result(rotVec)
-  type(Vector3d), intent(in) :: vec
-  real(DP), intent(in) :: angle
-  type(Vector3d) :: rotVec
-
-  rotVec%v_(1) = cos(angle)*vec%v_(1) - sin(angle)*vec%v_(2)
-  rotVec%v_(2) = sin(angle)*vec%v_(1) + cos(angle)*vec%v_(2)
-  rotVec%v_(3) = vec%v_(3)
-end function rotateZ
 
 recursive subroutine split_LCRCSubLCRC(i1, i2, j1, j2, icpts)
   integer, intent(in) :: i1, i2, j1, j2

@@ -123,6 +123,7 @@ contains
     ! 実行文; Executable statement
     !
 
+    CurrentTimeSec = -1d0
     EndTimeSec = -1d0
 
     call OptionParser_Init()
@@ -292,7 +293,7 @@ contains
     
     ogcmConfigNml = 'config.nml'
     EndTime = -1d0
-    StartTime = 0d0
+    StartTime = -1d0
     TimeUnit = 'day'
 
     Name = ''
@@ -348,10 +349,13 @@ contains
     SpectralTypes = Replace(SpectralTypes, " ", "")
     call Split(trim(SpectralTypes), SpectralTypesName, ",")
 
+    if (StartTime >= 0d0 .and. EndTime > 0d0 ) then
+       CurrentTimeSec = DCCalConvertByUnit(StartTime, TimeUnit, "sec")
+       EndTimeSec = DCCalConvertByUnit(EndTime, TimeUnit, "sec")
+       diagVar_gthsInfo%origin = StartTime
+    end if
 
-    CurrentTimeSec = DCCalConvertByUnit(StartTime, TimeUnit, "sec")
     TimeIntSec = DCCalConvertByUnit(diagVar_gthsInfo%intValue, diagVar_gthsInfo%intUnit, 'sec')
-    if ( EndTime >= 0d0 ) EndTimeSec = DCCalConvertByUnit(EndTime, TimeUnit, "sec")
 
     ! 印字 ; Print
     !
@@ -444,14 +448,15 @@ contains
          &                                     FilePrefix=FilePrefix, Name=Name, origin=0d0 )
 
 
-    if(EndTimeSec < 0d0 ) then
+    ! If varibles for current time or end time is not still set, 
+    ! they are determined by the information of output time contained in output netCDF file. 
+    if(CurrentTimeSec < 0d0 .and. EndTimeSec < 0d0 ) then
        call HistoryGetPointer( &
             & trim(ogcm_gthsInfo%FilePrefix) // trim(ogcmOutputVarsName(1)) // '.nc', &
             & 't', ogcm_outputTime)
        write(*,*) 'outputTime', size(ogcm_outputTime), ogcm_outputTime
 
-       ogcm_gthsInfo%origin = ogcm_outputTime(1)
-       diagVar_gthsInfo%origin = ogcm_outputTime(1)
+       diagVar_gthsInfo%origin = DCCalConvertByUnit(ogcm_outputTime(1), ogcm_gthsInfo%intUnit, diagVar_gthsInfo%intUnit)
        CurrentTimeSec = DCCalConvertByUnit(ogcm_outputTime(1), ogcm_gthsInfo%intUnit, "sec")
        EndTimeSec = DCCalConvertByUnit(ogcm_outputTime(size(ogcm_outputTime)), ogcm_gthsInfo%intUnit, "sec")
     end if
@@ -567,6 +572,9 @@ contains
           case (DVARKEY_PTEMP)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PTEMP, &
                   & var3D=xyz_PTemp )                
+          case (DVARKEY_TEMP)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_TEMP, &
+                  & var3D=eval_Temp(xyz_PTemp, xyz_SaltN, xy_totDepth) )
        end select
     end do
 

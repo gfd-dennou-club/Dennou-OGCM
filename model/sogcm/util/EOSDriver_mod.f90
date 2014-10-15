@@ -14,15 +14,15 @@ module EOSDriver_mod
 
   use EOS_Linear_mod, only: &
        & EOSTYPE_LINEAR, EOS_Linear_Init, EOS_Linear_Final, &
-       & EOS_Linear_Eval
+       & EOS_Linear_Eval, EOS_Linear_PTemp2Temp
 
   use EOS_SimpleNonLinear_mod, only: &
        & EOSTYPE_SIMPLENONLINEAR, EOS_SimpleNonLinear_Init, EOS_SimpleNonLinear_Final, &
-       & EOS_SimpleNonLinear_Eval
+       & EOS_SimpleNonLinear_Eval, EOS_SimpleNonLinear_PTemp2Temp
 
   use EOS_JM95_mod, only: &
        & EOSTYPE_JM95, EOS_JM95_Init, EOS_JM95_Final, &
-       & EOS_JM95_Eval
+       & EOS_JM95_Eval, EOS_JM95_PTemp2Temp
 
   use Constants_mod 
 
@@ -43,8 +43,13 @@ module EOSDriver_mod
      module procedure EOSDriver_Eval_array3d
   end interface EOSDriver_Eval
 
+  interface EOSDriver_PTemp2Temp
+     module procedure EOSDriver_PTemp2Temp_array3d
+  end interface EOSDriver_PTemp2Temp
+
   public :: EOSDriver_Init, EOSDriver_Final
   public :: EOSDriver_Eval
+  public :: EOSDriver_PTemp2Temp
 
   ! 非公開手続き
   ! Private procedure
@@ -168,6 +173,42 @@ contains
     end select
 
   end subroutine EOSDriver_Eval_array3d
+
+  !> @brief 
+  !!
+  !!
+  subroutine EOSDriver_PTemp2Temp_array3d(InSituTemp, theta, S, p)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(out) :: InSituTemp
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) ::  theta, S, p
+    
+    
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+
+    select case(EOSType)
+    case(EOSTYPE_LINEAR)
+
+       !$omp parallel workshare
+       InSituTemp = EOS_Linear_PTemp2Temp(p, S, theta, 0d0)
+       !$omp end parallel workshare
+
+    case(EOSTYPE_JM95)
+
+       !$omp parallel workshare
+       InSituTemp = EOS_JM95_PTemp2Temp(p, S, theta, 0d0)
+       !$omp end parallel workshare
+
+    end select
+    
+  end subroutine EOSDriver_PTemp2Temp_array3d
 
 end module EOSDriver_mod
 

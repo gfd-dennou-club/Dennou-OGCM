@@ -41,7 +41,7 @@ module DiagVarEval_mod
 
   public :: eval_Vor, eval_Div, eval_StreamPot
   public :: eval_MassStreamFunc
-  public :: eval_PressEdd, eval_DensEdd
+  public :: eval_PressEdd, eval_DensEdd, eval_Temp
   public :: eval_StaticStability
 
   public :: eval_potentialEnergyAvg, eval_kineticEnergyAvg
@@ -183,6 +183,33 @@ contains
          & theta=xyz_PTemp, S=xyz_Salt, p=-RefDens*Diagnose_GeoPot(xy_totDepth) )  !(in)
 
   end function eval_DensEdd
+
+  !> @brief 
+  !!
+  !! @return 
+  !!
+  function eval_Temp(xyz_PTemp, xyz_Salt, xy_totDepth) result(xyz_Temp)
+    
+    use EOSDriver_mod, only: EOSDriver_PTemp2Temp
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    real(DP) :: xyz_Temp(0:iMax-1,jMax,0:kMax)
+
+    ! 局所変数
+    ! Local variables
+    !
+    
+    
+    ! 実行文; Executable statement
+    !
+    call EOSDriver_PTemp2Temp( InSituTemp=xyz_Temp, &           !(out)
+         & theta=xyz_PTemp, S=xyz_Salt, p=-RefDens*Diagnose_GeoPot(xy_totDepth) )  !(in)
+
+  end function eval_Temp
 
   !> @brief 
   !!

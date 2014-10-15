@@ -137,6 +137,10 @@ contains
          varname=DVARKEY_PTEMP, dims=(/'lon','lat','sig','t  '/), & 
          longname='potential temperature', units='K')
 
+    call HistoryAutoAddVariable( &
+         varname=DVARKEY_TEMP, dims=(/'lon','lat','sig','t  '/), & 
+         longname='temperature', units='K')
+
     call HistoryAutoAllVarFix()
 
   end subroutine DiagVarFileSet_Init

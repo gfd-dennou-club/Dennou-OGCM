@@ -73,6 +73,7 @@ contains
     character(STRING) :: gridFilePath
     integer :: meshID
     type(HexTriIcLocalMesh), pointer :: localMesh
+    type(DomainBoundary) :: dummyBoundaryList(1)
 
     ! 実行文; Executable statement
     !
@@ -92,7 +93,7 @@ contains
        localMesh => HexTriIcMesh_getLocalMesh(htiMesh, meshID)
        localMesh%localMeshId = meshId 
        call PolyMesh_Init(localMesh%mesh, &
-            & globalMesh%pointPosList, globalMesh%cellPosList, globalMesh%faceList, globalMesh%cellList, nVzLyr)
+            & globalMesh%pointPosList, globalMesh%cellPosList, globalMesh%faceList, globalMesh%cellList, dummyBoundaryList, nVzLyr)
     end do
 
     ! Initialize some modules for finite volume method
@@ -256,7 +257,8 @@ contains
     call netcdfDataReader_Final(ncReader)
 
     call PolyMesh_Init(globalMesh, &
-         & readPlMesh%pointPosList, readPlMesh%cellPosList, readPlMesh%faceList, readPlMesh%cellList, nVzLyr)
+         & readPlMesh%pointPosList, readPlMesh%cellPosList, readPlMesh%faceList, &
+         & readPlMesh%cellList, readPlMesh%boundaryList, nVzLyr)
 
     call PolyMesh_Final(readPlMesh)
 

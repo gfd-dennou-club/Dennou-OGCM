@@ -62,7 +62,7 @@ contains
   !! @param [in] p pressure [dbar]
   !! @return adiabatic lapse rate[degree C/dbar]
   !!
-  function SeaWaterProp_FM83_AdLapseRate(S, t, p) result(adLapseRate)
+  elemental function SeaWaterProp_FM83_AdLapseRate(S, t, p) result(adLapseRate)
     
     ! 宣言文; Declaration statement
     !
@@ -111,7 +111,7 @@ contains
   !! @param [in] Pref reference pressure [dbar]
   !! @return potential tempatature [degree C/dbar]
   !!
-  function SeaWaterProp_FM83_Temp2PTemp(P0, T0, S0, Pref) result(ptemp)
+  elemental function SeaWaterProp_FM83_Temp2PTemp(P0, T0, S0, Pref) result(ptemp)
     
     ! 宣言文; Declaration statement
     !
@@ -165,7 +165,7 @@ contains
   !! @param [in] p pressure [dbar]
   !! @return heat capacity [degree C/dbar]
   !!
-  function SeaWaterProp_FM83_HeatCapacity(S, t, p) result(cp)
+  elemental function SeaWaterProp_FM83_HeatCapacity(S, t, p) result(cp)
     
     ! 宣言文; Declaration statement
     !
@@ -190,7 +190,7 @@ contains
     end if
  
    contains
-      real(DP) function cp_S_t_0()
+      elemental real(DP) function cp_S_t_0()
 
         real(DP), parameter :: c0 =   4217.4d00, &
              &                 c1 = - 3.720283d00, &
@@ -210,7 +210,7 @@ contains
         
       end function cp_S_t_0
 
-      real(DP) function del1_cp_0_t_p()
+      elemental real(DP) function del1_cp_0_t_p()
         real(DP), parameter :: &
              & a0 = - 4.9592d-1,  &
              & a1 =   1.45747d-2, &
@@ -237,7 +237,7 @@ contains
 
       end function del1_cp_0_t_p
 
-      real(DP) function del2_cp_S_t_p()
+      elemental real(DP) function del2_cp_S_t_p()
         real(DP), parameter :: &
              &  d0 =   4.9247d-3, &
              &  d1 = - 1.28315d-4, &

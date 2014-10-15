@@ -110,7 +110,15 @@ module netcdfDataHelper_mod
      integer :: start_index = 1
      integer :: varId
   end type Mesh_connectivity_element
-  
+
+  type, public :: Mesh_domainBoundary_element
+     type(Mesh_dim_element), pointer :: boundary_element => null()
+     character(TOKEN) :: element_name
+     character(TOKEN) :: long_name
+     integer :: domainBoundaryId
+     integer :: varId
+  end type Mesh_domainBoundary_element
+
   !> \~japanese
   !! \brief Mesh2 のノード, 面, エッジ, 面のリンクに関する情報を管理する構造体.
   !! \~english
@@ -133,7 +141,6 @@ module netcdfDataHelper_mod
     type(Mesh_dim_element) :: Two
     type(Mesh_dim_element) :: Max_face_nodes
 
-
     !> \~japanese
     !! \~english
     type(Mesh_connectivity_element) :: face_links
@@ -151,6 +158,7 @@ module netcdfDataHelper_mod
     type(Mesh_connectivity_element) :: edge_nodes
 
 
+    
     !> \~japanese Mesh2 の座標要素 node_x(次元要素が node である経度方向の座標)を表す構造型 Mesh_coord_element の変数.
     !! \~english
     type(Mesh_coord_element) :: node_x
@@ -170,7 +178,12 @@ module netcdfDataHelper_mod
     !> \~japanese
     !! \~english
     type(Mesh_dim_element) :: layers
-    
+
+    !
+    type(Mesh_dim_element) :: domainBoundarySet
+    type(Mesh_dim_element), pointer :: boundaryPts(:) => null()
+    type(Mesh_domainBoundary_element), pointer :: domain_boundary(:) => null()
+
   end type Mesh2_ncInfo
 
   !> \~japanese
@@ -235,7 +248,7 @@ module netcdfDataHelper_mod
   ! Public procedure
   !
   public :: Mesh_coord_element_Init, Mesh_connectiviy_element_Init
-  public :: Mesh2_ncInfo_Init
+  public :: Mesh2_ncInfo_Init, Mesh2_ncStaticInfo_Init
   public :: check_nf90_status
 
   !public :: Mesh3_ncInfo_Init
@@ -321,32 +334,29 @@ subroutine Mesh_connectiviy_element_Init( &
 
 end subroutine Mesh_connectiviy_element_Init
 
-!
-!> \~japanese
-!! \brief NetCDF の読み書きの際に, 球面上の水平方向の非構造格子データを管理する構造型 Mesh2_ncInfo の変数を初期化する.
-!!
-!! @param[in,out] self 構造型 Mesh2_ncInfo の変数.
-!! @param[in,out] icgrid 正二十面格子データを管理する構造型 FVM_IcGrid の変数.
-!!
-!! \~english
-!! \brief Initializes the variable of derived type Mesh2_ncInfo which manages the data of unsructured grid horizontally distributed on a sphere
-!! when the data is written to or read from NetCDF file.
-!!
-!! @param[in,out] self The variable of derived type Mesh2_ncInfo.
-!! @param[in,out] icgrid The variable of derived type FVM_IcGrid which manges icosahedral grid data.
-!!
-subroutine Mesh2_ncInfo_Init( &
-  & self, mesh &  ! (inout)
-  & )
-  
-  ! モジュール引用 ; Use statements
-  !
-  
+subroutine Mesh_domainBoundary_element_Init( self, &
+     & dimension_element, domainBoundaryId, element_name, long_name &
+     & )
+
+  type(Mesh_domainBoundary_element), intent(inout) :: self
+  type(Mesh_dim_element), intent(in), target :: dimension_element
+  integer, intent(in) :: domainBoundaryId
+  character(*), intent(in) :: element_name
+  character(*), intent(in) :: long_name
+
+     self%boundary_element => dimension_element
+     self%domainBoundaryId = domainBoundaryId
+     self%element_name = element_name
+     self%long_name = long_name
+
+end subroutine Mesh_domainBoundary_element_Init
+
+subroutine Mesh2_ncStaticInfo_Init( &
+     & self )
 
   ! 宣言文 ; Declaration statements
   !
   type(Mesh2_ncInfo), intent(inout) :: self
-  type(PolyMesh), intent(in) :: mesh
 
   ! 作業変数
   ! Work variables
@@ -359,22 +369,14 @@ subroutine Mesh2_ncInfo_Init( &
   ! 実行文 ; Executable statement
   !
 
-  !
-
-  !
   self%node%element_name = 'nMesh2_point'
-  self%node%num = getPointListSize(mesh)
   self%face%element_name = 'nMesh2_cell '
-  self%face%num = getCellListSize(mesh)
   self%edge%element_name = 'nMesh2_face '
-  self%edge%num = getFaceListSize(mesh)
   self%layers%element_name = 'Mesh2_layers '
-  self%layers%num = getVLayerSize(mesh)
-  self%Two%element_name = 'Two'
-  self%Two%num = 2
+  self%Two%element_name = 'Two';  self%Two%num = 2
+  self%domainBoundarySet%element_name = 'nMesh2_domainBoundary'
   self%Max_face_nodes%element_name = 'nMaxMesh2_face_nodes'
-  self%Max_face_nodes%num = 6
-
+  self%Max_face_nodes%num = MAX_CELL_FACE_NUM
 
   call Mesh_connectiviy_element_Init( &
        & self%face_nodes,                             &  ! (inout)
@@ -407,7 +409,6 @@ subroutine Mesh2_ncInfo_Init( &
        & element_name="Mesh2_face_links", cf_role="face_links_connectivity", &
        & long_name="Maps every edge to the two face that it connects.", start_id=1 & 
        & )
-
 
   ! Mesh2_node_x の初期化
   call Mesh_coord_element_Init( &
@@ -450,6 +451,72 @@ subroutine Mesh2_ncInfo_Init( &
     & element_name='Mesh2_edge_y', standard_name=LAT, &
     & long_name='Latiude of 2D mesh edge', units=LAT_UNITS &
     & )
+
+end subroutine Mesh2_ncStaticInfo_Init
+
+!
+!> \~japanese
+!! \brief NetCDF の読み書きの際に, 球面上の水平方向の非構造格子データを管理する構造型 Mesh2_ncInfo の変数を初期化する.
+!!
+!! @param[in,out] self 構造型 Mesh2_ncInfo の変数.
+!! @param[in,out] icgrid 正二十面格子データを管理する構造型 FVM_IcGrid の変数.
+!!
+!! \~english
+!! \brief Initializes the variable of derived type Mesh2_ncInfo which manages the data of unsructured grid horizontally distributed on a sphere
+!! when the data is written to or read from NetCDF file.
+!!
+!! @param[in,out] self The variable of derived type Mesh2_ncInfo.
+!! @param[in,out] icgrid The variable of derived type FVM_IcGrid which manges icosahedral grid data.
+!!
+subroutine Mesh2_ncInfo_Init( &
+  & self, mesh &  ! (inout)
+  & )
+  
+  ! モジュール引用 ; Use statements
+  !
+  use dc_string, only: CPrintf
+
+  ! 宣言文 ; Declaration statements
+  !
+  type(Mesh2_ncInfo), intent(inout) :: self
+  type(PolyMesh), intent(in) :: mesh
+
+  ! 作業変数
+  ! Work variables
+  !
+  integer :: i
+  character(TOKEN) :: boundaryName
+
+  ! 実行文 ; Executable statement
+  !
+
+  !
+
+  !
+  call Mesh2_ncStaticInfo_Init(self)
+
+  self%node%num = getPointListSize(mesh)
+  self%face%num = getCellListSize(mesh)
+  self%edge%num = getFaceListSize(mesh)
+  self%layers%num = getVLayerSize(mesh)
+  self%domainBoundarySet%num = getBoundaryListSize(mesh)
+
+  !
+  allocate( self%domain_boundary(getBoundaryListSize(mesh)),  &
+       &    self%boundaryPts(getBoundaryListSize(mesh)) )
+
+  do i=1, getBoundaryListSize(mesh)
+
+     boundaryName = CPrintf('domain_boundary%d', i=(/i/))
+     self%boundaryPts(i)%element_name = 'nMesh2_' // boundaryName
+     self%boundaryPts(i)%num = size(mesh%boundaryList(i)%boundaryElemIdList)
+
+     call Mesh_domainBoundary_element_Init( &
+          & self%domain_boundary(i), &
+          & dimension_element=self%boundaryPts(i), domainBoundaryId=i, &
+          & element_name=trim(boundaryName), long_name=trim(boundaryName) ) 
+  end do
+
 
 end subroutine Mesh2_ncInfo_Init
 

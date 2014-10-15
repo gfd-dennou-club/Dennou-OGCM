@@ -9,6 +9,7 @@ module netcdfDataReader_mod
   use gtool_history
   
   use GeometricField_mod
+  use netcdf
 
   implicit none
   private
@@ -31,16 +32,21 @@ module netcdfDataReader_mod
 
 
 contains
-subroutine netcdfDataReader_Init(reader, fileName, mesh)
+subroutine netcdfDataReader_Init(reader, fileName, mesh, isLoadMeshData)
   type(netcdfDataReader), intent(inout) ::reader
   character(*), intent(in) :: fileName
   type(PolyMesh), intent(in), target :: mesh
+  logical, intent(in), optional :: isLoadMeshData
+
+  logical :: loadMeshFlag
 
   reader%mesh => mesh
   reader%filePath = fileName
-  call Mesh2_ncInfo_Init(reader%mesh2Info, reader%mesh)
-  
-  call read_meshData(reader)
+  loadMeshFlag = .true.
+  if(present(isLoadMeshData)) loadMeshFlag = isLoadMeshData
+
+  call Mesh2_ncStaticInfo_Init(reader%mesh2Info)
+  if(loadMeshFlag) call read_meshData(reader)
 
 end subroutine netcdfDataReader_Init
 
@@ -78,7 +84,9 @@ end subroutine netcdfDataReader_Final
 !
 !
 subroutine read_meshData(reader)
+
   use SphericalCoord_mod
+  use dc_string, only: CPrintf
 
   type(netcdfDataReader), intent(inout), target :: reader
 
@@ -88,7 +96,7 @@ subroutine read_meshData(reader)
   real(DP), pointer :: plon(:) => null()
   real(DP), pointer :: plat(:) => null()
 
-  integer :: cellNum, ptNum, faceNum, i
+  integer :: cellNum, ptNum, faceNum, boundaryNum, i
   type(Cell) :: tmpCell
   type(Vector3d) :: cellPos, ptPos
   type(Vector3d) :: latlon
@@ -97,7 +105,10 @@ subroutine read_meshData(reader)
   integer, pointer :: cell_faces(:,:) => null()
   integer, pointer :: face_points(:,:) => null()
   integer, pointer :: face_links(:,:) => null()
-
+  integer :: ncId, dimId, status
+  character(TOKEN) :: boundaryName
+  type(DomainBoundary) :: boundary
+  integer, pointer :: boundaryElemIds(:) => null()
 
   meshInfo => reader%mesh2Info
 
@@ -115,8 +126,23 @@ subroutine read_meshData(reader)
   cellNum = size(vlon)
   ptNum = size(plon)
   faceNum = size(face_points, 2)
-  
-  call PolyMesh_Init(reader%mesh, ptNum, faceNum, cellNum)
+
+  ! Get the number of the DomainBoundarySet. 
+  call check_nf90_status( &
+       & nf90_open(reader%filePath, nf90_nowrite, ncId), &
+       & message="Read ncfile.." )
+  if (nf90_inq_dimid(ncId, meshInfo%DomainBoundarySet%element_name, dimId) == nf90_noerr) then
+     call check_nf90_status( &
+          & nf90_inquire_dimension(ncId, dimId, len=boundaryNum) &
+          & )
+  else
+     boundaryNum = 0
+  end if
+
+  !
+  call PolyMesh_Init(reader%mesh, ptNum, faceNum, cellNum, boundaryNum)
+
+  !
   do i=1, cellNum
      latlon = (/ vlon(i), vlat(i), 1d0 /)
      cellPos = SphToCartPos(DegToRadUnit(latlon))
@@ -130,9 +156,19 @@ subroutine read_meshData(reader)
      call PolyMesh_SetPoint(reader%mesh, i, ptPos)
   end do 
 
-
   call PolyMesh_setConnectivity(reader%mesh, cell_points, cell_faces, face_points, face_links)
 
+  !
+  do i=1, boundaryNum
+     boundaryName = CPrintf("domain_boundary%d", i=(/i/))
+     call HistoryGetPointer(reader%filePath, trim(boundaryName), boundaryElemIds)
+     call DomainBoundary_Init(boundary, boundaryElemIds)
+     call PolyMesh_setDomainBoundary(reader%mesh, i, boundary)
+     call DomainBoundary_Final(boundary)
+  end do
+
+
+  !
   deallocate(vlon, vlat)
   deallocate(plon, plat)
   deallocate(cell_faces, cell_points, face_points, face_links)

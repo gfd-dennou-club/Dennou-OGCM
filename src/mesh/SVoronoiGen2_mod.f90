@@ -1,6 +1,9 @@
 module SVoronoiGen2_mod
 
   use dc_types
+  use dc_message, only: &
+       & MessageNotify
+
   use VectorSpace_mod
   use SphericalCoord_mod
   use PolyMesh_mod
@@ -27,8 +30,12 @@ module SVoronoiGen2_mod
 
   public :: SVoronoi2Gen_Init, SVoronoi2Gen_Final
   public :: SVoronoi2DiagramGen
-  public :: SVoronoi2_SetTopology, GetVrRegionPoints
   
+  public :: SVoronoi2_SetTopology, GetVrRegionPoints
+  public :: search_VrRegionContainedPt
+
+  character(*), parameter :: module_name = "SVoronoiGen2_mod"
+
 contains
 subroutine SVoronoi2Gen_Init(generatorsNum)
   integer, intent(in) :: generatorsNum
@@ -68,7 +75,6 @@ subroutine SVoronoi2DiagramGen(pts, ini4ptsIds_)
   call SVoronoiGen_prepair( pts, ini4ptsIds )  
   isAddedSite(ini4ptsIds(:)) = .true.
 !!$  call print_graph()
-
 
   !
   write(*,*) "* create voronoi mesh using increment method.."
@@ -126,6 +132,7 @@ subroutine GetVrRegionPoints(siteId, vrVxs)
   vrVxs(:) = vrVxPos(vrRegionList(siteId)%vertIds)
 
 end subroutine GetVrRegionPoints
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -362,6 +369,10 @@ subroutine construct_newVoronoiRegion( newSiteId, bVxIdList, bVxFlag, pts )
 end subroutine construct_newVoronoiRegion
 
 subroutine SVoronoi2_setTopology(mesh)
+  use PolyMesh_mod, only: &
+       & PolyMesh, &
+       & MAX_FACE_VERTEX_NUM, MAX_CELL_FACE_NUM
+
   type(PolyMesh), intent(inout) :: mesh
   
   integer :: vrVxId, siteId
@@ -378,7 +389,11 @@ subroutine SVoronoi2_setTopology(mesh)
   do siteId=1, siteNum
 
      lvrVxNum = size(vrRegionList(siteId)%vertIds(:))
-     if(lvrVxNum > 6) stop
+     if(lvrVxNum > MAX_CELL_FACE_NUM) then
+        write(*,*) "SiteId=", siteId, ", lvrVxNum=", lvrVxNum 
+        call MessageNotify('E', module_name, "Occure an exception in setting the topology.")
+        stop
+     end if
 
      mesh%CellList(siteId)%faceNum = lvrVxNum
 
@@ -444,23 +459,13 @@ function searchNeighVorVxId(newSiteId, pts) result(vrVxId)
   real(DP), allocatable :: vs_distList(:)
   type(Vector3d) :: newSitePos
   integer :: i, neighSiteId(1), neighSiteId_(1), minLocId(1)
-  integer :: lvrVxNum, nextId
-  logical :: checkedFlag(siteNum)
-  integer :: vrVxId_, currentSiteId
+  integer :: lvrVxNum, nextId, startSiteId
 
   newSitePos = pts(newSiteId)
+  startSiteId = newSiteId - 1
+  if(newSiteId == 1) startSiteId = vrVxVrRCG(1,1)
 
-  checkedFlag = .false.
-  currentSiteId = newSiteId - 1
-  if(newSiteId == 1) currentSiteId = vrVxVrRCG(1,1)
-
-  do while(.true.)
-     neighSiteId(1) = moveNearVrRegion(currentSiteId)
-     if(neighSiteId(1) == currentSiteId .or. checkedFlag(neighSiteId(1)) ) exit
-
-     currentSiteId = neighSiteId(1)
-  end do
-
+  neighSiteId(1) = search_VrRegionContainedPt(newSitePos, pts, startSiteId)
 
   lvrVxNum = size(vrRegionList(neighSiteId(1))%vertIds)
   allocate(vs_distList(lvrVxNum))
@@ -474,6 +479,25 @@ function searchNeighVorVxId(newSiteId, pts) result(vrVxId)
   minLocId = minLoc(vs_distList)
   vrVxId = vrRegionList(neighSiteId(1))%vertIds(minLocId(1))
 
+end function searchNeighVorVxId
+
+function search_VrRegionContainedPt(newSitePos, pts, startSiteId) result(neighSiteId)
+  type(vector3d), intent(in) :: newSitePos
+  type(vector3d), intent(in) :: pts(:)
+  integer, intent(in) :: startSiteId
+  integer :: neighSiteId
+
+  logical :: checkedFlag(siteNum)
+  integer :: currentSiteId
+
+  checkedFlag = .false.
+  currentSiteId = startSiteId
+  do while(.true.)
+     neighSiteId = moveNearVrRegion(currentSiteId)
+     if(neighSiteId == currentSiteId .or. checkedFlag(neighSiteId) ) exit
+
+     currentSiteId = neighSiteId
+  end do
 
 contains
 function moveNearVrRegion(siteId) result(nextSiteId)
@@ -506,7 +530,8 @@ function moveNearVrRegion(siteId) result(nextSiteId)
 
 end function moveNearVrRegion
 
-end function searchNeighVorVxId
+end function search_VrRegionContainedPt
+
 
 subroutine complete_VrRCVrVxGTree(siteId, startVrVxId)
   integer, intent(in) :: siteId
@@ -563,11 +588,11 @@ end subroutine print_graph
 !
 !
 function calcCircumCircCenter(pts) result(centerPt)
+
   type(Vector3d), intent(in) :: pts(3)
   type(Vector3d) :: centerPt
 
   centerPt = normalizedVec( (pts(2) - pts(1)).cross.(pts(3) - pts(1)) ) 
-
 end function calcCircumCircCenter
 
 subroutine swap(i1, i2)

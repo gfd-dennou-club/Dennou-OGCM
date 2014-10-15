@@ -1,7 +1,8 @@
 SUBDIRS = src \
 	test \
 	tool \
-	model/globalSWModel \
+	model/globalSWModel_FVM \
+	model/globalSWModel_DG \
 	model/ogcm \
 	model/sogcm
 

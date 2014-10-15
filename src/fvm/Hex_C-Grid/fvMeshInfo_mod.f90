@@ -133,7 +133,7 @@ end subroutine fvMeshInfo_Final
 subroutine set_ConectivityInfo(fvm)
   type(fvMeshInfo), intent(inout), target :: fvm
 
-  type(PolyMesh), pointer :: mesh
+  type(PolyMesh), pointer :: mesh => null()
   integer :: cellNum, faceNum, pointNum
   integer :: lfaceNum
   integer :: i, j, k
@@ -223,6 +223,7 @@ subroutine set_ConectivityInfo(fvm)
      end do
   end do
 
+
   !
   fvm%Face_PairCellFaceId = -1
   do i=1, faceNum
@@ -288,8 +289,8 @@ subroutine set_edgeNormalDirSign(fvm)
   faceNum = getFaceListSize(mesh)
   pointNum = getPointListSize(mesh)
   
-  allocate( fvm%n_fv(6,cellNum) )
-  allocate( fvm%t_fv(6, pointNum) )
+  allocate( fvm%n_fv(MAX_CELL_FACE_NUM, cellNum) )
+  allocate( fvm%t_fv(MAX_CELL_FACE_NUM, pointNum) )
 
   fvm%n_fv = 0
   fvm%t_fv = 0
