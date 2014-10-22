@@ -479,15 +479,19 @@ contains
     use dc_string, only: CPrintf
     
     use VariableSet_mod, only: &
-         & VARSET_KEY_U, VARSET_KEY_V, VARSET_KEY_SURFPRESS, VARSET_KEY_BAROCPRESS, VARSET_KEY_SURFHEIGHT, VARSET_KEY_PTEMPEDD, &
-         & VARSET_KEY_UB, VARSET_KEY_VB, VARSET_KEY_PTEMPEDDB, &
+         & VARSET_KEY_U, VARSET_KEY_V, VARSET_KEY_SURFHEIGHT, VARSET_KEY_PTEMPEDD, VARSET_KEY_SALT, &
+         & VARSET_KEY_UB, VARSET_KEY_VB, VARSET_KEY_PTEMPEDDB, VARSET_KEY_SALTB, &
+         & VARSET_KEY_SURFPRESS, VARSET_KEY_HYDROPRESSEDD, &
          & VARSET_KEY_SIGDOT, VARSET_KEY_PTEMPBASIC, VARSET_KEY_TOTDEPTHBASIC, &
          & xyz_UN, xyz_VN, xy_SurfPressN, xy_SurfHeightN, xyz_PTempEddN, xyz_SaltN, &
-         & xyz_UB, xyz_VB, xyz_PTempEddB, &
+         & xyz_UB, xyz_VB, xyz_PTempEddB, xyz_SaltB, &
          & xyz_SigDot, z_PTempBasic, xy_totDepthBasic
 
+    use DiagnoseUtil_mod, only: &
+         & Diagnose_HydroPressEdd
+
     use DiagVarSet_mod, only: &
-         & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_PressEdd, &
+         & xyz_Div, xyz_Vor, xyz_HydroPressEdd, xyz_PressEdd, &
          & xyz_DensEdd!, xy_totDepth
 
     ! ¿Î∏¿ ∏; Declaration statement
@@ -518,6 +522,9 @@ contains
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPEDD) // NCEXT, &
          & VARSET_KEY_PTEMPEDD, xyz_PTempEddN, range=rangeStr )
 
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SALT) // NCEXT, &
+         & VARSET_KEY_SALT, xyz_SaltN, range=rangeStr )
+
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_UB) // NCEXT, &
          & VARSET_KEY_UB, xyz_UB, range=rangeStr )
 
@@ -527,14 +534,14 @@ contains
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPEDDB) // NCEXT, &
          & VARSET_KEY_PTEMPEDDB, xyz_PTempEddB, range=rangeStr )
 
+    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SALTB) // NCEXT, &
+         & VARSET_KEY_SALTB, xyz_SaltB, range=rangeStr )
+
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SIGDOT) // NCEXT, &
          & VARSET_KEY_SIGDOT, xyz_SigDot, range=rangeStr )
 
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SURFPRESS) // NCEXT, &
          & VARSET_KEY_SURFPRESS, xy_SurfPressN, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_BAROCPRESS) // NCEXT, &
-         & VARSET_KEY_BAROCPRESS, xyz_BarocPress, range=rangeStr )
 
     call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPBASIC) // NCEXT, &
          & VARSET_KEY_PTEMPBASIC, z_PTempBasic )
@@ -545,13 +552,13 @@ contains
 !!$    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "SurfHeight.nc", &
 !!$         & 'SurfHeight', xy_SurfHeightN, range=rangeStr )
 
-    xyz_SaltN = 0d0
     xy_totDepth = xy_totDepthBasic  !+ xy_SurfHeightN
 
     forAll(k=0:kMax) xyz_PTemp(:,:,k) = z_PTempBasic(k) + xyz_PTempEddN(:,:,k)
 
-    xyz_PressEdd = eval_PressEdd(xy_SurfPressN, xyz_BarocPress)
-    xyz_DensEdd = eval_DensEdd(xyz_PTemp, xyz_SaltN, xy_totDepth )
+    xyz_DensEdd = eval_DensEdd(xyz_PTemp, xyz_SaltN, xy_totDepth)
+    xyz_HydroPressEdd = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
+    xyz_PressEdd = eval_PressEdd(xy_SurfPressN, xyz_HydroPressEdd)
 
     do varID=1, size(diagVarsName)
        select case(diagVarsName(varID))
@@ -561,6 +568,8 @@ contains
           case(DVARKEY_VOR)
              xyz_Vor = eval_Vor(xyz_UN, xyz_VN)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_Vor, var3D=xyz_Vor)
+          case (DVARKEY_DENSEDD)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_DENSEDD, var3D=xyz_DensEdd )
           case (DVARKEY_PRESSEDD)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PRESSEDD, var3D=xyz_PressEdd )
           case (DVARKEY_MASSSTREAMFUNC)

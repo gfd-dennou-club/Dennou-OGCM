@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head>
+<title>水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様 ~ 水平渦粘性・拡散係数依存性</title>
+<!-- 2014-10-22 水 17:29 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="Yuta Kawai" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="./../org.css" />
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様 ~ 水平渦粘性・拡散係数依存性</h1>
+<div id="table-of-contents">
+<h2>&#30446;&#27425;</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. 計算結果: 水平渦粘性・拡散依存性(Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1)</a>
+<ul>
+<li><a href="#sec-1-1">1.1. 全球的な分布の比較</a></li>
+<li><a href="#sec-1-2">1.2. 赤道近傍の分布の比較</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 計算結果: 水平渦粘性・拡散依存性(Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1)</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> 全球的な分布の比較</h3>
+<div class="outline-text-3" id="text-1-1">
+</div><ol class="org-ol"><li><a id="sec-1-1-1" name="sec-1-1-1"></a>東西流, 子午面循環<br  /><div class="outline-text-4" id="text-1-1-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;1:</span> 東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_U_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_U_mplane_300yr_thumb.png" alt="yz_U_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_U_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_U_mplane_300yr_thumb.png" alt="yz_U_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_U_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_U_mplane_300yr_thumb.png" alt="yz_U_mplane_300yr_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;2:</span> 子午面循環[Sv]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_MassStreamFunc_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_MassStreamFunc_mplane_300yr_thumb.png" alt="yz_MassStreamFunc_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_MassStreamFunc_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_MassStreamFunc_mplane_300yr_thumb.png" alt="yz_MassStreamFunc_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_MassStreamFunc_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_MassStreamFunc_mplane_300yr_thumb.png" alt="yz_MassStreamFunc_mplane_300yr_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;3:</span> 運動エネルギーの全球平均値[J/(m<sup>3</sup>*kg) ]の時間発展の比較. Ah1e3Prh1Prv1(破線), Ah1e4Prh1Prv1(実線), Ah1e5Prh1Prv1(点線).</caption>
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/HViscDiffComp/KEAvg_HViscDiffCompari.jpg"><img src="./expdata_inhomoFluid/HViscDiffComp/KEAvg_HViscDiffCompari_thumb.png" alt="KEAvg_HViscDiffCompari_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<ul class="org-ul">
+<li>東西流
+<ul class="org-ul">
+<li>順圧成分(海面近傍)および傾圧成分とも, 水平渦粘性・渦拡散係数の増加につれて小さくなる. 
+</li>
+<li>分布:
+<ul class="org-ul">
+<li>水平渦拡散係数の違いが密度場の分布に影響を与え, 温度風の関係から東西流の表層分布に影響を与える. 
+</li>
+<li>海底近くの東西流や赤道近傍の東西流の渦粘性依存性は, 密度一様の場合とあまり変わらない. 
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>子午面循環
+<ul class="org-ul">
+<li>分布:
+<ul class="org-ul">
+<li>赤道近傍を除けば, 子午面循環の渦粘性依存性は密度一様の場合とあまり変わらない. 
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>運動エネルギー
+<ul class="org-ul">
+<li>系のスピンアップ時間は, 水平渦拡散係数が多きいほど短い. 
+<ul class="org-ul">
+<li>密度場の分布の時間変化が落ち着く時間スケールに対応する. 
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</li>
+
+<li><a id="sec-1-1-2" name="sec-1-1-2"></a>温位・塩分・密度<br  /><div class="outline-text-4" id="text-1-1-2">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;4:</span> 温位[K]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_PTemp_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_PTemp_mplane_300yr_thumb.png" alt="yz_PTemp_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_PTemp_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_PTemp_mplane_300yr_thumb.png" alt="yz_PTemp_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_PTemp_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_PTemp_mplane_300yr_thumb.png" alt="yz_PTemp_mplane_300yr_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;5:</span> 塩分[psu]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_Salt_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_Salt_mplane_300yr_thumb.png" alt="yz_Salt_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_Salt_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_Salt_mplane_300yr_thumb.png" alt="yz_Salt_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_Salt_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_Salt_mplane_300yr_thumb.png" alt="yz_Salt_mplane_300yr_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;6:</span> 密度偏差[kg/m<sup>3</sup>]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_DensEdd_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_DensEdd_mplane_300yr_thumb.png" alt="yz_DensEdd_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_DensEdd_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_DensEdd_mplane_300yr_thumb.png" alt="yz_DensEdd_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_DensEdd_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_DensEdd_mplane_300yr_thumb.png" alt="yz_DensEdd_mplane_300yr_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<ul class="org-ul">
+<li>鉛直渦拡散係数に対する水平渦拡散係数の相対的な大きさが小さいほど, 海面の境界条件の南北分布が深部まで達する. 
+<ul class="org-ul">
+<li>大規模な循環(水平スケール~5000km)に対して, 鉛直拡散時間に対する水平拡散時間の比は Kh1e3, Kh1e4, Kh1e5 に対してそれぞれ 0.1, 1, 10 である. 
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</li>
+
+
+<li><a id="sec-1-1-3" name="sec-1-1-3"></a>圧力<br  /><div class="outline-text-4" id="text-1-1-3">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;7:</span> 圧力偏差(力学的圧力)[Pa] の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_PressEdd_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_PressEdd_mplane_300yr_thumb.png" alt="yz_PressEdd_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_PressEdd_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_PressEdd_mplane_300yr_thumb.png" alt="yz_PressEdd_mplane_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_PressEdd_mplane_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_PressEdd_mplane_300yr_thumb.png" alt="yz_PressEdd_mplane_300yr_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li></ol>
+</div>
+
+
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> 赤道近傍の分布の比較</h3>
+<div class="outline-text-3" id="text-1-2">
+</div><ol class="org-ol"><li><a id="sec-1-2-1" name="sec-1-2-1"></a>東西流, 子午面循環<br  /><div class="outline-text-4" id="text-1-2-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;8:</span> 東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_U_mplane_eq_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_U_mplane_eq_300yr_thumb.png" alt="yz_U_mplane_eq_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_U_mplane_eq_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_U_mplane_eq_300yr_thumb.png" alt="yz_U_mplane_eq_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_U_mplane_eq_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_U_mplane_eq_300yr_thumb.png" alt="yz_U_mplane_eq_300yr_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;9:</span> 子午面循環[Sv]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_MassStreamFunc_mplane_eq_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/yz_MassStreamFunc_mplane_eq_300yr_thumb.png" alt="yz_MassStreamFunc_mplane_eq_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_MassStreamFunc_mplane_eq_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/yz_MassStreamFunc_mplane_eq_300yr_thumb.png" alt="yz_MassStreamFunc_mplane_eq_300yr_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_MassStreamFunc_mplane_eq_300yr.jpg"><img src="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/yz_MassStreamFunc_mplane_eq_300yr_thumb.png" alt="yz_MassStreamFunc_mplane_eq_300yr_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<ul class="org-ul">
+<li>東西流
+<ul class="org-ul">
+<li>赤道境界層内では, 内部領域の東西流は南北に一様に分布
+</li>
+</ul>
+</li>
+<li>子午面循環
+<ul class="org-ul">
+<li>循環セルは海面と海底近くに現れる. 
+</li>
+<li>水平粘性が大きくなるにつれて, 内部領域まで伸びてくる. 
+</li>
+<li>密度一様の場合に見られた水平渦粘性係数依存性の特徴とやや異なる. 
+<ul class="org-ul">
+<li>水平渦粘性係数の大きくなるにつれて, 海底近くの循環セルの南北幅は広く強くなる. 
+</li>
+<li>海面近くの循環セルの水平渦粘性係数依存性は, 海底近くの循環と逆の傾向にあるが, その変化は小さい. 
+</li>
+</ul>
+</li>
+<li>密度一様の場合と特徴が異なるのは, 密度成層が鉛直速度を制限するから(?)
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</li></ol>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">&#33879;&#32773;: Yuta Kawai</p>
+<p class="date">Created: 2014-10-22 水 17:29</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

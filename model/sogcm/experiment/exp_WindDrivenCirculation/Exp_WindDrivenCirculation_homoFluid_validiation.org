@@ -12,7 +12,7 @@
 #+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_homoFluid/exp_RefSolComp/"
     require 'pathname'
 
-    caption = "海面の流れの数値解(x印), 解析的な近似解(実線), Ah=0 の場合の解析的な近似解(破線) の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5" if caption.length == 0
+    caption = "数値解(x印), 解析的な近似解(実線), Ah=0 の場合の解析的な近似解(破線) の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5" if caption.length == 0
 
     str = "#+CAPTION: #{caption}.\n" << "|"
 
@@ -89,37 +89,37 @@
 - 全体構造
 
   - 東西流速[m/s] (緯度 45 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_Lat45.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_Lat45.jpg") :results value raw :exports results
 
   - 南北流速[m/s] (緯度 45 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_Lat45.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_Lat45.jpg") :results value raw :exports results
 
   - 鉛直流速[m/s] (緯度 30 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_Lat30.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_Lat30.jpg") :results value raw :exports results
 
 
 - 上側エクマン層
 
   - 東西流速[m/s] (緯度 45 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_upEkmanLat45.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_upEkmanLat45.jpg") :results value raw :exports results
 
   - 南北流速[m/s] (緯度 45 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_upEkmanLat45.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_upEkmanLat45.jpg") :results value raw :exports results
 
   - 鉛直流速[m/s] (緯度 30 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_upEkmanLat30.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_upEkmanLat30.jpg") :results value raw :exports results
 
 
 - 下側エクマン層
 
   - 東西流速[m/s] (緯度 45 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_lowEkmanLat45.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_U_lowEkmanLat45.jpg") :results value raw :exports results
 
   - 南北流速[m/s] (緯度 45 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_lowEkmanLat45.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_V_lowEkmanLat45.jpg") :results value raw :exports results
 
   - 鉛直流速[m/s] (緯度 30 度)
-   #+CALL: create_FigsTable("海面の流れの数値解(x印), 解析的な近似解(黒実線)の比較. 左から順に, Ah1e3, Ah1e4, Ah1e5", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_lowEkmanLat30.jpg") :results value raw :exports results
+   #+CALL: create_FigsTable("", "Ah1e{3Pl682,4Pl341,5Pl341}L90_SigDot_lowEkmanLat30.jpg") :results value raw :exports results
 
 
 

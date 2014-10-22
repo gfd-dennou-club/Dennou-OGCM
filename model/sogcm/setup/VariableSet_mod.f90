@@ -76,7 +76,7 @@ module VariableSet_mod
 
   character(TOKEN), public, parameter :: VARSET_KEY_SIGDOT = 'SigDot'
   character(TOKEN), public, parameter :: VARSET_KEY_SURFPRESS = 'SurfPress'
-  character(TOKEN), public, parameter :: VARSET_KEY_BAROCPRESS = 'BarocPress'
+  character(TOKEN), public, parameter :: VARSET_KEY_HYDROPRESSEDD = 'HydroPressEdd'
 
   character(TOKEN), public, parameter :: VARSET_KEY_TOTDEPTHBASIC = 'TotDepthBasic'
   character(TOKEN), public, parameter :: VARSET_KEY_PTEMPBASIC = 'PTempBasic'

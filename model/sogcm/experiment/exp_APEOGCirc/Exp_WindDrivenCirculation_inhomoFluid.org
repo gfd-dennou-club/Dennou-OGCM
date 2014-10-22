@@ -1,0 +1,192 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{}
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_link
+#+BEGIN_SRC ruby :: result value raw :exports none :var labels="hoge1,hoge2,hoge3" :var fileName="exp_Ah1e{3,4,5}Pl341L60/config.nml" :var fileDirPath="./expdata_inhomoFluid/"
+  require 'pathname'
+  labelStrs = labels.split(",")
+
+  str = "| "
+
+  fileNameStr = Dir.glob("#{fileDirPath}#{fileName}")
+  labelStrs.each_with_index{|label,i|
+     str << " [[file:#{fileNameStr[i]}][#{label}]] |"
+  }
+
+  return str
+#+END_SRC
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 概要 
+
+  「[[../exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html][水惑星設定における軸対称な風成循環の数値実験 1]]」では, 海洋モデルの妥当性の確認と水惑星設定の海洋大循環の基本構造の理解のために, 
+一定の密度・塩分を仮定して系を簡単化した. 
+ここでは, これらの仮定を取り除き, 密度・塩分非一様な水惑星の軸対称風成循環の数値実験を行う. 
+
+
+  
+# * 水惑星設定における軸対称な風成循環の記述
+#
+# - [[file:./../../../../../note_OModeling/ogcirc_formul/main.pdf][海洋大循環を記述するための方程式系]]
+# - [[./note/axisym_windcirc_homoFluid/main.pdf][軸対称風成循環の漸近級数解の導出]]
+
+* 実験設定
+
+** ケース間で共通な設定
+
+*** 計算領域
+
+- 全球的に広がる水深 $H= 5.2$ km の海洋. 
+  海底地形や陸は存在しない.  
+- 軸対称(経度方向に一様)な循環を計算. 
+
+*** モデルの記述
+
+- 海洋大循環モデルの支配方程式
+  - 静力学ブジネスク方程式
+    - 軸対称設定(経度方向の微分はゼロ)
+
+- 海水の状態方程式
+  - 線形近似\cite{vallis2006atmospheric}
+    - 参照密度 $\rho_0=1.027$ [kg/m^{3}], 
+      参照温度 $T_0=283$ [K], 
+      参照塩分 $S_0=35$ [psu], 
+      熱膨張係数 $\beta_T=1.67\times 10^{-4}$ [K^{-1}],
+      塩分収縮係数 $\beta_S=1.5\times 10^{-3}$ [psu^{-1}]
+
+- 粘性
+  - 水平方向の渦粘性係数 $A_h$ , 渦拡散係数 $K_h$  の設定
+    - $A_h, K_h$ の大きさは, 次の各ケース設定を参照. 
+  - 鉛直方向の渦粘性係数 $A_v$ , 渦拡散係数 $K_v$ の設定
+    - 海面流速が \cite{marshall2007mean} と同程度になるように, $A_v=1.0 \times 10^{-2}$ [m^2 s^{-1}] にとる. 
+    - $K_v$ の大きさは, 次の各ケース設定を参照. 
+
+*** 境界条件
+
+- 海面
+  - 運動学的条件: 剛体表面近似を課す(境界を横切るフラックスはゼロ)
+
+    \[
+        w = 0  \;\;\;\;\;\; {\rm at} \; z=0. 
+    \]   
+
+  - 力学的条件: 
+    水惑星実験 \cite{marshall2007mean} の準平衡状態の地表風速から計算された, 
+    海面応力の東西平均場を課す
+  
+  \[ 
+     \rho_0 A_v \dfrac{\partial u}{\partial z} = \tau_{zx}, \;\;\; 
+     \rho_0 A_v \dfrac{\partial v}{\partial z} = 0          \;\;\;\;\;\; {\rm at} \; z=0.         
+  \]
+
+  #+CAPTION: 海面応力(\tau_{zx})の南北分布[ N/m^{2} ].   
+  | [[./data/common/windStressLon.jpg][file:./expdata_inhomoFluid/common/windStressLon_thumb.png]] |
+
+  - 熱的条件: 
+    水惑星実験 \cite{marshall2007mean} の準平衡状態から得られる温位・塩分の海面分布に緩和する. 
+    緩和時間 $\tau$ は 1000 日とした. 
+
+    \[
+        \left(\dfrac{\partial\theta}{\partial t}\right)_{\rm relax} = - \dfrac{1}{\tau} (\theta - \theta_{\rm relax}), \;\;\;
+        \left(\dfrac{\partial S}{\partial t}\right)_{\rm relax} = - \dfrac{1}{\tau} (S - S_{\rm relax})  \;\;\;\;\;\; {\rm at} \; z=0. 
+    \]   
+
+  #+CAPTION: 海面温度(\theta_{relax}) [K], 海面塩分(S_{relax}) [psu] の南北分布.   
+  | [[./data/common/windStressLon.jpg][file:./expdata_inhomoFluid/common/y_PTempRelax_thumb.png]]  |  [[./data/common/windStressLon.jpg][file:./expdata_inhomoFluid/common/y_SaltRelax_thumb.png]]     |
+
+
+
+- 海底
+  - 運動学的条件: 境界を横切るフラックスはゼロ
+
+    \[
+        w = 0  \;\;\;\;\;\; {\rm at} \; z=-H. 
+    \]   
+
+  - 力学的条件: 滑り無し条件
+
+    \[
+        u = 0, \;\;\;
+        v = 0  \;\;\;\;\;\; {\rm at} \; z=-H. 
+    \]   
+
+  - 熱的条件: 断熱条件(境界を横切るフラックスはゼロ)
+
+    \[
+        K_v \dfrac{\partial \theta}{\partial z} = 0, \;\;\;
+        K_v \dfrac{\partial S}{\partial z} = 0  \;\;\;\;\;\; {\rm at} \; z=-H. 
+    \]   
+
+  
+*** 初期条件  
+
+- 運動場: 静止状態
+- 温位・塩分場: 20 世紀の気候の数値実験の結果[fn:init_dataset]を時間・水平平均したものを, 初期の鉛直分布として与える(水平一様). 
+
+  #+CAPTION: 温位[K], 塩分[psu] の初期の鉛直分布(水平方向は一様). 
+  | [[./data/common/windStressLon.jpg][file:./expdata_inhomoFluid/common/z_PTempInit_thumb.png]]   |  [[./data/common/windStressLon.jpg][file:./expdata_inhomoFluid/common/z_SaltInit_thumb.png]]      |
+
+[fn:init_dataset] http://data1.gfdl.noaa.gov/CM2.X/CM2.0/data/cm2.0_data.html から得られる, 
+GFDL CM2.0 モデルによる 20 世紀の気候計算の出力データの中で, 数値実験「CM2Q-d2_1861-2000-AllForc_h1」の出力データを用いた. 
+
+** 各実験設定
+
+   #+CAPTION: Pl: ルジャンドル陪関数の次数, L: 鉛直レベル数, Ah:水平渦粘性係数[m^2 s^{-1}], Pr_{h}(=Ah/Kh):水平プラントル数, Pr_{v}(=Av/Kv):鉛直プラントル数, dt: 時間刻み幅[hour]. 
+  | 実験名                   | 解像度　 | Ah                | Pr_{h} | Pr_{v} |  dt | 備考                                           |
+  |--------------------------+----------+-------------------+--------+--------+-----+------------------------------------------------|
+  | Ah1e4Prh1Prv1 (標準実験) | Pl170L60 | 1.0 \times 10^{4} |      1 |      1 | 1.5 |                                                |
+  | Ah1e3Prh1Prv1            | Pl170L60 | 1.0 \times 10^{3} |      1 |      1 | 1.5 |                                                |
+  | Ah1e5Prh1Prv1            | Pl170L60 | 1.0 \times 10^{5} |      1 |      1 | 1.5 |                                                |
+  | Ah1e4WithGM90            | Pl170L60 | 1.0 \times 10^{4} |      - |      - | 1.5 | \cite{gent1990isopycnal}の混合スキームを使用   |
+   
+- 実験シリーズの目的
+  - ケース Ah1e4T341L60 は, 水平粘性係数の依存性を調べるための標準実験である. 
+  - 水平渦粘性・拡散係数の依存性: Ah1e3Prh1Prv1, Ah1e4Prh1Prv1 Ah1e5Prh1Prv1 の計算結果を比較
+  - 混合の表現方法の違いによる効果: Ah1e4Prh1Prv1, Ah1e4WithGM90
+
+- 各実験の設定ファイル
+
+  #+CALL: create_link("Ah1e4Prh1Prv1(標準実験),Ah1e3Prh1Prv1,Ah1e5Prh1Prv1", "exp_Ah1e{4,3,5}Prh1Prv1/config.nml") :results value raw :exports results
+
+* 計算結果
+** [[file:./Exp_WindDrivenCirculation_inhomoFluid_result_refexp.html][標準実験]]
+
+** [[file:./Exp_WindDrivenCirculation_inhomoFluid_horiEddViscDiffComp.html][水平渦粘性・拡散係数依存性]]
+
+** 混合の表現方法の違いによる効果
+
+
+
+* 計算結果の解析
+
+
+* [[file:./Exp_WindDrivenCirculation_inhomoFluid_consider.html][考察]]
+
+
+* まとめ
+
+
+* 参考文献
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist plain limit:t
+

@@ -1,4 +1,4 @@
-#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 1: 均質流体
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 1: 密度一様
 #+AUTOHR: 河合 佑太
 #+LANGUAGE: ja
 #+OPTIONS: H:2
@@ -101,18 +101,39 @@
 
 *** 境界条件
 
-- 海面応力
-  - \cite{marshall2007mean} における準平衡状態での地表風速から計算された, 
-    海面応力の東西平均場を与える.  
+- 海面
+  - 運動学的条件: 剛体表面近似を課す(境界を横切るフラックスはゼロ)
+
+    \[
+        w = 0  \;\;\;\;\;\; {\rm at} \; z=0. 
+    \]   
+
+  - 力学的条件: 
+    \cite{marshall2007mean} における準平衡状態での地表風速から計算された, 
+    海面応力の東西平均場を課す
   
   \[ 
      \rho_0 A_v \dfrac{\partial u}{\partial z} = \tau_{zx}, \;\;\; 
      \rho_0 A_v \dfrac{\partial v}{\partial z} = 0          \;\;\;\;\;\; {\rm at} \; z=0.         
   \]
 
-  #+CAPTION: 海面応力(\tau_zx) [ N/m^{2} ].   
+  #+CAPTION: 海面応力(\tau_zx) の南北分布 [ N/m^{2} ].   
   | [[./data/common/windStressLon.jpg][file:./expdata_homoFluid/common/windStressLon_thumb.png]]  |
-  
+
+- 海底
+  - 運動学的条件: 境界を横切るフラックスはゼロ
+
+    \[
+        w = 0  \;\;\;\;\;\; {\rm at} \; z=-H. 
+    \]   
+
+  - 力学的条件: 滑り無し条件
+
+    \[
+        u = 0, \;\;\;
+        v = 0  \;\;\;\;\;\; {\rm at} \; z=-H. 
+    \]   
+
 *** 初期条件  
 
 - 運動場: 静止状態

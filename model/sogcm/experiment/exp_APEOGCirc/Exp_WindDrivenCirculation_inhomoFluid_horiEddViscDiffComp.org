@@ -1,0 +1,85 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様 ~ 水平渦粘性・拡散係数依存性
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 計算結果: 水平渦粘性・拡散依存性(Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1)
+
+** 全球的な分布の比較
+
+*** 東西流, 子午面循環
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_U_mplane_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_MassStreamFunc_mplane_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("運動エネルギーの全球平均値[J/(m^3*kg)]の時間発展の比較. Ah1e3Prh1Prv1(破線), Ah1e4Prh1Prv1(実線), Ah1e5Prh1Prv1(点線)", "HViscDiffComp/KEAvg_HViscDiffCompari.jpg") :results value raw :exports results
+
+   - 東西流
+     - 順圧成分(海面近傍)および傾圧成分とも, 水平渦粘性・渦拡散係数の増加につれて小さくなる. 
+     - 分布:
+       - 水平渦拡散係数の違いが密度場の分布に影響を与え, 温度風の関係から東西流の表層分布に影響を与える. 
+       - 海底近くの東西流や赤道近傍の東西流の渦粘性依存性は, 密度一様の場合とあまり変わらない. 
+   - 子午面循環
+     - 分布:
+       - 赤道近傍を除けば, 子午面循環の渦粘性依存性は密度一様の場合とあまり変わらない. 
+   - 運動エネルギー
+     - 系のスピンアップ時間は, 水平渦拡散係数が大きいほど短い. 
+       - 密度場の分布の時間変化が落ち着く時間スケールに対応する. 
+
+
+*** 温位・塩分・密度
+
+   #+CALL: create_FigsTable("温位[K]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_PTemp_mplane_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("塩分[psu]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_Salt_mplane_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("密度偏差[kg/m^{3}]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_DensEdd_mplane_300yr.jpg") :results value raw :exports results
+
+   - 鉛直渦拡散係数に対する水平渦拡散係数の相対的な大きさが小さいほど, 海面の境界条件の南北分布が深部まで達する. 
+     - 大規模な循環(水平スケール~5000km)に対して, 鉛直拡散時間に対する水平拡散時間の比は Kh1e3, Kh1e4, Kh1e5 に対してそれぞれ 0.1, 1, 10 である. 
+
+
+*** 圧力
+
+   #+CALL: create_FigsTable("圧力偏差(力学的圧力)[Pa]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_PressEdd_mplane_300yr.jpg") :results value raw :exports results
+
+
+
+** 赤道近傍の分布の比較
+
+*** 東西流, 子午面循環
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_U_mplane_eq_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_MassStreamFunc_mplane_eq_300yr.jpg") :results value raw :exports results
+
+   - 東西流
+     - 赤道境界層内では, 内部領域の東西流は南北に一様に分布
+   - 子午面循環
+     - 循環セルは海面と海底近くに現れる. 
+     - 水平粘性が大きくなるにつれて, 内部領域まで伸びてくる. 
+     - 密度一様の場合に見られた水平渦粘性係数依存性の特徴とやや異なる. 
+       - 水平渦粘性係数の大きくなるにつれて, 海底近くの循環セルの南北幅は広く強くなる. 
+       - 海面近くの循環セルの水平渦粘性係数依存性は, 海底近くの循環と逆の傾向にあるが, その変化は小さい. 
+     - 密度一様の場合と特徴が異なるのは, 密度成層が鉛直速度を制限するから(?)

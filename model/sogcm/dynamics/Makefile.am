@@ -21,7 +21,6 @@ noinst_LTLIBRARIES= libDSOGCMDynamics.la
 nodist_libDSOGCMDynamics_la_SOURCES= \
 	HydroBouEqSolverRHS_mod.f90 \
 	HydroBouEqSolverVDiffProc_mod.f90 \
-	HydroBouEqSolverVImplProc_mod.f90 \
-	HydroBouEqSolver_mod.f90
+	HydroBouEqSolverVImplProc_mod.f90
 
 

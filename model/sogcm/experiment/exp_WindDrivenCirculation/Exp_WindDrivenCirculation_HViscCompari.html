@@ -3,11 +3,11 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
-<title>水惑星設定における軸対称な風成循環の数値実験: 計算結果 ~ 水平粘性依存性</title>
-<!-- 2014-04-23 水 10:56 -->
+<title>水惑星設定における軸対称な風成循環の数値実験 1:密度一様 ~ 水平粘性依存性</title>
+<!-- 2014-10-21 火 22:16 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
-<meta  name="author" content="Kawai Yuta" />
+<meta  name="author" content="Yuta Kawai" />
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
   .title  { text-align: center; }
@@ -55,6 +55,8 @@
   pre.src-sql:before   { content: 'SQL'; }
 
   table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
   td, th { vertical-align:top;  }
   th.right  { text-align: center;  }
   th.left   { text-align: center;   }
@@ -136,7 +138,7 @@ for the JavaScript code in this tag.
 </head>
 <body>
 <div id="content">
-<h1 class="title">水惑星設定における軸対称な風成循環の数値実験: 計算結果 ~ 水平粘性依存性</h1>
+<h1 class="title">水惑星設定における軸対称な風成循環の数値実験 1:密度一様 ~ 水平粘性依存性</h1>
 <div id="table-of-contents">
 <h2>&#30446;&#27425;</h2>
 <div id="text-table-of-contents">
@@ -160,7 +162,7 @@ for the JavaScript code in this tag.
 <li>海面東西流の比較 
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;1:</span> 海面東西流[m]の時間発展(左から順に Kh800T42L60, Kh800Pr10T42L60, Kh800HAhT42L60) の比較.</caption>
+<caption class="t-above"><span class="table-number">&#34920;1:</span> 海面東西流[m]の時間発展(左から順に Kh800T42L60, Kh800Pr10T42L60, Kh800HAhT42L60) の比較.</caption>
 
 <colgroup>
 <col  class="left" />
@@ -179,7 +181,7 @@ for the JavaScript code in this tag.
 </table>
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;2:</span> 海面東西流[m]の時間発展(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較.</caption>
+<caption class="t-above"><span class="table-number">&#34920;2:</span> 海面東西流[m]の時間発展(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較.</caption>
 
 <colgroup>
 <col  class="left" />
@@ -198,7 +200,7 @@ for the JavaScript code in this tag.
 </table>
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;3:</span> 海面東西流[m]の時間発展(左から順に Kh800T170L60, Kh800Pr10T170L60, Kh800HAhT170L60) の比較 .</caption>
+<caption class="t-above"><span class="table-number">&#34920;3:</span> 海面東西流[m]の時間発展(左から順に Kh800T170L60, Kh800Pr10T170L60, Kh800HAhT170L60) の比較 .</caption>
 
 <colgroup>
 <col  class="left" />
@@ -217,15 +219,18 @@ for the JavaScript code in this tag.
 </table>
 
 <ul class="org-ul">
-<li>Kh800T42L20 の運動エネルギーは, Kh800T42L80 よりも約二倍大きい.   
+<li>Pr10, 超粘性ともに大規模な構造に影響を与えないが, T85,T170 で見られる赤道近傍の狭い西向きの流れは 1/2~1/4 倍程度に弱まる. 
 </li>
 </ul>
 </li>
+</ul>
 
+
+<ul class="org-ul">
 <li>質量流線関数の比較
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;4:</span> t=300 yr の質量流線関数[kg*m<sup>2</sup>/s]の子午面分布(左から順に Kh800T42L60, Kh800Pr10T42L60, Kh800HAhT42L60) の比較. .</caption>
+<caption class="t-above"><span class="table-number">&#34920;4:</span> t=300 yr の質量流線関数[kg*m<sup>2</sup>/s]の子午面分布(左から順に Kh800T42L60, Kh800Pr10T42L60, Kh800HAhT42L60) の比較. .</caption>
 
 <colgroup>
 <col  class="left" />
@@ -244,7 +249,7 @@ for the JavaScript code in this tag.
 </table>
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;5:</span> t=300 yr の質量流線関数[kg*m<sup>2</sup>/s]の子午面分布(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較. .</caption>
+<caption class="t-above"><span class="table-number">&#34920;5:</span> t=300 yr の質量流線関数[kg*m<sup>2</sup>/s]の子午面分布(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較. .</caption>
 
 <colgroup>
 <col  class="left" />
@@ -263,7 +268,7 @@ for the JavaScript code in this tag.
 </table>
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;6:</span> t=300 yr の質量流線関数[kg*m<sup>2</sup>/s]の子午面分布(左から順に Kh800T170L60, Kh800Pr10T170L60, Kh800HAhT170L60) の比較. .</caption>
+<caption class="t-above"><span class="table-number">&#34920;6:</span> t=300 yr の質量流線関数[kg*m<sup>2</sup>/s]の子午面分布(左から順に Kh800T170L60, Kh800Pr10T170L60, Kh800HAhT170L60) の比較. .</caption>
 
 <colgroup>
 <col  class="left" />
@@ -282,7 +287,9 @@ for the JavaScript code in this tag.
 </table>
 
 <ul class="org-ul">
-<li>Kh800T42L20 で見られる鉛直方向に対するギブス振動は, 上下端の境界層を解像できる Kh800T42L60 の場合では発生しない. 
+<li>T170 の水平方向の数値的なノイズは, 水平粘性を強めることで抑制できる. 
+</li>
+<li>Pr10, 超粘性ともに大規模な構造に影響を与えない.  
 </li>
 </ul>
 </li>
@@ -290,7 +297,7 @@ for the JavaScript code in this tag.
 <li>運動エネルギーの全球平均値, 収支の時間発展
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;7:</span> 運動エネルギー[m<sup>2</sup>/(s<sup>2</sup>*kg) ] の全球平均値の時間発展(点線:Pr1, 実線:Pr10, 破線:超粘性)の比較(左から順に T42, T85, T170). .</caption>
+<caption class="t-above"><span class="table-number">&#34920;7:</span> 運動エネルギー[m<sup>2</sup>/(s<sup>2</sup>*kg) ] の全球平均値の時間発展(点線:Pr1, 実線:Pr10, 破線:超粘性)の比較(左から順に T42, T85, T170). .</caption>
 
 <colgroup>
 <col  class="left" />
@@ -319,7 +326,7 @@ for the JavaScript code in this tag.
 
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;8:</span> 運動エネルギーの全球平均値の収支解析(左から順に Kh800T42L60, Kh800T85L60, Kh800T170L60) の比較. 各図において, 破線:運動エネルギーの注入率, 実線:正味の変化率, 二点跳び破線:水平渦粘性による散逸, 跳び破線:移流項の仕事, 一点破線:ポテンシャルエネルギーへの変換, 点線:鉛直渦粘性による散逸を表す.</caption>
+<caption class="t-above"><span class="table-number">&#34920;8:</span> 運動エネルギーの全球平均値の収支解析(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較. 各図において, 破線:運動エネルギーの注入率, 実線:正味の変化率, 二点跳び破線:水平渦粘性による散逸, 跳び破線:移流項の仕事, 一点破線:ポテンシャルエネルギーへの変換, 点線:鉛直渦粘性による散逸を表す.</caption>
 
 <colgroup>
 <col  class="left" />
@@ -342,7 +349,7 @@ for the JavaScript code in this tag.
 <li>温位の比較
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;9:</span> t=300yr における温位[K]の子午面分布(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較..</caption>
+<caption class="t-above"><span class="table-number">&#34920;9:</span> t=300yr における温位[K]の子午面分布(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較..</caption>
 
 <colgroup>
 <col  class="left" />
@@ -361,7 +368,7 @@ for the JavaScript code in this tag.
 </table>
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;10:</span> 海面における温位[K]の時間発展(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較..</caption>
+<caption class="t-above"><span class="table-number">&#34920;10:</span> 海面における温位[K]の時間発展(左から順に Kh800T85L60, Kh800Pr10T85L60, Kh800HAhT85L60) の比較..</caption>
 
 <colgroup>
 <col  class="left" />
@@ -390,9 +397,9 @@ for the JavaScript code in this tag.
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="author">&#33879;&#32773;: Kawai Yuta</p>
-<p class="date">Created: 2014-04-23 水 10:56</p>
-<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
+<p class="author">&#33879;&#32773;: Yuta Kawai</p>
+<p class="date">Created: 2014-10-21 火 22:16</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>

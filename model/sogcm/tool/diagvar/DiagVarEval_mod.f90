@@ -215,12 +215,12 @@ contains
   !!
   !! @return 
   !!
-  function eval_PressEdd(xy_surfPress, xyz_barocPress) result(xyz_PressEdd)
+  function eval_PressEdd(xy_surfPress, xyz_HydroPressEdd) result(xyz_PressEdd)
     
     ! 宣言文; Declaration statement
     !
     real(DP), intent(in) :: xy_surfPress(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyz_barocPress(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_HydroPressEdd(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_PressEdd(0:iMax-1,jMax,0:kMax)
 
     !
@@ -232,8 +232,9 @@ contains
     !
 
     do k=0, kMax
-       xyz_PressEdd(:,:,k) = xy_surfPress(:,:) + xyz_barocPress(:,:,k)
+       xyz_PressEdd(:,:,k) = xy_surfPress(:,:) + xyz_HydroPressEdd(:,:,k)
     end do
+
   end function eval_PressEdd
 
   !> @brief Calculate mass streamfunction from meridional velocity.

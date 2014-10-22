@@ -1,4 +1,4 @@
-#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 1: 均質流体 ~ 標準実験(Ah1e4T341L60) の計算結果
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 1:密度一様 ~ 標準実験の計算結果
 #+AUTOHR: 河合 佑太
 #+LANGUAGE: ja
 #+OPTIONS: H:2
@@ -7,7 +7,7 @@
 #+LaTeX_HEADER: \usepackage{natbib}
 
 #+NAME: create_FigsTable
-#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_homoFluid/exp_Ah1e4T341L60/"
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_homoFluid/exp_Ah1e4Pl341L60/"
     require 'pathname'
 
     str = "#+CAPTION: #{caption}.\n" << "|"

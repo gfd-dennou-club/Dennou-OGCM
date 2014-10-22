@@ -29,7 +29,7 @@ module DiagnoseUtil_mod
   ! Public procedure
   !
   public :: DiagnoseUtil_Init, DiagnoseUtil_Final
-  public :: Diagnose_SigDot, Diagnose_PressBaroc, Diagnose_GeoPot
+  public :: Diagnose_SigDot, Diagnose_HydroPressEdd, Diagnose_GeoPot
 
 
   ! 非公開手続き
@@ -117,15 +117,15 @@ contains
 
   end function diagnose_SigDot
 
-  function diagnose_PressBaroc(xy_totDepth, xyz_DensEdd) result(xyz_PressBaroc)
+  function diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd) result(xyz_HydroPressEdd)
 
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_PressBaroc(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_HydroPressEdd(0:iMax-1,jMax,0:kMax)
 
-    xyz_PressBaroc =  Grav*spread(xy_totDepth,3,kMax+1)*(xyz_IntSig_SigToTop_xyz(xyz_DensEdd)) 
+    xyz_HydroPressEdd =  Grav*spread(xy_totDepth,3,kMax+1)*(xyz_IntSig_SigToTop_xyz(xyz_DensEdd)) 
 
-  end function diagnose_PressBaroc
+  end function diagnose_HydroPressEdd
 
   function diagnose_GeoPot( xy_totDepth ) result(xyz_GeoPot)
 

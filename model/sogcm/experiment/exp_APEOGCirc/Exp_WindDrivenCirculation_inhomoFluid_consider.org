@@ -1,0 +1,17 @@
+#+TITLE: 水惑星設定における軸対称風成循環の数値実験 2:考察
+
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+
+#+LaTeX_HEADER: \usepackage{natbib}
+
+* 水平渦粘性・拡散依存性
+
+- 赤道近傍の循環
+
+- 赤道遠方の循環
+
+

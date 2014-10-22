@@ -38,7 +38,7 @@ module HydroBouEqSolverRHS_mod
        & EOSDriver_Eval
   
   use DiagnoseUtil_mod, only: &
-       & Diagnose_SigDot, Diagnose_PressBaroc, Diagnose_GeoPot
+       & Diagnose_SigDot, Diagnose_HydroPressEdd, Diagnose_GeoPot
 
   ! 宣言文; Declareration statements
   !
@@ -145,7 +145,7 @@ contains
     ! Calculate the pressure which is deviation from -RefDens*Grav*z).
     !
     xyz_Press(:,:,:) =   spread(xy_SurfPress, 3, kMax+1)                 &    ! barotropic component
-                &      + Diagnose_PressBaroc( xy_totDepth, xyz_DensEdd )      ! baroclinic component
+                &      + Diagnose_HydroPressEdd( xy_totDepth, xyz_DensEdd )      ! baroclinic component
 
     !
     !

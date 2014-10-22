@@ -122,6 +122,10 @@ contains
          longname='vorcity', units='s-1')
 
     call HistoryAutoAddVariable( &
+         varname=DVARKEY_DENSEDD, dims=(/'lon','lat','sig','t  '/), & 
+         longname='density deviation from refrence density(RefDens)', units='kg.m-3')
+
+    call HistoryAutoAddVariable( &
          varname=DVARKEY_PRESSEDD, dims=(/'lon','lat','sig','t  '/), & 
          longname='pressure deviation from static pressure(RefDens*Grav*z)', units='Pa')
 

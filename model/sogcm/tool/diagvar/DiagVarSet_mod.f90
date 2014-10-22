@@ -34,7 +34,7 @@ module DiagVarSet_mod
   ! Public variable
   !
   real(DP), dimension(:,:,:), allocatable, public :: &
-       & xyz_Div, xyz_Vor, xyz_BarocPress, xyz_PressEdd, xyz_DensEdd
+       & xyz_Div, xyz_Vor, xyz_HydroPressEdd, xyz_PressEdd, xyz_DensEdd
 
   real(DP), dimension(:,:), allocatable, public :: &
        & xy_totDepth, yz_MassStreamFunc
@@ -78,7 +78,7 @@ contains
     ! 実行文; Executable statements
     !
     allocate(xy_totDepth(0:iMax-1,jMax))
-    allocate(xyz_BarocPress(0:iMax-1,jMax,0:kMax))
+    allocate(xyz_HydroPressEdd(0:iMax-1,jMax,0:kMax))
     allocate(xyz_PressEdd(0:iMax-1,jMax,0:kMax))
     allocate(xyz_DensEdd(0:iMax-1,jMax,0:kMax))
 
@@ -113,10 +113,9 @@ contains
     ! 実行文; Executable statements
     !
 
-    deallocate( xy_totDepth, xyz_BarocPress, xyz_PressEdd, xyz_DensEdd ) 
+    deallocate( xy_totDepth, xyz_HydroPressEdd, xyz_PressEdd, xyz_DensEdd ) 
     if( allocated(xyz_Div) ) deallocate(xyz_Div)
     if( allocated(xyz_Vor) ) deallocate(xyz_Vor)
-    if( allocated(xyz_BarocPress) ) deallocate(xyz_BarocPress)
     if( allocated(xyz_PressEdd) ) deallocate(xyz_PressEdd)
     if( allocated(yz_MassStreamFunc) ) deallocate(yz_MassStreamFunc)
 

@@ -45,23 +45,34 @@
 
 * Dennou-OGCM 関連資料
 
-** モデルの記述
+** 岸なし実験用の海洋モデル
 
+球面調和関数と Chebyshev 多項式展開によるスペクトル法を用いた海洋モデル
+
+- モデルの記述
   - [[file:./../../../doc/formulation/formulation.pdf][定式化]]
   - [[file:./../../../doc/numeric/numeric.pdf][数値手法]]
 
-** テスト計算
-
+- テスト計算
   - [[./../experiment/exp_BarotRossbyWave/Exp_BarotRossbyWave_mod.html][順圧ロスビー波の伝播テスト]]
   - [[./../experiment/exp_InternalGravWave/Exp_InternalGravWave_mod.html][内部重力波の伝播テスト]]
-  - 水惑星設定における軸対称風成循環の数値実験
-     - [[./../experiment/exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html][水惑星設定における軸対称風成循環の数値実験:均質流体]]
+  - 水惑星設定における海洋大循環の数値実験
+     - [[./../experiment/exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html][水惑星設定における軸対称風成循環の数値実験1:密度一様]]
        - [[./../experiment/exp_WindDrivenCirculation/note/axisym_windcirc_homoFluid/main.pdf][軸対称風成循環の漸近級数解の導出ノート]]
-     - [水惑星設定における風成循環の数値実験:成層流体]
+     - [[./../experiment/exp_APEOGCirc/Exp_WindDrivenCirculation_inhomoFluid.html][水惑星設定における軸対称風成循環の数値実験2:密度非一様]]
 
-** その他
-
+- その他
   - [[./chebyshev/chebyshevCheck.html][風成循環計算における Chebyshev 多項式展開についての考察]]
+
+
+** 岸なし/あり実験用の海洋モデル
+
+不連続 Galerkin 法を用いた海洋モデル
+
+- 順圧モデル
+  - テスト計算
+    - 全球浅水モデルの標準テスト(Williamson, 1992)
+    - 理想化した海陸分布における環流
 
 
 * 水惑星実験 関連論文

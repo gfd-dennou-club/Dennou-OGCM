@@ -160,7 +160,7 @@ contains
     real(DP) :: xyz_CosLat(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xy_totDepth(0:iMax-1, jMax)    
     real(DP) :: xyz_GeoPot(0:iMax-1, jMax, 0:kMax)
-    real(DP) :: xyz_PressBaroc(0:iMax-1, jMax, 0:kMax)
+    real(DP) :: xyz_HydroPressEdd(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xyz_DensEdd(0:iMax-1, jMax, 0:kMax)
     real(DP) :: xyz_PTemp(0:iMax-1, jMax, 0:kMax)
 
@@ -199,7 +199,7 @@ contains
     call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
          & theta=xyz_PTemp, S=xyz_SaltN, p=-RefDens*xyz_GeoPot )     ! (in)
 
-    xyz_PressBaroc = Diagnose_PressBaroc(xy_totDepth, xyz_DensEdd)
+    xyz_HydroPressEdd = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
 
     call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
     call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
@@ -207,7 +207,7 @@ contains
     call HistoryAutoPut(CurrentTime, "Vor", xyz_wz(wz_Vor))
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFPRESS, xy_SurfPressN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SIGDOT, xyz_SigDot)
-    call HistoryAutoPut(CurrentTime, VARSET_KEY_BAROCPRESS, xyz_PressBaroc)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_HYDROPRESSEDD, xyz_HydroPressEdd)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLON, xy_WindStressU)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLAT, xy_WindStressV)
 
@@ -333,8 +333,8 @@ contains
     call HistoryAutoAddVariable( varname=VARSET_KEY_SURFPRESS, &
          & dims=dims_XYT, longname='surface(barotropic) pressure ', units='Pa')
 
-    call HistoryAutoAddVariable( varname=VARSET_KEY_BAROCPRESS, &
-         & dims=dims_XYZT, longname='baroclinic pressure ', units='Pa')
+    call HistoryAutoAddVariable( varname=VARSET_KEY_HYDROPRESSEDD, &
+         & dims=dims_XYZT, longname='deviation of hydrostatic pressure ', units='Pa')
 
     ! Regist accessory variables
     !

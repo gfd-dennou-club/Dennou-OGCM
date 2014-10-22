@@ -4,10 +4,10 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
 <title>Kawai Work 関連資料</title>
-<!-- 2014-07-23 水 21:49 -->
+<!-- 2014-10-20 月 21:19 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
-<meta  name="author" content="Kawai Yuta" />
+<meta  name="author" content="Yuta Kawai" />
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
   .title  { text-align: center; }
@@ -150,9 +150,8 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#sec-2">2. Dennou-OGCM 関連資料</a>
 <ul>
-<li><a href="#sec-2-1">2.1. モデルの記述</a></li>
-<li><a href="#sec-2-2">2.2. テスト計算</a></li>
-<li><a href="#sec-2-3">2.3. その他</a></li>
+<li><a href="#sec-2-1">2.1. 岸なし実験用の海洋モデル</a></li>
+<li><a href="#sec-2-2">2.2. 岸なし/あり実験用の海洋モデル</a></li>
 </ul>
 </li>
 <li><a href="#sec-3">3. 水惑星実験 関連論文</a></li>
@@ -217,44 +216,72 @@ for the JavaScript code in this tag.
 <h2 id="sec-2"><span class="section-number-2">2</span> Dennou-OGCM 関連資料</h2>
 <div class="outline-text-2" id="text-2">
 </div><div id="outline-container-sec-2-1" class="outline-3">
-<h3 id="sec-2-1"><span class="section-number-3">2.1</span> モデルの記述</h3>
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> 岸なし実験用の海洋モデル</h3>
 <div class="outline-text-3" id="text-2-1">
+<p>
+球面調和関数と Chebyshev 多項式展開によるスペクトル法を用いた海洋モデル
+</p>
+
+<ul class="org-ul">
+<li>モデルの記述
 <ul class="org-ul">
 <li><a href="./../../../doc/formulation/formulation.pdf">定式化</a>
 </li>
 <li><a href="./../../../doc/numeric/numeric.pdf">数値手法</a>
 </li>
 </ul>
-</div>
-</div>
-<div id="outline-container-sec-2-2" class="outline-3">
-<h3 id="sec-2-2"><span class="section-number-3">2.2</span> テスト計算</h3>
-<div class="outline-text-3" id="text-2-2">
+</li>
+
+<li>テスト計算
 <ul class="org-ul">
 <li><a href="./../experiment/exp_BarotRossbyWave/Exp_BarotRossbyWave_mod.html">順圧ロスビー波の伝播テスト</a>
 </li>
 <li><a href="./../experiment/exp_InternalGravWave/Exp_InternalGravWave_mod.html">内部重力波の伝播テスト</a>
 </li>
-<li>水惑星設定における軸対称風成循環の数値実験
+<li>水惑星設定における海洋大循環の数値実験
 <ul class="org-ul">
-<li><a href="./../experiment/exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html">水惑星設定における軸対称風成循環の数値実験:均質流体</a>
+<li><a href="./../experiment/exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html">水惑星設定における軸対称風成循環の数値実験1:密度一様</a>
 <ul class="org-ul">
 <li><a href="./../experiment/exp_WindDrivenCirculation/note/axisym_windcirc_homoFluid/main.pdf">軸対称風成循環の漸近級数解の導出ノート</a>
 </li>
 </ul>
 </li>
-<li>[水惑星設定における風成循環の数値実験:成層流体]
+<li><a href="./../experiment/exp_APEOGCirc/Exp_WindDrivenCirculation_inhomoFluid.html">水惑星設定における軸対称風成循環の数値実験2:密度非一様</a>
 </li>
 </ul>
 </li>
 </ul>
-</div>
-</div>
-<div id="outline-container-sec-2-3" class="outline-3">
-<h3 id="sec-2-3"><span class="section-number-3">2.3</span> その他</h3>
-<div class="outline-text-3" id="text-2-3">
+</li>
+
+<li>その他
 <ul class="org-ul">
 <li><a href="./chebyshev/chebyshevCheck.html">風成循環計算における Chebyshev 多項式展開についての考察</a>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> 岸なし/あり実験用の海洋モデル</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+不連続 Galerkin 法を用いた海洋モデル
+</p>
+
+<ul class="org-ul">
+<li>順圧モデル
+<ul class="org-ul">
+<li>テスト計算
+<ul class="org-ul">
+<li>全球浅水モデルの標準テスト(Williamson, 1992)
+</li>
+<li>理想化した海陸分布における環流
+</li>
+</ul>
+</li>
+</ul>
 </li>
 </ul>
 </div>
@@ -296,8 +323,8 @@ for the JavaScript code in this tag.
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="author">&#33879;&#32773;: Kawai Yuta</p>
-<p class="date">Created: 2014-07-23 水 21:49</p>
+<p class="author">&#33879;&#32773;: Yuta Kawai</p>
+<p class="date">Created: 2014-10-20 月 21:19</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

@@ -1,0 +1,76 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様  ~ 標準実験の計算結果
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 標準実験(Ah1e4Prh1Prv1)の計算結果
+
+** 東西流速, 子午面循環
+
+ #+CALL: create_FigsTable("左から順に, 東西流速の海面分布の時間発展([m]), t=300yr における東西流速([m]), 質量流線関数([Sv])の子午面分布, 運動エネルギーの全球平均の時間発展[m^2/(s*kg)]", "{xy_U_SeaSurf,yz_U_mplane_300yr,yz_MassStreamFunc_mplane_300yr,t_KEAvg}.jpg") :results value raw :exports results
+
+- 東西流
+  - 順圧成分の向きや大きさは, 海面応力により決定される(海底近くの東西流分布に注目). 
+    - 中緯度:西向き, 低緯度: 東向き. 
+  - 赤道近傍を除けば, 南北の圧力勾配と地衡流バランスしている. 
+    - 中緯度帯にある密度の南北勾配(温位,塩分,圧力分布を参照)と関係した東西風の鉛直シアがある. 
+    
+- 子午面循環
+  - 極-緯度30度, 緯度30度-緯度8度, 緯度8度-緯度5度, 緯度5度-赤道に 4 つの循環セルが生じる. 
+     - 赤道近傍の循環セルを除けば, 密度一様の場合とほとんど変わらない. 
+  - 南北流
+    - 内部域では東西流速に比べて非常に小さく, 境界近傍においてエクマン流として存在.
+      - 海面近く:　低緯度では極向き, 中高緯度では赤道向き
+      - 海底近く:　海面近くの南北流と同程度の大きさで, 向きが逆. 
+  - 鉛直流
+    - 上昇域: 赤道, 低緯度域(緯度8度-緯度12度), 高緯度域(緯度50度-極)で上昇. 
+      - 特に, 赤道上昇流は他の上昇流よりも 3 倍ほど強い. 
+    - 下降域: 赤道近傍(緯度5度-緯度8度), 低・中緯度域(緯度12度-緯度50度)で下降. 
+
+- 運動エネルギー 
+  - 約 3000 日でスピンアップに伴う運動エネルギーの増加は落ち着き, 系は定常状態に向かう. 
+    - この時間スケールは子午面循環の拡散時間スケールに対応している. 
+    - 密度一様の場合よりも, スピンアップに6 倍程度の時間がかかる. 
+
+** 温位, 塩分, 密度
+
+ #+CALL: create_FigsTable(" 左から順に, t=300yr における温位([K]), 塩分([psu]), 密度偏差([kg/m^{3}]) の子午面分布", "yz_{PTemp,Salt,DensEdd}_mplane_300yr.jpg") :results value raw :exports results
+
+- 海面の境界条件の温位・塩分分布が海底まで達してる. 深部に向かうほど, その南北勾配は減少する. 
+  - どの程度深部にまで達するかは, 水平渦拡散係数と鉛直拡散係数の比に依存する(水平渦粘性・拡散係数依存性を参照)
+
+- 温位
+  - 緯度 20 度から緯度 60 度間で, 海面近傍で約 25 K , 海底近傍で約 8 K 減少する. 
+  - その他の緯度では, 南北方向にほとんど変化しない
+
+- 塩分
+  - 海面近傍では, 緯度 10 度から緯度 30 度間で約 1 psu 増加, 緯度 30 度から緯度 60 度間で約 2 psu 減少する. 
+  - 海底近傍では, 緯度 20 度から緯度 60 度間で約 0.5 psu 減少する. 
+
+- 温度・塩分分布は密度分布を決定し, 温度風の関係を介して東西流の鉛直構造に影響を与える. 
+  - 温度に伴う密度の南北勾配の極値は, 緯度 40 度付近にある. 
+  - 塩分に伴う密度の南北勾配の極値は, 緯度 20 度付近, 緯度 40 度付近, 緯度 60 度付近にある. 
+  - 両者の寄与を合わせた結果, 密度の南北勾配はの極値は, 緯度 50 度付近, 緯度 40 度付近, 緯度 20 付近に現れる. 
+
+** 圧力
+
+ #+CALL: create_FigsTable(" t=300yr における圧力偏差(力学的圧力)[Pa]の子午面分布", "yz_PressEdd_mplane_300yr.jpg") :results value raw :exports results

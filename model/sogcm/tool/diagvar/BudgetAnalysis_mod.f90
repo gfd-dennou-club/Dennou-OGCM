@@ -253,7 +253,7 @@ use TemporalIntegSet_mod, only: DelTime
 use BoundCondSet_mod, only: &
        & KinBC_Surface, DynBC_Surface, DynBC_Bottom, &
        & DynBCTYPE_Slip, DynBCTYPE_NoSlip
-use HydroBouEqSolver_mod
+!use HydroBouEqSolver_mod
 
       real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: xyz_dudt, xyz_dvdt, xyz_dPTempdt
       real(DP), intent(inout) :: KEInput, PEConvert, HDiffDisp, VDiffDisp, Advect
@@ -292,7 +292,7 @@ use HydroBouEqSolver_mod
       xyz_DensEdd = eval_DensEdd(xyz_PTempBasic + xyz_PTempEddN, xyz_SaltN, xy_totDepth)
       xyz_SigDot = diagnose_SigDot( xy_totDepth, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xyz_Div )
       wz_Tmp = 0d0
-      xyz_PressEddTmp = Diagnose_PressBaroc(xy_totDepth, xyz_DensEdd)
+      xyz_PressEddTmp = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
       xyz_PressEdd = 0.5d0*xyz_PressEddTmp
 
       call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
@@ -316,7 +316,7 @@ use HydroBouEqSolver_mod
     
 
       wt_Vor = wt_wz(wz_VorTmp); wt_Div = wt_wz(wz_DivTmp); wt_PTempEdd = wt_wz(wz_PTempEddTmp)
-      call apply_boundaryConditions(wt_Vor, wt_Div, wt_PTempEdd)
+!      call apply_boundaryConditions(wt_Vor, wt_Div, wt_PTempEdd)
       wz_VorTmp = wz_wt(wt_Vor); wz_DivTmp = wz_wt(wt_Div); wz_PTempEddTmp = wz_wt(wt_PTempEdd)
 
       wz_TmpPsi = wz_InvLapla2D_wz( wz_VorTmp  )
@@ -328,7 +328,7 @@ use HydroBouEqSolver_mod
       !
       xyz_DensEdd = eval_DensEdd(xyz_PTempBasic + xyz_wz(wz_PTempEddTmp), xyz_SaltN, xy_totDepth)
       xyz_SigDot = diagnose_SigDot( xy_totDepth, xyz_UTmp*xyz_CosLat, xyz_VTmp*xyz_CosLat, xyz_wz(wz_DivTmp) )
-      xyz_PressEddTmp = Diagnose_PressBaroc(xy_totDepth, xyz_DensEdd)
+      xyz_PressEddTmp = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
       xyz_PressEdd = xyz_PressEddTmp! + 0.5d0*xyz_PressEddTmp
       wz_Tmp = 0d0
       call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
