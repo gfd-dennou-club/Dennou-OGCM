@@ -342,35 +342,79 @@ function get_LocalCoordMatrix(cartPos, nc) result(pt)
   pt = (/ 1d0/3d0, 1d0/3d0 /)
   tri = get_DGElementTri(nc)
 
+
   do i=1, 100
-     dy%v_ = matmul(inverseMat(Jacob(pt)), cartPos%v_(1:2)-gammaE(pt))
+     dy%v_(:) = solve_leastSquareProblem(Jacob(pt), cartPos%v_(:) - gammaE(pt))
      if(l2norm(dy) < EPS) exit
      pt = pt + dy
   end do
 contains
 function Jacob(y) result(ret)
   type(vector2d), intent(in) ::y
-  real(DP) :: ret(2,2)
+  real(DP) :: ret(3,2)
 
   type(vector3d) :: b_1, b_2
   
   b_1 = get_DGElemCovariantBasis(1,y,tri)
   b_2 = get_DGElemCovariantBasis(2,y,tri)
 
+!!$if(nc==4684.or.abs(b_1%v_(1)*b_2%v_(2) - b_2%v_(1)*b_1%v_(2)) < 1d-10) then
+!!$write(*,*) nc, ":", i
+!!$call print(RadToDegUnit(CartToSphPos(cartPos)))
+!!$call print(RadToDegUnit(CartToSphPos(tri%node(1))))
+!!$call print(RadToDegUnit(CartToSphPos(tri%node(2))))
+!!$call print(RadToDegUnit(CartToSphPos(tri%node(3))))
+!!$call print(RadToDegUnit(CartToSphPos( Radius*normalizedVec(mapping_local2globalCoord(pt,tri))) ))
+!!$call print(b_1)
+!!$call print(b_2)
+!!$end if
+
   ret(1,:) = (/ b_1%v_(1), b_2%v_(1) /) 
   ret(2,:) = (/ b_1%v_(2), b_2%v_(2) /) 
+  ret(3,:) = (/ b_1%v_(3), b_2%v_(3) /) 
 end function Jacob
 
 function gammaE(y) result(ret)
   type(vector2d), intent(in) :: y
-  real(DP) :: ret(2)
+  real(DP) :: ret(3)
 
   type(vector3d) :: x_p
   
-  x_p = mapping_local2globalCoord(y,tri)
-  ret = x_p%v_(1:2)/l2norm(x_p)*Radius
+  x_p = normalizedVec( mapping_local2globalCoord(y,tri) )
+  ret = Radius * x_p%v_(:)
 
 end function gammaE
+
+function solve_leastSquareProblem(A, b) result(x)
+  real(DP), intent(in) :: A(:,:)
+  real(DP), intent(in) :: b(size(A,1))
+  real(DP) :: x(size(A,2))
+
+  integer :: m, n, info, rank
+  integer, parameter :: &
+       & mmax = 16, nmax = 8, nb = 64
+  integer, parameter :: &
+       & lda=mmax, &
+       & lwork = 3*nmax + nb*(mmax + nmax)
+  real(DP), parameter :: rcond = 1d-2
+
+  real(DP) :: A_(lda,nmax), b_(mmax), s(nmax), work(lwork)
+
+  m = size(A,1)
+  n = size(A,2)
+
+  A_(1:m,1:n) = A(:,:)
+  b_(1:m) = b(:)
+  call dgelss(m, n, 1, A_, lda, b_, m, s, rcond, rank, work, lwork, info)
+
+  if(info /= 0) then
+     write(*,*) "Fail solving least square proble."
+     stop
+  end if
+
+  x(:) = b_(1:n)
+  
+end function solve_leastSquareProblem
 
 end function get_LocalCoordMatrix
 

@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
 <title>水惑星設定における軸対称な風成循環の数値実験 1: 密度一様</title>
-<!-- 2014-10-20 月 21:19 -->
+<!-- 2014-11-17 月 10:49 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Yuta Kawai" />
@@ -55,6 +55,8 @@
   pre.src-sql:before   { content: 'SQL'; }
 
   table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
   td, th { vertical-align:top;  }
   th.right  { text-align: center;  }
   th.left   { text-align: center;   }
@@ -224,24 +226,26 @@ for the JavaScript code in this tag.
 </p>
 </div>
 </div>
+
 <div id="outline-container-sec-2" class="outline-2">
 <h2 id="sec-2"><span class="section-number-2">2</span> 水惑星設定における軸対称な風成循環の記述</h2>
 <div class="outline-text-2" id="text-2">
 <ul class="org-ul">
 <li><a href="./../../../../../note_OModeling/ogcirc_formul/main.pdf">海洋大循環を記述するための方程式系</a>
 </li>
-<li><a href="./note/axisym_windcirc_homoFluid/main.pdf">軸対称風成循環の漸近級数解の導出</a>
+<li><a href="./note/axisym_windcirc/main.pdf">水惑星軸対称風成循環の定式化と漸近級数解の導出(密度一様)</a>
 </li>
 </ul>
 </div>
 </div>
+
 <div id="outline-container-sec-3" class="outline-2">
 <h2 id="sec-3"><span class="section-number-2">3</span> 実験設定</h2>
 <div class="outline-text-2" id="text-3">
 </div><div id="outline-container-sec-3-1" class="outline-3">
 <h3 id="sec-3-1"><span class="section-number-3">3.1</span> ケース間で共通な設定</h3>
 <div class="outline-text-3" id="text-3-1">
-</div><ol class="org-ol"><li>計算領域<br  /><div class="outline-text-4" id="text-3-1-1">
+</div><ol class="org-ol"><li><a id="sec-3-1-1" name="sec-3-1-1"></a>計算領域<br  /><div class="outline-text-4" id="text-3-1-1">
 <ul class="org-ul">
 <li>全球的に広がる水深 \(H= 5.2\) km の海洋. 
 海底地形や陸は存在しない.  
@@ -251,7 +255,8 @@ for the JavaScript code in this tag.
 </ul>
 </div>
 </li>
-<li>モデルの記述<br  /><div class="outline-text-4" id="text-3-1-2">
+
+<li><a id="sec-3-1-2" name="sec-3-1-2"></a>モデルの記述<br  /><div class="outline-text-4" id="text-3-1-2">
 <ul class="org-ul">
 <li>海洋大循環モデルの支配方程式
 <ul class="org-ul">
@@ -295,7 +300,8 @@ for the JavaScript code in this tag.
 </ul>
 </div>
 </li>
-<li>境界条件<br  /><div class="outline-text-4" id="text-3-1-3">
+
+<li><a id="sec-3-1-3" name="sec-3-1-3"></a>境界条件<br  /><div class="outline-text-4" id="text-3-1-3">
 <ul class="org-ul">
 <li>海面
 <ul class="org-ul">
@@ -321,7 +327,7 @@ for the JavaScript code in this tag.
 </p>
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;1:</span> 海面応力(&tau;<sub>zx</sub>) の南北分布 [ N/m<sup>2</sup> ].</caption>
+<caption class="t-above"><span class="table-number">&#34920;1:</span> 海面応力(&tau;<sub>zx</sub>) の南北分布 [ N/m<sup>2</sup> ].</caption>
 
 <colgroup>
 <col  class="left" />
@@ -359,7 +365,8 @@ for the JavaScript code in this tag.
 </ul>
 </div>
 </li>
-<li>初期条件<br  /><div class="outline-text-4" id="text-3-1-4">
+
+<li><a id="sec-3-1-4" name="sec-3-1-4"></a>初期条件<br  /><div class="outline-text-4" id="text-3-1-4">
 <ul class="org-ul">
 <li>運動場: 静止状態
 </li>
@@ -368,11 +375,12 @@ for the JavaScript code in this tag.
 </li></ol>
 </div>
 
+
 <div id="outline-container-sec-3-2" class="outline-3">
 <h3 id="sec-3-2"><span class="section-number-3">3.2</span> 各実験設定</h3>
 <div class="outline-text-3" id="text-3-2">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption align="above"><span class="table-number">&#34920;2:</span> Pl: ルジャンドル陪関数の次数, L: 鉛直レベル数, Ah:水平渦粘性係数[m<sup>2</sup> s<sup>-1</sup>], dt: 時間刻み幅[hour].</caption>
+<caption class="t-above"><span class="table-number">&#34920;2:</span> Pl: ルジャンドル陪関数の次数, L: 鉛直レベル数, Ah:水平渦粘性係数[m<sup>2</sup> s<sup>-1</sup>], dt: 時間刻み幅[hour].</caption>
 
 <colgroup>
 <col  class="left" />
@@ -500,6 +508,7 @@ for the JavaScript code in this tag.
 </div>
 </div>
 </div>
+
 <div id="outline-container-sec-4" class="outline-2">
 <h2 id="sec-4"><span class="section-number-2">4</span> 計算結果</h2>
 <div class="outline-text-2" id="text-4">
@@ -520,6 +529,7 @@ for the JavaScript code in this tag.
 </div>
 </div>
 
+
 <div id="outline-container-sec-5" class="outline-2">
 <h2 id="sec-5"><span class="section-number-2">5</span> 計算結果の解析</h2>
 <div class="outline-text-2" id="text-5">
@@ -530,6 +540,7 @@ for the JavaScript code in this tag.
 <h3 id="sec-5-2"><span class="section-number-3">5.2</span> <a href="./Exp_WindDrivenCirculation_homoFluid_validiation.html">解析的な近似解との比較</a></h3>
 </div>
 </div>
+
 <div id="outline-container-sec-6" class="outline-2">
 <h2 id="sec-6"><span class="section-number-2">6</span> <a href="./Exp_WindDrivenCirculation_homoFluid_consider.html">考察</a></h2>
 </div>
@@ -548,6 +559,7 @@ for the JavaScript code in this tag.
 </p>
 </div>
 </div>
+
 
 
 <div id="outline-container-sec-8" class="outline-2">
@@ -666,8 +678,8 @@ Geoffrey&nbsp;K Vallis.
 </div>
 <div id="postamble" class="status">
 <p class="author">&#33879;&#32773;: Yuta Kawai</p>
-<p class="date">Created: 2014-10-20 月 21:19</p>
-<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
+<p class="date">Created: 2014-11-17 月 10:49</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>

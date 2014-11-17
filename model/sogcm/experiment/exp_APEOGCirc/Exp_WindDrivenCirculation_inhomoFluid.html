@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
 <title>水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様</title>
-<!-- 2014-10-22 水 18:07 -->
+<!-- 2014-11-17 月 13:15 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Yuta Kawai" />
@@ -151,23 +151,25 @@ for the JavaScript code in this tag.
 <div id="text-table-of-contents">
 <ul>
 <li><a href="#sec-1">1. 概要</a></li>
-<li><a href="#sec-2">2. 実験設定</a>
+<li><a href="#sec-2">2. 水惑星設定における軸対称な風成循環の記述</a></li>
+<li><a href="#sec-3">3. 実験設定</a>
 <ul>
-<li><a href="#sec-2-1">2.1. ケース間で共通な設定</a></li>
-<li><a href="#sec-2-2">2.2. 各実験設定</a></li>
+<li><a href="#sec-3-1">3.1. ケース間で共通な設定</a></li>
+<li><a href="#sec-3-2">3.2. 各実験設定</a></li>
 </ul>
 </li>
-<li><a href="#sec-3">3. 計算結果</a>
+<li><a href="#sec-4">4. 計算結果</a>
 <ul>
-<li><a href="#sec-3-1">3.1. 標準実験</a></li>
-<li><a href="#sec-3-2">3.2. 水平渦粘性・拡散係数依存性</a></li>
-<li><a href="#sec-3-3">3.3. 混合の表現方法の違いによる効果</a></li>
+<li><a href="#sec-4-1">4.1. 標準実験</a></li>
+<li><a href="#sec-4-2">4.2. 水平渦粘性・拡散係数依存性</a></li>
+<li><a href="#sec-4-3">4.3. プラントル数依存性</a></li>
+<li><a href="#sec-4-4">4.4. 混合の表現方法の違いによる効果</a></li>
 </ul>
 </li>
-<li><a href="#sec-4">4. 計算結果の解析</a></li>
-<li><a href="#sec-5">5. 考察</a></li>
-<li><a href="#sec-6">6. まとめ</a></li>
-<li><a href="#sec-7">7. 参考文献</a></li>
+<li><a href="#sec-5">5. 計算結果の解析</a></li>
+<li><a href="#sec-6">6. 考察</a></li>
+<li><a href="#sec-7">7. まとめ</a></li>
+<li><a href="#sec-8">8. 参考文献</a></li>
 </ul>
 </div>
 </div>
@@ -177,19 +179,54 @@ for the JavaScript code in this tag.
 <div class="outline-text-2" id="text-1">
 <p>
   「<a href="../exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html">水惑星設定における軸対称な風成循環の数値実験 1</a>」では, 海洋モデルの妥当性の確認と水惑星設定の海洋大循環の基本構造の理解のために, 
-一定の密度・塩分を仮定して系を簡単化した. 
+密度一様を仮定して系を簡単化した. 
 ここでは, これらの仮定を取り除き, 密度・塩分非一様な水惑星の軸対称風成循環の数値実験を行う. 
+本数値実験の全体的な目的は, 先行研究の水惑星実験[<a href="#marshall2007mean">2</a>]と同様な海面強制を与えたときに, 
+開発中の海洋モデルが[<a href="#marshall2007mean">2</a>]の計算結果の特徴を再現するかを確認することである. 
+また, それらの数値実験において, 
+</p>
+<ul class="org-ul">
+<li>水平渦拡散係数依存性
+</li>
+<li>プラントル数依存性
+</li>
+<li>中規模渦パラメタリゼーションの効果
+</li>
+<li>対流パラメタリゼーションの効果
+</li>
+</ul>
+<p>
+について調べることにする. 
+一番目と二番目は地球流体力学的興味からであり, 水平渦拡散の時間スケールが鉛直渦拡散の時間スケールより短い場合, 同程度の場合, 長い場合において, 
+温度や塩分の構造がどうのように変化し, またそれは循環場にどのように影響を与えるかを調べる. 
+一番目と二番目を調べる数値実験において, 中規模渦や対流による混合の表現は簡単化のために一定の渦拡散係数を持つ拡散項を使って行われる. 
+三番目と四番目のねらいは, 中規模渦や対流による混合の表現として, より精巧な表現方法(GM スキーム[<a href="#gent1990isopycnal">1</a>]や対流スキーム[])
+を使用したときに, 一番目や二番目で使われた簡単な混合の表現方法の結果とどのような違いが生じるかを調べる. 
 </p>
 </div>
 </div>
 
+
 <div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2"><span class="section-number-2">2</span> 実験設定</h2>
+<h2 id="sec-2"><span class="section-number-2">2</span> 水惑星設定における軸対称な風成循環の記述</h2>
 <div class="outline-text-2" id="text-2">
-</div><div id="outline-container-sec-2-1" class="outline-3">
-<h3 id="sec-2-1"><span class="section-number-3">2.1</span> ケース間で共通な設定</h3>
-<div class="outline-text-3" id="text-2-1">
-</div><ol class="org-ol"><li><a id="sec-2-1-1" name="sec-2-1-1"></a>計算領域<br  /><div class="outline-text-4" id="text-2-1-1">
+<ul class="org-ul">
+<li><a href="./../../../../../note_OModeling/ogcirc_formul/main.pdf">海洋大循環を記述するための方程式系</a>
+</li>
+<li><a href="../exp_WindDrivenCirculation/note/axisym_windcirc/main.pdf">水惑星軸対称風成循環の定式化(密度非一様)</a>
+</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> 実験設定</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> ケース間で共通な設定</h3>
+<div class="outline-text-3" id="text-3-1">
+</div><ol class="org-ol"><li><a id="sec-3-1-1" name="sec-3-1-1"></a>計算領域<br  /><div class="outline-text-4" id="text-3-1-1">
 <ul class="org-ul">
 <li>全球的に広がる水深 \(H= 5.2\) km の海洋. 
 海底地形や陸は存在しない.  
@@ -200,7 +237,7 @@ for the JavaScript code in this tag.
 </div>
 </li>
 
-<li><a id="sec-2-1-2" name="sec-2-1-2"></a>モデルの記述<br  /><div class="outline-text-4" id="text-2-1-2">
+<li><a id="sec-3-1-2" name="sec-3-1-2"></a>モデルの記述<br  /><div class="outline-text-4" id="text-3-1-2">
 <ul class="org-ul">
 <li>海洋大循環モデルの支配方程式
 <ul class="org-ul">
@@ -230,17 +267,17 @@ for the JavaScript code in this tag.
 
 <li>粘性
 <ul class="org-ul">
-<li>水平方向の渦粘性係数 \(A_h\) , 渦拡散係数 \(K_h\)  の設定
+<li>水平方向の渦粘性係数 \(A_{h}\) , 渦拡散係数 \(K_{h}\)  の設定
 <ul class="org-ul">
-<li>\(A_h, K_h\) の大きさは, 次の各ケース設定を参照. 
+<li>\(A_{h}, K_{h}\) の大きさは, 次の各ケース設定を参照. 
 </li>
 </ul>
 </li>
-<li>鉛直方向の渦粘性係数 \(A_v\) , 渦拡散係数 \(K_v\) の設定
+<li>鉛直方向の渦粘性係数 \(A_{v}\) , 渦拡散係数 \(K_{v}\) の設定
 <ul class="org-ul">
-<li>海面流速が [<a href="#marshall2007mean">2</a>] と同程度になるように, \(A_v=1.0 \times 10^{-2}\) [m^2 s<sup>-1</sup>] にとる. 
+<li>海面流速が [<a href="#marshall2007mean">2</a>] と同程度になるように, \(A_{v}=1.0 \times 10^{-2}\) [m<sup>2</sup> s<sup>-1</sup>] にとる. 
 </li>
-<li>\(K_v\) の大きさは, 次の各ケース設定を参照. 
+<li>\(K_{v}\) の大きさは, 次の各ケース設定を参照. 
 </li>
 </ul>
 </li>
@@ -250,7 +287,7 @@ for the JavaScript code in this tag.
 </div>
 </li>
 
-<li><a id="sec-2-1-3" name="sec-2-1-3"></a>境界条件<br  /><div class="outline-text-4" id="text-2-1-3">
+<li><a id="sec-3-1-3" name="sec-3-1-3"></a>境界条件<br  /><div class="outline-text-4" id="text-3-1-3">
 <ul class="org-ul">
 <li>海面
 <ul class="org-ul">
@@ -274,16 +311,19 @@ for the JavaScript code in this tag.
      \rho_0 A_v \dfrac{\partial v}{\partial z} = 0          \;\;\;\;\;\; {\rm at} \; z=0.         
   \]
 </p>
+</li>
+</ul>
 
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption class="t-above"><span class="table-number">&#34920;1:</span> 海面応力(&tau;<sub>zx</sub>)の南北分布[ N/m<sup>2</sup> ].</caption>
+
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;1:</span> 海面応力(&tau;<sub>zx</sub>) の南北分布[ N/m<sup>2</sup> ].</caption>
 
 <colgroup>
 <col  class="left" />
 </colgroup>
 <tbody>
 <tr>
-<td class="left"><a href="./data/common/windStressLon.jpg"><img src="./expdata_inhomoFluid/common/windStressLon_thumb.png" alt="windStressLon_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/common/windStressLon.png"><img src="./expdata_inhomoFluid/common/windStressLon_thumb.png" alt="windStressLon_thumb.png" /></a></td>
 </tr>
 </tbody>
 </table>
@@ -295,14 +335,15 @@ for the JavaScript code in this tag.
 
 <p>
 \[
-        \left(\dfrac{\partial\theta}{\partial t}\right)_{\rm relax} = - \dfrac{1}{\tau} (\theta - \theta_{\rm relax}), \;\;\;
+        \left(\dfrac{\partial\Theta}{\partial t}\right)_{\rm relax} = - \dfrac{1}{\tau} (\Theta - \Theta_{\rm relax}), \;\;\;
         \left(\dfrac{\partial S}{\partial t}\right)_{\rm relax} = - \dfrac{1}{\tau} (S - S_{\rm relax})  \;\;\;\;\;\; {\rm at} \; z=0. 
     \]   
 </p>
 </li>
 </ul>
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption class="t-above"><span class="table-number">&#34920;2:</span> 海面温度(&theta;<sub>relax</sub>) [K], 海面塩分(S<sub>relax</sub>) [psu] の南北分布.</caption>
+
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;2:</span> 海面温度(&Theta;<sub>relax</sub>) [K], 海面塩分(S<sub>relax</sub>) [psu] の南北分布.</caption>
 
 <colgroup>
 <col  class="left" />
@@ -311,14 +352,11 @@ for the JavaScript code in this tag.
 </colgroup>
 <tbody>
 <tr>
-<td class="left"><a href="./data/common/windStressLon.jpg"><img src="./expdata_inhomoFluid/common/y_PTempRelax_thumb.png" alt="y_PTempRelax_thumb.png" /></a></td>
-<td class="left"><a href="./data/common/windStressLon.jpg"><img src="./expdata_inhomoFluid/common/y_SaltRelax_thumb.png" alt="y_SaltRelax_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/common/y_PTempRelax.png"><img src="./expdata_inhomoFluid/common/y_PTempRelax_thumb.png" alt="y_PTempRelax_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/common/y_SaltRelax.png"><img src="./expdata_inhomoFluid/common/y_SaltRelax_thumb.png" alt="y_SaltRelax_thumb.png" /></a></td>
 </tr>
 </tbody>
 </table>
-</li>
-</ul>
-
 
 
 <ul class="org-ul">
@@ -347,7 +385,7 @@ for the JavaScript code in this tag.
 
 <p>
 \[
-        K_v \dfrac{\partial \theta}{\partial z} = 0, \;\;\;
+        K_v \dfrac{\partial \Theta}{\partial z} = 0, \;\;\;
         K_v \dfrac{\partial S}{\partial z} = 0  \;\;\;\;\;\; {\rm at} \; z=-H. 
     \]   
 </p>
@@ -359,14 +397,14 @@ for the JavaScript code in this tag.
 </li>
 
 
-<li><a id="sec-2-1-4" name="sec-2-1-4"></a>初期条件<br  /><div class="outline-text-4" id="text-2-1-4">
+<li><a id="sec-3-1-4" name="sec-3-1-4"></a>初期条件<br  /><div class="outline-text-4" id="text-3-1-4">
 <ul class="org-ul">
 <li>運動場: 静止状態
 </li>
 <li>温位・塩分場: 20 世紀の気候の数値実験の結果<sup><a id="fnr.1" name="fnr.1" class="footref" href="#fn.1">1</a></sup>を時間・水平平均したものを, 初期の鉛直分布として与える(水平一様). 
 
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption class="t-above"><span class="table-number">&#34920;3:</span> 温位[K], 塩分[psu] の初期の鉛直分布(水平方向は一様).</caption>
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;3:</span> 温位[K], 塩分[psu] の初期の鉛直分布(水平方向は一様) .</caption>
 
 <colgroup>
 <col  class="left" />
@@ -375,8 +413,8 @@ for the JavaScript code in this tag.
 </colgroup>
 <tbody>
 <tr>
-<td class="left"><a href="./data/common/windStressLon.jpg"><img src="./expdata_inhomoFluid/common/z_PTempInit_thumb.png" alt="z_PTempInit_thumb.png" /></a></td>
-<td class="left"><a href="./data/common/windStressLon.jpg"><img src="./expdata_inhomoFluid/common/z_SaltInit_thumb.png" alt="z_SaltInit_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/common/z_PTempInit.png"><img src="./expdata_inhomoFluid/common/z_PTempInit_thumb.png" alt="z_PTempInit_thumb.png" /></a></td>
+<td class="left"><a href="./expdata_inhomoFluid/common/z_SaltInit.png"><img src="./expdata_inhomoFluid/common/z_SaltInit_thumb.png" alt="z_SaltInit_thumb.png" /></a></td>
 </tr>
 </tbody>
 </table>
@@ -386,9 +424,9 @@ for the JavaScript code in this tag.
 </li></ol>
 </div>
 
-<div id="outline-container-sec-2-2" class="outline-3">
-<h3 id="sec-2-2"><span class="section-number-3">2.2</span> 各実験設定</h3>
-<div class="outline-text-3" id="text-2-2">
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> 各実験設定</h3>
+<div class="outline-text-3" id="text-3-2">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 <caption class="t-above"><span class="table-number">&#34920;4:</span> Pl: ルジャンドル陪関数の次数, L: 鉛直レベル数, Ah:水平渦粘性係数[m^2 s<sup>-1</sup>], Pr<sub>h</sub>(=Ah/Kh):水平プラントル数, Pr<sub>v</sub>(=Av/Kv):鉛直プラントル数, dt: 時間刻み幅[hour].</caption>
 
@@ -450,6 +488,16 @@ for the JavaScript code in this tag.
 </tr>
 
 <tr>
+<td class="left">Ah1e4Prh10Prv10</td>
+<td class="left">Pl170L60</td>
+<td class="left">1.0 &times; 10<sup>5</sup></td>
+<td class="right">10</td>
+<td class="right">10</td>
+<td class="right">1.5</td>
+<td class="left">&#xa0;</td>
+</tr>
+
+<tr>
 <td class="left">Ah1e4WithGM90</td>
 <td class="left">Pl170L60</td>
 <td class="left">1.0 &times; 10<sup>4</sup></td>
@@ -468,6 +516,8 @@ for the JavaScript code in this tag.
 </li>
 <li>水平渦粘性・拡散係数の依存性: Ah1e3Prh1Prv1, Ah1e4Prh1Prv1 Ah1e5Prh1Prv1 の計算結果を比較
 </li>
+<li>プラントル数の依存性: Ah1e4Prh1Prv1, Ah1e4Prh10Prv10 の計算結果を比較
+</li>
 <li>混合の表現方法の違いによる効果: Ah1e4Prh1Prv1, Ah1e4WithGM90
 </li>
 </ul>
@@ -484,12 +534,18 @@ for the JavaScript code in this tag.
 <col  class="left" />
 
 <col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
 </colgroup>
 <tbody>
 <tr>
 <td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/config.nml">Ah1e4Prh1Prv1(標準実験) </a></td>
 <td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/config.nml">Ah1e3Prh1Prv1</a></td>
 <td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/config.nml">Ah1e5Prh1Prv1</a></td>
+<td class="left"><a href="">Ah1e4Prh10Prv10</a></td>
+<td class="left"><a href="">Ah1e4Prh10Prv10GM</a></td>
 </tr>
 </tbody>
 </table>
@@ -499,42 +555,43 @@ for the JavaScript code in this tag.
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3"><span class="section-number-2">3</span> 計算結果</h2>
-<div class="outline-text-2" id="text-3">
-</div><div id="outline-container-sec-3-1" class="outline-3">
-<h3 id="sec-3-1"><span class="section-number-3">3.1</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_result_refexp.html">標準実験</a></h3>
-</div>
-
-<div id="outline-container-sec-3-2" class="outline-3">
-<h3 id="sec-3-2"><span class="section-number-3">3.2</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_horiEddViscDiffComp.html">水平渦粘性・拡散係数依存性</a></h3>
-</div>
-
-<div id="outline-container-sec-3-3" class="outline-3">
-<h3 id="sec-3-3"><span class="section-number-3">3.3</span> 混合の表現方法の違いによる効果</h3>
-</div>
-</div>
-
-
-
 <div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4"><span class="section-number-2">4</span> 計算結果の解析</h2>
+<h2 id="sec-4"><span class="section-number-2">4</span> 計算結果</h2>
+<div class="outline-text-2" id="text-4">
+</div><div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_result_refexp.html">標準実験</a></h3>
 </div>
 
+<div id="outline-container-sec-4-2" class="outline-3">
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_horiEddViscDiffComp.html">水平渦粘性・拡散係数依存性</a></h3>
+</div>
+
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_PrComp.html">プラントル数依存性</a></h3>
+</div>
+<div id="outline-container-sec-4-4" class="outline-3">
+<h3 id="sec-4-4"><span class="section-number-3">4.4</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_EddMixParamEffect.html">混合の表現方法の違いによる効果</a></h3>
+</div>
+</div>
 
 <div id="outline-container-sec-5" class="outline-2">
-<h2 id="sec-5"><span class="section-number-2">5</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_consider.html">考察</a></h2>
+<h2 id="sec-5"><span class="section-number-2">5</span> 計算結果の解析</h2>
 </div>
 
 
 <div id="outline-container-sec-6" class="outline-2">
-<h2 id="sec-6"><span class="section-number-2">6</span> まとめ</h2>
+<h2 id="sec-6"><span class="section-number-2">6</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_consider.html">考察</a></h2>
 </div>
 
 
 <div id="outline-container-sec-7" class="outline-2">
-<h2 id="sec-7"><span class="section-number-2">7</span> 参考文献</h2>
-<div class="outline-text-2" id="text-7">
+<h2 id="sec-7"><span class="section-number-2">7</span> まとめ</h2>
+</div>
+
+
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8"><span class="section-number-2">8</span> 参考文献</h2>
+<div class="outline-text-2" id="text-8">
 <div id="bibliography">
 <h2>References</h2>
 
@@ -600,7 +657,7 @@ GFDL CM2.0 モデルによる 20 世紀の気候計算の出力データの中�
 </div></div>
 <div id="postamble" class="status">
 <p class="author">&#33879;&#32773;: Yuta Kawai</p>
-<p class="date">Created: 2014-10-22 水 18:07</p>
+<p class="date">Created: 2014-11-17 月 13:15</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

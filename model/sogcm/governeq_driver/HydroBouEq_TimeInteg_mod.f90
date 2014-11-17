@@ -34,6 +34,10 @@ module HydroBoudEq_TimeInteg_mod
 
   use SpmlUtil_mod
 
+  use GovernEqSet_mod, only: &
+       & SGSEddyMixType, &
+       & isPhysicsCompActived
+
   use BoundCondSet_mod, only: &
        & inquire_VBCSpecType, &
        & DynBCTYPE_NoSlip, DynBCTYPE_Slip, DynBCTYPE_SpecStress, &
@@ -229,7 +233,8 @@ contains
 
           call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, w_SurfHeightExplRHS, 'D' ); 
           call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
-          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.); 
+          call calc_ExplTermWithPhysicsRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. )
+          call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.);
           call add_ImplRHS_into_RHS(); 
           call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
           call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS )
@@ -241,6 +246,7 @@ contains
 
           call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, w_SurfHeightExplRHS, 'D' ); 
           call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
+          call calc_ExplTermWithPhysicsRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. )
           call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.); 
           call add_ImplRHS_into_RHS(); 
           call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
@@ -253,6 +259,7 @@ contains
 
           call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, w_SurfHeightExplRHS, 'D' ); 
           call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
+          call calc_ExplTermWithPhysicsRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. )
           call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.); 
           call add_ImplRHS_into_RHS(); 
           call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
@@ -265,6 +272,7 @@ contains
 
           call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, w_SurfHeightExplRHS, 'D' ); 
           call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
+          call calc_ExplTermWithPhysicsRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. )
           call calc_VViscRHS(wz_VorImplRHSTmp, wz_DivImplRHSTmp, wz_PTempImplRHSTmp, wz_SaltExplRHS, 'D', 1d0, .false.); 
           call add_ImplRHS_into_RHS(); 
           call correct_DivEqRHS_RigidLid('CRANKNIC', wt_DivN)
@@ -277,6 +285,7 @@ contains
 
           call calc_InvisRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS,  w_SurfHeightExplRHS, 'D' ); 
           call calc_HViscRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. ); 
+          call calc_ExplTermWithPhysicsRHS(wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, 'D', .true. )
 
           select case(Stage)
              case(1)
@@ -440,6 +449,33 @@ contains
         end select
 
       end subroutine calc_VViscRHS
+
+      subroutine calc_ExplTermWithPhysicsRHS( &
+           & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, & 
+           & tLevel, isRHSAppend)
+
+        use SGSEddyMixing_mod, only: SGSEddyMixing_AddMixingTerm
+
+        real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
+        character, intent(in), optional :: tLevel
+        logical, intent(in), optional :: isRHSAppend
+
+        character :: tLvl
+        logical :: isRHSReplace
+        integer :: k
+        real(DP) :: xyz_PTempBasic(0:iMax-1,jMax,0:kMax)
+
+        tLvl = 'D'
+        if (present(tLevel)) tLvl = tLevel
+
+        forAll(k=0:kMax) xyz_PTempBasic(:,:,k) = z_PTempBasic(k)
+
+        if(isPhysicsCompActived(SGSEddyMixType)) then
+           call SGSEddyMixing_AddMixingTerm(wz_PTempRHS, wz_SaltRHS, &
+                & wz_wt(wt_PTempEdd)+wz_xyz(xyz_PTempBasic), wz_wt(wt_Salt), xy_totDepthBasic+xy_SurfHeight)
+        end if
+
+      end subroutine calc_ExplTermWithPhysicsRHS
 
       subroutine add_ImplRHS_into_RHS()
 

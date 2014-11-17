@@ -330,7 +330,7 @@ subroutine calc_hU1U2Src(w_hU1Src, w_hU2Src, &
           & (normalizedVec(x_p)).cross.(s_hFlux1(ns)*b_1 + s_hFlux2(ns)*b_2)
 
      !
-     toth = TriNk_interpolate(s_y1(ns), s_y2(ns), wc_h(:,nc)) + meanDepth
+     toth = TriNk_interpolate(s_y1(ns), s_y2(ns), wc_h(:,nc) + meanDepth)
      BtmTopl_dy1 = sum(w_BtmTopl*TriNk_basis_dy1(s_y1(ns),s_y2(ns)))
      BtmTopl_dy2 = sum(w_BtmTopl*TriNk_basis_dy2(s_y1(ns),s_y2(ns)))
 
@@ -388,7 +388,7 @@ subroutine SintPt_Flux( &
   s_y1 = DGElemInfo%sIntNode_y1;   s_y2 = DGElemInfo%sIntNode_y2
   s_hU1(:) = TriNk_interpolate(s_y1, s_y2, wc_hU1(:,nc))
   s_hU2(:) = TriNk_interpolate(s_y1, s_y2, wc_hU2(:,nc))
-  s_Phi(:) = TriNk_interpolate(s_y1, s_y2, wc_h(:,nc)) + meanDepth
+  s_Phi(:) = TriNk_interpolate(s_y1, s_y2, wc_h(:,nc) + meanDepth)
 
   sintPt_hFlux1 = s_hU1
   sintPt_hFlux2 = s_hU2

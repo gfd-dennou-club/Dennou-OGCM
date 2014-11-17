@@ -33,8 +33,8 @@
 
 \Dtitle{水惑星設定における風成循環}   % 変更不可
 \Dauthor{河合 佑太}            % ゼミ担当者の名前
-\Ddate{}        % ゼミの日時 (毎回変更すること)
-\Dfile{}
+\Ddate{\the\year/\the\month/\the\day}        % ゼミの日時 (毎回変更すること)
+\Dfile{main.tex}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%   Set Counter (chapter, section etc. ) %%%%%%%%
@@ -74,8 +74,14 @@
 %%%%%%%%             Text Start                 %%%%%%%%
 \begin{document}
 
+\tableofcontents
+
 \input{intro}
-\input{axisym_windcirc}
+\newpage
+\input{axisym_windcirc_homoFluid}
+\newpage
+\input{axisym_windcirc_inhomoFluid}
+
 %%
 
 %% 参考文献

@@ -270,8 +270,9 @@ AC_CONFIG_FILES([
 		 model/sogcm/setup/Makefile
 		 model/sogcm/util/Makefile
 		 model/sogcm/dynamics/Makefile
-		 model/sogcm/experiment/Makefile
+		 model/sogcm/physics_driver/Makefile
 		 model/sogcm/governeq_driver/Makefile
+		 model/sogcm/experiment/Makefile
 		 model/sogcm/unit_test/Makefile
 		 model/sogcm/tool/Makefile
  ])

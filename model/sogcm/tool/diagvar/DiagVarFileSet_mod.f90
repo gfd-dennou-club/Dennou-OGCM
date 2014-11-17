@@ -126,6 +126,11 @@ contains
          longname='density deviation from refrence density(RefDens)', units='kg.m-3')
 
     call HistoryAutoAddVariable( &
+         varname=DVARKEY_DENSPOT, dims=(/'lon','lat','sig','t  '/), & 
+         longname='potential density deviation from refrence density(RefDens). Refrence pressure sets zero.', &
+         units='kg.m-3')
+
+    call HistoryAutoAddVariable( &
          varname=DVARKEY_PRESSEDD, dims=(/'lon','lat','sig','t  '/), & 
          longname='pressure deviation from static pressure(RefDens*Grav*z)', units='Pa')
 

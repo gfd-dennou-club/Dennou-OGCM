@@ -63,16 +63,16 @@
 
 - その他
   - [[./chebyshev/chebyshevCheck.html][風成循環計算における Chebyshev 多項式展開についての考察]]
-
+  - [[./../../../../note_OModeling/mixing/eddy_diff/main.pdf][海洋における渦拡散の表現方法(Redi スキーム, GM スキーム)]]
 
 ** 岸なし/あり実験用の海洋モデル
 
-不連続 Galerkin 法を用いた海洋モデル
+# 不連続 Galerkin 法を用いた海洋モデル
 
-- 順圧モデル
-  - テスト計算
-    - 全球浅水モデルの標準テスト(Williamson, 1992)
-    - 理想化した海陸分布における環流
+# - 順圧モデル
+#  - テスト計算
+#    - 全球浅水モデルの標準テスト(Williamson, 1992)
+#    - 理想化した海陸分布における環流
 
 
 * 水惑星実験 関連論文
@@ -80,6 +80,7 @@
     - [[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][Smith, et al.(2006)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131031_epasemi_ykawai/pub/][発表資料]])
     - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131219_epasemi_ykawai/pub/][発表資料]])
     - Enderton, et al.(2009) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/140619_epasemi_ykawai/pub/][発表資料]])
+    - Ferreira, et al.(2011) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/141106_epasemi_ykawai/pub/][発表資料]])
 
 
 * 海洋モデルミーティングログ

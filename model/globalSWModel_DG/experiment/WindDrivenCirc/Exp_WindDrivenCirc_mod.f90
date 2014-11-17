@@ -91,7 +91,7 @@ contains
 
              sphPos = CartToSphPos(wc_DGNodePos(nk,nc))
 !!$             sphVel = 0.2d0*(/ -cos( PI*(sphPos%v_(2) - 40d0/180d0*PI)/(9d0/180d0*PI) ), 0d0, 0d0 /)
-             sphVel = 0.05d0*(/ -cos( 3d0*sphPos%v_(2) ), 0d0, 0d0 /)
+             sphVel = 0.1d0*(/ -cos( 3d0*sphPos%v_(2) ), 0d0, 0d0 /)
              cartVel = SphToCartVec(sphVel, wc_DGNodePos(nk,nc))
              wc_WindStress1(nk,nc) = (cartVel.dot.b1)
              wc_WindStress2(nk,nc) = (cartVel.dot.b2)

@@ -157,15 +157,19 @@ contains
     real(DP), parameter :: gammas = 3d0
     real(DP), parameter :: transitionEPS = 0.24d0
     type(vector3d) :: sphPos
-    real(DP) :: dLon
-    real(DP), parameter :: boundaryWidth = 8d0*PI/180d0
+    real(DP) :: dLon1, dLon2
+    real(DP), parameter :: boundaryWidth1 = 8d0*PI/180d0
+    real(DP), parameter :: boundaryWidth2 = 8d0*PI/180d0
+
 !density = 1d0
 
     judge = (geodesicArcLength(x, domainCenterPos) - domainCircRadius)/transitionEPS
     sphPos = CartToSphPos(x)
-    dLon = abs(sphPos%v_(1) - lon1)
+    dLon1 = abs(sphPos%v_(1) - lon1)
+    dLon2 = abs(sphPos%v_(1) - lon2)
     
-    density =   gammas**4 * exp(- dLon/boundaryWidth) &
+    density =   gammas**4 * exp(- dLon1/boundaryWidth1)  &
+         &    + gammas**2 * exp(- dLon2/boundaryWidth2)  &
          &    + 1d0
 
 !!$    if(judge < 0d0) then

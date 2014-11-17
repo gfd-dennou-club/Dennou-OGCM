@@ -47,28 +47,33 @@ yz_Salt_mplane = VarNoAnimFig.new("", "Salt", "lon=0,sig=-1:0,t=#{LAST_DAY}", "0
 
 yz_PressEdd_mplane = VarNoAnimFig.new("", "PressEdd", "lon=0,sig=-1:0,t=#{LAST_DAY}", "2.5e4", "-2e5:6e5", "yz", "mplane_300yr", "--title 'Pressure deviation from static pressure'")
 yz_DensEdd_mplane = VarNoAnimFig.new("", "DensEdd", "lon=0,sig=-1:0,t=#{LAST_DAY}", "1.5", "-6:30", "yz", "mplane_300yr", "--title 'Density deviation from refrence density'")
+yz_DensPot_mplane = VarNoAnimFig.new("", "DensPot", "lon=0,sig=-1:0,t=#{LAST_DAY}", "0.25", "-3:3", "yz", "mplane_300yr", "--title 'Potential density deviation from refrence density'")
 
 t_KEAvg = VarNoAnimFig.new("", "KEAvg", "", "", "0:0.02", "t", "", "--title 'K.E.(global mean)'" )
 
 
 exps = [
 #        Exp.new("exp_constSalt",     "#{DATASTORAGE_DIR}/exp_APEOGCirc_constSalt/", ""),      
-        Exp.new("exp_Ah1e3Prh1Prv1", 
-                "#{DATASTORAGE_DIR}/exp_APEOGCirc_noConstSalt/exp_Ah1e3Prh1Prv1_Pl171L60/", ""),      
-        Exp.new("exp_Ah1e4Prh1Prv1", 
-                "#{DATASTORAGE_DIR}/exp_APEOGCirc_noConstSalt/exp_Ah1e4Prh1Prv1_Pl171L60/", ""),      
-        Exp.new("exp_Ah1e5Prh1Prv1", 
-                "#{DATASTORAGE_DIR}/exp_APEOGCirc_noConstSalt/exp_Ah1e5Prh1Prv1_Pl171L60/", ""),      
-]
+#        Exp.new("exp_Ah1e3Prh1Prv1", 
+#                "#{DATASTORAGE_DIR}/exp_APEOGCirc_noConstSalt/exp_Ah1e3Prh1Prv1_Pl171L60/", ""),      
+#        Exp.new("exp_Ah1e4Prh1Prv1", 
+#                "#{DATASTORAGE_DIR}/exp_APEOGCirc_noConstSalt/exp_Ah1e4Prh1Prv1_Pl171L60/", ""),      
+#        Exp.new("exp_Ah1e5Prh1Prv1", 
+#                "#{DATASTORAGE_DIR}/exp_APEOGCirc_noConstSalt/exp_Ah1e5Prh1Prv1_Pl171L60/", ""),      
+#        Exp.new("exp_Ah1e4Prh10Prv10", 
+#                "#{DATASTORAGE_DIR}/exp_APEOGCirc_noConstSalt/exp_Ah1e4Prh10Prv10Pl171L60/", ""),      
+        Exp.new("exp_Ah1e4Prh10Prv10GM", 
+                "#{DATASTORAGE_DIR}/exp_APEOGCirc_noConstSalt/exp_Ah1e4Prh10Prv10GMPl171L60/", ""),      ]
 
 noAnimFigVars = []
 exp_noAnimFigs =  [ \
-#                    t_KEAvg, \
-#                    yt_U_SeaSurf, yz_U_mplane, yz_U_mplane_eq, \
-#                    yz_MassStrFunc_mplane, yz_MassStrFunc_mplane_eq, \
-#                    yt_PTemp_SeaSurf,  yz_PTemp_mplane, \
-#                    yt_Salt_SeaSurf, yz_Salt_mplane, 
-                    yz_PressEdd_mplane, yz_DensEdd_mplane, 
+                    t_KEAvg, \
+                    yt_U_SeaSurf, yz_U_mplane, yz_U_mplane_eq, \
+                    yz_MassStrFunc_mplane, yz_MassStrFunc_mplane_eq, \
+                    yt_PTemp_SeaSurf,  yz_PTemp_mplane, \
+                    yt_Salt_SeaSurf, yz_Salt_mplane, \
+#                    yz_PressEdd_mplane, 
+                    yz_DensEdd_mplane, yz_DensPot_mplane, 
                   ]
 
 # 
@@ -77,10 +82,10 @@ animFigFlag = false
 
 animFigVars = []
 exp_AnimFigs =  [ 
-#                 VarAnimFig.new("U", "lon=0", "0.05", "-1.2:1.2", animTimeInfo, "yz", "anim", ""),  
-#                 VarAnimFig.new("PTemp", "lon=0", "2", "270:310", animTimeInfo, "yz", "anim", ""),
-#                 VarAnimFig.new("Salt", "lon=0", "0.2", "33:37", animTimeInfo, "yz", "anim", ""),
-#                 VarAnimFig.new("MassStreamFunc", "lat=-90:90", "10", "-100:100", animTimeInfo, "yz", "anim", "") 
+                 VarAnimFig.new("U", "lon=0", "0.05", "-1.2:1.2", animTimeInfo, "yz", "anim", ""),  
+                 VarAnimFig.new("PTemp", "lon=0,sig=-1:0", "2", "270:310", animTimeInfo, "yz", "anim", ""),
+                 VarAnimFig.new("Salt", "lon=0,sig=-1:0", "0.2", "33:37", animTimeInfo, "yz", "anim", ""),
+                 VarAnimFig.new("MassStreamFunc", "lat=-90:90,sig=-1:0", "10", "-100:100", animTimeInfo, "yz", "anim", "") 
                 ]
 
 
@@ -90,7 +95,7 @@ exp_AnimFigs =  [
 
 extra_exps = [ 
 #              Exp.new("exp_comm", "./common/"), 
-              Exp.new("exp_HViscDiffComp", "./HViscDiffComp/"), 
+#              Exp.new("exp_HViscDiffComp", "./HViscDiffComp/"), 
              ]
 
 
@@ -130,7 +135,7 @@ t_KECompari_HComp = NoAnimOverplotFig.new("KEAvg_HCompari",
                       #{getExpDirPath("Ah1e4Pl682L60")}/Run1_EnergyBudget.nc", 
                      "KEAvg,KEAvg,KEAvg", "t=0:4000", "", "0:0.006", "--title 'K.E.(global mean)'") 
 t_KECompari_HComp.createFigure(getExpDirPath("HComp"))
-=end
+
 
 t_KECompari_HViscComp = NoAnimOverplotFig.new("KEAvg_HViscDiffCompari", 
                      "#{getExpDirPath("Ah1e4Prh1Prv1")}/KEAvg.nc, \
@@ -138,6 +143,7 @@ t_KECompari_HViscComp = NoAnimOverplotFig.new("KEAvg_HViscDiffCompari",
                       #{getExpDirPath("Ah1e5Prh1Prv1")}/KEAvg.nc", 
                      "KEAvg,KEAvg,KEAvg", "t=0:#{LAST_DAY}", "", "0:0.025", "--title 'K.E.(global mean)'") 
 t_KECompari_HViscComp.createFigure(getExpDirPath("HViscDiffComp"))
+=end
 
 ####################################################
 

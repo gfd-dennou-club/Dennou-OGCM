@@ -1,5 +1,5 @@
 SUBDIRS = \
-	util setup dynamics experiment governeq_driver \
+	util setup dynamics experiment physics_driver governeq_driver \
 	unit_test tool
 
 # util dynamics
@@ -16,11 +16,13 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/util \
         $(MODPATHFLAG)$(srcdir)/dynamics \
         $(MODPATHFLAG)$(srcdir)/governeq_driver \
+        $(MODPATHFLAG)$(srcdir)/physics_driver \
         $(MODPATHFLAG)$(srcdir)/experiment \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
 	$(srcdir)/governeq_driver/libDSOGCMGovernEqDriver.la \
+	$(srcdir)/physics_driver/libDSOGCMPhysicsDriver.la \
 	$(srcdir)/experiment/libDSOGCMExp.la \
 	$(srcdir)/dynamics/libDSOGCMDynamics.la \
 	$(srcdir)/setup/libDSOGCMSetup.la \

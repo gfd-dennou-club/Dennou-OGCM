@@ -129,7 +129,7 @@ use at_module_omp
        xyz_RHSWork(:,:,kMax) = xy_w(wa_VorBCRHS(:,2))
 
        wt_Vor = solve( xyz_RHSWork(:,:,0:kMax), &
-            & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), vViscDiffTermCoef*vDiffCoef, .false. )
+            & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), vViscDiffTermCoef*vViscCoef, .false. )
     end if
 
     !
@@ -140,7 +140,7 @@ use at_module_omp
        xyz_RHSWork(:,:,kMax+1) = 0d0
 
        wt_Div = solve( xyz_RHSWork(:,:,0:kMax+1), &
-            & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), vViscDiffTermCoef*vDiffCoef, .true. )
+            & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), vViscDiffTermCoef*vViscCoef, .true. )
     end if
 
     if( present(wt_PTempEdd) ) then

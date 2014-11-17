@@ -17,6 +17,7 @@ program ogcm_main
   use RestartDataFileSet_mod
   use GovernEqSet_mod
 
+  use PhysicsDriver_mod
   use GovernEqSolverDriver_mod
 
 !!$  use Exp_W94_Case2_mod, only: &
@@ -77,6 +78,7 @@ program ogcm_main
 
   call DataFileSet_OutputBasicData()
   call DataFileSet_OutputData(datFile)
+  call PhysicsDriver_OutputData(datFile)
 
   call InitCond_Final()
 
@@ -103,6 +105,7 @@ program ogcm_main
      !
 
      call DataFileSet_OutputData(datFile)
+     call PhysicsDriver_OutputData(datFile)
      call RestartDataFileSet_Output()
 
   end do
@@ -184,7 +187,7 @@ contains
     call DataFileSet_Init(datFile, configNmlFile)
     call RestartDataFileSet_Init(configNmlFile)
     call GovernEqSet_Init(configNmlFile)
-
+    call PhysicsDriver_Init(datFile)
     call GovernEqSolverDriver_Init()
 
     ! 
@@ -213,6 +216,7 @@ contains
     !
 
     call Exp_Final()
+    call PhysicsDriver_Final()
     call GovernEqSolverDriver_Final()
     call DataFileSet_Final(datFile)
     call RestartDataFileSet_Final()

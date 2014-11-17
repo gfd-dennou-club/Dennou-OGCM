@@ -33,14 +33,15 @@ module DataFileSet_mod
   !
 
   type, public :: DataFileSet
-     
-     real(DP) :: outputIntrval
+
+     character(String) :: FilePrefix
+     real(DP) :: outputIntrvalSec
 
   end type DataFileSet
 
   public :: DataFileSet_Init, DataFileSet_Final
   public :: DataFileSet_OutputData, DataFileSet_OutputBasicData
-
+  public :: DataFileSet_isOutputTiming
 
   ! 非公開手続き
   ! Private procedure
@@ -95,7 +96,7 @@ contains
          & dims=(/'lon','lat','sig','t  '/), dimsizes=(/iMax,jMax,kMax+1,0/),       &
          & longnames=(/'longitude','latitude ','sigma    ', 'time     '/),      &
          & units=(/'degree_east ','degree_north','(1)         ', 'sec.        '/), &
-         & origin=RestartTime, interval=this%outputIntrval, terminus=EndTime,          &
+         & origin=RestartTime, interval=this%outputIntrvalSec, terminus=EndTime,          &
          & namelist_filename=configNmlFileName )    
 
     ! Regist the axises and variables which will be output. 
@@ -119,6 +120,16 @@ contains
     call HistoryAutoClose()
 
   end subroutine DataFileSet_Final
+
+  logical function DataFileSet_isOutputTiming(this, CurrentTimeSec)
+
+    type(DataFileSet), intent(in) :: this
+    real(DP), intent(in) :: CurrentTimeSec
+
+    DataFileSet_isOutputTiming &
+         & = ( mod(CurrentTimeSec, this%outputIntrvalSec) == 0 )
+
+  end function DataFileSet_isOutputTiming
 
   !> @brief 
   !!
@@ -167,7 +178,7 @@ contains
     ! 実行文; Executable statement
     !
 
-    if( mod(CurrentTime, outputIntTimeSec) /= 0 ) return 
+    if( .not. DataFileSet_isOutputTiming(this, CurrentTime) ) return 
 
     call MessageNotify("M", module_name, "Output data of some field at %f [%c] ..", &
          & d=(/ DCCalConvertByUnit(CurrentTime, 'sec', outputIntUnit) /), c1=trim(outputIntUnit) )
@@ -211,6 +222,7 @@ contains
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLON, xy_WindStressU)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLAT, xy_WindStressV)
 
+    
   end subroutine DataFileSet_OutputData
 
   !> @brief 
@@ -441,6 +453,8 @@ contains
 
     outputIntTimeSec = DCCalConvertByUnit(IntValue, IntUnit, "sec")
     outputIntUnit = IntUnit
+    this%FilePrefix = FilePrefix
+    this%outputIntrvalSec = outputIntTimeSec
 
     ! 印字 ; Print
     !

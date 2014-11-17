@@ -43,6 +43,7 @@ module DiagVarSet_mod
   character(*), parameter, public :: DVARKEY_DIV = 'Div'
   character(*), parameter, public :: DVARKEY_PRESSEDD = 'PressEdd'
   character(*), parameter, public :: DVARKEY_DENSEDD = 'DensEdd'
+  character(*), parameter, public :: DVARKEY_DENSPOT = 'DensPot'
   character(*), parameter, public :: DVARKEY_MASSSTREAMFUNC = 'MassStreamFunc'
   character(*), parameter, public :: DVARKEY_PTEMP = 'PTemp'
   character(*), parameter, public :: DVARKEY_TEMP = 'Temp'
@@ -93,6 +94,7 @@ contains
              allocate( xyz_Vor(0:iMax-1,jMax,0:kMax) )
           case ( DVARKEY_PRESSEDD )
           case ( DVARKEY_DENSEDD )
+          case ( DVARKEY_DENSPOT )
           case (DVARKEY_MASSSTREAMFUNC )
              allocate( yz_MassStreamFunc(jMax, 0:kMax) )
           case (DVARKEY_PTEMP)

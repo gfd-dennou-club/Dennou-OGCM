@@ -10,12 +10,11 @@ module GovernEqSolverDriver_mod
 
   ! モジュール引用; Use statements
   !
-  use GovernEqSet_mod, only: &
-       & EOSType
+  use DataFileSet_mod, only: &
+       & DataFileSet
 
-!!$  use HydroBouEqSolver_mod, only: &
-!!$       & HydroBouEqSolver_Init, HydroBouEqSolver_Final, &
-!!$       & HydroBouEqSolver_AdvanceTStep
+  use GovernEqSet_mod, only: &
+       & DynEqType, EOSType
 
   use HydroBoudEq_TimeInteg_mod, only: &
        & HydroBouEq_TimeInteg_Init, HydroBouEq_TimeInteg_Final, &
@@ -24,9 +23,7 @@ module GovernEqSolverDriver_mod
   use EOSDriver_mod, only: &
        & EOSDriver_Init, EOSDriver_Final
 
-!!$  use HydroBouEqSolverSelfStart_mod, only: &
-!!$       & HydroBouEqSolverSelfStart_Init, HydroBouEqSolverSelfStart_Final, &
-!!$       & HydroBouEqSolverSelfStart_AdvanceTStep
+
 
   ! 宣言文; Declareration statements
   !
@@ -55,6 +52,10 @@ contains
   !!
   subroutine GovernEqSolverDriver_Init()
 
+    ! 宣言文; Declaration statement
+    !
+
+
     ! 実行文; Executable statements
     !
 
@@ -63,7 +64,22 @@ contains
 !!$    call HydroBouEqSolver_Init()
     call HydroBouEq_TimeInteg_Init()
 
+
   end subroutine GovernEqSolverDriver_Init
+
+  !>
+  !!
+  !!
+  subroutine GovernEqSolverDriver_Final()
+
+    ! 実行文; Executable statements
+    !
+
+    call HydroBouEq_TimeInteg_Final()
+    call EOSDriver_Final()
+
+  end subroutine GovernEqSolverDriver_Final
+
 
   !> @brief 
   !!
@@ -109,20 +125,6 @@ contains
          & DelTime, timeIntMode, nStage, is_VarB_Used )
 
   end subroutine GovernEqSolverDriver_AdvanceTStep
-
-  !>
-  !!
-  !!
-  subroutine GovernEqSolverDriver_Final()
-
-    ! 実行文; Executable statements
-    !
-
-!!$    call HydroBouEqSolver_Final()
-    call HydroBouEq_TimeInteg_Final()
-    call EOSDriver_Final()
-
-  end subroutine GovernEqSolverDriver_Final
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

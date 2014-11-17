@@ -20,10 +20,10 @@ program analysticSol
   real(DP), parameter :: radius  = 6.37122d06
   real(DP), parameter :: Omega = 7.292d-05
   real(DP), parameter :: Grav = 9.80616
-  real(DP), parameter :: meanDepth = 1000d0
+  real(DP), parameter :: meanDepth = 3000d0
   real(DP), parameter :: refDens = 1000d0
-  real(DP), parameter :: LinearDragCoef = 1d-6
-  real(DP), parameter :: WindStessMag = 5d-2
+  real(DP), parameter :: LinearDragCoef = 3d-6
+  real(DP), parameter :: WindStessMag = 1d-1
   
   integer :: l, m, n, i, j, k
   integer :: nm_(2)

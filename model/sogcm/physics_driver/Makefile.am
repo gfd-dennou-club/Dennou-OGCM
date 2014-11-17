@@ -10,6 +10,8 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
         $(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../util \
+        $(MODPATHFLAG)$(srcdir)/../dynamics \
+        $(MODPATHFLAG)$(srcdir)/../experiment \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
@@ -17,9 +19,8 @@ LDADD = \
 
 CLEANFILES = *$(MODEXT)
 
-noinst_LTLIBRARIES= libDSOGCMDynamics.la 
-nodist_libDSOGCMDynamics_la_SOURCES= \
-	HydroBouEqSolverRHS_mod.f90 \
-	HydroBouEqSolverVImplProc_mod.f90
-
+noinst_LTLIBRARIES= libDSOGCMPhysicsDriver.la 
+nodist_libDSOGCMPhysicsDriver_la_SOURCES= \
+	../sgs_eddy_mixing/SGSEddyMixing_mod.f90 \
+	PhysicsDriver_mod.f90
 

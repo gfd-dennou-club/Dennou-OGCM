@@ -71,7 +71,7 @@
 * 水惑星設定における軸対称な風成循環の記述
 
 - [[file:./../../../../../note_OModeling/ogcirc_formul/main.pdf][海洋大循環を記述するための方程式系]]
-- [[./note/axisym_windcirc_homoFluid/main.pdf][軸対称風成循環の漸近級数解の導出]]
+- [[./note/axisym_windcirc/main.pdf][水惑星軸対称風成循環の定式化と漸近級数解の導出(密度一様)]]
 
 * 実験設定
 

@@ -570,6 +570,9 @@ contains
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_Vor, var3D=xyz_Vor)
           case (DVARKEY_DENSEDD)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_DENSEDD, var3D=xyz_DensEdd )
+          case (DVARKEY_DENSPOT)
+             call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_DENSPOT, &
+                  & var3D=eval_DensPoT(xyz_PTemp, xyz_SaltN, PressRef=0d0) )
           case (DVARKEY_PRESSEDD)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_PRESSEDD, var3D=xyz_PressEdd )
           case (DVARKEY_MASSSTREAMFUNC)

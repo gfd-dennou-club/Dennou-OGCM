@@ -12,6 +12,7 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../util \
         $(MODPATHFLAG)$(srcdir)/../dynamics \
         $(MODPATHFLAG)$(srcdir)/../experiment \
+        $(MODPATHFLAG)$(srcdir)/../physics_driver \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
