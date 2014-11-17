@@ -1,0 +1,62 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様 ~ 渦による混合の表現方法の違いの効果
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 計算結果: 渦による混合の表現方法の違いによる効果(Ah1e4Prh10Prv10, Ah1e4Prh10Prv10GM)
+
+** 全球的な分布の比較
+
+*** 東西流, 子午面循環
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e4Prh10Prv10,Ah1e4Prh10Prv10GM", "exp_Ah1e4Prh10Prv10{,GM}/yz_U_mplane_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, Ah1e4Prh1Prv1,Ah1e4Prh10Prv10GM", "exp_Ah1e4Prh10Prv10{,GM}/yz_MassStreamFunc_mplane_300yr.jpg") :results value raw :exports results
+
+#   #+CALL: create_FigsTable("運動エネルギーの全球平均値[J/(m^3*kg)]の時間発展の比較. Ah1e3Prh1Prv1(破線), Ah1e4Prh1Prv1(実線), Ah1e5Prh1Prv1(点線)", "HViscDiffComp/KEAvg_HViscDiffCompari.jpg") :results value raw :exports results
+
+
+*** 温位・塩分・密度
+
+   #+CALL: create_FigsTable("温位[K]の子午面分布の比較. 左から順に, Ah1e4Prh1Prv1,Ah1e4Prh10Prv10GM", "exp_Ah1e4Prh10Prv10{,GM}/yz_PTemp_mplane_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("塩分[psu]の比較. 左から順に, Ah1e4Prh1Prv1,Ah1e4Prh10Prv10GM", "exp_Ah1e4Prh10Prv10{,GM}/yz_Salt_mplane_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("密度偏差[kg/m^{3}]の比較. 左から順に, Ah1e4Prh1Prv1,Ah1e4Prh10Prv10GM", "exp_Ah1e4Prh10Prv10{,GM}/yz_DensEdd_mplane_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("ポテンシャル密度偏差[kg/m^{3}]の比較. 左から順に, Ah1e4Prh1Prv1,Ah1e4Prh10Prv10GM", "exp_Ah1e4Prh10Prv10{,GM}/yz_DensPot_mplane_300yr.jpg") :results value raw :exports results
+
+# *** 圧力
+
+#  #+CALL: create_FigsTable("圧力偏差(力学的圧力)[Pa]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_PressEdd_mplane_300yr.jpg") :results value raw :exports results
+
+
+
+** 赤道近傍の分布の比較
+
+*** 東西流, 子午面循環
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e4Prh1Prv1,Ah1e4Prh10Prv10GM", "exp_Ah1e4Prh10Prv10{,GM}/yz_U_mplane_eq_300yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, Ah1e4Prh1Prv1,Ah1e4Prh10Prv10GM", "exp_Ah1e4Prh10Prv10{,GM}/yz_MassStreamFunc_mplane_eq_300yr.jpg") :results value raw :exports results
+
