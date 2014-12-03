@@ -44,9 +44,10 @@ function func_basis1_dy2(y) result(val)
 end function func_basis1_dy2
 
 subroutine check_basis1
-  integer :: nk
+  integer :: nk, k
   real(DP) :: y1, y2, f(nNode), g(nNode), h(nNode), I(nNode)
-  type(vector2d) :: pos
+  type(vector2d) :: check_pos(DGElemInfo%nSIntNode)
+  real(DP) :: pos_y1, pos_y2, check_val
 
   real(DP) :: f_ip
 
@@ -61,33 +62,45 @@ subroutine check_basis1
 !     write(*,*) "nk=",nk,":", TriNk_basis(y1,y2)
   end do
 
-pos =(/0d0,0d0/)
-f_ip = TriNk_interpolate(0d0, 0d0, f)
-write(*,*) func_basis1(pos), f_ip
 
-  pos = (/ 1d0/3d0, 1d0/3d0 /)
-  call AssertLessThan(message="check_basis1",  &
-       & answer=1d-10, check=abs(func_basis1(pos)-TriNk_interpolate(1d0/3d0, 1d0/3d0, f)) &
-       & )
+  
+  check_pos(1) = (/ 1d0/4d0, 3d0/4d0 /)
+  check_pos(2) = (/ 3d0/4d0, 1d0/4d0 /)
+  check_pos(3) = (/ 1d0/2d0, 1d0/4d0 /)
+  do k=1, DGElemInfo%nSIntNode
+     check_pos(k) = DGElemInfo%sIntNode(k)
+  end do
 
-  call AssertLessThan(message="check_basis1_dy1",  &
-       & answer=1d-10, check=abs(func_basis1_dy1(pos)-dot_product(TriNk_basis_dy1(1d0/3d0, 1d0/3d0), f)) &
-       & )
+  do k=1, size(check_pos)
+     pos_y1 = check_pos(k)%v_(1)
+     pos_y2 = check_pos(k)%v_(2)
 
-  call AssertLessThan(message="check_basis1_dy2",  &
-       & answer=1d-10, check=abs(func_basis1_dy2(pos)-dot_product(TriNk_basis_dy2(1d0/3d0, 1d0/3d0), f)) &
-       & )
+     check_val = abs(func_basis1(check_pos(k))-TriNk_interpolate(pos_y1, pos_y2, f))
+     call MessageNotify('M', 'check_interpolate', 'check value=%f', d=(/ check_val /))
+     call AssertLessThan(message="check_interpolate",  answer=1d-10, check=check_val)
+
+     check_val = abs(func_basis1_dy1(check_pos(k))-dot_product(TriNk_basis_dy1(pos_y1, pos_y2), f))
+     call MessageNotify('M', 'check_basis_dy1', 'check value=%f', d=(/ check_val /))
+     call AssertLessThan(message="check_basis1_dy1", answer=1d-10, check=check_val) 
+
+     check_val = abs(func_basis1_dy2(check_pos(k))-dot_product(TriNk_basis_dy2(pos_y1, pos_y2), f))
+     call MessageNotify('M', 'check_basis_dy2', 'check value=%f', d=(/ check_val /))
+     call AssertLessThan(message="check_basis1_dy2", answer=1d-10, check=check_val) 
+
+  end do
 
 !write(*,*) TriNk_sinteg(g,h,I)
-  call AssertLessThan(message="check_basis1_sinteg",  &
-       & answer=1d-9, check=abs(TriNk_sinteg(g,h,I)-1d0/8d0) &
-       & )
-  call AssertLessThan(message="check_basis1_sinteg",  &
-       & answer=1d-9, check=abs(TriNk_sinteg(g,I,h)-1d0/8d0) &
-       & )
-  call AssertLessThan(message="check_basis1_sinteg",  &
-       & answer=1d-9, check=abs(TriNk_sinteg(I,h,g)-1d0/8d0) &
-       & )
+  check_val = abs(TriNk_sinteg(g,h,I)-1d0/8d0)
+  call MessageNotify('M', 'check_sinteg', 'check value=%f', d=(/ check_val /))
+  call AssertLessThan(message="check_basis1_sinteg",  answer=1d-9,  check=check_val )
+
+  check_val = abs(TriNk_sinteg(h,g,I)-1d0/8d0)
+  call MessageNotify('M', 'check_sinteg', 'check value=%f', d=(/ check_val /))
+  call AssertLessThan(message="check_basis1_sinteg",  answer=1d-9,  check=check_val )
+
+  check_val = abs(TriNk_sinteg(h,I,g)-1d0/8d0)
+  call MessageNotify('M', 'check_sinteg', 'check value=%f', d=(/ check_val /))
+  call AssertLessThan(message="check_basis1_sinteg",  answer=1d-9,  check=check_val )
 
   
 end subroutine check_basis1

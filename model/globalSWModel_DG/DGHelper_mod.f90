@@ -27,7 +27,7 @@ module DGHelper_mod
          & DGElemInfo, &
          & get_DGElemCovariantBasis, get_DGElemContravariantBasis, &
          & get_DGElemCovariantBasisAtNodes, &
-         & calc_G_ij, inverseMat
+         & get_DGElemSIntNodeJacobian, calc_G_ij, inverseMat
 
 
   ! 宣言文; Declareration statements
@@ -331,13 +331,15 @@ contains
     integer :: nk, nk1, nk2, ns
     type(vector3d), dimension(nDGNodePerElem) :: b_1, b_2, b1, b2
     real(DP), dimension(nDGNodePerElem,nDGNodePerElem) :: phi, phi_dy1, phi_dy2
+    real(DP), dimension(nDGSIntNodePerElem,nDGNodePerElem) :: s_phi, s_phi_dy1, s_phi_dy2
+    real(DP) :: l_phi(nDGNodePerFace), l_zero(nDGNodePerFace)
     real(DP), dimension(2,2,nDGNodePerElem) :: G_ij, Gij
     real(DP) :: det_G_ij(nDGNodePerElem), Jacob(nDGNodePerElem)
-    real(DP), dimension(2,2,nDGSIntNodePerElem) :: G_ij_, Gij_
-    real(DP) :: det_G_ij_(nDGSIntNodePerElem), Jacob_(nDGSIntNodePerElem)
+    real(DP) :: Jacob_(nDGSIntNodePerElem)
     real(DP) :: y1, y2
     integer :: faceIds(3), TriEdge, nlInt
-    real(DP) :: dl
+    integer :: DGElemNodeId_TriEdge(nDGNodePerFace,3)
+    real(DP) :: l_Jacob(nDGNodePerFace)
     real(DP), dimension(nDGSIntNodePerElem) :: sintTmp_M, sintTmp_D1, sintTmp_D2
  
     type(vector3d) :: edgeNe     ! vector normal to a edge of triangle on global coordinate
@@ -366,34 +368,41 @@ contains
     end do
 
     
-    do nk=1, nDGSIntNodePerElem
-       G_ij_(:,:,nk) = calc_G_ij( &
-            & get_DGElemCovariantBasis(1,DGElemInfo%sIntNode(nk),nc), &
-            & get_DGElemCovariantBasis(2,DGElemInfo%sIntNode(nk),nc) )
-       det_G_ij_(nk) = G_ij_(1,1,nk)*G_ij_(2,2,nk) - G_ij_(2,1,nk)**2
-       Jacob_(nk) = sqrt(det_G_ij_(nk))       
+    ! Set the derivative matrix to calculate surface integral associated with  the product of 
+    ! spatial derivative term of test function and flux term over an element.
+    !
+    Jacob_(:) = get_DGElemSIntNodeJacobian(nc)
+
+    do ns=1, nDGSIntNodePerElem
+       y1 = DGElemInfo%sIntNode(ns)%v_(1); y2 = DGElemInfo%sIntNode(ns)%v_(2)
+       s_phi(ns,:) = TriNk_basis(y1,y2)
+       s_phi_dy1(ns,:) = TriNk_basis_dy1(y1,y2)
+       s_phi_dy2(ns,:) = TriNk_basis_dy2(y1,y2)
     end do
 
     do nk2=1, nDGNodePerElem
        do nk1=1, nDGNodePerElem
-          M_k1k2(nk1,nk2) = TriNk_sinteg(Jacob(:),phi(:,nk1),phi(:,nk2))
-
-          do ns=1, nDGSIntNodePerElem
-             y1 = DGElemInfo%sIntNode(ns)%v_(1); y2 = DGElemInfo%sIntNode(ns)%v_(2)
-             sintTmp_M(ns) = Jacob_(ns)*TriNk_interpolate(y1,y2,phi(:,nk1)) &
-                  & *TriNk_interpolate(y1,y2,phi(:,nk2))
-          end do
+          sintTmp_M(:) = Jacob_(:)*s_phi(:,nk1)*s_phi(:,nk2)
           M_k1k2(nk1,nk2) = TriNk_sinteg_dotProdWt(sintTmp_M)
        end do   ! end of loop for nk1       
     end do      ! end of loop for nk2
 
+
     do nk1=1, nDGNodePerElem
        do ns=1, nDGSIntNodePerElem
-          y1 = DGElemInfo%sIntNode(ns)%v_(1); y2 = DGElemInfo%sIntNode(ns)%v_(2)
+          Dy1_sk1(nk1,ns) = Jacob_(ns)*s_phi_dy1(ns,nk1)
+          Dy2_sk1(nk1,ns) = Jacob_(ns)*s_phi_dy2(ns,nk1)
+          S_sk1(nk1,ns) = Jacob_(ns)*s_phi(ns,nk1)
+       end do
+    end do
 
-          Dy1_sk1(nk1,ns) = Jacob_(ns)*TriNk_interpolate(y1,y2, phi_dy1(:,nk1))
-          Dy2_sk1(nk1,ns) = Jacob_(ns)*TriNk_interpolate(y1,y2, phi_dy2(:,nk1))
-          S_sk1(nk1,ns) = Jacob_(ns)*TriNk_interpolate(y1,y2, phi(:,nk1))
+    ! Set the matrix used to calculate line integral of flux across the boundary of an element.  
+    !
+
+    do nlInt=1,nDGNodePerFace
+       do TriEdge=1,3
+          DGElemNodeId_TriEdge(nlInt,TriEdge) = (nDGNodePerFace-1)*(TriEdge-1) + nlInt
+          if(TriEdge==3 .and. nlInt==nDGNodePerFace) DGElemNodeId_TriEdge(nlInt,TriEdge) = 1
        end do
     end do
 
@@ -402,22 +411,42 @@ contains
 
     do nk1=1, nDGNodePerElem
        do TriEdge=1,3
+
           do nlInt=1,nDGNodePerFace
-             nk = (nDGNodePerFace - 1)*(TriEdge - 1)   + nlInt
-             if(nk==3*(nDGNodePerFace - 1) + 1) nk = 1
+             nk = DGElemNodeId_TriEdge(nlInt,TriEdge)
 
              edgeNe = edgeNd(TriEdge)%v_(1)*b1(nk) + edgeNd(TriEdge)%v_(2)*b2(nk)
-             dl = Jacob(nk)*l2norm(edgeNe)
-             Ms_k1l(nk1,nDGNodePerFace*(TriEdge-1)+nlInt) = dl * phi(nk,nk1)
+             l_Jacob(nlInt) = Jacob(nk)*l2norm(edgeNe)
           end do
-             
+
+          do nlInt=1,nDGNodePerFace
+             l_phi(:) = 0d0; l_phi(nlInt) = 1d0; l_zero(:) = 0d0
+             select case(TriEdge)
+             case(1)
+                Ms_k1l(nk1,nDGNodePerFace*(TriEdge-1)+nlInt) &
+                     & = TriNk_linteg( &
+                     & l_Jacob(:),phi(DGElemNodeId_TriEdge(:,TriEdge),nk1),l_phi(:), l_zero,l_zero,l_zero, l_zero,l_zero,l_zero &
+                     & )
+             case(2)
+                Ms_k1l(nk1,nDGNodePerFace*(TriEdge-1)+nlInt) &
+                     & = TriNk_linteg( &
+                     & l_zero,l_zero,l_zero, l_Jacob(:),phi(DGElemNodeId_TriEdge(:,TriEdge),nk1),l_phi(:), l_zero,l_zero,l_zero &
+                     & )
+             case(3)
+                Ms_k1l(nk1,nDGNodePerFace*(TriEdge-1)+nlInt) &
+                     & = TriNk_linteg( &
+                     & l_zero,l_zero,l_zero, l_zero,l_zero,l_zero, l_Jacob(:),phi(DGElemNodeId_TriEdge(:,TriEdge),nk1),l_phi(:) &
+                     & )                   
+             end select
+          end do
+
           if( Face_DGElemId(2,faceIds(TriEdge)) ==nc ) then
              Ms_k1l(nk1,nDGNodePerFace*(TriEdge-1)+1:nDGNodePerFace*TriEdge) &
                   & = - Ms_k1l(nk1,nDGNodePerFace*TriEdge:nDGNodePerFace*(TriEdge-1)+1:-1)
           end if
 
-       end do
-    end do
+       end do    ! end do for TriEdge
+    end do   ! end do for nk1
 
   end subroutine prepair_DGMatPerElement
 

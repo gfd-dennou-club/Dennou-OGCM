@@ -37,7 +37,7 @@ subroutine setIniCond_ExpWS94Case1()
   
   integer :: nc, nk
   real(DP), allocatable :: wc(:,:)
-
+  
   centerPos = SphToCartPos(cosBellCenterLon, cosBellCenterLat, radius)
   wc_h = create_CosBellField(h0, centerPos, cosBellRadius)
 
@@ -120,13 +120,15 @@ subroutine callBack_EndCurrentTimeStep(tstep, wc_h, wc_hU1, wc_hU2)
      wc_hAnalystic = create_CosBellField(h0, SphToCartPos(geo_pos), cosBellRadius)
 
      wc_hError = abs(wc_h - wc_hAnalystic)
-     l2norm = integrate_over_globalRigion(wc_hError)/integrate_over_globalRigion(wc_hAnalystic)
+     l2norm = sqrt( integrate_over_globalRigion(wc_hError**2)       &
+          &         /integrate_over_globalRigion(wc_hAnalystic**2) )
+
      linfnorm = maxval(abs(wc_hError))/maxval(abs(wc_hAnalystic))
 
      call Output_FieldData('hError', wc_hError)
      call HistoryPut('l2norm', l2norm)
      call HistoryPut('linfnorm', linfnorm)
-     write(*,*) "Error:", &
+     write(*,*) "h Error:", &
           & "l2:", l2norm, ", linf:", linfnorm
   end if
 

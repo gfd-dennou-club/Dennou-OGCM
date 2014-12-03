@@ -163,12 +163,13 @@ function isPtInsideSphericalTri(p, p1, p2, p3) result(ret)
   type(vector3d), intent(in) :: p, p1, p2, p3
   logical :: ret
 
-  real(DP), parameter :: EPS = 1d-10
+  real(DP), parameter :: EPS = 1d-7
+  real(DP) :: triP1P2P3Area
 
-  if( abs( &
-         &   sphericalTriArea(p1,p2,p3) &
+  triP1P2P3Area = sphericalTriArea(p1,p2,p3)
+  if( abs( triP1P2P3Area &
          & - sphericalTriArea(p,p1,p2)-sphericalTriArea(p,p2,p3)-sphericalTriArea(p,p3,p1) &
-         & ) > 1d-10 ) then
+         & )/triP1P2P3Area > EPS ) then
      ret = .false.; return
   end if
 

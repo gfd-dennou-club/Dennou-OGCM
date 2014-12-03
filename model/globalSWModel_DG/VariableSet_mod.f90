@@ -54,6 +54,13 @@ subroutine VariableSet_Init()
   call DGHelper_MallocElemNode(wc_WindStress1)
   call DGHelper_MallocElemNode(wc_WindStress2)
 
+  wc_h = 0d0
+  wc_BtmTopl = 0d0
+  wc_hU1 = 0d0; wc_hU2 = 0d0
+  wc_U1 = 0d0; wc_U2 = 0d0;
+  
+  wc_WindStress1 = 0d0; wc_WindStress2 = 0d0;
+
   contains
 
 end subroutine VariableSet_Init

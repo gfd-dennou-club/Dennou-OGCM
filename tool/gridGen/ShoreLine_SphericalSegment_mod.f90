@@ -161,7 +161,7 @@ contains
     real(DP), parameter :: boundaryWidth1 = 8d0*PI/180d0
     real(DP), parameter :: boundaryWidth2 = 8d0*PI/180d0
 
-!density = 1d0
+density = 1d0; return;
 
     judge = (geodesicArcLength(x, domainCenterPos) - domainCircRadius)/transitionEPS
     sphPos = CartToSphPos(x)

@@ -38,7 +38,8 @@ module GridSet_mod
   public :: get_DGElemContravariantBasis
   public :: get_DGElemChristoffelSymbl, get_DGElemChristoffelSymblAtNodes
 
-  public :: get_DGElemJacobian, calc_G_ij, calc_Gij
+  public :: calc_G_ij, calc_Gij
+  public :: get_DGElemJacobian, get_DGElemSIntNodeJacobian 
 
   public :: inverseMat
   public :: get_DGElementTri
@@ -244,30 +245,33 @@ use SimParameters_mod
   type(Triangle) :: tri
 
   integer :: triNodeCellIds(3)
-  integer :: i
+  integer :: i, maxloc_(1)
+  real(DP) :: arcLen(3)
+  integer, parameter :: defaultIds(3) = (/ 1,3,2 /)
+  integer :: nodeIds(3)
 
-  triNodeCellIds(1) = fvmInfo%Point_CellId(1,nc)
-  triNodeCellIds(2) = fvmInfo%Point_CellId(3,nc)
-  triNodeCellIds(3) = fvmInfo%Point_CellId(2,nc)
-!!$  triNodeCellIds = fvmInfo%Point_CellId(1:3,nc)
 
+  nodeIds(:) = defaultIds(:)
+  triNodeCellIds = fvmInfo%Point_CellId(nodeIds,nc)
   do i=1,3
      tri%node(i) = plMesh%cellPosList(triNodeCellIds(i))
   end do
-!!$
-!!$if(nc==8)then
-!!$write(*,*) "* nc=", nc, "------------", triNodeCellIds, &
-!!$     sqrt(4d0/sqrt(3d0)*sphericalTriArea(tri%node(1), tri%node(2), tri%node(3)))
-!!$
-!!$write(*,*) geodesicArcLength(tri%node(1),tri%node(2))
-!!$write(*,*) geodesicArcLength(tri%node(2),tri%node(3))
-!!$write(*,*) geodesicArcLength(tri%node(3),tri%node(1))
-!!$
-!!$call print(RadToDegUnit(CartToSphPos(tri%node(1))))
-!!$call print(RadToDegUnit(CartToSphPos(tri%node(2))))
-!!$call print(RadToDegUnit(CartToSphPos(tri%node(3))))
-!!$
-!!$end if
+
+!!$  arcLen(1) = geodesicArcLength(tri%node(2),tri%node(3))
+!!$  arcLen(2) = geodesicArcLength(tri%node(3),tri%node(1))
+!!$  arcLen(3) = geodesicArcLength(tri%node(1),tri%node(2))
+!!$  maxloc_ = maxloc(arcLen(:))
+!!$  if( maxloc_(1)  /= 1 ) then
+!!$     nodeIds = cshift(defaultIds, maxloc_(1)-1)
+!!$     triNodeCellIds = fvmInfo%Point_CellId(nodeIds,nc)
+!!$     do i=1,3
+!!$        tri%node(i) = plMesh%cellPosList(triNodeCellIds(i))
+!!$     end do
+!!$     write(*,*)  arcLen(1)/arcLen(2), arcLen(1)/arcLen(3)!, arcLen
+!!$     call print(RadToDegUnit(CartToSphPos(tri%node(1))))
+!!$     call print(RadToDegUnit(CartToSphPos(tri%node(2))))
+!!$     call print(RadToDegUnit(CartToSphPos(tri%node(3))))
+!!$  end if
 
 end function get_DGElementTri
 
@@ -303,14 +307,34 @@ end function get_DGElementTri
     real(DP) :: G_ij(2,2)
 
     do nk=1, nDGNodePerElem
-       G_ij = calc_G_ij( &
-            & get_DGElemCovariantBasis(1, DGElemInfo%node(nk), nc), &
-            & get_DGElemCovariantBasis(2, DGElemInfo%node(nk), nc) )
-
-       Jacobi(nk) = sqrt(G_ij(1,1)*G_ij(2,2) - G_ij(1,2)*G_ij(2,1))
+       Jacobi(nk) = get_Jacobian(DGElemInfo%node(nk), nc)
     end do
 
   end function get_DGElemJacobian
+
+  function get_DGElemSIntNodeJacobian(nc) result(Jacobi)
+    integer, intent(in) :: nc
+    real(DP) :: Jacobi(nDGSIntNodePerElem)
+
+    integer :: nk
+
+    do nk=1, nDGSIntNodePerElem
+       Jacobi(nk) = get_Jacobian(DGElemInfo%sIntNode(nk), nc)
+    end do
+  end function get_DGElemSIntNodeJacobian
+
+  function get_Jacobian(y, nc) result(Jacobi)
+    type(vector2d), intent(in) :: y
+    integer, intent(in) :: nc
+    real(DP) :: Jacobi
+
+    real(DP) :: G_ij(2,2)
+    
+    G_ij(:,:) = calc_G_ij( &
+         & get_DGElemCovariantBasis(1, y, nc), &
+         & get_DGElemCovariantBasis(2, y, nc) )
+    Jacobi = sqrt(G_ij(1,1)*G_ij(2,2) - G_ij(1,2)*G_ij(2,1))
+  end function get_Jacobian
 
   function mapping_local2globalCoord(y,tri) result(ret)
     type(vector2d), intent(in) :: y
@@ -377,7 +401,7 @@ end function get_DGElementTri
     xp_abs = l2norm(xp)
     xp_unitvec = xp/xp_abs
 
-    ret = Radius/xp_abs * ((xi - x0) - ((xi - x0).dot.xp_unitvec)*xp_unitvec)
+    ret = (Radius/xp_abs) * ((xi - x0) - ((xi - x0).dot.xp_unitvec)*xp_unitvec)
     
   end function get_DGElemCovariantBasis1
 
@@ -474,6 +498,20 @@ subroutine load_gridUsageData(v_MeshUsageMap, p_MeshUsageMap)
   type(volScalarField), intent(inout) :: v_MeshUsageMap
   type(pointScalarField), intent(inout) :: p_MeshUsageMap
   type(netcdfDataReader) :: ncReader
+
+  if( len(trim(gridUsageFilePath)) == 0 ) then
+     call MessageNotify( 'M', module_name, &
+          & "A file to set the usage of grid is not specified. The domain is assumed to be global.")
+     call GeometricField_Init(v_MeshUsageMap, plMesh, "v_MeshUsageMap")
+     call GeometricField_Init(p_MeshUsageMap, plMesh, "p_MeshUsageMap")
+     v_MeshUsageMap = 1d0
+     p_MeshUsageMap = 1d0
+
+     return
+  end if
+
+  ! Load the usage data form a netcdf file.
+  !
 
   call MessageNotify( 'M', module_name, &
        & "Set up the usage of grid. Load the usage  data from '%a' ..", &

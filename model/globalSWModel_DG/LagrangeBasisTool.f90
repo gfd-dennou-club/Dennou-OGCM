@@ -6,27 +6,27 @@ program LagrangeBasisTool
   integer, parameter :: PolyDegree = 3
   integer, parameter :: Np = (PolyDegree+1)*(PolyDegree+2)/2
 
-!!$  real(DP), parameter :: pts_x(Np) = (/ 0d0,   0.5d0*(1d0-1d0/sqrt(5d0)), 0.5d0*(1d0+1d0/sqrt(5d0)),                 1d0,  &
-!!$       &                                       0.5d0*(1d0+1d0/sqrt(5d0)), 0.5d0*(1d0-1d0/sqrt(5d0)),                 0d0,  &
-!!$       &                                                                                        0d0,                 0d0,  &
-!!$       &                                                                                                         1d0/3d0 /)
+  real(DP), parameter :: pts_x(Np) = (/ 0d0,   0.5d0*(1d0-1d0/sqrt(5d0)), 0.5d0*(1d0+1d0/sqrt(5d0)),                 1d0,  &
+       &                                       0.5d0*(1d0+1d0/sqrt(5d0)), 0.5d0*(1d0-1d0/sqrt(5d0)),                 0d0,  &
+       &                                                                                        0d0,                 0d0,  &
+       &                                                                                                         1d0/3d0 /)
+
+  real(DP), parameter :: pts_y(Np) = (/ 0d0,                   0d0,                 0d0,                 0d0,  &
+       &                                            0.5d0*(1d0-1d0/sqrt(5d0)), 0.5d0*(1d0+1d0/sqrt(5d0)),                 1d0,  &
+       &                                                                 0.5d0*(1d0+1d0/sqrt(5d0)), 0.5d0*(1d0-1d0/sqrt(5d0)),  &
+       &                                                                                                         1d0/3d0 /)
+
+!!$  real(DP), parameter :: pts_x(Np) = (/ 0d0,   1d0,   0d0,  &
+!!$       &  0.5d0*(1d0+1d0/sqrt(5d0)), 0.5d0*(1d0-1d0/sqrt(5d0)), &
+!!$       &                        0d0,                       0d0, &
+!!$       &  0.5d0*(1d0-1d0/sqrt(5d0)), 0.5d0*(1d0+1d0/sqrt(5d0)), &
+!!$       &                                              1d0/3d0 /)
 !!$
-!!$  real(DP), parameter :: pts_y(Np) = (/ 0d0,                   0d0,                 0d0,                 0d0,  &
-!!$       &                                            0.5d0*(1d0-1d0/sqrt(5d0)), 0.5d0*(1d0+1d0/sqrt(5d0)),                 1d0,  &
-!!$       &                                                                 0.5d0*(1d0+1d0/sqrt(5d0)), 0.5d0*(1d0-1d0/sqrt(5d0)),  &
-!!$       &                                                                                                         1d0/3d0 /)
-
-  real(DP), parameter :: pts_x(Np) = (/ 0d0,   1d0,   0d0,  &
-       &  0.5d0*(1d0+1d0/sqrt(5d0)), 0.5d0*(1d0-1d0/sqrt(5d0)), &
-       &                        0d0,                       0d0, &
-       &  0.5d0*(1d0-1d0/sqrt(5d0)), 0.5d0*(1d0+1d0/sqrt(5d0)), &
-       &                                              1d0/3d0 /)
-
-  real(DP), parameter :: pts_y(Np) = (/ 0d0,   0d0,   1d0,  &
-       &  0.5d0*(1d0-1d0/sqrt(5d0)), 0.5d0*(1d0+1d0/sqrt(5d0)), &
-       &  0.5d0*(1d0+1d0/sqrt(5d0)), 0.5d0*(1d0-1d0/sqrt(5d0)), &
-       &                        0d0,                       0d0, &
-       &                                              1d0/3d0 /)
+!!$  real(DP), parameter :: pts_y(Np) = (/ 0d0,   0d0,   1d0,  &
+!!$       &  0.5d0*(1d0-1d0/sqrt(5d0)), 0.5d0*(1d0+1d0/sqrt(5d0)), &
+!!$       &  0.5d0*(1d0+1d0/sqrt(5d0)), 0.5d0*(1d0-1d0/sqrt(5d0)), &
+!!$       &                        0d0,                       0d0, &
+!!$       &                                              1d0/3d0 /)
 
   real(DP) :: VadermondeMat(Np,Np), IMat(Np,Np)
   real(DP) :: LagrangeBasisCoefMat(Np,Np)

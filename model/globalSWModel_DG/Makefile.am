@@ -30,6 +30,7 @@ globalSWM_DG_SOURCES =\
 	SimParameters_mod.f90 \
 	GridSet_mod.f90 \
 	DGHelper_mod.f90 \
+	DGCoordConvert_mod.f90 \
 	DGCalcusUtil_mod.f90 \
 	VariableSet_mod.f90 \
 	GovernEquationSolver_mod.f90 \

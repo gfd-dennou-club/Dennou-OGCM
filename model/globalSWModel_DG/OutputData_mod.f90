@@ -35,9 +35,9 @@ module OutputData_mod
   type(PointScalarField) :: p_zeta
 
   real(DP), parameter :: lon1 = -90d0 * PI/180d0
-  real(DP), parameter :: lon2 = 90d0 * PI/180d0
+  real(DP), parameter :: lon2 =  90d0 * PI/180d0
   real(DP), parameter :: lat1 = -89d0 * PI/180d0
-  real(DP), parameter :: lat2 = 89d0 * PI/180d0
+  real(DP), parameter :: lat2 =  89d0 * PI/180d0
 
   real(DP), dimension(:), allocatable :: y_Lat, x_Lon
   integer :: iMax, jMax
@@ -321,9 +321,7 @@ logical function  isPtContainedTri(pt, ic)
 !!$
 !!$  isPtContainedTri = .true.
 
-  isPtContainedTri = isPtInsideSphericalTri(normalizedVec(pt), &
-       & normalizedVec(tri%node(1)), normalizedVec(tri%node(2)), normalizedVec(tri%node(3)) &
-       & )
+  isPtContainedTri = isPtInsideSphericalTri(pt, tri%node(1), tri%node(2), tri%node(3))
 
 end function isPtContainedTri
 

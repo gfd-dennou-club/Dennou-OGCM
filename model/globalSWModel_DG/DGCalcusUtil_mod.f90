@@ -15,14 +15,17 @@ module DGCalcusUtil_mod
   use dc_message, only: &
        & MessageNotify
 
+  use VectorSpace_mod
+
   use LagrangePolyn_mod, only: &
        & TriNk_interpolate, &
-       & TriNk_sinteg
+       & TriNk_sinteg, TriNk_sinteg_dotProdWt
 
   use GridSet_mod, only: &
        & nDGElement, nDGNodePerElem, nDGNodePerFace, &
        & nDGSIntNodePerElem, &
-       & get_DGElemJacobian
+       & DGElemInfo, &
+       & get_DGElemSIntNodeJacobian
 
   use DGHelper_mod
 
@@ -74,14 +77,19 @@ function integrate_over_globalRigion(wc) result(val)
   real(DP) :: val
 
   integer :: nk, nc
-  real(DP) :: Jacobi(nDGNodePerElem)
+  real(DP), dimension(nDGSIntNodePerElem) :: &
+       & s_Jacobi, s_y1, s_y2
 
   val = 0d0
+  s_y1 = DGElemInfo%sIntNode_y1
+  s_y2 = DGElemInfo%sIntNode_y2
 
-  !$omp parallel do private(Jacobi) reduction(+:val)
+  !$omp parallel do private(s_Jacobi) reduction(+:val)
   do nc=1, nDGElement
-     Jacobi(:) = get_DGElemJacobian(nc)
-     val =  val + TriNk_sinteg(wc(:,nc)*Jacobi(:))
+     s_Jacobi(:) = get_DGElemSIntNodeJacobian(nc)
+     val =  val + TriNk_sinteg_dotProdWt( &
+          & s_Jacobi(:)*TriNk_interpolate(s_y1, s_y2, wc(:,nc)) &
+          & )
   end do
 
 end function integrate_over_globalRigion

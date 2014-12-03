@@ -231,25 +231,11 @@ subroutine calcTendency(wc_dhdt, wc_dhU1dt, wc_dhU2dt, &
         call SintPt_Flux(s_hFlux1, s_hFlux2, s_hU1Flux1, s_hU1Flux2, s_hU2Flux1, s_hU2Flux2, &
              & nc)
 
+        w_hFlux(:) = matmul( wc_Ms(:,:,nc), reshape(ws_hFlux(:,faceIds(:)),  (/ 3*nDGNodePerFace /)) )
+        w_hU1Flux(:) = matmul( wc_Ms(:,:,nc), reshape(lsc_hU1Flux(:,1:3,nc), (/ 3*nDGNodePerFace /)) )
+        w_hU2Flux(:) = matmul( wc_Ms(:,:,nc), reshape(lsc_hU2Flux(:,1:3,nc), (/ 3*nDGNodePerFace /)) )
+
         do nk=1, nDGNodePerElem
-           w_hFlux(nk) = TriNk_linteg( &
-                & wc_Ms(nk, 1:nDGNodePerFace, nc)*ws_hFlux(:,faceIds(1)), &
-                & wc_Ms(nk, nDGNodePerFace+1:2*nDGNodePerFace, nc)*ws_hFlux(:,faceIds(2)), &
-                & wc_Ms(nk, 2*nDGNodePerFace+1:3*nDGNodePerFace, nc)*ws_hFlux(:,faceIds(3)) &
-                & )
-
-           w_hU1Flux(nk) = TriNk_linteg( &
-                & wc_Ms(nk, 1:nDGNodePerFace, nc)*lsc_hU1Flux(:,1,nc), &
-                & wc_Ms(nk, nDGNodePerFace+1:2*nDGNodePerFace, nc)*lsc_hU1Flux(:,2,nc), &
-                & wc_Ms(nk, 2*nDGNodePerFace+1:3*nDGNodePerFace, nc)*lsc_hU1Flux(:,3,nc) &
-                & )
-
-           w_hU2Flux(nk) = TriNk_linteg( &
-                & wc_Ms(nk, 1:nDGNodePerFace, nc)*lsc_hU2Flux(:,1,nc), &
-                & wc_Ms(nk, nDGNodePerFace+1:2*nDGNodePerFace, nc)*lsc_hU2Flux(:,2,nc), &
-                & wc_Ms(nk, 2*nDGNodePerFace+1:3*nDGNodePerFace, nc)*lsc_hU2Flux(:,3,nc) &
-                & )
-
            w_D_hFlux(nk) = TriNk_sinteg_dotProdWt( &
                 & wc_Dy1(:,nk,nc)*s_hFlux1 + wc_Dy2(:,nk,nc)*s_hFlux2)
 
@@ -266,13 +252,13 @@ subroutine calcTendency(wc_dhdt, wc_dhU1dt, wc_dhU2dt, &
              & nc )
      
         wc_dhdt(:,nc) = &
-             &  - w_hFlux + w_D_hFlux
+             &  - w_hFlux(:) + w_D_hFlux(:)
 
         wc_dhU1dt(:,nc) = &
-             & - w_hU1Flux + w_D_hU1Flux + w_hU1Src
+             & - w_hU1Flux(:) + w_D_hU1Flux(:) + w_hU1Src(:)
 
         wc_dhU2dt(:,nc) = &
-             & - w_hU2Flux + w_D_hU2Flux + w_hU2Src
+             & - w_hU2Flux(:) + w_D_hU2Flux(:) + w_hU2Src(:)
 
      end if
   end do
@@ -480,8 +466,10 @@ use SphericalCoord_mod
 
   tanVec = normalizedVec(wc_DGNodePos(w_out,c_out).cross.normVec) 
   numFlux_in(:) = get_RusanovFlux( &
+!!$  numFlux_in(:) = get_RoeFlux( &
        & toth, U1_basisIn, U2_basisIn, b_1_in, b_2_in, b1_in, b2_in, normVec, tanVec )
   numFlux_out(:) = get_RusanovFlux( &
+!!$  numFlux_out(:) = get_RoeFlux( &
        & toth, U1_basisOut, U2_basisOut, b_1_out, b_2_out, b1_out, b2_out, normVec, tanVec )
   numFlux(:) = (/ numFlux_in(1), numFlux_in(2), numFlux_in(3), numFlux_out(2), numFlux_out(3) /)
 
@@ -536,6 +524,51 @@ function get_RusanovFlux(toth, U1, U2, b_1, b_2, b1, b2, edgeNormal, edgeTangen)
   rusanovFlux(3) = deorthFac(2,1)*rusanovFlux_(2) + deorthFac(2,2)*rusanovFlux_(3)
 
 end function get_RusanovFlux
+
+function get_RoeFlux(toth, U1, U2, b_1, b_2, b1, b2, edgeNormal, edgeTangen) result(roeFlux)
+
+  real(DP), intent(in) :: toth(2), U1(2), U2(2)
+  type(vector3d), intent(in) :: b_1, b_2, b1, b2, edgeNormal, edgeTangen
+  real(DP) :: roeFlux(3)
+
+  real(DP) :: tmpFlux(2,3)
+  real(DP) :: Fr, UnA, UtA, cA, w
+  real(DP) :: Gij(2,2), orthFac(2,2), deorthFac(2,2), Un(2), Ut(2)
+  real(DP) :: roeFlux_(3)
+  
+  orthFac(1,1) = b_1.dot.edgeNormal; orthFac(1,2) = b_2.dot.edgeNormal
+  orthFac(2,1) = b_1.dot.edgeTangen; orthFac(2,2) = b_2.dot.edgeTangen
+
+  deorthFac(1,1) = b1.dot.edgeNormal; deorthFac(1,2) = b1.dot.edgeTangen
+  deorthFac(2,1) = b2.dot.edgeNormal; deorthFac(2,2) = b2.dot.edgeTangen
+
+  Un = orthFac(1,1)*U1 + orthFac(1,2)*U2
+  Ut = orthFac(2,1)*U1 + orthFac(2,2)*U2
+
+  w = sqrt(toth(2)/toth(1))
+  UnA = (Un(1) + w*Un(2))/(1d0 + w)
+  UtA = (Ut(1) + w*Ut(2))/(1d0 + w)
+  cA = sqrt(Grav*0.5d0*(toth(1) + toth(2)))
+  Fr = UnA/cA
+
+  tmpFlux(:,1) = toth*Un
+  tmpFlux(:,2) = toth*Un*Un + 0.5d0*Grav*toth**2
+  tmpFlux(:,3) = toth*Un*Ut
+
+  cA = max( abs(Un(1))+sqrt(Grav*toth(1)), abs(Un(2))+sqrt(Grav*toth(2)) )
+  roeFlux_(:) = 0.5d0*( &
+       &       (tmpFlux(1,:)+tmpFlux(2,:)) &
+       &  + Fr*(tmpFlux(1,:)-tmpFlux(2,:)) &
+       &  + cA*(1d0 - Fr**2)*( &
+       &    (/ toth(1),toth(1)*Un(1),toth(1)*Ut(1) /)-(/ toth(2),toth(2)*Un(2),toth(2)*Ut(2) /) &
+       &  ) &
+       & )
+
+  roeFlux(1) = roeFlux_(1)
+  roeFlux(2) = deorthFac(1,1)*roeFlux_(2) + deorthFac(1,2)*roeFlux_(3)
+  roeFlux(3) = deorthFac(2,1)*roeFlux_(2) + deorthFac(2,2)*roeFlux_(3)
+
+end function get_RoeFlux
 
 end function calc_NumericFlux
 

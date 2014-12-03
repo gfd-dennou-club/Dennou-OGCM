@@ -51,8 +51,8 @@ program gridGen
 
   real(DP), parameter :: PI = acos(-1d0)
 
-  logical, parameter :: isShoreLineEnabled = .true.
-!!$  logical, parameter :: isShoreLineEnabled = .false.
+!!$  logical, parameter :: isShoreLineEnabled = .true.
+  logical, parameter :: isShoreLineEnabled = .false.
 !!$
   !****************************
   !* Executable statement

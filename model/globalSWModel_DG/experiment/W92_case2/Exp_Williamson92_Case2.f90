@@ -15,6 +15,9 @@ module Exp_Williamson94_Case2
        & OutputDataAnalysisInfo
 
   use DGHelper_mod
+  use DGCoordConvert_mod, only: &
+       & convert_VecBasis_local2GeoCoord
+
   use DGCalcusUtil_mod
 
   implicit none
@@ -25,6 +28,8 @@ module Exp_Williamson94_Case2
   real(DP), parameter :: SolidRotate_AngVel = 2d0*PI / (3600d0*24d0*12d0)
 
   real(DP), allocatable :: wc_hAnalystic(:,:)
+  real(DP), allocatable :: wc_UAnalystic(:,:)
+  real(DP), allocatable :: wc_VAnalystic(:,:)
 
 contains
 subroutine setIniCond_ExpWS94Case2()
@@ -40,6 +45,11 @@ subroutine setIniCond_ExpWS94Case2()
   integer :: nc, nk
   real(DP), allocatable :: wc(:,:)
   type(Triangle) :: tri
+  
+
+  call DGHelper_MallocElemNode(wc_hAnalystic)
+  call DGHelper_MallocElemNode(wc_UAnalystic)
+  call DGHelper_MallocElemNode(wc_VAnalystic)
 
   u0 = SolidRotate_AngVel*Radius
 
@@ -61,12 +71,13 @@ subroutine setIniCond_ExpWS94Case2()
         wc_U2(nk,nc) = cart_vel.dot.b2
         wc_h(nk,nc) = - (Radius*Omega*u0 + 0.5d0*u0**2)/Grav &
              & *(sin(geoPos%v_(2))*cos(alpha)-cos(geoPos%v_(1))*cos(geoPos%v_(2))*sin(alpha))**2
- 
+
+        wc_hAnalystic(nk,nc) = wc_h(nk,nc)
+        wc_UAnalystic(nk,nc) = geo_vel%v_(1)
+        wc_VAnalystic(nk,nc) = geo_vel%v_(2)
     end do
   end do
 
-  call DGHelper_MallocElemNode(wc_hAnalystic)
-  wc_hAnalystic = wc_h
 
 end subroutine setIniCond_ExpWS94Case2
 
@@ -82,26 +93,55 @@ subroutine callBack_EndCurrentTimeStep(tstep, wc_h, wc_hU1, wc_hU2)
   integer :: nc, nk
   real(DP) :: CurrentTime
   type(vector3d) :: centerPos, geo_pos
-  real(DP), allocatable :: wc_hError(:,:)
-  real(DP) :: l2norm, linfnorm
+  real(DP), allocatable :: wc_U(:,:), wc_V(:,:)
+  real(DP), allocatable :: wc_hError(:,:), wc_UError(:,:), wc_VError(:,:)
+  real(DP) :: l2norm_h, l2norm_vel
+  real(DP) :: linfnorm_h, linfnorm_vel
 
   CurrentTime = tstep*delTime
   if( mod(tStep*delTime, outputIntrVal) == 0 ) then
 
+     !
+     call DGHelper_MallocElemNode(wc_U)
+     call DGHelper_MallocElemNode(wc_V)
      call DGHelper_MallocElemNode(wc_hError)
+     call DGHelper_MallocElemNode(wc_UError)
+     call DGHelper_MallocElemNode(wc_VError)
 
-     wc_hError = abs(wc_h - wc_hAnalystic)
+     !
+     call convert_VecBasis_local2GeoCoord(wc_U, wc_V,              & ! (out)
+          & wc_hU1/(meanDepth + wc_h), wc_hU2/(meanDepth + wc_h) )   !(in)
 
-     l2norm = integrate_over_globalRigion(wc_hError)/abs(integrate_over_globalRigion(wc_hAnalystic))
-     linfnorm = maxval(abs(wc_hError))/maxval(abs(wc_hAnalystic))
+     wc_hError = wc_h - wc_hAnalystic
+     wc_UError = wc_U - wc_UAnalystic
+     wc_VError = wc_V - wc_VAnalystic
 
+     !
+
+     l2norm_h = sqrt(  integrate_over_globalRigion(wc_hError**2)       &
+         &            /integrate_over_globalRigion(wc_hAnalystic**2) )
+     linfnorm_h = maxval(abs(wc_hError))/maxval(abs(wc_hAnalystic))
+
+     l2norm_vel = sqrt(  integrate_over_globalRigion(wc_UError**2 + wc_VError**2) &
+          &             /integrate_over_globalRigion(wc_UAnalystic**2 + wc_VAnalystic**2) )
+     linfnorm_vel =  max(maxval(abs(wc_UError)), maxval(abs(wc_VError))) &
+          &        / max(maxval(abs(wc_UAnalystic)), maxval(abs(wc_VAnalystic)))
+
+     !
      call Output_FieldData('hError', wc_hError)
-     call HistoryPut('l2norm', l2norm)
-     call HistoryPut('linfnorm', linfnorm)
-     write(*,*) "Error:", &
-          & "l2:", l2norm, ", linf:", linfnorm
+     call HistoryPut('l2norm', l2norm_h)
+     call HistoryPut('linfnorm', linfnorm_h)
+
+     !
+     write(*,*) "h Error:", &
+          & "l2:", l2norm_h, ", linf:", linfnorm_h
+
+     write(*,*) "vel Error:", &
+          & "l2:", l2norm_vel, ", linf:", linfnorm_vel
 
   end if
+
+contains
 
 end subroutine callBack_EndCurrentTimeStep
 
