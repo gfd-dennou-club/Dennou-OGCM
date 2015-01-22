@@ -39,6 +39,8 @@ module DiagVarSet_mod
   real(DP), dimension(:,:), allocatable, public :: &
        & xy_totDepth, yz_MassStreamFunc
 
+
+  ! 
   character(*), parameter, public :: DVARKEY_VOR = 'Vor'
   character(*), parameter, public :: DVARKEY_DIV = 'Div'
   character(*), parameter, public :: DVARKEY_PRESSEDD = 'PressEdd'
@@ -48,6 +50,7 @@ module DiagVarSet_mod
   character(*), parameter, public :: DVARKEY_PTEMP = 'PTemp'
   character(*), parameter, public :: DVARKEY_TEMP = 'Temp'
   character(*), parameter, public :: DVARKEY_STATICSTABILITY = 'StaticStability'
+  
   
 
   ! 非公開手続き
@@ -75,19 +78,24 @@ contains
     ! Work variables
     !
     integer :: varID
+    logical :: GM90_flag
 
     ! 実行文; Executable statements
     !
+
     allocate(xy_totDepth(0:iMax-1,jMax))
     allocate(xyz_HydroPressEdd(0:iMax-1,jMax,0:kMax))
     allocate(xyz_PressEdd(0:iMax-1,jMax,0:kMax))
     allocate(xyz_DensEdd(0:iMax-1,jMax,0:kMax))
-
+    
+    GM90_flag = .false.
+    
     do varID=1, size(diagVarsName)
        call MessageNotify('M', module_name, &
             & "register '%c'..",  c1=trim(diagVarsName(varID)) )
 
        select case( diagVarsName(varID) )
+          !
           case( DVARKEY_DIV )
              allocate( xyz_Div(0:iMax-1,jMax,0:kMax) )
           case( DVARKEY_VOR )
@@ -100,11 +108,14 @@ contains
           case (DVARKEY_PTEMP)
           case (DVARKEY_TEMP)
           case (DVARKEY_STATICSTABILITY)
+
+          !
           case Default
              call MessageNotify('E', module_name, &
                   & "The name of specified diagnostic variable '%c'is invalid.", c1=trim(diagVarsName(varID)) )
        end select
     end do
+
   end subroutine DiagVarSet_Init
 
   !>

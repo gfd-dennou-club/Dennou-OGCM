@@ -1,19 +1,31 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2013 Kawai Yuta. All rights reserved.
+! Copyright (c) 2013-2014 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
-!> @brief a template module
+!> @brief The module which provides some  operators in calculus using spectral method.
+!!
+!! This module provides some operators(such as gradient, divergence, curl and etc) acting on field data. 
+!! Actually, most subroutins in this module call the subroutines in SPMODEL(https://www.gfd-dennou.org/library/spmodel/index.htm). 
 !! 
-!! @author Kawai Yuta
+!! @author Yuta Kawai
+!! @since 2013
 !!
 !!
 module SpmlUtil_mod 
 
   ! モジュール引用; Use statements
   !
+
+  !* gtool
+  !
+
   use dc_types, only: DP
 
   use dc_message, only: &
        & MessageNotify
+
+
+  !* SPMODEL
+  !
 
 #ifdef DSOGCM_MODE_AXISYM
 
@@ -43,10 +55,8 @@ module SpmlUtil_mod
        & at_BoundariesGrid_NN, at_BoundariesGrid_DD, &
        & at_BoundariesGrid_ND, at_BoundariesGrid_DN
 
-#ifdef _OPENMP
-  use omp_lib
-#endif  
-
+  !* OpenMP
+!$  use omp_lib
 
 
   ! 宣言文; Declareration statements
@@ -78,8 +88,11 @@ module SpmlUtil_mod
   ! Procedures to statisfy the vertical boundary conditions.
   public :: apply_ZBoundaryCond
 
+  public :: get_HorizontalGrid
+
   !* Cascade
   !
+
 
   ! basic transformation
   public :: w_xy, xy_w
@@ -89,13 +102,12 @@ module SpmlUtil_mod
   public :: xy_GradLon_w, xy_GradLambda_w, xy_GradLat_w, xy_GradMu_w
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: l_nm, nm_l
-  public :: xy_Lon, xy_Lat, x_Lon, y_Lat
   public :: xya_wa, wa_xya 
   public :: IntLonLat_xy, ya_IntLon_xya
   public :: AvrLonLat_xy, ya_AvrLon_xya
   public :: a_Interpolate_wa, Interpolate_w
   
-  ! Operation for pectral analysis
+  ! Operation for spectral analysis
   public :: nma_EnergyFromStreamfunc_wa, na_EnergyFromStreamfunc_wa
   public :: nma_EnstrophyFromStreamfunc_wa, na_EnstrophyFromStreamfunc_wa
 
@@ -123,16 +135,16 @@ module SpmlUtil_mod
   real(DP), allocatable :: tr_vIntCoefMat(:,:)
   real(DP), allocatable :: vDiffProcInvMat(:,:)
 
-  logical :: initalizedFlag = .false.
+  logical, save :: initalizedFlag = .false.
 
   integer :: nThread
-  integer, allocatable :: llMin(:), llMax(:)
-  integer, allocatable :: ljMin(:), ljMax(:)
-  integer, allocatable :: lkMin(:), lkMax(:)
-  integer, allocatable :: ltMin(:), ltMax(:)
-  integer, allocatable :: lxyMin(:), lxyMax(:)
+  integer, save, allocatable :: llMin(:), llMax(:)
+  integer, save, allocatable :: ljMin(:), ljMax(:)
+  integer, save, allocatable :: lkMin(:), lkMax(:)
+  integer, save, allocatable :: ltMin(:), ltMax(:)
+  integer, save, allocatable :: lxyMin(:), lxyMax(:)
 
-  real(DP), allocatable :: xy_CosLat(:,:)
+  real(DP), save, allocatable :: xy_CosLat(:,:)
 
 contains
 
@@ -195,7 +207,6 @@ contains
 !!$    write(*,*) 'lxyMax', lxyMax
 
     !
-
     call MessageNotify("M", module_name, "SpmlUtil_mod have been initialized.")
     initalizedFlag = .true.
 
@@ -242,6 +253,27 @@ contains
     !
     isInitialzed = initalizedFlag
   end function isInitialzed
+
+  !> @brief 
+  !!
+  !!
+  subroutine get_HorizontalGrid(x_Lon_, y_Lat_, xy_Lon_, xy_Lat_)
+    
+    ! 宣言文; Declaration statement
+    !
+    real(8), dimension(0:im-1), intent(out), optional :: x_Lon_
+    real(8), dimension(jm), intent(out), optional :: y_Lat_
+    real(8), dimension(0:im-1,jm), intent(out), optional :: xy_Lon_, xy_Lat_
+    
+    ! 実行文; Executable statement
+    !
+
+    if(present(x_Lon_))  x_Lon_ = x_Lon
+    if(present(y_Lat_))  y_Lat_ = y_Lat
+    if(present(xy_Lon_))  xy_Lon_ = xy_Lon
+    if(present(xy_Lat_))  xy_Lat_ = xy_Lat
+    
+  end subroutine get_HorizontalGrid
 
 
   !--------------- 基本変換 -----------------
@@ -423,10 +455,10 @@ contains
 
       xyz_Cos2Lat = spread(xy_CosLat**2, 3, km+1)
 
-      wz_Psi = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
-      wz_Chi = wz_InvLapla2D_wz( wz_wt(wt_Div) )
-      xyz_UCosLat = xyz_Cos2Lat * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
-      xyz_VCosLat = xyz_Cos2Lat * xyz_AlphaOptr_wz(wz_Psi, wz_Chi)
+      wz_Psi(:,:) = wz_InvLapla2D_wz( wz_wt(wt_Vor) )
+      wz_Chi(:,:) = wz_InvLapla2D_wz( wz_wt(wt_Div) )
+      xyz_UCosLat(:,:,:) = xyz_Cos2Lat * xyz_AlphaOptr_wz(wz_Chi, -wz_Psi)
+      xyz_VCosLat(:,:,:) = xyz_Cos2Lat * xyz_AlphaOptr_wz(wz_Psi, wz_Chi)
 
     end subroutine wt_VorDiv2VectorCosLat
 
@@ -442,8 +474,8 @@ contains
       ! 実行文; Executable statement
       !
 
-      wt_Vor = wt_wz( wz_AlphaOptr_xyz(xyz_VCosLat, -xyz_UCosLat) )
-      wt_Div = wt_wz( wz_AlphaOptr_xyz(xyz_UCosLat,  xyz_VCosLat) )      
+      wt_Vor(:,:) = wt_wz( wz_AlphaOptr_xyz(xyz_VCosLat, -xyz_UCosLat) )
+      wt_Div(:,:) = wt_wz( wz_AlphaOptr_xyz(xyz_UCosLat,  xyz_VCosLat) )      
 
     end subroutine wt_VectorCosLat2VorDiv
 
@@ -459,8 +491,8 @@ contains
       ! 実行文; Executable statement
       !
 
-      wz_Vor = wz_AlphaOptr_xyz(xyz_VCosLat, -xyz_UCosLat)
-      wz_Div = wz_AlphaOptr_xyz(xyz_UCosLat,  xyz_VCosLat)
+      wz_Vor(:,:) = wz_AlphaOptr_xyz(xyz_VCosLat, -xyz_UCosLat)
+      wz_Div(:,:) = wz_AlphaOptr_xyz(xyz_UCosLat,  xyz_VCosLat)
 
     end subroutine wz_VectorCosLat2VorDiv
 
@@ -490,7 +522,7 @@ contains
       real(8), dimension(lm,0:tm)       :: wt_DivLat_xyz
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
-      wt_DivLat_xyz = wt_wz(wa_divlat_xya(xyz/Radius))
+      wt_DivLat_xyz(:,:) = wt_wz(wa_divlat_xya(xyz/Radius))
 
     end function wt_DivLat_xyz
 
@@ -506,7 +538,7 @@ contains
       real(8), dimension(lm,0:km)       :: wz_AlphaOptr_xyz
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
-      wz_AlphaOptr_xyz = ( wa_DivLambda_xya(xyz_A) + wa_DivMu_xya(xyz_B) )/Radius
+      wz_AlphaOptr_xyz(:,:) = ( wa_DivLambda_xya(xyz_A) + wa_DivMu_xya(xyz_B) )/Radius
 
     end function wz_AlphaOptr_xyz
 
@@ -522,7 +554,7 @@ contains
       real(8), dimension(lm)       :: w_AlphaOptr_xy
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
-      w_AlphaOptr_xy = ( w_DivLambda_xy(xy_A) + w_DivMu_xy(xy_B) )/Radius
+      w_AlphaOptr_xy(:) = ( w_DivLambda_xy(xy_A) + w_DivMu_xy(xy_B) )/Radius
 
     end function w_AlphaOptr_xy
 
@@ -540,7 +572,7 @@ contains
 
 
       
-      xyz_AlphaOptr_wz = (xya_GradLambda_wa(wz_A) + xya_GradMu_wa(wz_B))/ (Radius*spread(xy_CosLat**2,3,km+1))
+      xyz_AlphaOptr_wz(:,:,:) = (xya_GradLambda_wa(wz_A) + xya_GradMu_wa(wz_B))/ (Radius*spread(xy_CosLat**2,3,km+1))
 
     end function xyz_AlphaOptr_wz
 
@@ -620,7 +652,7 @@ contains
       real(8), dimension(lm,0:km)             :: wz_InvLapla2D_wz
       !(out) ラプラシアンを作用された 2 次元スペクトルデータ
 
-      wz_InvLapla2D_wz = wa_LaplaInv_wa(wz) * Radius**2
+      wz_InvLapla2D_wz(:,:) = wa_LaplaInv_wa(wz) * Radius**2
 
     end function wz_InvLapla2D_wz
 
@@ -642,7 +674,7 @@ contains
       real(8), dimension(lm)             :: w_InvLapla2D_w
       !(out) ラプラシアンを作用された 2 次元スペクトルデータ
 
-      w_InvLapla2D_w = w_LaplaInv_w(w) * Radius**2
+      w_InvLapla2D_w(:) = w_LaplaInv_w(w) * Radius**2
 
     end function w_InvLapla2D_w
 
@@ -702,14 +734,14 @@ contains
       ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
       ! 作用させたデータのスペクトル変換のことである.
       !
-      real(8), dimension(0:im,jm,0:tm), intent(in) :: xyt
+      real(8), dimension(0:im-1,jm,0:tm), intent(in) :: xyt
       !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
 
       real(8), dimension(0:im-1,jm,0:tm)             :: xyt_DSig_xyt
       !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
 
-      integer :: n
-      real(DP) :: at_Work(im*jm, tm+1)
+      integer :: n, i, j
+      real(DP) :: at_Work(im*jm, 0:tm)
 
 !!$      at_Work = reshape(xyt, (/ im*jm, tm+1 /))
 !!$
@@ -724,6 +756,19 @@ contains
            &         at_DSig_at(reshape(xyt, (/ im*jm, tm+1 /)) ), &
            &         shape(xyt_DSig_xyt) )
 
+!!$      do j=1, jm
+!!$         do i=0, im-1
+!!$            at_Work(im*(j-1) + i+1,:) = xyt(i,j,:)
+!!$         end do
+!!$      end do
+!!$
+!!$      at_Work = at_DSig_at(at_Work)
+!!$      do j=1, jm
+!!$         do i=0, im-1
+!!$            xyt_DSig_xyt(i,j,:) = at_Work(im*(j-1)+i+1,:)
+!!$         end do
+!!$      end do
+      
     end function xyt_DSig_xyt
 
     function xyt_DSigDSig_xyt(xyt)
@@ -733,7 +778,7 @@ contains
       ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
       ! 作用させたデータのスペクトル変換のことである.
       !
-      real(8), dimension(0:im,jm,0:tm), intent(in) :: xyt
+      real(8), dimension(0:im-1,jm,0:tm), intent(in) :: xyt
       !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
 
       real(8), dimension(0:im-1,jm,0:tm)             :: xyt_DSigDSig_xyt
@@ -798,24 +843,24 @@ contains
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
       real(8), dimension(0:im-1,1:jm,0:km) :: xyz_Int
       
-      integer :: i, tr, ljm
+      integer :: i, tr, ljm, k, k2
 
-      !$omp parallel private(tr,i, ljm)
-      tr = omp_get_thread_num() + 1
-      ljm = ljMax(tr)-ljMin(tr)+1
-
-      do i=0, im-1
-         xyz_Int(i,ljMin(tr):ljMax(tr),:) = matmul(xyz(i,ljMin(tr):ljMax(tr),:),tr_vIntCoefMat)
-      end do
-      !$omp end parallel
-
-!!$      xyz_Int = 0d0
-!!$      !$omp parallel do private(k2)
-!!$      do k=0,km
-!!$         do k2=0,km
-!!$            xyz_Int(:,:,k) = xyz_Int(:,:,k) + tr_vIntCoefMat(k,k2)*xyz(:,:,k2)
-!!$         end do
+!!$      !$omp parallel private(tr,i, ljm)
+!!$      tr = omp_get_thread_num() + 1
+!!$      ljm = ljMax(tr)-ljMin(tr)+1
+!!$
+!!$      do i=0, im-1
+!!$         xyz_Int(i,ljMin(tr):ljMax(tr),:) = matmul(xyz(i,ljMin(tr):ljMax(tr),:),tr_vIntCoefMat)
 !!$      end do
+!!$      !$omp end parallel
+
+      xyz_Int = 0d0
+      !$omp parallel do private(k2)
+      do k=0,km
+         do k2=0,km
+            xyz_Int(:,:,k) = xyz_Int(:,:,k) + tr_vIntCoefMat(k2,k)*xyz(:,:,k2)
+         end do
+      end do
 
     end function xyz_IntSig_SigToTop_xyz
 

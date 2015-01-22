@@ -286,9 +286,11 @@ contains
     call MessageNotify( 'M', module_name, 'KinBC_Surface        = %c', c1 = KinBCSurface  )
     call MessageNotify( 'M', module_name, 'DynBC_Surface        = %c', c1 = DynBCSurface  )
     call MessageNotify( 'M', module_name, 'ThermBC_Surface      = %c', c1 = ThermBCSurface  )
+    call MessageNotify( 'M', module_name, 'SaltBC_Surface      = %c', c1 = SaltBCSurface  )
     call MessageNotify( 'M', module_name, 'KinBC_Bottom         = %c', c1 = KinBCBottom  )
     call MessageNotify( 'M', module_name, 'DynBC_Bottom         = %c', c1 = DynBCBottom  )
     call MessageNotify( 'M', module_name, 'ThermBC_Bottom       = %c', c1 = ThermBCBottom  )
+    call MessageNotify( 'M', module_name, 'SaltBC_Bottom       = %c', c1 = SaltBCBottom  )
 
     if( ThermBC_Surface==ThermBCTYPE_TempRelaxed ) then
        if ( SurfTempRelaxedTime >= 0d0 ) then
@@ -296,6 +298,16 @@ contains
        else
           call MessageNotify('E', module_name, ' &
                & `ThermBC_Surface=ThermBCTYPE_TempRelaxed`, but `SurfTempRelaxedTime` is not specified.' &
+               & // 'Set the value of this parameter.' )
+       end if
+    end if
+
+    if( SaltBC_Surface==SaltBCTYPE_SaltRelaxed ) then
+       if ( SurfSaltRelaxedTime >= 0d0 ) then
+          call MessageNotify('M', module_name, 'SurfSaltRelaxedTime  = %f [sec]', d=(/ SurfSaltRelaxedTime /))
+       else
+          call MessageNotify('E', module_name, ' &
+               & `SaltBC_Surface=SaltCTYPE_SaltRelaxed`, but `SurfSaltRelaxedTime` is not specified.' &
                & // 'Set the value of this parameter.' )
        end if
     end if

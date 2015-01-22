@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
 <head>
 <title>水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様</title>
-<!-- 2014-11-17 月 13:15 -->
+<!-- 2015-01-21 水 13:59 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Yuta Kawai" />
@@ -160,10 +160,9 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#sec-4">4. 計算結果</a>
 <ul>
-<li><a href="#sec-4-1">4.1. 標準実験</a></li>
-<li><a href="#sec-4-2">4.2. 水平渦粘性・拡散係数依存性</a></li>
-<li><a href="#sec-4-3">4.3. プラントル数依存性</a></li>
-<li><a href="#sec-4-4">4.4. 混合の表現方法の違いによる効果</a></li>
+<li><a href="#sec-4-1">4.1. 対流調節, 等密度面混合, GM スキームを用いない場合</a></li>
+<li><a href="#sec-4-2">4.2. 対流調節スキームを用いる場合</a></li>
+<li><a href="#sec-4-3">4.3. 対流調節, 等密度面混合, GM スキームを用いる場合</a></li>
 </ul>
 </li>
 <li><a href="#sec-5">5. 計算結果の解析</a></li>
@@ -181,27 +180,20 @@ for the JavaScript code in this tag.
   「<a href="../exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html">水惑星設定における軸対称な風成循環の数値実験 1</a>」では, 海洋モデルの妥当性の確認と水惑星設定の海洋大循環の基本構造の理解のために, 
 密度一様を仮定して系を簡単化した. 
 ここでは, これらの仮定を取り除き, 密度・塩分非一様な水惑星の軸対称風成循環の数値実験を行う. 
-本数値実験の全体的な目的は, 先行研究の水惑星実験[<a href="#marshall2007mean">2</a>]と同様な海面強制を与えたときに, 
-開発中の海洋モデルが[<a href="#marshall2007mean">2</a>]の計算結果の特徴を再現するかを確認することである. 
+本数値実験の全体的な目的は, 先行研究の水惑星実験[<a href="#marshall2007mean">3</a>]と同様な海面強制を与えたときに, 
+開発中の海洋モデルが[<a href="#marshall2007mean">3</a>]の計算結果の特徴を再現するかを確認することである. 
 また, それらの数値実験において, 
 </p>
 <ul class="org-ul">
-<li>水平渦拡散係数依存性
-</li>
-<li>プラントル数依存性
-</li>
 <li>中規模渦パラメタリゼーションの効果
 </li>
-<li>対流パラメタリゼーションの効果
+<li>対流調節スキームの効果
 </li>
 </ul>
 <p>
 について調べることにする. 
-一番目と二番目は地球流体力学的興味からであり, 水平渦拡散の時間スケールが鉛直渦拡散の時間スケールより短い場合, 同程度の場合, 長い場合において, 
-温度や塩分の構造がどうのように変化し, またそれは循環場にどのように影響を与えるかを調べる. 
-一番目と二番目を調べる数値実験において, 中規模渦や対流による混合の表現は簡単化のために一定の渦拡散係数を持つ拡散項を使って行われる. 
-三番目と四番目のねらいは, 中規模渦や対流による混合の表現として, より精巧な表現方法(GM スキーム[<a href="#gent1990isopycnal">1</a>]や対流スキーム[])
-を使用したときに, 一番目や二番目で使われた簡単な混合の表現方法の結果とどのような違いが生じるかを調べる. 
+ねらいは, 中規模渦や対流による混合の表現として, より精巧な表現方法(GM スキーム[<a href="#gent1990isopycnal">1</a>]や対流スキーム[])
+を使用したときに, 簡単な混合の表現方法(例えば水平ラプラシアンによる混合)の結果とどのような違いが生じるかを調べる. 
 </p>
 </div>
 </div>
@@ -252,32 +244,30 @@ for the JavaScript code in this tag.
 
 <li>海水の状態方程式
 <ul class="org-ul">
-<li>線形近似[<a href="#vallis2006atmospheric">3</a>]
-<ul class="org-ul">
-<li>参照密度 \(\rho_0=1.027\) [kg/m<sup>3</sup>], 
-参照温度 \(T_0=283\) [K], 
-参照塩分 \(S_0=35\) [psu], 
-熱膨張係数 \(\beta_T=1.67\times 10^{-4}\) [K<sup>-1</sup>],
-塩分収縮係数 \(\beta_S=1.5\times 10^{-3}\) [psu<sup>-1</sup>]
+<li>線形近似([<a href="#vallis2006atmospheric">4</a>]の式(1.59))
 </li>
-</ul>
+<li>二次関数近似([<a href="#vallis2006atmospheric">4</a>]の式(1.169))
+</li>
+<li>国際状態方程式[<a href="#jackett1995minimal">2</a>]
 </li>
 </ul>
 </li>
 
-<li>粘性
+<li>渦粘性, 渦拡散係数
 <ul class="org-ul">
 <li>水平方向の渦粘性係数 \(A_{h}\) , 渦拡散係数 \(K_{h}\)  の設定
 <ul class="org-ul">
-<li>\(A_{h}, K_{h}\) の大きさは, 次の各ケース設定を参照. 
+<li>\(A_{h}=1.0 \times 10^{3}\) [m<sup>2</sup> s<sup>-1</sup>]
+</li>
+<li>\(K_{h}\) は, GM スキームを用いる場合はゼロに, 用いない場合は \(A_h\) と同じにとる. 
 </li>
 </ul>
 </li>
 <li>鉛直方向の渦粘性係数 \(A_{v}\) , 渦拡散係数 \(K_{v}\) の設定
 <ul class="org-ul">
-<li>海面流速が [<a href="#marshall2007mean">2</a>] と同程度になるように, \(A_{v}=1.0 \times 10^{-2}\) [m<sup>2</sup> s<sup>-1</sup>] にとる. 
+<li>海面流速が [<a href="#marshall2007mean">3</a>] と同程度になるように, \(A_{v}=1.0 \times 10^{-2}\) [m<sup>2</sup> s<sup>-1</sup>] にとる. 
 </li>
-<li>\(K_{v}\) の大きさは, 次の各ケース設定を参照. 
+<li>[<a href="#marshall2007mean">3</a>] と同じように, \(K_v=3 \times 10^{-5}\) [m<sup>2</sup> s<sup>-1</sup>] 
 </li>
 </ul>
 </li>
@@ -301,7 +291,7 @@ for the JavaScript code in this tag.
 </li>
 
 <li>力学的条件: 
-水惑星実験 [<a href="#marshall2007mean">2</a>] の準平衡状態の地表風速から計算された, 
+水惑星実験 [<a href="#marshall2007mean">3</a>] の準平衡状態の地表風速から計算された, 
 海面応力の東西平均場を課す
 </li>
 </ul>
@@ -330,8 +320,8 @@ for the JavaScript code in this tag.
 
 <ul class="org-ul">
 <li>熱的条件: 
-水惑星実験 [<a href="#marshall2007mean">2</a>] の準平衡状態から得られる温位・塩分の海面分布に緩和する. 
-緩和時間 \(\tau\) は 1000 日とした. 
+水惑星実験 [<a href="#marshall2007mean">3</a>] の準平衡状態から得られる温位・塩分の海面分布に緩和する. 
+緩和時間 \(\tau\) は 60 日. 
 
 <p>
 \[
@@ -424,22 +414,29 @@ for the JavaScript code in this tag.
 </li></ol>
 </div>
 
+
 <div id="outline-container-sec-3-2" class="outline-3">
 <h3 id="sec-3-2"><span class="section-number-3">3.2</span> 各実験設定</h3>
 <div class="outline-text-3" id="text-3-2">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-<caption class="t-above"><span class="table-number">&#34920;4:</span> Pl: ルジャンドル陪関数の次数, L: 鉛直レベル数, Ah:水平渦粘性係数[m^2 s<sup>-1</sup>], Pr<sub>h</sub>(=Ah/Kh):水平プラントル数, Pr<sub>v</sub>(=Av/Kv):鉛直プラントル数, dt: 時間刻み幅[hour].</caption>
+<caption class="t-above"><span class="table-number">&#34920;4:</span> EOS:海水の状態方程式, K<sub>h</sub>:水平渦拡散性係数[m<sup>2</sup> s<sup>-1</sup>], K<sub>v</sub>:水平渦拡散性係数[m<sup>2</sup> s<sup>-1</sup>], Pl: ルジャンドル陪関数の次数, L: 鉛直レベル数, dt:時間スッテプ[hour]</caption>
 
 <colgroup>
 <col  class="left" />
 
 <col  class="left" />
 
+<col  class="right" />
+
 <col  class="left" />
 
-<col  class="right" />
+<col  class="left" />
 
-<col  class="right" />
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
 
 <col  class="right" />
 
@@ -448,83 +445,194 @@ for the JavaScript code in this tag.
 <thead>
 <tr>
 <th scope="col" class="left">実験名</th>
-<th scope="col" class="left">解像度　</th>
-<th scope="col" class="left">Ah</th>
-<th scope="col" class="right">Pr<sub>h</sub></th>
-<th scope="col" class="right">Pr<sub>v</sub></th>
+<th scope="col" class="left">EOS</th>
+<th scope="col" class="right">Kh</th>
+<th scope="col" class="left">Kv</th>
+<th scope="col" class="left">対流調節スキーム</th>
+<th scope="col" class="left">等密度面混合スキーム</th>
+<th scope="col" class="left">GMスキーム</th>
+<th scope="col" class="left">解像度</th>
 <th scope="col" class="right">dt</th>
 <th scope="col" class="left">備考</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="left">Ah1e4Prh1Prv1 (標準実験)</td>
-<td class="left">Pl170L60</td>
-<td class="left">1.0 &times; 10<sup>4</sup></td>
-<td class="right">1</td>
-<td class="right">1</td>
-<td class="right">1.5</td>
+<td class="left">EOSL_HDIFF</td>
+<td class="left">linear</td>
+<td class="right">1000</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
 <td class="left">&#xa0;</td>
 </tr>
 
 <tr>
-<td class="left">Ah1e3Prh1Prv1</td>
-<td class="left">Pl170L60</td>
-<td class="left">1.0 &times; 10<sup>3</sup></td>
-<td class="right">1</td>
-<td class="right">1</td>
-<td class="right">1.5</td>
+<td class="left">EOSQ_HDIFF</td>
+<td class="left">quad</td>
+<td class="right">1000</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
 <td class="left">&#xa0;</td>
 </tr>
 
 <tr>
-<td class="left">Ah1e5Prh1Prv1</td>
-<td class="left">Pl170L60</td>
-<td class="left">1.0 &times; 10<sup>5</sup></td>
-<td class="right">1</td>
-<td class="right">1</td>
-<td class="right">1.5</td>
+<td class="left">EOSJM95_HDIFF</td>
+<td class="left">JM95</td>
+<td class="right">1000</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
 <td class="left">&#xa0;</td>
 </tr>
 
 <tr>
-<td class="left">Ah1e4Prh10Prv10</td>
-<td class="left">Pl170L60</td>
-<td class="left">1.0 &times; 10<sup>5</sup></td>
-<td class="right">10</td>
-<td class="right">10</td>
-<td class="right">1.5</td>
+<td class="left">EOSL_HDIFF_VDIFF100</td>
+<td class="left">linear</td>
+<td class="right">1000</td>
+<td class="left">3&times;10<sup>-3</sup></td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
+<td class="left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="left">EOSL_HDIFF_CA</td>
+<td class="left">linear</td>
+<td class="right">1000</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">\(\circ\)</td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
 <td class="left">&#xa0;</td>
 </tr>
 
 <tr>
-<td class="left">Ah1e4WithGM90</td>
-<td class="left">Pl170L60</td>
-<td class="left">1.0 &times; 10<sup>4</sup></td>
+<td class="left">EOSQ_HDIFF_CA</td>
+<td class="left">quad</td>
+<td class="right">1000</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">\(\circ\)</td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
+<td class="left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="left">EOSJM95_HDIFF_CA</td>
+<td class="left">JM95</td>
+<td class="right">1000</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">\(\circ\)</td>
+<td class="left">-</td>
+<td class="left">-</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
+<td class="left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="left">EOSL_IDIFF_CA_GM</td>
+<td class="left">linear</td>
 <td class="right">-</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">\(\circ\)</td>
+<td class="left">\(\circ\)</td>
+<td class="left">\(\circ\)</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
+<td class="left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="left">EOSQ_IDIFF_CA_GM</td>
+<td class="left">quad</td>
 <td class="right">-</td>
-<td class="right">1.5</td>
-<td class="left">[<a href="#gent1990isopycnal">1</a>]の混合スキームを使用</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">\(\circ\)</td>
+<td class="left">\(\circ\)</td>
+<td class="left">\(\circ\)</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
+<td class="left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="left">EOSJM95_IDIFF_CA_GM</td>
+<td class="left">JM95</td>
+<td class="right">-</td>
+<td class="left">3&times;10<sup>-5</sup></td>
+<td class="left">\(\circ\)</td>
+<td class="left">\(\circ\)</td>
+<td class="left">\(\circ\)</td>
+<td class="left">Pl42L60</td>
+<td class="right">3</td>
+<td class="left">&#xa0;</td>
 </tr>
 </tbody>
 </table>
 
+
+
 <ul class="org-ul">
 <li>実験シリーズの目的
 <ul class="org-ul">
-<li>ケース Ah1e4T341L60 は, 水平粘性係数の依存性を調べるための標準実験である. 
+<li>対流調節, 等密度面混合, GM スキームを用いない場合
+<ul class="org-ul">
+<li>標準実験: EOSJM95_HDIFF
 </li>
-<li>水平渦粘性・拡散係数の依存性: Ah1e3Prh1Prv1, Ah1e4Prh1Prv1 Ah1e5Prh1Prv1 の計算結果を比較
+<li>EOS 依存性: EOSL_HDIFF, EOSQ_HDIFF, EOSJM95_HDIFF の結果を比較する. 
 </li>
-<li>プラントル数の依存性: Ah1e4Prh1Prv1, Ah1e4Prh10Prv10 の計算結果を比較
-</li>
-<li>混合の表現方法の違いによる効果: Ah1e4Prh1Prv1, Ah1e4WithGM90
+<li>鉛直渦拡散係数依存性: EOSL_HDIFF, EOSL_HDIFF_VDIFF100 の結果を比較する. 
 </li>
 </ul>
 </li>
+<li>対流調節スキームを用いる場合
+<ul class="org-ul">
+<li>標準実験: EOSJM95_HDIFF_CA
+</li>
+<li>EOS 依存性: EOSL_HDIFF_CA, EOSQ_HDIFF_CA, EOSJM95_HDIFF_CA の結果を比較する. 
+</li>
+</ul>
+</li>
+<li>対流調節, 等密度面混合, GM スキームを用いる場合
+<ul class="org-ul">
+<li>標準実験: EOSJM95_IDIFF_CA_GM
+</li>
+<li>EOS 依存性: EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM の結果を比較する. 
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
 
+
+<ul class="org-ul">
 <li>各実験の設定ファイル
-
+<ul class="org-ul">
+<li>対流調節, 等密度面混合, GM スキームを用いない場合
+</li>
+</ul>
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
@@ -536,16 +644,59 @@ for the JavaScript code in this tag.
 <col  class="left" />
 
 <col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./expdata_inhomoFluid/exp_EOSL_HDIFF/config.nml">EOSL_HDIFF</a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_EOSQ_HDIFF/config.nml">EOSQ_HDIFF</a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_EOSJM95_HDIFF/config.nml">EOSJM95_HDIFF</a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_EOSL_HDIFF_VDIFF100/config.nml">EOSL_HDIFF_VDIFF100</a></td>
+</tr>
+</tbody>
+</table>
+
+<ul class="org-ul">
+<li>対流調節スキームを用いる場合
+</li>
+</ul>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
 
 <col  class="left" />
 </colgroup>
 <tbody>
 <tr>
-<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e4Prh1Prv1/config.nml">Ah1e4Prh1Prv1(標準実験) </a></td>
-<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e3Prh1Prv1/config.nml">Ah1e3Prh1Prv1</a></td>
-<td class="left"><a href="./expdata_inhomoFluid/exp_Ah1e5Prh1Prv1/config.nml">Ah1e5Prh1Prv1</a></td>
-<td class="left"><a href="">Ah1e4Prh10Prv10</a></td>
-<td class="left"><a href="">Ah1e4Prh10Prv10GM</a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_EOSQ_HDIFF_CA/config.nml">EOSL_HDIFF_CA</a></td>
+<td class="left"><a href="./expdata_inhomoFluid/exp_EOSJM95_HDIFF_CA/config.nml">EOSQ_HDIFF_CA</a></td>
+<td class="left"><a href="">EOSJM95_HDIFF_CA</a></td>
+</tr>
+</tbody>
+</table>
+
+<ul class="org-ul">
+<li>対流調節, 等密度面混合, GM スキームを用いる場合
+</li>
+</ul>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="">EOSL_IDIFF_CA_GM</a></td>
+<td class="left"><a href="">EOSQ_IDIFF_CA_GM</a></td>
+<td class="left"><a href="">EOSJM95_IDIFF_CA_GM</a></td>
 </tr>
 </tbody>
 </table>
@@ -555,24 +706,49 @@ for the JavaScript code in this tag.
 </div>
 </div>
 
+
 <div id="outline-container-sec-4" class="outline-2">
 <h2 id="sec-4"><span class="section-number-2">4</span> 計算結果</h2>
 <div class="outline-text-2" id="text-4">
 </div><div id="outline-container-sec-4-1" class="outline-3">
-<h3 id="sec-4-1"><span class="section-number-3">4.1</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_result_refexp.html">標準実験</a></h3>
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> 対流調節, 等密度面混合, GM スキームを用いない場合</h3>
+<div class="outline-text-3" id="text-4-1">
+<ul class="org-ul">
+<li><a href="./Exp_WindDrivenCirculation_inhomoFluid_result_noCA-Redi-GMScheme_refexp.html">標準実験</a>
+</li>
+<li><a href="./Exp_WindDrivenCirculation_inhomoFluid_noCA-Redi-GMScheme_EOSComp.html">EOS 依存性</a>
+</li>
+<li><a href="./Exp_WindDrivenCirculation_inhomoFluid_noCA-Redi-GMScheme_VDiffComp.html">鉛直渦粘性係数依存性</a>
+</li>
+</ul>
+</div>
 </div>
 
 <div id="outline-container-sec-4-2" class="outline-3">
-<h3 id="sec-4-2"><span class="section-number-3">4.2</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_horiEddViscDiffComp.html">水平渦粘性・拡散係数依存性</a></h3>
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> 対流調節スキームを用いる場合</h3>
+<div class="outline-text-3" id="text-4-2">
+<ul class="org-ul">
+<li><a href="./Exp_WindDrivenCirculation_inhomoFluid_result_noRedi-GMScheme_refexp.html">標準実験</a>
+</li>
+<li><a href="./Exp_WindDrivenCirculation_inhomoFluid_noRedi-GMScheme_EOSComp.html">EOS 依存性</a>
+</li>
+</ul>
+</div>
 </div>
 
 <div id="outline-container-sec-4-3" class="outline-3">
-<h3 id="sec-4-3"><span class="section-number-3">4.3</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_PrComp.html">プラントル数依存性</a></h3>
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> 対流調節, 等密度面混合, GM スキームを用いる場合</h3>
+<div class="outline-text-3" id="text-4-3">
+<ul class="org-ul">
+<li>標準実験
+</li>
+<li>EOS 依存性
+</li>
+</ul>
 </div>
-<div id="outline-container-sec-4-4" class="outline-3">
-<h3 id="sec-4-4"><span class="section-number-3">4.4</span> <a href="./Exp_WindDrivenCirculation_inhomoFluid_EddMixParamEffect.html">混合の表現方法の違いによる効果</a></h3>
 </div>
 </div>
+
 
 <div id="outline-container-sec-5" class="outline-2">
 <h2 id="sec-5"><span class="section-number-2">5</span> 計算結果の解析</h2>
@@ -614,7 +790,23 @@ Peter&nbsp;R Gent and James&nbsp;C Mcwilliams.
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="marshall2007mean">2</a>]
+[<a name="jackett1995minimal">2</a>]
+</td>
+<td class="bibtexitem">
+David&nbsp;R Jackett and Trevor&nbsp;J McDougall.
+ Minimal adjustment of hydrographic profiles to achieve static
+  stability.
+ <em>Journal of Atmospheric and Oceanic Technology</em>, 12(2):381-389,
+  1995.
+[&nbsp;<a href="Dennou-OGCM_reflist_bib.html#jackett1995minimal">bib</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="marshall2007mean">3</a>]
 </td>
 <td class="bibtexitem">
 John Marshall, David Ferreira, JM&nbsp;Campin, and Daniel Enderton.
@@ -629,7 +821,7 @@ John Marshall, David Ferreira, JM&nbsp;Campin, and Daniel Enderton.
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="vallis2006atmospheric">3</a>]
+[<a name="vallis2006atmospheric">4</a>]
 </td>
 <td class="bibtexitem">
 Geoffrey&nbsp;K Vallis.
@@ -657,8 +849,8 @@ GFDL CM2.0 モデルによる 20 世紀の気候計算の出力データの中�
 </div></div>
 <div id="postamble" class="status">
 <p class="author">&#33879;&#32773;: Yuta Kawai</p>
-<p class="date">Created: 2014-11-17 月 13:15</p>
-<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 23.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
+<p class="date">Created: 2015-01-21 水 13:59</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.3.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>

@@ -59,6 +59,11 @@ module GovernEqSet_mod
   character(*), public, parameter :: GOVERNEQSET_SGSEDDYMIX_GM90_NAME = "GM90"
   integer, public, parameter :: GOVERNEQSET_SGSEDDYMIX_GM90 = 2
 
+  ! For convective adjustment
+  character(*), public, parameter :: GOVERNEQSET_SGSCONVADJUST_INSTANT_NAME = "Instantaneous"
+  integer, public, parameter :: GOVERNEQSET_SGSCONVADJUST_INSTANT = 1
+  character(*), public, parameter :: GOVERNEQSET_SGSCONVADJUST_SLOW_NAME = "Slow"
+  integer, public, parameter :: GOVERNEQSET_SGSCONVADJUST_SLOW = 2
 
   !
   character(*), public, parameter :: GOVERNEQSET_TYPENOSPEC_NAME = "UnActivated"
@@ -68,6 +73,7 @@ module GovernEqSet_mod
   !
   integer, public, save :: DynEqType       !< The type of dynamical equations
   integer, public, save :: EOSType         !< The type of equation of state
+  integer, public, save :: SGSConvAdjustType  !< The type of convective adjustment
   integer, public, save :: SGSEddyMixType  !< The type of parameterization for sub-grid scale eddy mixing 
 
   ! 非公開手続き
@@ -149,7 +155,10 @@ contains
     integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
     ! IOSTAT of NAMELIST read
 
-    character(TOKEN) :: DynEqTypeName, EOSTypeName, SGSEddyMixTypeName
+    character(TOKEN) :: DynEqTypeName
+    character(TOKEN) :: EOSTypeName
+    character(TOKEN) :: SGSConvAdjustTypeName
+    character(TOKEN) :: SGSEddyMixTypeName
 
     ! NAMELIST 変数群
     ! NAMELIST group name
@@ -157,6 +166,7 @@ contains
     namelist /governEq_nml/ &
          & DynEqTypeName, &
          & EOSTypeName, &
+         & SGSConvAdjustTypeName, &
          & SGSEddyMixTypeName
 
     ! 実行文; Executable statements
@@ -167,6 +177,7 @@ contains
 
     DynEqTypeName = GOVERNEQSET_DYN_HYDROBOUSSINESQ_NAME
     EOSTypeName = EOSTYPENAME_LINEAR
+    SGSConvAdjustTypeName = GOVERNEQSET_SGSCONVADJUST_INSTANT_NAME
     SGSEddyMixTypeName = GOVERNEQSET_TYPENOSPEC_NAME
 
     ! NAMELIST からの入力
@@ -183,16 +194,36 @@ contains
        close( unit_nml )
     end if
 
+    ! Convert the type name into the corresponding ID. 
     !
-    call set_DynEqType(DynEqTypeName)
-    call set_EOSType(EOSTypeName)
-    call set_SGSEddyMixType(SGSEddyMixTypeName)
+
+    DynEqType = typeName2ID( DynEqTypeName, &
+         & (/ GOVERNEQSET_DYN_HYDROBOUSSINESQ_NAME /), &
+         & (/ GOVERNEQSET_DYN_HYDROBOUSSINESQ /), &
+         & "DynEqType", .false. )
+
+    EOSType = typeName2ID( EOSTypeName, &
+         & (/ EOSTYPENAME_LINEAR, EOSTYPENAME_SIMPLENONLINEAR, EOSTYPENAME_JM95 /), &
+         & (/ GOVERNEQSET_EOS_LINEAR, GOVERNEQSET_EOS_SIMPLENONLINEAR, GOVERNEQSET_EOS_JM95 /), &
+         & "EOSType", .false. )
+    
+    SGSConvAdjustType = typeName2ID( SGSConvAdjustTypeName, &
+         & (/ GOVERNEQSET_SGSCONVADJUST_INSTANT_NAME, GOVERNEQSET_SGSCONVADJUST_SLOW_NAME /), &
+         & (/ GOVERNEQSET_SGSCONVADJUST_INSTANT, GOVERNEQSET_SGSCONVADJUST_SLOW /), &
+         & "SGSConvAdjustType", .true. )
+
+    SGSEddyMixType = typeName2ID( SGSEddyMixTypeName, &
+         & (/ GOVERNEQSET_SGSEDDYMIX_Redi_NAME, GOVERNEQSET_SGSEDDYMIX_GM90_NAME /), &
+         & (/ GOVERNEQSET_SGSEDDYMIX_Redi, GOVERNEQSET_SGSEDDYMIX_GM90 /), &
+         & "SGSEddyMixType", .true. )
+
 
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, '    DynEqType         = %c', c1 = DynEqTypeName ) 
     call MessageNotify( 'M', module_name, '    EOSType           = %c', c1 = EOSTypeName )
+    call MessageNotify( 'M', module_name, '    SGSConvAdjustType = %c', c1 = SGSConvAdjustTypeName )
     call MessageNotify( 'M', module_name, '    SGSEddyMixType    = %c', c1 = SGSEddyMixTypeName )
 
   end subroutine read_nmlData
@@ -201,81 +232,34 @@ contains
 ! * Subroutines to associate the type name with the coressponding ID. 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  !> @brief 
-  !!
-  !!
-  subroutine set_DynEqType(DynEqTypeName)
-    
-    ! 宣言文; Declaration statement
-    !
-    character(*), intent(in) :: DynEqTypeName
-    
-    ! 実行文; Executable statement
-    !
+  function typeName2ID(typeName, typeNameList, typeIDList, specTypeInfo, isNoSpecOK) result(typeID)
+    character(*), intent(in) :: typeName
+    character(*), intent(in) :: typeNameList(:)
+    integer, intent(in) :: typeIDList(size(typeNameList))
+    character(*), intent(in) :: specTypeInfo
+    logical, intent(in) :: isNoSpecOK
+    integer :: typeID
 
-    select case(DynEqTypeName)
-       case ("HydroBoussinesq")
-          DynEqType = GOVERNEQSET_DYN_HYDROBOUSSINESQ
-       case default
+    integer :: m
+
+    if(isNoSpecOK) then
+       if(trim(typeName)==GOVERNEQSET_TYPENOSPEC_NAME) then
+          typeID = GOVERNEQSET_TYPENOSPEC; return
+       end if
+    end if
+
+    do m=1, size(typeNameList)
+       if(trim(typeName)==trim(typeNameList(m))) then
+          typeID = typeIDList(m); exit
+       end if
+       ! The specified type name has not been found in the list. 
+       if(m == size(typeNameList)) then
           call MessageNotify('E', module_name, &
-               & 'The specified DynEqType ''%c'' is invalid.', c1=DynEqTypeName )
-    end select
-    
-  end subroutine set_DynEqType
+               & 'The specified %a ''%a'' is invalid.', ca=(/ trim(specTypeInfo), trim(typeName) /) )
+       end if
+    end do
 
-  !> @brief 
-  !!
-  !!
-  subroutine set_EOSType(EOSTypeName)
-    
-    ! 宣言文; Declaration statement
-    !
-    character(*), intent(in) :: EOSTypeName
-    
-    ! 実行文; Executable statement
-    !
-
-    select case(EOSTypeName)
-       case (EOSTYPENAME_LINEAR)
-          EOSType = GOVERNEQSET_EOS_LINEAR
-       case (EOSTYPENAME_SIMPLENONLINEAR)
-          EOSType = GOVERNEQSET_EOS_SIMPLENONLINEAR
-       case (EOSTYPENAME_JM95)
-          EOSType = GOVERNEQSET_EOS_JM95
-       case default
-          call MessageNotify('E', module_name, &
-               & 'The specified EOSType ''%c'' is invalid.', c1=EOSTypeName )
-    end select
-    
-  end subroutine set_EOSType
-
-  !> @brief 
-  !!
-  !!
-  subroutine set_SGSEddyMixType(SGSEddyMixTypeName)
-    
-    ! 宣言文; Declaration statement
-    !
-    character(*), intent(in) :: SGSEddyMixTypeName
-    
-    ! 実行文; Executable statement
-    !
-
-    select case(SGSEddyMixTypeName)
-       
-       case (GOVERNEQSET_SGSEDDYMIX_Redi_NAME)
-          SGSEddyMixType = GOVERNEQSET_SGSEDDYMIX_Redi
-       case (GOVERNEQSET_SGSEDDYMIX_GM90_NAME)
-          SGSEddyMixType = GOVERNEQSET_SGSEDDYMIX_GM90
-       case (GOVERNEQSET_TYPENOSPEC_NAME)
-          SGSEddyMixType = GOVERNEQSET_TYPENOSPEC
-       case default
-          call MessageNotify('E', module_name, &
-               & 'The specified SGSEddyMixType ''%c'' is invalid.', c1=SGSEddyMixTypeName )
-    end select
-    
-  end subroutine set_SGSEddyMixType
-
+  end function typeName2ID
 
 end module GovernEqSet_mod
 

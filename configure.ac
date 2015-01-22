@@ -173,13 +173,22 @@ DC_ARG_WITH([dsogcm-mode],
             [ac_cv_mode_dsogcm],
             [ac_cv_mode_dsogcm="3D"])
 
+#
+dsogcm_mode_axisym=false
+dsogcm_mode_3D=false
+
 case $ac_cv_mode_dsogcm in
 AXISYM)
         SYSFFLAGS="${SYSFFLAGS} -DDSOGCM_MODE_AXISYM"
+	dsogcm_mode_axisym=true
 	;;
 *)
+	dsogcm_mode_3D=true
 	;;
 esac
+
+AM_CONDITIONAL(DSOGCM_AXISYM, test x$dsogcm_mode_axisym = xtrue)
+AM_CONDITIONAL(DSOGCM_3D, test x$dsogcm_mode_3D = xtrue)
 
 #
 # * --enable-sjpack

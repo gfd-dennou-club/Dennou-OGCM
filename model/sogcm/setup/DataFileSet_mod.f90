@@ -222,7 +222,8 @@ contains
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLON, xy_WindStressU)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLAT, xy_WindStressV)
 
-    
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_CONVECTPARAM, xyz_ConvectParam)
+
   end subroutine DataFileSet_OutputData
 
   !> @brief 
@@ -265,7 +266,8 @@ contains
     use Constants_mod, only: PI
 
     use GridSet_mod, only: &
-         & x_Lon, y_Lat
+         & iMax, jMax, kMax, &
+         & xyz_Lon, xyz_Lat
 
     use SpmlUtil_mod, only: g_Sig
     
@@ -290,10 +292,10 @@ contains
     !
     lonName = 'lon'; latName='lat'; sigName='sig'; timeName='t'
 
-    call HistoryAutoPutAxis(lonName, x_Lon*180/PI)
+    call HistoryAutoPutAxis(lonName, xyz_Lon(:,1,0)*180/PI)
     call HistoryAutoAddAttr(lonName, 'topology', 'circular')
     call HistoryAutoAddAttr(lonName, 'modulo', 360.0)
-    call HistoryAutoPutAxis(latName, y_Lat*180/PI)
+    call HistoryAutoPutAxis(latName, xyz_Lat(0,:,0)*180/PI)
     call HistoryAutoPutAxis(sigName, g_Sig)
 
 
@@ -375,7 +377,11 @@ contains
 
     call HistoryAutoAddVariable( varname=VARSET_KEY_WINDSTRESSLON, &
          & dims=dims_XYT, longname='wind stress(longitude)', units='kg.m-1.s-2')
-   
+
+    !
+    call HistoryAutoAddVariable( varname=VARSET_KEY_CONVECTPARAM, &
+         & dims=dims_XYZT, longname='convection parameter', units='1')
+
   end subroutine regist_OutputAxisAndVar
 
 

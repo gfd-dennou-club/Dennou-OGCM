@@ -67,7 +67,7 @@ contains
 
     use GridSet_mod, only: &
          & iMax, jMax, kMax, &
-         & x_Lon, y_Lat
+         & xyz_Lon, xyz_Lat
 
     use SpmlUtil_mod, only: g_Sig
 
@@ -99,10 +99,10 @@ contains
          & origin=real(diagVar_gthsInfo%origin), &
          & namelist_filename=configNmlFileName )    
 
-    call HistoryAutoPutAxis('lon', x_Lon*180/PI)
+    call HistoryAutoPutAxis('lon', xyz_Lon(:,1,0)*180/PI)
     call HistoryAutoAddAttr('lon', 'topology', 'circular')
     call HistoryAutoAddAttr('lon', 'modulo', 360.0)
-    call HistoryAutoPutAxis('lat', y_Lat*180/PI)
+    call HistoryAutoPutAxis('lat', xyz_Lat(0,:,0)*180/PI)
     call HistoryAutoPutAxis('sig', g_Sig)
 
     call HistoryAutoAddVariable( &
@@ -150,6 +150,10 @@ contains
          varname=DVARKEY_TEMP, dims=(/'lon','lat','sig','t  '/), & 
          longname='temperature', units='K')
 
+
+
+    !
+    !
     call HistoryAutoAllVarFix()
 
   end subroutine DiagVarFileSet_Init

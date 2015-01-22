@@ -87,12 +87,12 @@ contains
 
  real(DP) :: xyz_dwdz(0:iMax-1,jMax,0:kMax)
 
-    xyz_UrfHatSig = xyz_IntSig_SigToTop_xyz(xyz_Urf)
-    xyz_VrfHatSig = xyz_IntSig_SigToTop_xyz(xyz_Vrf)
+!!$    xyz_UrfHatSig = xyz_IntSig_SigToTop_xyz(xyz_Urf)
+!!$    xyz_VrfHatSig = xyz_IntSig_SigToTop_xyz(xyz_Vrf)
     xyz_DivHatSig = xyz_IntSig_SigToTop_xyz(xyz_Div)
-    xy_UrfHat = xy_IntSig_BtmToTop_xyz(xyz_Urf)
-    xy_VrfHat = xy_IntSig_BtmToTop_xyz(xyz_Vrf)
-    xy_DivHat = xy_IntSig_BtmToTop_xyz(xyz_Div)
+!!$    xy_UrfHat = xy_IntSig_BtmToTop_xyz(xyz_Urf)
+!!$    xy_VrfHat = xy_IntSig_BtmToTop_xyz(xyz_Vrf)
+!!$    xy_DivHat = xy_IntSig_BtmToTop_xyz(xyz_Div)
 
     xy_DtotDepthDLambda = 0d0!xy_w(w_DivLambda_xy(xy_totDepth))
     xy_DtotDepthDmu =0d0! xy_w(w_DivMu_xy(xy_totDepth))
@@ -123,7 +123,7 @@ contains
     real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_HydroPressEdd(0:iMax-1,jMax,0:kMax)
 
-    xyz_HydroPressEdd =  Grav*spread(xy_totDepth,3,kMax+1)*(xyz_IntSig_SigToTop_xyz(xyz_DensEdd)) 
+    xyz_HydroPressEdd(:,:,:) =  Grav*spread(xy_totDepth,3,kMax+1)*(xyz_IntSig_SigToTop_xyz(xyz_DensEdd)) 
 
   end function diagnose_HydroPressEdd
 

@@ -64,6 +64,9 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_SeaSurfTemp(:,:), xy_SurfTempFlux(:,:)
   real(DP), public, save, allocatable :: xy_SeaSurfSalt(:,:), xy_SurfSaltFlux(:,:)
 
+  real(DP), public, save, allocatable :: xyz_ConvectParam(:,:,:)
+
+
   character(TOKEN), public, parameter :: VARSET_KEY_U  = 'U'
   character(TOKEN), public, parameter :: VARSET_KEY_UB = 'UB'
   character(TOKEN), public, parameter :: VARSET_KEY_V  = 'V'
@@ -83,6 +86,8 @@ module VariableSet_mod
 
   character(TOKEN), public, parameter :: VARSET_KEY_WINDSTRESSLAT = 'WindStressLat'
   character(TOKEN), public, parameter :: VARSET_KEY_WINDSTRESSLON = 'WindStressLon'
+
+  character(TOKEN), public, parameter :: VARSET_KEY_CONVECTPARAM = 'ConvectParam'
 
   ! 非公開手続き
   ! Private procedure
@@ -124,6 +129,8 @@ contains
     call malloc2DVar(xy_totDepthBasic)
     call malloc1DVar(z_PTempBasic)
     call malloc2DVar(xy_SurfPressA);  call malloc2DVar(xy_SurfPressN); call malloc2DVar(xy_SurfPressB);
+
+    call malloc3DVar(xyz_ConvectParam)
 
     ! Variable used in applying the boundary condition at the surface. 
 
@@ -182,6 +189,8 @@ contains
        deallocate( xy_WindStressU, xy_WindStressV )
        deallocate( xy_SurfTempFlux, xy_SeaSurfTemp )
        deallocate( xy_SurfSaltFlux, xy_SeaSurfSalt )
+
+       deallocate( xyz_ConvectParam )
     end if
 
   end subroutine VariableSet_Final

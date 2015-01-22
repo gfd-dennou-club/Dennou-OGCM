@@ -667,19 +667,16 @@ contains
     endif
 
 #ifdef _OPENMP
-    allocate(lc_ag_at(1:ceiling(m/real(nThread)),0:im, 1:nThread))
 
-    !$omp parallel private(lc_m, lbnd, ubnd, y, tr)
+    !$omp parallel private(lc_m, lbnd, ubnd, tr)
     tr = omp_get_thread_num() + 1
     lbnd = (tr-1)*ceiling(m/real(nThread)) + 1
     ubnd = min(tr*ceiling(m/real(nThread)), m)
     lc_m = ubnd - lbnd + 1
-    lc_ag_at(:,:,tr) = 0d0
-    lc_ag_at(1:lc_m,0:km,tr) = at_data(lbnd:ubnd,:)
 
-    call fttctb(lc_m,im,lc_ag_at(1:lc_m,:,tr),y(1:lc_m*im),it,t)
-
-    ag_at(lbnd:ubnd,0:im) = lc_ag_at(1:lc_m, 0:im, tr)
+    ag_at(lbnd:ubnd,:) = 0d0
+    ag_at(lbnd:ubnd,0:km) = at_data(lbnd:ubnd,:)
+    call fttctb(lc_m,im,ag_at(lbnd:ubnd,:),y(im*(lbnd-1)+1:im*ubnd),it,t)
     !$omp end parallel
 
 #else
@@ -729,7 +726,6 @@ contains
     integer :: m
 
     integer :: tr, lc_m, lbnd, ubnd
-    real(8), allocatable :: lc_at_ag(:,:,:)    
 
     m = size(ag_data,1)
     if ( size(ag_data,2)-1 < im ) then
@@ -742,18 +738,16 @@ contains
 
 
 #ifdef _OPENMP
-    allocate(lc_at_ag(1:ceiling(m/real(nThread)),0:im, 1:nThread))
 
-    !$omp parallel private(lc_m, lbnd, ubnd, y, tr)
+    !$omp parallel private(lc_m, lbnd, ubnd, tr)
     tr = omp_get_thread_num() + 1
     lbnd = (tr-1)*ceiling(m/real(nThread)) + 1
     ubnd = min(tr*ceiling(m/real(nThread)), m)
     lc_m = ubnd - lbnd + 1
-    lc_at_ag(1:lc_m,0:im,tr) = ag_data(lbnd:ubnd,:)
 
-    call fttctf(lc_m,im,lc_at_ag(1:lc_m,:,tr),y(1:lc_m*im),it,t)
-
-    at_ag(lbnd:ubnd,:) = lc_at_ag(1:lc_m, 0:km, tr)
+    ag_work(lbnd:ubnd,:) = ag_data(lbnd:ubnd,:) 
+    call fttctf(lc_m,im,ag_work(lbnd:ubnd,:),y(im*(lbnd-1)+1:im*ubnd),it,t)
+    at_ag(lbnd:ubnd,:) = ag_work(lbnd:ubnd, 0:km)
     !$omp end parallel
 
 #else
@@ -761,12 +755,6 @@ contains
     call fttctf(m,im,ag_work,y,it,t)
     at_ag = ag_work(:,0:km)
 #endif
-
-
-!!$    ag_work = ag_data
-!!$
-!!$    call fttctf(m,im,ag_work,y,it,t)
-!!$    at_ag = ag_work(:,0:km)
 
   end function at_ag
 
@@ -823,17 +811,13 @@ contains
 
 
 #ifdef _OPENMP
-    allocate( lc_at_Dx_at(1:ceiling(nm/real(nThread)),0:kmax, nThread) )
-
     !$omp parallel private(lc_m, lbnd, ubnd, tr)
     tr = omp_get_thread_num() + 1
     lbnd = (tr-1)*ceiling(nm/real(nThread)) + 1
     ubnd = min(tr*ceiling(nm/real(nThread)), nm)
     lc_m = ubnd - lbnd + 1
-    lc_at_Dx_at(1:lc_m,0:kmax,tr) = at_data(lbnd:ubnd,:)
-    at_Dx_at(lbnd:ubnd,:) = at_Dx_at_core(lc_at_Dx_at(1:lc_m,0:kmax,tr))
+    at_Dx_at(lbnd:ubnd,:) = at_Dx_at_core(at_data(lbnd:ubnd,:))
     !$omp end parallel
-
 #else
     at_Dx_at = at_Dx_at_core(at_data)
 #endif
@@ -848,7 +832,7 @@ contains
       ! 作用させたデータのチェビシェフ変換のことである.
       !
       !
-      real(8), dimension(:,0:), intent(in)                    :: at_data
+;      real(8), dimension(:,0:), intent(in)                    :: at_data
       !(in) 入力チェビシェフデータ
       
       real(8), dimension(size(at_data,1),0:size(at_data,2)-1) :: at_Dx_at

@@ -21,13 +21,6 @@ AM_FCFLAGS = \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
-	$(srcdir)/governeq_driver/libDSOGCMGovernEqDriver.la \
-	$(srcdir)/physics_driver/libDSOGCMPhysicsDriver.la \
-	$(srcdir)/experiment/libDSOGCMExp.la \
-	$(srcdir)/dynamics/libDSOGCMDynamics.la \
-	$(srcdir)/setup/libDSOGCMSetup.la \
-	$(srcdir)/util/libDSOGCMUtil.la \
-	$(srcdir)/util/libSpmlUtil.la \
 	$(srcdir)/../../src/fvm/libDQGModelFVM_HexCGrid.la \
 	$(srcdir)/../../src/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
@@ -37,11 +30,43 @@ CLEANFILES = *$(MODEXT)
 bin_PROGRAMS = 
 
 #####################
-bin_PROGRAMS += dsogcm 
-dsogcm_SOURCES =\
+
+if DSOGCM_3D
+
+bin_PROGRAMS += dsogcm3d
+dsogcm3d_SOURCES =\
 	InitCond_mod.f90 \
 	ogcm_main.f90
+dsogcm3d_LDADD = \
+	$(srcdir)/governeq_driver/libDSOGCMGovernEqDriver.la \
+	$(srcdir)/physics_driver/libDSOGCMPhysicsDriver.la \
+	$(srcdir)/experiment/libDSOGCMExp.la \
+	$(srcdir)/dynamics/libDSOGCMDynamics.la \
+	$(srcdir)/setup/libDSOGCMSetup.la \
+	$(srcdir)/util/libDSOGCMUtil.la \
+	$(srcdir)/util/libSpmlUtil.la \
+	$(LDADD)
 
+endif
+
+#####################
+
+if DSOGCM_AXISYM
+
+bin_PROGRAMS += dsogcm_axisym
+dsogcm_axisym_SOURCES =\
+	InitCond_mod.f90 \
+	ogcm_main.f90
+dsogcm_axisym_LDADD = \
+	$(srcdir)/governeq_driver/libDSOGCMGovernEqDriver.la \
+	$(srcdir)/physics_driver/libDSOGCMPhysicsDriver.la \
+	$(srcdir)/experiment/libDSOGCMExp.la \
+	$(srcdir)/dynamics/libDSOGCMDynamics.la \
+	$(srcdir)/setup/libDSOGCMSetup.la \
+	$(srcdir)/util/libDSOGCMUtil.la \
+	$(srcdir)/util/libSpmlUtil.la \
+	$(LDADD)
+endif
 
 #############################
 

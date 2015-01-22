@@ -21,6 +21,9 @@ module PhysicsDriver_mod
 
   use GovernEqSet_mod, only: &
        & SGSEddyMixType, &
+       & SGSConvAdjustType, &
+       & GOVERNEQSET_SGSCONVADJUST_INSTANT, &
+       & GOVERNEQSET_SGSCONVADJUST_SLOW, &
        & isPhysicsCompActived
 
   use SGSEddyMixing_mod, only: &
@@ -28,6 +31,11 @@ module PhysicsDriver_mod
        & SGSEddyMixing_PrepareOutput, &
        & SGSEddyMixing_Output
 
+  use SGSConvAdjust_mod, only: &
+       & SGSConvAdjust_Init, SGSConvAdjust_Final
+
+  use SGSSlowConvAdjust_mod, only: &
+       & SGSSlowConvAdjust_Init, SGSSlowConvAdjust_Final
 
   ! 宣言文; Declareration statements
   !
@@ -57,7 +65,8 @@ contains
   subroutine PhysicsDriver_Init(datFile)
 
     use TemporalIntegSet_mod, only: &
-         & RestartTime, EndTime, CurrentTime
+         & RestartTime, EndTime, CurrentTime, DelTime
+
 
     type(DataFileSet), intent(in) :: datFile
 
@@ -71,6 +80,14 @@ contains
             & )
     end if
 
+    if(isPhysicsCompActived(SGSConvAdjustType)) then
+       select case(SGSConvAdjustType)
+       case(GOVERNEQSET_SGSCONVADJUST_INSTANT)
+          call SGSConvAdjust_Init()
+       case(GOVERNEQSET_SGSCONVADJUST_SLOW)
+          call SGSSlowConvAdjust_Init(GCMTimeStep=DelTime)
+       end select
+    end if
   end subroutine PhysicsDriver_Init
 
   !>
@@ -83,6 +100,15 @@ contains
     
     if(isPhysicsCompActived(SGSEddyMixType)) &
          & call SGSEddyMixing_Final()
+
+    if(isPhysicsCompActived(SGSConvAdjustType)) then
+       select case(SGSConvAdjustType)
+       case(GOVERNEQSET_SGSCONVADJUST_INSTANT)
+          call SGSConvAdjust_Final()
+       case(GOVERNEQSET_SGSCONVADJUST_SLOW)
+          call SGSSlowConvAdjust_Final()
+       end select
+    end if
 
   end subroutine PhysicsDriver_Final
 

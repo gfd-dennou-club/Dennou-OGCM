@@ -367,12 +367,16 @@ contains
     if(rkStage==1) rkTmp = wtN0
 
     if(rkStage==4) then
+       !$omp parallel workshare
        wtA = rkTmp + dt/(6d0*RK4_coef(rkStage))*wtRHS
+       !$omp end parallel workshare
        return
     end if
 
+    !$omp parallel workshare
     rkTmp = rkTmp + dt/(6d0*RK4_coef(rkStage))*wtRHS
     wtA = wtN0 + dt*RK4_coef(rkStage+1)*wtRHS
+    !$omp end parallel workshare
 
   end function wt_timeIntRK4
 
@@ -386,12 +390,16 @@ contains
     if(rkStage==1) rkTmp = xyN0
 
     if(rkStage==4) then
+       !$omp parallel workshare
        xyA = rkTmp + dt/(6d0*RK4_coef(rkStage))*xyRHS
+       !$omp end parallel workshare
        return
     end if
 
+    !$omp parallel workshare
     rkTmp = rkTmp + dt/(6d0*RK4_coef(rkStage))*xyRHS
     xyA = xyN0 + dt*RK4_coef(rkStage+1)*xyRHS
+    !$omp end parallel workshare
 
   end function xy_timeIntRK4
 
@@ -483,7 +491,7 @@ contains
     real(DP) :: val(0:iMax-1,jMax,0:kMax)
     
 #ifdef DEBUG
-    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFTR", "The number of stage is invalid") 
+    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFAM3", "The number of stage is invalid") 
 #endif
 
     select case(stage)
@@ -508,7 +516,7 @@ contains
     real(DP) :: val(lMax,0:tMax)
     
 #ifdef DEBUG
-    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFTR", "The number of stage is invalid") 
+    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFAM3", "The number of stage is invalid") 
 #endif
 
     select case(stage)
@@ -533,7 +541,7 @@ contains
     real(DP) :: val(0:iMax-1,jMax)
     
 #ifdef DEBUG
-    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFTR", "The number of stage is invalid") 
+    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFAM3", "The number of stage is invalid") 
 #endif
 
     select case(stage)
@@ -565,14 +573,19 @@ contains
          real(DP) :: wt_ret(lMax,0:tMax)
        end function implicitSolver
     end interface
+    
+    real(DP) :: wt_valImpl(lMax,0:tMax)
 
 #ifdef DEBUG
-    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFTR", "The number of stage is invalid") 
+    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFAM3", "The number of stage is invalid") 
 #endif
 
     select case(stage)
     case(1)
-       val = ( 5d0* implicitSolver(valB + 2d0*dt*RHS) + 8d0*valN - valB )/12d0
+       wt_valImpl(:,:) = implicitSolver(valB + 2d0*dt*RHS)
+       !$omp parallel workshare
+       val = ( 5d0*wt_valImpl  + 8d0*valN - valB )/12d0
+       !$omp end parallel workshare
     case(2)
        val = implicitSolver(valN + dt*RHS)
     end select
@@ -597,13 +610,17 @@ contains
        end function implicitSolver
     end interface
     
+    real(DP) :: xy_valImpl(0:iMax-1,jMax)
 #ifdef DEBUG
-    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFTR", "The number of stage is invalid") 
+    if(stage > 2 .or. stage < 1) call MessageNotify("E", module_name//"::LFAM3", "The number of stage is invalid") 
 #endif
 
     select case(stage)
     case(1)
-       val = ( 5d0*implicitSolver(valB + 2d0*dt*RHS) + 8d0*valN - valB )/12d0
+       xy_valImpl = implicitSolver(valB + 2d0*dt*RHS)
+       !$omp parallel workshare
+       val = ( 5d0*xy_valImpl + 8d0*valN - valB )/12d0
+       !$omp end parallel workshare
     case(2)
        val = implicitSolver(valN + dt*RHS)
     end select

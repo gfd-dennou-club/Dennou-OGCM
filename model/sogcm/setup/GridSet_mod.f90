@@ -18,10 +18,6 @@ module GridSet_mod
        & MessageNotify
 
        
-  use SpmlUtil_mod, only: &
-       & x_Lon, y_Lat
-
-
   !  use SimParameters_mod, only: gridFilePath, Radius
 
   ! 宣言文 ; Declaration statements  
@@ -36,7 +32,7 @@ module GridSet_mod
   public :: GridSet_construct
 
   ! Cascade
-  public :: x_Lon, y_Lat
+
 
   ! 公開変数
   ! Public variables
@@ -103,7 +99,7 @@ contains
     !
     use SpmlUtil_mod, only: &
         & isSpmlUtilInitialzed=>isInitialzed, &
-        & xy_Lon, xy_Lat
+        & get_HorizontalGrid
     
     ! 宣言文; Declaration statement
     !
@@ -112,7 +108,7 @@ contains
     ! 局所変数
     ! Local variables
     !
-    
+    real(DP), dimension(0:iMax-1,jMax) :: xy_Lon, xy_Lat
     
     ! 実行文; Executable statement
     !
@@ -120,12 +116,15 @@ contains
     if( .not. isSpmlUtilInitialzed() ) &
          & call MessageNotify('E', module_name, &
          &  "GridSet_construct is called before SpmlUtil_mod is initialized.")
+    
 
     allocate(xyz_Lon(0:iMax-1,1:jMax,0:kMax))
     allocate(xyz_Lat(0:iMax-1,1:jMax,0:kMax))
 
-    xyz_Lon = spread(xy_Lon,3,kMax+1)
-    xyz_Lat = spread(xy_Lat,3,kMax+1)
+    call get_HorizontalGrid(xy_Lon_=xy_Lon, xy_Lat_=xy_Lat)
+
+    xyz_Lon(:,:,:) = spread(xy_Lon,3,kMax+1)
+    xyz_Lat(:,:,:) = spread(xy_Lat,3,kMax+1)
 
   end subroutine GridSet_construct
 

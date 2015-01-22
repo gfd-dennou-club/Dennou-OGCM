@@ -10,6 +10,8 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
         $(MODPATHFLAG)$(srcdir)/../ \
         $(MODPATHFLAG)$(srcdir)/../experiment \
+        $(MODPATHFLAG)$(srcdir)/../util \
+        $(MODPATHFLAG)$(srcdir)/../physics_driver \
         $(MODPATHFLAG)$(srcdir)/../dynamics \
         $(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../util \
@@ -17,6 +19,7 @@ AM_FCFLAGS = \
 
 LDADD = \
 	$(srcdir)/../experiment/libDSOGCMExp.la \
+	$(srcdir)/../physics_driver/libDSOGCMPhysicsDriver.la \
 	$(srcdir)/../dynamics/libDSOGCMDynamics.la \
 	$(srcdir)/../setup/libDSOGCMSetup.la \
 	$(srcdir)/../util/libDSOGCMUtil.la \
@@ -25,12 +28,32 @@ LDADD = \
 
 CLEANFILES = *$(MODEXT)
 
-bin_PROGRAMS=diagVar
-diagVar_SOURCES =\
+###################################
+
+if DSOGCM_3D
+
+bin_PROGRAMS=diagVar3d
+diagVar3d_SOURCES =\
 	diagvar/DiagVarSet_mod.f90 \
 	diagvar/DiagVarEval_mod.f90 \
 	diagvar/DiagVarFileSet_mod.f90 \
 	diagvar/BudgetAnalysis_mod.f90 \
 	diagvar/SpectralAnalysis_mod.f90 \
+	diagvar/GMSchemeAnalysis_mod.f90 \
 	diagvar/diagVar_main.f90
 
+endif
+
+if DSOGCM_AXISYM
+
+bin_PROGRAMS=diagVar_axisym
+diagVar_axisym_SOURCES =\
+	diagvar/DiagVarSet_mod.f90 \
+	diagvar/DiagVarEval_mod.f90 \
+	diagvar/DiagVarFileSet_mod.f90 \
+	diagvar/BudgetAnalysis_mod.f90 \
+	diagvar/SpectralAnalysis_mod.f90 \
+	diagvar/GMSchemeAnalysis_mod.f90 \
+	diagvar/diagVar_main.f90
+
+endif

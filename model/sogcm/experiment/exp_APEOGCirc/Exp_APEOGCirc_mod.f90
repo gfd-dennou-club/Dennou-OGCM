@@ -113,7 +113,7 @@ real(DP) :: w(lMax)
 !!$    xy_WindStressU = construct_WindStressU_analysticFunc()
     xy_WindStressV = 0d0
 
-    write(*,*) 'total angular momentum=', AvrLonLat_xy( xy_WindStressU*cos(xyz_Lat(:,:,1)) )
+    write(*,*) 'total angular momentum=', AvrLonLat_xy( xy_WindStressU*cos(xyz_Lat(:,:,0)) )
 
     do k=0, kMax
        z_PTempBasic(k) = eval_PTempBasic(g_Sig(k))
@@ -265,7 +265,6 @@ write(*,*) xy(1,1:jMax)
       end do
 
     end function eval_SSSalref
-
 
   !> @brief 
   !!

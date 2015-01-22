@@ -1,3 +1,12 @@
+!-------------------------------------------------------------
+! Copyright (c) 2013-2014 Yuta Kawai. All rights reserved.
+!-------------------------------------------------------------
+!> @brief Main program of Dennou-OGCM. 
+!!
+!! @author Yuta Kawai
+!! @since 2013
+!!
+!!
 program ogcm_main
 
   ! モジュール引用; Use statement
@@ -182,8 +191,8 @@ contains
 #endif
 
     call GridSet_construct()
-
     call VariableSet_Init()
+
     call DataFileSet_Init(datFile, configNmlFile)
     call RestartDataFileSet_Init(configNmlFile)
     call GovernEqSet_Init(configNmlFile)

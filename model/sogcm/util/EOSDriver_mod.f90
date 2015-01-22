@@ -10,7 +10,16 @@ module EOSDriver_mod
 
   ! モジュール引用; Use statements
   !
+
+  !* gtool5
+  !
   use dc_types, only: DP
+
+  !* Dennou-OGCM
+  !
+
+  use UnitConversion_mod, only: &
+       & Pa2bar, K2degC
 
   use EOS_Linear_mod, only: &
        & EOSTYPE_LINEAR, EOS_Linear_Init, EOS_Linear_Final, &
@@ -24,7 +33,8 @@ module EOSDriver_mod
        & EOSTYPE_JM95, EOS_JM95_Init, EOS_JM95_Final, &
        & EOS_JM95_Eval, EOS_JM95_PTemp2Temp
 
-  use Constants_mod 
+  use Constants_mod, only: &
+       & RefDens, RefTemp, ThermalExpanCoef, Cp0, RefSoundSpeed
 
   use GridSet_mod, only: &
        & iMax, jMax, kMax
@@ -40,6 +50,7 @@ module EOSDriver_mod
   !
   interface EOSDriver_Eval
      module procedure EOSDriver_Eval_element
+     module procedure EOSDriver_Eval_array1d
      module procedure EOSDriver_Eval_array3d
   end interface EOSDriver_Eval
 
@@ -81,6 +92,8 @@ contains
     case(EOSTYPE_LINEAR)
        call EOS_Linear_Init( & 
             & refDens_=RefDens, refTemp_=RefTemp, BetaT_=ThermalExpanCoef, Cp0_=Cp0, Cs0_=RefSoundSpeed  )
+    case (EOSTYPE_SIMPLENONLINEAR)
+       call EOS_SimpleNonLinear_Init()
     case(EOSTYPE_JM95)
        call EOS_JM95_Init()
     end select
@@ -101,6 +114,8 @@ contains
     select case(EOSType)
     case(EOSTYPE_LINEAR)
        call EOS_Linear_Final()
+    case(EOSTYPE_SIMPLENONLINEAR)
+       call EOS_SimpleNonLinear_Final()
     case(EOSTYPE_JM95)
        call EOS_JM95_Final()
     end select
@@ -110,11 +125,11 @@ contains
   !> @brief 
   !!
   !!
-  subroutine EOSDriver_Eval_element(rho, theta, S, p)
+  subroutine EOSDriver_Eval_element(rhoEdd, theta, S, p)
     
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: rho, theta, S, p
+    real(DP), intent(inout) :: rhoEdd, theta, S, p
     
     ! 局所変数
     ! Local variables
@@ -126,14 +141,46 @@ contains
 
     select case(EOSType)
     case(EOSTYPE_LINEAR)
-       rho = EOS_Linear_Eval(theta, S, p)
+       rhoEdd = EOS_Linear_Eval(theta, S, p)
+    case(EOSTYPE_SIMPLENONLINEAR)
+       rhoEdd = EOS_SimpleNonLinear_Eval(theta, S, p)
     case(EOSTYPE_JM95)
-       rho = EOS_JM95_Eval(theta, S, p)
+       rhoEdd = EOS_JM95_Eval(theta, S, p) - RefDens
     end select
 
-
-
   end subroutine EOSDriver_Eval_element
+
+  !> @brief 
+  !!
+  !!
+  subroutine EOSDriver_Eval_array1d(rhoEdd, theta, S, p)
+    
+    ! モジュール引用; Use statement
+    !
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), dimension(:), intent(in) ::  theta, S, p
+    real(DP), dimension(size(theta)), intent(out) :: rhoEdd
+    
+    ! 局所変数
+    ! Local variables
+    !
+
+    
+    ! 実行文; Executable statement
+    !
+
+    select case(EOSType)
+    case(EOSTYPE_LINEAR)
+       rhoEdd = EOS_Linear_Eval(theta, S, p)
+    case(EOSTYPE_SIMPLENONLINEAR)
+       rhoEdd = EOS_SimpleNonLinear_Eval(theta, S, p)
+    case(EOSTYPE_JM95)
+       rhoEdd = EOS_JM95_Eval(K2degC(theta), S, Pa2bar(p)) - RefDens
+    end select
+
+  end subroutine EOSDriver_Eval_array1d
 
   !> @brief 
   !!
@@ -164,10 +211,16 @@ contains
        rhoEdd = EOS_Linear_Eval(theta, S, p)
        !$omp end parallel workshare
 
+    case(EOSTYPE_SIMPLENONLINEAR)
+
+       !$omp parallel workshare
+       rhoEdd = EOS_SimpleNonLinear_Eval(theta, S, p)
+       !$omp end parallel workshare
+
     case(EOSTYPE_JM95)
 
        !$omp parallel workshare
-       rhoEdd = EOS_JM95_Eval(theta, S, p) - RefDens
+       rhoEdd = EOS_JM95_Eval(K2degC(theta), S, Pa2bar(p)) - RefDens
        !$omp end parallel workshare
 
     end select
@@ -198,6 +251,12 @@ contains
 
        !$omp parallel workshare
        InSituTemp = EOS_Linear_PTemp2Temp(p, S, theta, 0d0)
+       !$omp end parallel workshare
+
+    case(EOSTYPE_SIMPLENONLINEAR)
+
+       !$omp parallel workshare
+       InSituTemp = EOS_SimpleNonLinear_PTemp2Temp(p, S, theta, 0d0)
        !$omp end parallel workshare
 
     case(EOSTYPE_JM95)

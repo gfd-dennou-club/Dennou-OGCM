@@ -16,7 +16,8 @@ module InitCond_mod
        & xyz_PTempEddN, xy_SurfPressN, &
        & xy_WindStressU, xy_WindStressV, &
        & xy_SeaSurfTemp, xy_SurfTempFlux, &
-       & xy_SeaSurfSalt, xy_SurfSaltFlux
+       & xy_SeaSurfSalt, xy_SurfSaltFlux, &
+       & xyz_ConvectParam
 
 
   ! 宣言文; Declareration statements
@@ -55,6 +56,8 @@ contains
     xy_WindStressU = 0d0; xy_WindStressV = 0d0;
     xy_SeaSurfTemp = 0d0; xy_SurfTempFlux = 0d0;
     xy_SeaSurfSalt = 0d0; xy_SurfSaltFlux = 0d0;
+
+    xyz_ConvectParam = 0d0
 
   end subroutine InitCond_Init
 

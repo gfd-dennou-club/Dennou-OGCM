@@ -1,0 +1,45 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様  ~ 対流調節・等密度面混合・GM スキームを用いない場合
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{}
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/exp_EOS"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+[[file:./Exp_WindDrivenCirculation_inhomoFluid.html][数値実験トップページに戻る]]
+
+* 標準実験(EOSJM95_HDIFF)の計算結果
+
+** 東西流速, 子午面循環
+
+ #+CALL: create_FigsTable("左から順に, 東西流速の海面分布の時間発展([m]), t=3000yr における東西流速([m]), 質量流線関数([Sv])の子午面分布, 運動エネルギーの全球平均の時間発展[m^2/(s*kg)]", "JM95_HDIFF/{xy_U_SeaSurf_0-3000yr,yz_U_mplane_3000yr,t_KEAvg}.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable("子午面循環([Sv]).", "JM95_HDIFF/yz_MassStreamFunc_mplane_3000yr.jpg") :results value raw :exports results
+
+ 
+** 温位, 塩分, 密度
+
+ #+CALL: create_FigsTable(" 左から順に, t=3000yr における温位([K]), 塩分([psu]), シグマ密度([kg/m^{3}]), ポテンシャル密度(\\sigma \\theta)([kg/m^{3}]) の子午面分布", "JM95_HDIFF/yz_{PTemp,Salt,DensEdd,DensPot}_mplane_3000yr.jpg") :results value raw :exports results
+
+ #+CALL: create_FigsTable(" 左から順に温位([K]), 塩分([psu])の海底における分布の時間発展", "JM95_HDIFF/tz_{PTemp,Salt,DensPot}_SeaBtm_0-3000yr.jpg") :results value raw :exports results
+
+
+# ** 圧力
+#
+#  #+CALL: create_FigsTable(" t=300yr における圧力偏差(力学的圧力)[Pa]の子午面分布", "tz_PressEdd_mplane_300yr.jpg") :results value raw :exports results

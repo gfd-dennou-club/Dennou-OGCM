@@ -12,7 +12,6 @@ AM_FCFLAGS = \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
-	$(srcdir)/../../../src/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 
 CLEANFILES = *$(MODEXT)

@@ -170,7 +170,8 @@ contains
     Nl = Al
     Al = oldBl
     
-    if( mod(CurrentTime, ProgMessageInterVal) == 0 ) then
+    if( mod(CurrentTime, ProgMessageInterVal) == 0d0 ) then
+
        call DCCalDateEval(InitDate, CurrentTime, 'sec', date=CurrentDate)
        call DCCalDateInquire(InitDateStr, date=InitDate)
        call DCCalDateInquire(EndDateStr, date=EndDate)
@@ -264,8 +265,8 @@ contains
     namelist /temporalInteg_nml/ &
          & barocTimeIntModeName, DelTimeVal, DelTimeUnit, SemiImplicitFlag, &
          & IntegTimeVal, IntegTimeUnit, &
-         & InitYear, InitMonth, InitDay, InitHour, InitMin, &
-         & EndYear, EndMonth, EndDay, EndHour, EndMin, &
+         & InitYear, InitMonth, InitDay, InitHour, InitMin, InitSec, &
+         & EndYear, EndMonth, EndDay, EndHour, EndMin, EndSec, &
          & RestartTimeVal, RestartTimeUnit, &
          & SubCycleNum, &
          & ProgMessageIntVal, ProgMessageIntUnit

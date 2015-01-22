@@ -37,15 +37,19 @@ module DiagVarEval_mod
   ! 公開手続き
   ! Public procedure
   !
+
   public :: DiagVarEval_Init, DiagVarEval_Final
 
+  !
   public :: eval_Vor, eval_Div, eval_StreamPot
   public :: eval_MassStreamFunc
   public :: eval_PressEdd, eval_DensEdd, eval_DensPot, eval_Temp
   public :: eval_StaticStability
 
+  !
   public :: eval_potentialEnergyAvg, eval_kineticEnergyAvg
   public :: eval_angularMomAvg
+
 
   ! 非公開手続き
   ! Private procedure
@@ -327,6 +331,7 @@ contains
   end function eval_StaticStability
 
 
+
 !!!!!!!!!!!!!! Subroutines for Energy Calculation
 
   !> @brief 
@@ -351,9 +356,6 @@ contains
     
     KEAvg = 0.5d0*AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyz_u**2 + xyz_v**2) )
 
-!!$do k=0,kMax
-!!$write(*,*) k, 0.5*AvrLonLat_xy(xyz_U(:,:,k)**2 + xyz_V(:,:,k)**2)
-!!$end do
   end function eval_kineticEnergyAvg
 
   !> @brief 

@@ -43,7 +43,7 @@ program diagVar_main
   use DiagVarEval_mod
   use BudgetAnalysis_mod
   use SpectralAnalysis_mod
-
+  use GMSchemeAnalysis_mod
 
 
   implicit none
@@ -57,6 +57,8 @@ program diagVar_main
   character(TOKEN), pointer :: diagVarsName(:) => null()
   character(TOKEN), pointer :: BudgetTypesName(:) => null()
   character(TOKEN), pointer :: SpectralTypesName(:) => null()
+  logical :: GMSchemeAnalysisFlag
+
 
   real(DP) :: CurrentTimeSec, EndTimeSec, TimeIntSec
 
@@ -174,13 +176,14 @@ contains
     call DiagVarFileSet_Init(configNmlFile, diagVar_gthsInfo)
     call BudgetAnalysis_Init(diagVar_gthsInfo, BudgetTypesName)
     call SpectralAnalysis_Init(diagVar_gthsInfo, SpectralTypesName)
+    call GMSchemeAnalysis_Init(diagVar_gthsInfo, GMSchemeAnalysisFlag)
 
-     !
-     call MessageNotify('M', PROGRAM_NAME, &
-          & "Period %f - % f [%c]..", &
-          & d=(/ DCCalConvertByUnit(CurrentTimeSec, 'sec', ogcm_gthsInfo%intUnit),    &
-          &      DCCalConvertByUnit(EndTimeSec, 'sec', ogcm_gthsInfo%intUnit) /),     &
-          & c1=trim(ogcm_gthsInfo%intUnit) )
+    !
+    call MessageNotify('M', PROGRAM_NAME, &
+         & "Period %f - % f [%c]..", &
+         & d=(/ DCCalConvertByUnit(CurrentTimeSec, 'sec', ogcm_gthsInfo%intUnit),    &
+         &      DCCalConvertByUnit(EndTimeSec, 'sec', ogcm_gthsInfo%intUnit) /),     &
+         & c1=trim(ogcm_gthsInfo%intUnit) )
 
   end subroutine setup
 
@@ -285,6 +288,9 @@ contains
     namelist /spectralAnalysis_nml/ &
          & SpectralTypes
 
+    namelist /GMSchemeAnalysis_nml/ &
+         & GMSchemeAnalysisFlag
+
     ! 実行文; Executable statements
 
     ! デフォルト値の設定
@@ -300,7 +306,7 @@ contains
     FilePrefix = ''
     BudgetTypes = ''
     SpectralTypes = ''
-    
+    GMSchemeAnalysisFlag = .false.
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -333,6 +339,12 @@ contains
        read( unit_nml, &           ! (in)
             & nml = spectralAnalysis_nml, iostat = iostat_nml )   ! (out)
 
+       !
+       rewind( unit_nml )
+       read( unit_nml, &           ! (in)
+            & nml = GMSchemeAnalysis_nml, iostat = iostat_nml )   ! (out)
+
+       !
        close( unit_nml )
     end if
 
@@ -360,10 +372,11 @@ contains
     ! 印字 ; Print
     !
     call MessageNotify( 'M', PROGRAM_NAME, '----- Initialization Messages -----' )
-    call MessageNotify( 'M', PROGRAM_NAME, ' ogcm configure file   = %c', c1=trim(ogcmConfigNml) )
-    call MessageNotify( 'M', PROGRAM_NAME, ' diagnostic variables  = %c', c1=Name )
-    call MessageNotify( 'M', PROGRAM_NAME, ' budget analysis types  = %c', c1=BudgetTypes )
-    call MessageNotify( 'M', PROGRAM_NAME, ' spectral analysis types  = %c', c1=SpectralTypes )
+    call MessageNotify( 'M', PROGRAM_NAME, ' ogcm configure file     = %c', c1=trim(ogcmConfigNml) )
+    call MessageNotify( 'M', PROGRAM_NAME, ' diagnostic variables    = %c', c1=Name )
+    call MessageNotify( 'M', PROGRAM_NAME, ' budget analysis types   = %c', c1=BudgetTypes )
+    call MessageNotify( 'M', PROGRAM_NAME, ' spectral analysis types = %c', c1=SpectralTypes )
+    call MessageNotify( 'M', PROGRAM_NAME, ' GMScheme analysis       = %b', l=(/ GMSchemeAnalysisFlag /))
     
   end subroutine readNml
 
@@ -492,7 +505,7 @@ contains
 
     use DiagVarSet_mod, only: &
          & xyz_Div, xyz_Vor, xyz_HydroPressEdd, xyz_PressEdd, &
-         & xyz_DensEdd!, xy_totDepth
+         & xyz_DensEdd
 
     ! 宣言文; Declaration statement
     !
@@ -587,14 +600,16 @@ contains
           case (DVARKEY_TEMP)
              call DiagVarFileSet_OutputVar(CurrentTimeSec, DVARKEY_TEMP, &
                   & var3D=eval_Temp(xyz_PTemp, xyz_SaltN, xy_totDepth) )
-       end select
+
+          end select
     end do
 
     ! Call some subroutines associated with budget and spectral analaysis.
 
     call SpectralAnalysis_Perform()
     call BudgetAnalysis_perform()
-    
+    call GMSchemeAnalysis_perform(xyz_VN, xyz_PTemp, xyz_SaltN, xy_totDepth)
+
   end subroutine diagnose_outputVariables
 
 end program diagVar_main
