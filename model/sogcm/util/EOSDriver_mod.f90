@@ -199,7 +199,7 @@ contains
     ! 局所変数
     ! Local variables
     !
-
+    integer :: k
     
     ! 実行文; Executable statement
     !
@@ -207,21 +207,24 @@ contains
     select case(EOSType)
     case(EOSTYPE_LINEAR)
 
-       !$omp parallel workshare
-       rhoEdd = EOS_Linear_Eval(theta, S, p)
-       !$omp end parallel workshare
+       !$omp parallel do
+       do k=0, kMax
+          rhoEdd(:,:,k) = EOS_Linear_Eval(theta(:,:,k), S(:,:,k), p(:,:,k))
+       end do
 
     case(EOSTYPE_SIMPLENONLINEAR)
 
-       !$omp parallel workshare
-       rhoEdd = EOS_SimpleNonLinear_Eval(theta, S, p)
-       !$omp end parallel workshare
+       !$omp parallel do
+       do k=0, kMax
+          rhoEdd(:,:,k) = EOS_SimpleNonLinear_Eval(theta(:,:,k), S(:,:,k), p(:,:,k))
+       end do
 
     case(EOSTYPE_JM95)
 
-       !$omp parallel workshare
-       rhoEdd = EOS_JM95_Eval(K2degC(theta), S, Pa2bar(p)) - RefDens
-       !$omp end parallel workshare
+       !$omp parallel do
+       do k=0, kMax
+          rhoEdd(:,:,k) = EOS_JM95_Eval(K2degC(theta(:,:,k)), S(:,:,k), Pa2bar(p(:,:,k))) - RefDens
+       end do
 
     end select
 

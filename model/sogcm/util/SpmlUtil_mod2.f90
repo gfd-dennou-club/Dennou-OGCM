@@ -50,6 +50,7 @@ module SpmlUtil_mod
        & g_Sig => g_X, g_Sig_WEIGHT => g_X_WEIGHT, &
        & at_az => at_ag, & 
        & az_at => ag_at, &
+       & t_g, g_t, &
        & IntSig_BtmToTop => Int_g, &
        & t_DSig_t => t_Dx_t, at_DSig_at => at_Dx_at, &
        & at_BoundariesGrid_NN, at_BoundariesGrid_DD, &
@@ -84,8 +85,8 @@ module SpmlUtil_mod
 
   ! Procedures for the data conversion between real and spectral space with the spectral methods.
   public :: xyz_wt, wt_xyz, wt_xyt, xyz_wz, wz_xyz, wz_wt, wt_wz, xyt_xyz, xyz_xyt
-  public :: wt_VorDiv2VectorCosLat
-  public :: wt_VectorCosLat2VorDiv, wz_VectorCosLat2VorDiv
+  public :: w_VorDiv2VectorCosLat, wt_VorDiv2VectorCosLat, wz_VorDiv2VectorCosLat
+  public :: w_VectorCosLat2VorDiv_2, wt_VectorCosLat2VorDiv, wz_VectorCosLat2VorDiv
 
   ! Procedures to statisfy the vertical boundary conditions.
   public :: apply_ZBoundaryCond
@@ -98,7 +99,8 @@ module SpmlUtil_mod
 
   ! basic transformation
   public :: w_xy, xy_w
-
+  public :: g_t, t_g
+  
   ! Derivate operator
   public :: xya_GradLon_wa, xya_GradLambda_wa, xya_GradLat_wa, xya_GradMu_wa
   public :: xy_GradLon_w, xy_GradLambda_w, xy_GradLat_w, xy_GradMu_w
@@ -293,7 +295,7 @@ contains
       integer :: k
       real(DP) :: wz(lm, 0:km)
       
-      wz = az_at(wt)
+      wz(:,:) = az_at(wt)
       !$omp parallel do
       do k=0, km
          xyz_wt(:,:,k) = xy_w(wz(:,k))
@@ -416,7 +418,7 @@ contains
 !!$      wt_wz(llMin(thId):llMax(thId),:) = at_az(wz(llMin(thId):llMax(thId),:))
 !!$      !$omp end parallel 
 
-      wt_wz = at_az(wz)
+      wt_wz(:,:) = at_az(wz)
 
     end function wt_wz
 
@@ -432,7 +434,7 @@ contains
 !!$      end do
 !!$
 
-      xyt_xyz = reshape(at_az(reshape(xyz, (/im*jm, km+1/))), shape(xyt_xyz))
+      xyt_xyz(:,:,:) = reshape(at_az(reshape(xyz, (/im*jm, km+1/))), shape(xyt_xyz))
 
       
     end function xyt_xyz
@@ -451,15 +453,33 @@ contains
 !!$         az_Work(lxyMin(n):lxyMax(n),:) = az_at(az_Work(lxyMin(n):lxyMax(n),:))
 !!$      end do
 
-      xyz_xyt = reshape(az_at(reshape(xyt, (/im*jm, km+1/))), shape(xyz_xyt))
+      xyz_xyt(:,:,:) = reshape(az_at(reshape(xyt, (/im*jm, km+1/))), shape(xyz_xyt))
 
     end function xyz_xyt
+
+    subroutine w_VorDiv2VectorCosLat( w_Vor, w_Div,  & ! (in)
+      & xy_UCosLat, xy_VCosLat                       & ! (out)
+      & )
+
+      real(8), dimension(lm) :: w_Vor, w_Div
+      real(8), dimension(0:im-1,jm) :: xy_UCosLat, xy_VCosLat
+      
+      real(8), dimension(lm) :: w_Psi, w_Chi
+
+      w_Psi(:) = w_InvLapla2D_w(w_Vor)
+      w_Chi(:) = w_InvLapla2D_w(w_Div)
+
+      xy_UCosLat(:,:) = xy_CosLat**2*xy_AlphaOptr_w(w_Chi, -w_Psi)
+      xy_VCosLat(:,:) = xy_CosLat**2*xy_AlphaOptr_w(w_Psi,  w_Chi)
+
+    end subroutine w_VorDiv2VectorCosLat
+
 
     !> @brief 
     !!
     !!
     subroutine wt_VorDiv2VectorCosLat(  wt_Vor, wt_Div,  & ! (in)
-         & xyz_UCosLat, xyz_VCosLat                               & ! (out)
+         & xyz_UCosLat, xyz_VCosLat                      & ! (out)
          & )
       
       ! 宣言文; Declaration statement
@@ -477,17 +497,59 @@ contains
       ! 実行文; Executable statement
       !
 
-      wz_Vor = wz_wt(wt_Vor); wz_Div = wz_wt(wt_Div)
-
-      !$omp parallel do private(w_Chi, w_Psi)
-      do k=0, km
-         w_Psi = w_InvLapla2D_w(wz_Vor(:,k))
-         w_Chi = w_InvLapla2D_w(wz_Div(:,k))
-         xyz_UCosLat(:,:,k) = xy_CosLat**2 * xy_AlphaOptr_w(w_Chi, -w_Psi)
-         xyz_VCosLat(:,:,k) = xy_CosLat**2 * xy_AlphaOptr_w(w_Psi,  w_Chi)
-      end do
+      wz_Vor(:,:) = wz_wt(wt_Vor); wz_Div(:,:) = wz_wt(wt_Div)
+      call wz_VorDiv2VectorCosLat( wz_Vor, wz_Div, &  ! (in)
+           & xyz_UCosLat, xyz_VCosLat              &  ! (out)
+           & )
 
     end subroutine wt_VorDiv2VectorCosLat
+
+    !> @brief 
+    !!
+    !!
+    subroutine wz_VorDiv2VectorCosLat(  wz_Vor, wz_Div,  & ! (in)
+         & xyz_UCosLat, xyz_VCosLat                      & ! (out)
+         & )
+      
+      ! 宣言文; Declaration statement
+      !
+      real(8), dimension(lm,0:km), intent(in) :: wz_Vor, wz_Div
+      real(8), dimension(0:im-1,jm,0:km), intent(out) :: xyz_UCosLat, xyz_VCosLat 
+      
+      ! 局所変数
+      ! Local variables
+      !
+      integer :: k
+
+      ! 実行文; Executable statement
+      !
+
+      !$omp parallel do
+      do k=0, km
+         call w_VorDiv2VectorCosLat( wz_Vor(:,k), wz_Div(:,k), & ! (in)
+              & xyz_UCosLat(:,:,k), xyz_VCosLat(:,:,k)         & ! (out)
+              & )
+      end do
+
+    end subroutine wz_VorDiv2VectorCosLat
+
+    subroutine w_VectorCosLat2VorDiv_2( xy_UCosLat, xy_VCosLat, &
+         & w_Vor, w_Div                                         & 
+         & )
+      
+      ! 宣言文; Declaration statement
+      !
+      real(8), dimension(0:im-1,jm), intent(in) :: xy_UCosLat, xy_VCosLat
+      real(8), dimension(lm), intent(out) :: w_Vor, w_Div
+
+      ! 実行文; Executable statement
+      !
+      !
+
+      w_Vor(:) = w_AlphaOptr_xy(xy_VCosLat, -xy_UCosLat)
+      w_Div(:) = w_AlphaOptr_xy(xy_UCosLat,  xy_VCosLat)
+      
+    end subroutine w_VectorCosLat2VorDiv_2
 
     subroutine wt_VectorCosLat2VorDiv(  xyz_UCosLat, xyz_VCosLat,  & ! (in)
          & wt_Vor, wt_Div                                          & ! (out)
@@ -498,11 +560,18 @@ contains
       real(8), dimension(0:im-1,jm,0:km), intent(in) :: xyz_UCosLat, xyz_VCosLat
       real(8), dimension(lm,0:tm), intent(out) :: wt_Vor, wt_Div
 
+      ! 局所変数
+      ! Local variables
+      !
+      real(DP), dimension(lm,0:tm) :: wz_Vor, wz_Div
+
       ! 実行文; Executable statement
       !
 
-      wt_Vor(:,:) = wt_wz( wz_AlphaOptr_xyz(xyz_VCosLat, -xyz_UCosLat) )
-      wt_Div(:,:) = wt_wz( wz_AlphaOptr_xyz(xyz_UCosLat,  xyz_VCosLat) )      
+      call wz_VectorCosLat2VorDiv( xyz_UCosLat, xyz_VCosLat, & ! (in)
+           & wz_Vor, wz_Div                                  & ! (out)
+           & )
+      wt_Vor(:,:) = wt_wz(wz_Vor); wt_Div(:,:) = wt_wz(wz_Div)
 
     end subroutine wt_VectorCosLat2VorDiv
 
@@ -515,11 +584,21 @@ contains
       real(8), dimension(0:im-1,jm,0:km), intent(in) :: xyz_UCosLat, xyz_VCosLat
       real(8), dimension(lm,0:km), intent(out) :: wz_Vor, wz_Div
 
+
+      ! 局所変数
+      ! Local variables
+      !
+      integer :: k
+
       ! 実行文; Executable statement
       !
 
-      wz_Vor(:,:) = wz_AlphaOptr_xyz(xyz_VCosLat, -xyz_UCosLat)
-      wz_Div(:,:) = wz_AlphaOptr_xyz(xyz_UCosLat,  xyz_VCosLat)
+      !$omp parallel do
+      do k=0, km 
+         call w_VectorCosLat2VorDiv_2( xyz_UCosLat(:,:,k), xyz_VCosLat(:,:,k), & ! (in)
+              & wz_Vor(:,k), wz_Div(:,k)                                                   & ! (out)   
+              & )
+      end do
 
     end subroutine wz_VectorCosLat2VorDiv
 
@@ -671,7 +750,7 @@ contains
       !(out) 発散型緯度微分を作用された 2 次元スペクトルデータ
 
 
-      xy_AlphaOptr_w = (xy_GradLambda_w(w_A) + xy_GradMu_w(w_B))/ (Radius*xy_CosLat**2)
+      xy_AlphaOptr_w(:,:) = (xy_GradLambda_w(w_A) + xy_GradMu_w(w_B))/ (Radius*xy_CosLat**2)
 
     end function xy_AlphaOptr_w
 
@@ -692,7 +771,7 @@ contains
       real(8), dimension(lm)             :: w_Lapla2D_w
       !(out) ラプラシアンを作用された 2 次元スペクトルデータ
 
-      w_Lapla2D_w = w_Lapla_w(w)/Radius**2
+      w_Lapla2D_w(:) = w_Lapla_w(w)/Radius**2
 
     end function w_Lapla2D_w
 
@@ -844,7 +923,7 @@ contains
 !!$
 !!$      xyt_DSig_xyt = reshape(at_Work, shape(xyt_DSig_xyt))
 
-      xyt_DSig_xyt = reshape( &
+      xyt_DSig_xyt(:,:,:) = reshape( &
            &         at_DSig_at(reshape(xyt, (/ im*jm, tm+1 /)) ), &
            &         shape(xyt_DSig_xyt) )
 
@@ -890,7 +969,7 @@ contains
 !!$      xyt_DSigDSig_xyt = reshape(at_Work, shape(xyt_DSigDSig_xyt))
 
 
-      xyt_DSigDSig_xyt = reshape( &
+      xyt_DSigDSig_xyt(:,:,:) = reshape( &
            &         at_DSig_at(at_DSig_at( reshape(xyt, (/ im*jm, tm+1 /)) )), &
            &         shape(xyt_DSigDSig_xyt) )
 

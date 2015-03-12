@@ -20,16 +20,13 @@ module PhysicsDriver_mod
        & DataFileSet
 
   use GovernEqSet_mod, only: &
-       & SGSEddyMixType, &
-       & SGSConvAdjustType, &
-       & GOVERNEQSET_SGSCONVADJUST_INSTANT, &
-       & GOVERNEQSET_SGSCONVADJUST_SLOW, &
-       & isPhysicsCompActived
+       & GOVERNEQSET_PHYSICS_CONVADJUST_NAME, &
+       & GOVERNEQSET_PHYSICS_EDDYMIX_NAME, &
+       & isPhysicsCompActivated
 
   use SGSEddyMixing_mod, only: &
        & SGSEddyMixing_Init, SGSEddyMixing_Final, &
-       & SGSEddyMixing_PrepareOutput, &
-       & SGSEddyMixing_Output
+       & SGSEddyMixing_Output, SGSEddyMixing_PrepareOutput
 
   use SGSConvAdjust_mod, only: &
        & SGSConvAdjust_Init, SGSConvAdjust_Final
@@ -62,31 +59,28 @@ contains
   !>
   !!
   !!
-  subroutine PhysicsDriver_Init(datFile)
+  subroutine PhysicsDriver_Init(datFile, configNmlFileName)
 
     use TemporalIntegSet_mod, only: &
          & RestartTime, EndTime, CurrentTime, DelTime
 
 
     type(DataFileSet), intent(in) :: datFile
-
+    character(*), intent(in) :: configNmlFileName
+    
     ! 実行文; Executable statements
     !
-
-    if(isPhysicsCompActived(SGSEddyMixType)) then
-       call SGSEddyMixing_Init(SGSEddyMixType, 1d3)
+    
+    if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_EDDYMIX_NAME)) then
+       call SGSEddyMixing_Init(configNmlFileName=configNmlFileName)
        call SGSEddyMixing_PrepareOutput( &
             & RestartTime, EndTime, datFile%outputIntrvalSec, datFile%FilePrefix &
             & )
     end if
 
-    if(isPhysicsCompActived(SGSConvAdjustType)) then
-       select case(SGSConvAdjustType)
-       case(GOVERNEQSET_SGSCONVADJUST_INSTANT)
-          call SGSConvAdjust_Init()
-       case(GOVERNEQSET_SGSCONVADJUST_SLOW)
-          call SGSSlowConvAdjust_Init(GCMTimeStep=DelTime)
-       end select
+    if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_CONVADJUST_NAME)) then
+       call SGSConvAdjust_Init()
+!       call SGSSlowConvAdjust_Init(GCMTimeStep=DelTime)
     end if
   end subroutine PhysicsDriver_Init
 
@@ -98,16 +92,12 @@ contains
     ! 実行文; Executable statements
     !
     
-    if(isPhysicsCompActived(SGSEddyMixType)) &
+    if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_EDDYMIX_NAME)) &
          & call SGSEddyMixing_Final()
 
-    if(isPhysicsCompActived(SGSConvAdjustType)) then
-       select case(SGSConvAdjustType)
-       case(GOVERNEQSET_SGSCONVADJUST_INSTANT)
-          call SGSConvAdjust_Final()
-       case(GOVERNEQSET_SGSCONVADJUST_SLOW)
-          call SGSSlowConvAdjust_Final()
-       end select
+    if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_CONVADJUST_NAME)) then
+       call SGSConvAdjust_Final()
+!       call SGSSlowConvAdjust_Final()
     end if
 
   end subroutine PhysicsDriver_Final
@@ -140,11 +130,14 @@ contains
     call MessageNotify('M', module_name, &
          & "Output data of variables in physics packages." )
 
-    if(isPhysicsCompActived(SGSEddyMixType)) then
+    if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_EDDYMIX_NAME)) then
        call SGSEddyMixing_Output()
     end if
 
   end subroutine PhysicsDriver_OutputData
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  
 end module PhysicsDriver_mod
 

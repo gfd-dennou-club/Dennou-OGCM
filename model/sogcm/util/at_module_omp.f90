@@ -560,6 +560,7 @@ module at_module_omp
   save :: im, km, xl, it, t, g_X, g_X_Weight
   
   integer :: nThread
+  logical :: omp_flag
 
 contains
 
@@ -617,7 +618,12 @@ contains
     g_X_Weight(0)  = g_X_Weight(0) / 2
     g_X_Weight(im) = g_X_Weight(im) / 2
 
+
+    !
+    
 #ifdef _OPENMP
+
+    omp_flag = .true.
     !$omp parallel
     !$omp single
     nThread = omp_get_num_threads()
@@ -630,6 +636,7 @@ contains
     call MessageNotify('M', 'at_initial', "Number of thread is set %d.", i=(/nThread/))
 #else
     nThread = 1
+    omp_flag = .false.
 #endif
 
 
@@ -666,24 +673,24 @@ contains
             'The Chebyshev dimension of input data too large.')
     endif
 
-#ifdef _OPENMP
 
-    !$omp parallel private(lc_m, lbnd, ubnd, tr)
-    tr = omp_get_thread_num() + 1
-    lbnd = (tr-1)*ceiling(m/real(nThread)) + 1
-    ubnd = min(tr*ceiling(m/real(nThread)), m)
-    lc_m = ubnd - lbnd + 1
+    if(omp_flag .and. (size(at_data,1) > nThread)) then
 
-    ag_at(lbnd:ubnd,:) = 0d0
-    ag_at(lbnd:ubnd,0:km) = at_data(lbnd:ubnd,:)
-    call fttctb(lc_m,im,ag_at(lbnd:ubnd,:),y(im*(lbnd-1)+1:im*ubnd),it,t)
-    !$omp end parallel
+       !$omp parallel private(lc_m, lbnd, ubnd, tr)
+       tr = omp_get_thread_num() + 1
+       lbnd = (tr-1)*ceiling(m/real(nThread)) + 1
+       ubnd = min(tr*ceiling(m/real(nThread)), m)
+       lc_m = ubnd - lbnd + 1
 
-#else
-    ag_at = 0.0D0
-    ag_at(:,0:km) = at_data
-    call fttctb(m,im,ag_at,y,it,t)
-#endif
+       ag_at(lbnd:ubnd,:) = 0d0
+       ag_at(lbnd:ubnd,0:km) = at_data(lbnd:ubnd,:)
+       call fttctb(lc_m,im,ag_at(lbnd:ubnd,:),y(im*(lbnd-1)+1:im*ubnd),it,t)
+       !$omp end parallel
+    else
+       ag_at = 0.0D0
+       ag_at(:,0:km) = at_data
+       call fttctb(m,im,ag_at,y,it,t)
+    end if
     
 
   end function ag_at
@@ -727,6 +734,7 @@ contains
 
     integer :: tr, lc_m, lbnd, ubnd
 
+
     m = size(ag_data,1)
     if ( size(ag_data,2)-1 < im ) then
        call MessageNotify('E','at_ag', &
@@ -736,25 +744,22 @@ contains
             'The Grid points of input data too large.')
     endif
 
+    if(omp_flag .and. (size(ag_data,1) > nThread)) then
+       !$omp parallel private(lc_m, lbnd, ubnd, tr)
+       tr = omp_get_thread_num() + 1
+       lbnd = (tr-1)*ceiling(m/real(nThread)) + 1
+       ubnd = min(tr*ceiling(m/real(nThread)), m)
+       lc_m = ubnd - lbnd + 1
 
-#ifdef _OPENMP
-
-    !$omp parallel private(lc_m, lbnd, ubnd, tr)
-    tr = omp_get_thread_num() + 1
-    lbnd = (tr-1)*ceiling(m/real(nThread)) + 1
-    ubnd = min(tr*ceiling(m/real(nThread)), m)
-    lc_m = ubnd - lbnd + 1
-
-    ag_work(lbnd:ubnd,:) = ag_data(lbnd:ubnd,:) 
-    call fttctf(lc_m,im,ag_work(lbnd:ubnd,:),y(im*(lbnd-1)+1:im*ubnd),it,t)
-    at_ag(lbnd:ubnd,:) = ag_work(lbnd:ubnd, 0:km)
-    !$omp end parallel
-
-#else
-    ag_work = ag_data
-    call fttctf(m,im,ag_work,y,it,t)
-    at_ag = ag_work(:,0:km)
-#endif
+       ag_work(lbnd:ubnd,:) = ag_data(lbnd:ubnd,:) 
+       call fttctf(lc_m,im,ag_work(lbnd:ubnd,:),y(im*(lbnd-1)+1:im*ubnd),it,t)
+       at_ag(lbnd:ubnd,:) = ag_work(lbnd:ubnd, 0:km)
+       !$omp end parallel
+    else
+       ag_work = ag_data
+       call fttctf(m,im,ag_work,y,it,t)
+       at_ag = ag_work(:,0:km)
+    end if
 
   end function at_ag
 
@@ -779,7 +784,7 @@ contains
 
 ! ---- 微分計算 ----
 
-  function at_Dx_at(at_data)
+  function at_Dx_at(at_data_) result(at_Dx)
     !
     ! 入力チェビシェフデータに X 微分を作用する(2 次元配列用).
     !
@@ -787,20 +792,19 @@ contains
     ! 作用させたデータのチェビシェフ変換のことである.
     !
     !
-    real(8), dimension(:,0:), intent(in)                    :: at_data
+    real(8), dimension(:,0:), intent(in)                    :: at_data_
     !(in) 入力チェビシェフデータ
 
-    real(8), dimension(size(at_data,1),0:size(at_data,2)-1) :: at_Dx_at
+    real(8), dimension(size(at_data_,1),0:size(at_data_,2)-1) :: at_Dx
     !(out) チェビシェフデータの X 微分
 
     integer :: m, k
     integer :: nm, kmax
 
     integer :: tr, lc_m, lbnd, ubnd
-    real(8), allocatable :: lc_at_Dx_at(:,:,:)    
 
-    nm=size(at_data,1)
-    kmax=size(at_data,2)-1
+    nm=size(at_data_,1)
+    kmax=size(at_data_,2)-1
     if ( kmax  < km ) then
        call MessageNotify('W','at_Dx_at', &
             'The Chebyshev dimension of input data too small.')
@@ -810,17 +814,21 @@ contains
     endif
 
 
-#ifdef _OPENMP
-    !$omp parallel private(lc_m, lbnd, ubnd, tr)
-    tr = omp_get_thread_num() + 1
-    lbnd = (tr-1)*ceiling(nm/real(nThread)) + 1
-    ubnd = min(tr*ceiling(nm/real(nThread)), nm)
-    lc_m = ubnd - lbnd + 1
-    at_Dx_at(lbnd:ubnd,:) = at_Dx_at_core(at_data(lbnd:ubnd,:))
-    !$omp end parallel
-#else
-    at_Dx_at = at_Dx_at_core(at_data)
-#endif
+    if(omp_flag .and. (size(at_data_,1) > nThread)) then
+!!$       !$omp parallel private(lbnd, ubnd, tr)
+!!$       tr = omp_get_thread_num() + 1
+!!$       lbnd = (tr-1)*ceiling(nm/real(nThread)) + 1
+!!$       ubnd = min(tr*ceiling(nm/real(nThread)), nm)
+!!$       at_Dx(lbnd:ubnd,:) = at_Dx_at_core(at_data_(lbnd:ubnd,:))
+!!$       !$omp end parallel
+
+       !$omp parallel do 
+       do m=1,nm
+          at_Dx(m:m,:) = at_Dx_at_core(at_data_(m:m,:))
+       end do
+    else
+       at_Dx(:,:) = at_Dx_at_core(at_data_)
+    end if
     
 
   contains
@@ -832,7 +840,7 @@ contains
       ! 作用させたデータのチェビシェフ変換のことである.
       !
       !
-;      real(8), dimension(:,0:), intent(in)                    :: at_data
+      real(8), dimension(:,0:), intent(in)                    :: at_data
       !(in) 入力チェビシェフデータ
       
       real(8), dimension(size(at_data,1),0:size(at_data,2)-1) :: at_Dx_at

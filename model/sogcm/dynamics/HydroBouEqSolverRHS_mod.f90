@@ -60,7 +60,8 @@ module HydroBouEqSolverRHS_mod
   public :: calc_SurfHeightRHS
 
   public :: correct_DivEqRHSUnderRigidLid, correct_DivEqRHSUnderRigidLid2
-
+  public :: correct_DivVorEqRHSUnderRigidLid
+  
   ! 非公開手続き
   ! Private procedure
   !
@@ -105,7 +106,8 @@ contains
   !!
   subroutine calc_HydroBouEqInvisRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &
        & xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, xyz_Salt, xy_SurfHeight, &
-       & xy_SurfPress, xy_totDepthBasic, z_PTempBasic )
+       & xy_SurfPress, xy_totDepthBasic, z_PTempBasic, &
+       & xyz_UrfCori, xyz_VrfCori )
 
     ! モジュール引用; Use statements
     !
@@ -117,6 +119,7 @@ contains
     real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Urf, xyz_Vrf, xyz_Vor, xyz_Div, xyz_PTempEdd, xyz_Salt
     real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_SurfHeight, xy_SurfPress, xy_totDepthBasic
     real(DP), intent(in), dimension(0:kMax) :: z_PTempBasic
+    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_UrfCori, xyz_VrfCori
 
     ! 局所変数
     ! Local variables
@@ -150,7 +153,8 @@ contains
     !
     !
     call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
-         & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_Press, xyz_GeoPot, xyz_SigDot)
+         & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_Press, xyz_GeoPot, xyz_SigDot, &
+         & xyz_UrfCori, xyz_VrfCori )
 
     Call calc_TracerEqInvisRHS(wz_PTempRHS, &
          & xyz_PTemp, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )
@@ -234,7 +238,7 @@ contains
     !
 
 
-    xyz_totDepth = spread(xy_totDepthBasic, 3, kMax+1)
+    xyz_totDepth(:,:,:) = spread(xy_totDepthBasic, 3, kMax+1)
 
     call calc_VDiffRHS(wz_VorRHS,                                    &  !(inout)
          & wz_Vor, vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
@@ -264,60 +268,63 @@ contains
   !!
   !!
   subroutine calc_VorEqDivEqInvisRHS(wz_RHSVor, wz_RHSDiv, &
-       & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_Press, xyz_GeoPot, xyz_SigDot &
+       & xyz_Vor, xyz_Urf, xyz_Vrf, xy_SurfHeight, xyz_DensEdd, xyz_Press, xyz_GeoPot, xyz_SigDot, &
+       & xyz_UrfCori, xyz_VrfCori  &
        & )
     
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(out) :: wz_RHSVor(lMax, 0:kMax)
-    real(DP), intent(out) :: wz_RHSDiv(lMax, 0:kMax)
-    real(DP), intent(in) :: xyz_Vor(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Urf(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Vrf(0:iMax-1,jMax,0:kMax)
+    real(DP), dimension(lMax,0:kMax), intent(out) :: wz_RHSVor, wz_RHSDiv
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: &
+         & xyz_Vor, xyz_Urf, xyz_Vrf, xyz_DensEdd, xyz_Press, xyz_GeoPot, xyz_SigDot, &
+         & xyz_UrfCori, xyz_VrfCori
     real(DP), intent(in) :: xy_SurfHeight(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Press(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_GeoPot(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_SigDot(0:iMax-1,jMax,0:kMax)
-
+    
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_A(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_B(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_KinEngy(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_AbsVor(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_GeoPotGradCoef(0:iMax-1,jMax,0:kMax)
-    real(DP) :: wz_GeoPot(lMax, 0:kMax)
-
-!real(DP) :: w(lMax)
+    real(DP) :: xy_A(0:iMax-1,jMax)
+    real(DP) :: xy_B(0:iMax-1,jMax)
+    real(DP) :: w_GeoPot(lMax)
+    real(DP) :: xy_SinLat(0:iMax-1,jMax)
+    real(DP) :: xyz_DSigUrf(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_DSigVrf(0:iMax-1,jMax,0:kMax)
+    integer :: k
 
     ! 実行文; Executable statement
     !
 
-    !$omp parallel workshare
-    xyz_KinEngy = (xyz_Urf**2 + xyz_Vrf**2)/(2d0*cos(xyz_Lat)**2)
-    xyz_AbsVor = xyz_Vor + 2d0*Omega*sin(xyz_Lat)
-    xyz_GeoPotGradCoef = xyz_DensEdd/(RefDens)
-    !$omp end parallel workshare
 
-    wz_GeoPot(:,:) = wz_xyz(xyz_GeoPot)
+    xy_SinLat(:,:) = sin(xyz_Lat(:,:,0))
+    xyz_DSigUrf(:,:,:) = xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Urf)))
+    xyz_DSigVrf(:,:,:) = xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Vrf)))
 
-    xyz_A(:,:,:) = &
-         &   xyz_AbsVor*xyz_Urf + xyz_SigDot*xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Vrf))) &
-         & + xyz_GeoPotGradCoef*xyz_GradMu_wz(wz_GeoPot)
-    xyz_B(:,:,:) = &
-         &   xyz_AbsVor*xyz_Vrf - xyz_SigDot*xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Urf))) &
-         & - xyz_GeoPotGradCoef*xyz_GradLambda_wz(wz_GeoPot)
+    !$omp parallel do private(w_GeoPot, xy_A, xy_B)
+    do k=0, kMax
 
+       w_GeoPot(:) = w_xy(xyz_GeoPot(:,:,k))
 
-    wz_RHSVor(:,:) = - wz_AlphaOptr_xyz( xyz_A, xyz_B )
+       !
+       xy_A(:,:) = &
+            &   xyz_Vor(:,:,k)*xyz_Urf(:,:,k) + 2d0*Omega*xy_SinLat*xyz_UrfCori(:,:,k) &
+            & + xyz_SigDot(:,:,k)*xyz_DSigVrf(:,:,k) &
+            & + xyz_DensEdd(:,:,k)*xy_GradMu_w(w_GeoPot)/(RefDens*RPlanet)
 
-    wz_RHSDiv(:,:) = wz_AlphaOptr_xyz( xyz_B, -xyz_A ) &
-         &      - wz_Lapla2D_wz(wz_xyz( &
-         &             xyz_KinEngy + Grav*spread(xy_SurfHeight,3,kMax+1) &
-         &           + xyz_Press/RefDens &
-         &        ))
+       xy_B(:,:) = &
+            &   xyz_Vor(:,:,k)*xyz_Vrf(:,:,k) + 2d0*Omega*xy_SinLat*xyz_VrfCori(:,:,k) &
+            & - xyz_SigDot(:,:,k)*xyz_DSigUrf(:,:,k) &
+            & + xyz_DensEdd(:,:,k)*xy_GradLambda_w(w_GeoPot)/(RefDens*RPlanet)
+
+       !
+       wz_RHSVor(:,k) = - w_AlphaOptr_xy(xy_A, xy_B)
+       
+       wz_RHSDiv(:,k) = &
+            &    w_AlphaOptr_xy(xy_B, -xy_A) &
+            &  - w_Lapla2D_w(w_xy( &
+            &        0.5d0*(xyz_Urf(:,:,k)**2 + xyz_Vrf(:,:,k)**2)/(1d0 - xy_SinLat**2) &
+            &      + Grav*xy_SurfHeight + xyz_Press(:,:,k)/RefDens                      &
+            &    ))
+    end do
 
   end subroutine calc_VorEqDivEqInvisRHS
 
@@ -343,6 +350,7 @@ contains
     ! Local variables
     !
     real(DP) :: ScaLaplaOptrCoef
+    integer :: k
 
     ! 実行文; Executable statement
     !
@@ -355,15 +363,22 @@ contains
     if( present(LhOptrCoef) ) ScaLaplaOptrCoef = LhOptrCoef
 
     if( LhOptrType == 'V' ) then
-       wz_RHSQuant = wz_RHSQuant  &
-            &      +  hDiffCoef* 2d0*wz_Quant/RPlanet**2 &
-            &      +  wz_Lapla2D_wz(  &
-            &              ScaLaplaOptrCoef*(hDiffCoef - 2d0*hHyperDiffCoef/RPlanet**2)*wz_Quant & 
-            &            - ScaLaplaOptrCoef*hHyperDiffCoef*wz_Lapla2D_wz(wz_Quant)               &
-            &         )
+
+       !$omp parallel do
+       do k=0, kMax
+          wz_RHSQuant(:,k) = wz_RHSQuant(:,k)  &
+               &      +  hDiffCoef* 2d0*wz_Quant(:,k)/RPlanet**2 &
+               &      +  w_Lapla2D_w(  &
+               &              ScaLaplaOptrCoef*(hDiffCoef - 2d0*hHyperDiffCoef/RPlanet**2)*wz_Quant(:,k) & 
+               &            - ScaLaplaOptrCoef*hHyperDiffCoef*w_Lapla2D_w(wz_Quant(:,k))               &
+               &         )
+       end do
     else
-       wz_RHSQuant = wz_RHSQuant &
-            &      + wz_Lapla2D_wz( hDiffCoef*wz_Quant - hHyperDiffCoef*wz_Lapla2D_wz(wz_Quant) )
+       !$omp parallel do
+       do k=0, kMax
+          wz_RHSQuant(:,k) = wz_RHSQuant(:,k) &
+            &      + w_Lapla2D_w( hDiffCoef*wz_Quant(:,k) - hHyperDiffCoef*w_Lapla2D_w(wz_Quant(:,k)) )
+       end do
     end if
 
   end subroutine calc_HDiffRHS
@@ -377,6 +392,8 @@ contains
        & )
     
 
+    use at_module_omp
+
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: wz_RHSQuant(lMax, 0:kMax)
@@ -388,8 +405,11 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyt_QuantDIVDep2(0:iMax-1, jMax, 0:tMax)
-    real(DP) :: xyt_QuantDIVDep4(0:iMax-1, jMax, 0:tMax)
+    real(DP) :: t_QuantDIVDep2(0:tMax)
+    real(DP) :: t_QuantDIVDep4(0:tMax)
+    real(DP) :: xyz_Quant(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_VDiffTerm(0:iMax-1,jMax,0:kMax)
+    integer :: i, j, k
 
     ! 実行文; Executable statement
     !
@@ -398,15 +418,28 @@ contains
        wz_RHSQuant = 0d0
     end if
 
-    xyt_QuantDIVDep2(:,:,:) = xyt_xyz(xyz_wz(wz_Quant)/xyz_totDepth**2)   
-    xyt_QuantDIVDep4(:,:,:) = xyt_xyz(xyz_wz(wz_Quant)/xyz_totDepth**4)   
+    xyz_Quant = xyz_wz(wz_Quant)
 
-    wz_RHSQuant(:,:) = wz_RHSQuant  + wz_xyz(xyz_xyt( &
-         &          xyt_DSigDSig_xyt( &
-         &              vDiffCoef*xyt_QuantDIVDep2                                     &
-         &            - vHyperDiffCoef*xyt_DSigDSig_xyt(xyt_QuantDIVDep4)              &
-         &          )                                                                  &
-         &      ))
+    !$omp parallel do private(i, t_QuantDIVDep2, t_QuantDIVDep4)
+    do j=1,jMax
+       do i=0, iMax-1
+          t_QuantDIVDep2(:) = t_g(xyz_Quant(i,j,:)/xyz_totDepth(i,j,:)**2)
+          t_QuantDIVDep4(:) = t_g(xyz_Quant(i,j,:)/xyz_totDepth(i,j,:)**4)
+
+          xyz_VDiffTerm(i,j,:) = g_t( &
+               &   t_Dx_t(t_Dx_t( &
+               &      vDiffCoef*t_QuantDIVDep2                      &
+               &    - vHyperDiffCoef*t_Dx_t(t_Dx_t(t_QuantDIVDep4)) &
+               &   )) &
+               & )
+       end do
+    end do
+
+    !$omp parallel do
+    do k=0, kMax
+       wz_RHSQuant(:,k) = wz_RHSQuant(:,k) + w_xy(xyz_VDiffTerm(:,:,k))
+    end do
+
 
   end subroutine calc_VDiffRHS
 
@@ -419,10 +452,17 @@ contains
     real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_SigDot(0:iMax-1,jMax,0:kMax)
 
-    wz_RHSTracer(:,:) =  &
-         & - wz_AlphaOptr_xyz(xyz_Tracer*xyz_Urf, xyz_Tracer*xyz_Vrf) &
-         & + wz_xyz(   xyz_Tracer*xyz_Div & 
-         &           - xyz_SigDot*xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Tracer))) )
+    integer :: k
+    real(DP) :: xyz_DSigTracer(0:iMax-1,jMax,0:kMax)
+
+    xyz_DSigTracer = xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Tracer)))
+
+    !$omp parallel do
+    do k=0, kMax
+       wz_RHSTracer(:,k) =  &
+            & - w_AlphaOptr_xy(xyz_Tracer(:,:,k)*xyz_Urf(:,:,k), xyz_Tracer(:,:,k)*xyz_Vrf(:,:,k)) &
+            & + w_xy(xyz_Tracer(:,:,k)*xyz_Div(:,:,k) - xyz_SigDot(:,:,k)*xyz_DSigTracer(:,:,k))
+    end do
 
 !!$    wz_RHSTracer =  &
 !!$         & - wz_AlphaOptr_xyz(xyz_Tracer*xyz_Urf, xyz_Tracer*xyz_Vrf) &
@@ -514,17 +554,15 @@ contains
   !> @brief 
   !! 
   !!
-  subroutine correct_DivEqRHSUnderRigidLid2( wt_DivA, xy_SurfPressA, &
-       & wz_DivOld, xy_SurfPressRef, xy_SurfPressN, xy_SurfPressB, dDivdt_coef, &
+  subroutine correct_DivEqRHSUnderRigidLid2( wz_DivA, xy_SurfPressA, &
+       & xy_SurfPressRef, xy_SurfPressN, xy_SurfPressB, dDivdt_coef, &
        & TIntType_SurfPressTerm )
     
 
-
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(out) :: wt_DivA(lMax, 0:tMax)
+    real(DP), intent(inout) :: wz_DivA(lMax, 0:tMax)
     real(DP), intent(out) :: xy_SurfPressA(0:iMax-1,jMax)
-    real(DP), intent(in) :: wz_DivOld(lMax,0:kMax)
     real(DP), intent(in) :: xy_SurfPressRef(0:iMax-1,jMax), xy_SurfPressN(0:iMax-1,jMax), xy_SurfPressB(0:iMax-1,jMax)
     real(DP), intent(in) :: dDivdt_coef
     character(*), intent(in) :: TIntType_SurfPressTerm
@@ -565,7 +603,7 @@ contains
     end select
 
 
-    w_HDivPressInvRho = w_IntSig_BtmToTop_wz( wz_DivOld*dDivdt_coef )
+    w_HDivPressInvRho = w_IntSig_BtmToTop_wz( wz_DivA*dDivdt_coef )
 
 
     xy_SurfPressA = ( &
@@ -575,11 +613,101 @@ contains
 
 
 
-    wt_DivA(:,:) = wt_wz( &
-         &        wz_DivOld(:,:) &
-         &      - spread(w_HDivPressInvRho, 2, kMax+1)/dDivdt_coef ) 
+    wz_DivA(:,:) = &
+         &        wz_DivA(:,:) &
+         &      - spread(w_HDivPressInvRho, 2, kMax+1)/dDivdt_coef
 
   end subroutine correct_DivEqRHSUnderRigidLid2
+
+  !> @brief 
+  !! 
+  !!
+  subroutine correct_DivVorEqRHSUnderRigidLid( w_DDivCorrect, w_DVorCorrect, xy_SurfPressA,    &
+       & wz_DivOld, xy_SurfPressRef, xy_SurfPressN, xy_SurfPressB, dt, CoriTermCoef,  &
+       & TIntType_SurfPressTerm )
+    
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(out), dimension(lMax) :: w_DDivCorrect, w_DVorCorrect
+    real(DP), intent(out) :: xy_SurfPressA(0:iMax-1,jMax)
+    real(DP), intent(in) :: wz_DivOld(lMax,0:kMax)
+    real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_SurfPressRef, xy_SurfPressN, xy_SurfPressB
+    real(DP), intent(in) :: dt, CoriTermCoef
+    character(*), intent(in) :: TIntType_SurfPressTerm
+
+    
+    ! 局所変数
+    ! Local variables
+    !
+
+    !> Horizontal divergence of velcoity potential used in Pressure Correction method
+    !! to keep velocity divergence-free. 
+    real(DP) :: w_HDivPressInvRho(lMax)              
+
+    real(DP) :: w_PhiInvRho(lMax)
+    real(DP), dimension(0:iMax-1,jMax) :: xy_UrfCorrect, xy_VrfCorrect
+    
+    !> Coefficients used to exptrapolate new value of surface pressure.  
+    real(DP) :: ecoefPA, ecoefPB, ecoefPN
+
+    integer :: k, itr
+    real(DP) :: theta
+    
+    ! 実行文; Executable statement
+    !
+
+
+    ! 
+    !
+    theta = 1d0    
+    select case(TIntType_SurfPressTerm)
+       case("BEuler1")
+          ecoefPA = 1d0; ecoefPN = 0d0; ecoefPB = 0d0;
+       case("CRANKNIC")
+          ecoefPA = theta; ecoefPN = 1d0 - theta; ecoefPB = 0d0;
+       case("CRANKNIC_WithLF")
+          ecoefPA = theta; ecoefPN = 0d0; ecoefPB = 1d0 - theta;
+       case("AM3")
+          ecoefPA = 5d0/12d0; ecoefPN = 8d0/12d0; ecoefPB = - 1d0/12d0;
+       case default
+          call MessageNotify('E', module_name, &
+               & "'%c' is not allowable as temporal integration method for surface pressure term", &
+               & c1 = TIntType_SurfPressTerm )
+    end select
+
+
+    w_HDivPressInvRho = w_IntSig_BtmToTop_wz( wz_DivOld/dt )
+    w_PhiInvRho = w_InvLapla2D_w(w_HDivPressInvRho)
+
+    w_DDivCorrect(:) = - dt*w_HDivPressInvRho
+    xy_VrfCorrect(:,:) = - xy_GradMu_w(w_PhiInvRho)/RPlanet
+    do itr=1, 2
+       w_DVorCorrect(:) = - w_xy( &
+              & CoriTermCoef*dt*2d0*Omega*( &
+              &     sin(xyz_Lat(:,:,0))*xy_w(w_DDivCorrect) &
+              &   + xy_VrfCorrect/RPlanet                  &
+              & ) &
+            & )
+       call w_VorDiv2VectorCosLat(w_DVorCorrect, w_DDivCorrect, &
+            & xy_UrfCorrect, xy_VrfCorrect)
+    end do
+
+
+    xy_SurfPressA = ( &
+         &   RefDens*xy_w( &
+         &       w_PhiInvRho &
+         &     - w_InvLapla2D_w(CoriTermCoef*2d0*Omega*w_xy(    &
+         &       - sin(xyz_Lat(:,:,0))*xy_w(w_DVorCorrect)         &
+         &       + xy_UrfCorrect/RPlanet                           &
+         &     )) &
+         &   ) &
+         & + xy_SurfPressRef &
+         & - ecoefPN*xy_SurfPressN - ecoefPB*xy_SurfPressB &
+         & )/ecoefPA
+
+
+  end subroutine correct_DivVorEqRHSUnderRigidLid
 
 end module HydroBouEqSolverRHS_mod
 

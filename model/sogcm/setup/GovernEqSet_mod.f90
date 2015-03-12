@@ -35,7 +35,7 @@ module GovernEqSet_mod
   ! Public procedure
   !
   public :: GovernEqSet_Init, GovernEqSet_Final
-  public :: isPhysicsCompActived
+  public :: isPhysicsCompActivated
 
   ! 公開変数
   ! Public variable
@@ -53,18 +53,11 @@ module GovernEqSet_mod
   integer, public, parameter :: GOVERNEQSET_EOS_SIMPLENONLINEAR = EOSTYPE_SIMPLENONLINEAR
   integer, public, parameter :: GOVERNEQSET_EOS_JM95 = EOSTYPE_JM95
 
-  ! For parametarization of sub-grid scale eddy mixing
-  character(*), public, parameter :: GOVERNEQSET_SGSEDDYMIX_Redi_NAME = "Redi"
-  integer, public, parameter :: GOVERNEQSET_SGSEDDYMIX_Redi = 1
-  character(*), public, parameter :: GOVERNEQSET_SGSEDDYMIX_GM90_NAME = "GM90"
-  integer, public, parameter :: GOVERNEQSET_SGSEDDYMIX_GM90 = 2
 
-  ! For convective adjustment
-  character(*), public, parameter :: GOVERNEQSET_SGSCONVADJUST_INSTANT_NAME = "Instantaneous"
-  integer, public, parameter :: GOVERNEQSET_SGSCONVADJUST_INSTANT = 1
-  character(*), public, parameter :: GOVERNEQSET_SGSCONVADJUST_SLOW_NAME = "Slow"
-  integer, public, parameter :: GOVERNEQSET_SGSCONVADJUST_SLOW = 2
-
+  !
+  character(*), public, parameter :: GOVERNEQSET_PHYSICS_CONVADJUST_NAME = 'ConvectiveAdjustment'
+  character(*), public, parameter :: GOVERNEQSET_PHYSICS_EDDYMIX_NAME = 'EddyMixing'
+  
   !
   character(*), public, parameter :: GOVERNEQSET_TYPENOSPEC_NAME = "UnActivated"
   integer, public, parameter :: GOVERNEQSET_TYPENOSPEC = -1
@@ -73,9 +66,7 @@ module GovernEqSet_mod
   !
   integer, public, save :: DynEqType       !< The type of dynamical equations
   integer, public, save :: EOSType         !< The type of equation of state
-  integer, public, save :: SGSConvAdjustType  !< The type of convective adjustment
-  integer, public, save :: SGSEddyMixType  !< The type of parameterization for sub-grid scale eddy mixing 
-
+  
   ! 非公開手続き
   ! Private procedure
   !
@@ -84,6 +75,9 @@ module GovernEqSet_mod
   ! Private variable
   !
   character(*), parameter:: module_name = 'GovernEqSet_mod' !< Module Name
+
+  logical :: SGSConvAdjust_Flag
+  logical :: SGSEddyMixing_Flag
 
 contains
 
@@ -113,24 +107,24 @@ contains
 
   end subroutine GovernEqSet_Final
 
-  logical function isPhysicsCompActived(physicsCompType)
-    integer, intent(in) :: physicsCompType
+  logical function isPhysicsCompActivated(componentName)
+    character(*), intent(in) :: componentName
 
-    if(physicsCompType==GOVERNEQSET_TYPENOSPEC) then
-       isPhysicsCompActived = .false.
-    else
-       isPhysicsCompActived = .true.
-    end if
-
-  end function isPhysicsCompActived
-
+    select case(componentName)
+    case(GOVERNEQSET_PHYSICS_EDDYMIX_NAME)
+       isPhysicsCompActivated = SGSEddyMixing_Flag
+    case(GOVERNEQSET_PHYSICS_CONVADJUST_NAME)
+       isPhysicsCompActivated = SGSConvAdjust_Flag
+    end select
+    
+  end function isPhysicsCompActivated
+  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine read_nmlData( configNmlFileName )
 
     ! モジュール引用; Use statement
     !
-
 
     ! ファイル入出力補助
     ! File I/O support
@@ -141,6 +135,9 @@ contains
     ! Kind type parameter
     !
     use dc_types, only: STDOUT ! 標準出力の装置番号. Unit number of standard output
+
+    !
+    use dc_string, only: Split, Replace, StrInclude
 
     ! 宣言文; Declaration statement
     !
@@ -157,17 +154,18 @@ contains
 
     character(TOKEN) :: DynEqTypeName
     character(TOKEN) :: EOSTypeName
-    character(TOKEN) :: SGSConvAdjustTypeName
-    character(TOKEN) :: SGSEddyMixTypeName
+    character(STRING) :: SGSPhysicsNames
 
+    character(TOKEN), pointer :: SGSPhysicsNameList(:)
+    
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
     namelist /governEq_nml/ &
          & DynEqTypeName, &
-         & EOSTypeName, &
-         & SGSConvAdjustTypeName, &
-         & SGSEddyMixTypeName
+         & EOSTypeName,   &
+         & SGSPhysicsNames
+
 
     ! 実行文; Executable statements
 
@@ -177,8 +175,13 @@ contains
 
     DynEqTypeName = GOVERNEQSET_DYN_HYDROBOUSSINESQ_NAME
     EOSTypeName = EOSTYPENAME_LINEAR
-    SGSConvAdjustTypeName = GOVERNEQSET_SGSCONVADJUST_INSTANT_NAME
-    SGSEddyMixTypeName = GOVERNEQSET_TYPENOSPEC_NAME
+
+    SGSPhysicsNames = ''
+    SGSPhysicsNameList => null()
+    SGSConvAdjust_Flag = .false.
+    SGSEddyMixing_Flag = .false.
+    
+    
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -207,24 +210,25 @@ contains
          & (/ GOVERNEQSET_EOS_LINEAR, GOVERNEQSET_EOS_SIMPLENONLINEAR, GOVERNEQSET_EOS_JM95 /), &
          & "EOSType", .false. )
     
-    SGSConvAdjustType = typeName2ID( SGSConvAdjustTypeName, &
-         & (/ GOVERNEQSET_SGSCONVADJUST_INSTANT_NAME, GOVERNEQSET_SGSCONVADJUST_SLOW_NAME /), &
-         & (/ GOVERNEQSET_SGSCONVADJUST_INSTANT, GOVERNEQSET_SGSCONVADJUST_SLOW /), &
-         & "SGSConvAdjustType", .true. )
+    !
+    SGSPhysicsNames = Replace(SGSPhysicsNames, " ", "")
+    call Split(trim(SGSPhysicsNames), SGSPhysicsNameList, ",")
 
-    SGSEddyMixType = typeName2ID( SGSEddyMixTypeName, &
-         & (/ GOVERNEQSET_SGSEDDYMIX_Redi_NAME, GOVERNEQSET_SGSEDDYMIX_GM90_NAME /), &
-         & (/ GOVERNEQSET_SGSEDDYMIX_Redi, GOVERNEQSET_SGSEDDYMIX_GM90 /), &
-         & "SGSEddyMixType", .true. )
+    if( StrInclude(SGSPhysicsNameList, GOVERNEQSET_PHYSICS_CONVADJUST_NAME) ) then
+       SGSConvAdjust_Flag = .true.
+    end if
 
+    if( StrInclude(SGSPhysicsNameList, GOVERNEQSET_PHYSICS_EDDYMIX_NAME) ) then
+       SGSEddyMixing_Flag = .true.
+    end if
 
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
-    call MessageNotify( 'M', module_name, '    DynEqType         = %c', c1 = DynEqTypeName ) 
-    call MessageNotify( 'M', module_name, '    EOSType           = %c', c1 = EOSTypeName )
-    call MessageNotify( 'M', module_name, '    SGSConvAdjustType = %c', c1 = SGSConvAdjustTypeName )
-    call MessageNotify( 'M', module_name, '    SGSEddyMixType    = %c', c1 = SGSEddyMixTypeName )
+    call MessageNotify( 'M', module_name, '    DynEqType            = %c', c1 = DynEqTypeName ) 
+    call MessageNotify( 'M', module_name, '    EOSType              = %c', c1 = EOSTypeName )
+    call MessageNotify( 'M', module_name, '    ConvectiveAdjustment = %b', l = (/ SGSConvAdjust_Flag /))
+    call MessageNotify( 'M', module_name, '    SGSEddyMixing        = %b', l = (/ SGSEddyMixing_Flag /))
 
   end subroutine read_nmlData
 

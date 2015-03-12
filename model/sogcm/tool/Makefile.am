@@ -10,7 +10,6 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
         $(MODPATHFLAG)$(srcdir)/../ \
         $(MODPATHFLAG)$(srcdir)/../experiment \
-        $(MODPATHFLAG)$(srcdir)/../util \
         $(MODPATHFLAG)$(srcdir)/../physics_driver \
         $(MODPATHFLAG)$(srcdir)/../dynamics \
         $(MODPATHFLAG)$(srcdir)/../setup \

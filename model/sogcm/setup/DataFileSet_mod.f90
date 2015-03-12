@@ -222,7 +222,7 @@ contains
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLON, xy_WindStressU)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLAT, xy_WindStressV)
 
-    call HistoryAutoPut(CurrentTime, VARSET_KEY_CONVECTPARAM, xyz_ConvectParam)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_CONVINDEX, xyz_ConvIndex)
 
   end subroutine DataFileSet_OutputData
 
@@ -379,8 +379,10 @@ contains
          & dims=dims_XYT, longname='wind stress(longitude)', units='kg.m-1.s-2')
 
     !
-    call HistoryAutoAddVariable( varname=VARSET_KEY_CONVECTPARAM, &
-         & dims=dims_XYZT, longname='convection parameter', units='1')
+    call HistoryAutoAddVariable( varname=VARSET_KEY_CONVINDEX, &
+         & dims=dims_XYZT, &
+         & longname='convective index(The number of calling a routine for convective adjustment per time step)', &
+         & units='times per time step')
 
   end subroutine regist_OutputAxisAndVar
 

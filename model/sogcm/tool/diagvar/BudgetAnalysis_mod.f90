@@ -295,9 +295,9 @@ use BoundCondSet_mod, only: &
       xyz_PressEddTmp = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
       xyz_PressEdd = 0.5d0*xyz_PressEddTmp
 
-      call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
-         & xyz_Vor, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xy_w(wz_Tmp(:,0)), xyz_DensEdd, &
-         & xyz_PressEddTmp, Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
+!!$      call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
+!!$         & xyz_Vor, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xy_w(wz_Tmp(:,0)), xyz_DensEdd, &
+!!$         & xyz_PressEddTmp, Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
 
 !!$      call correct_DivEqRHSUnderRigidLid(wz_DivRHS, &
 !!$           & xy_SurfPressN, wz_xyz(xyz_Div), xy_totDepth, vDiffCoef, DelTime)
@@ -331,9 +331,9 @@ use BoundCondSet_mod, only: &
       xyz_PressEddTmp = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
       xyz_PressEdd = xyz_PressEddTmp! + 0.5d0*xyz_PressEddTmp
       wz_Tmp = 0d0
-      call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
-         & xyz_wz(wz_VorTmp), xyz_UTmp*xyz_CosLat, xyz_VTmp*xyz_CosLat, xy_w(wz_Tmp(:,0)), xyz_DensEdd, &
-         & xyz_PressEddTmp, Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
+!!$      call calc_VorEqDivEqInvisRHS(wz_VorRHS, wz_DivRHS, &
+!!$         & xyz_wz(wz_VorTmp), xyz_UTmp*xyz_CosLat, xyz_VTmp*xyz_CosLat, xy_w(wz_Tmp(:,0)), xyz_DensEdd, &
+!!$         & xyz_PressEddTmp, Diagnose_GeoPot(xy_totDepth), xyz_SigDot)
 
       wz_TmpPsi = wz_InvLapla2D_wz( wz_VorRHS  )
       wz_TmpChi = wz_InvLapla2D_wz( wz_DivRHS  ) + wz_xyz(xyz_PressEddTmp/RefDens)

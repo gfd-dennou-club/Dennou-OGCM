@@ -32,7 +32,7 @@ nodist_libDSOGCMSetup_la_SOURCES= \
 
 
 GridSet_mod.f90: \
-	../util/SpmlUtil_mod.o
+	../util/SpmlUtil_mod2.o
 
 DataFileSet_mod.f90: \
 	../util/EOSDriver_mod.o

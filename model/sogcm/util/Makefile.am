@@ -42,7 +42,9 @@ nodist_libDSOGCMUtil_la_SOURCES= \
 	EOS_JM95_mod.f90 \
 	EOSDriver_mod.f90 \
 	DiagnoseUtil_mod.f90 \
-	TemporalIntegUtil_mod.f90
+	TemporalIntegUtil_mod.f90 \
+	TemporalIntegUtil_mod2.f90
+
 
 
 # Dependency

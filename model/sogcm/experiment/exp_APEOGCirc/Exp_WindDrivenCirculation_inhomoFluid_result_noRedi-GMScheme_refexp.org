@@ -28,16 +28,19 @@
 
 ** 東西流速, 子午面循環
 
- #+CALL: create_FigsTable("左から順に, 東西流速の海面分布の時間発展([m]), t=1500yr における東西流速([m]), 質量流線関数([Sv])の子午面分布, 運動エネルギーの全球平均の時間発展[m^2/(s*kg)]", "JM95_HDIFF_CA/{xy_U_SeaSurf_0-1500yr,yz_U_mplane_1500yr,t_KEAvg}.jpg") :results value raw :exports results
+ #+CALL: create_FigsTable("左から順に, 東西流速の海面分布の時間発展([m]), t=5000yr における東西流速([m]), 質量流線関数([Sv])の子午面分布, 運動エネルギーの全球平均の時間発展[m^2/(s*kg)]", "JM95_HDIFF_CA/{xy_U_SeaSurf_0-5000yr,yz_U_mplane_5000yr,t_KEAvg}.jpg") :results value raw :exports results
 
- #+CALL: create_FigsTable("子午面循環([Sv]).", "JM95_HDIFF_CA/yz_MassStreamFunc_mplane_1500yr.jpg") :results value raw :exports results
+ #+CALL: create_FigsTable("子午面循環([Sv]).", "JM95_HDIFF_CA/yz_MassStreamFunc_mplane_5000yr.jpg") :results value raw :exports results
 
+** 対流
+
+ #+CALL: create_FigsTable("対流インデックス(一タイムスッテプあたりの対流調節の回数)の子午面分布", "JM95_HDIFF_CA/yz_ConvIndex_mplane_5000yr.jpg") :results value raw :exports results
  
 ** 温位, 塩分, 密度
 
- #+CALL: create_FigsTable(" 左から順に, t=1500yr における温位([K]), 塩分([psu]), シグマ密度([kg/m^{3}]), ポテンシャル密度(\\sigma \\theta)([kg/m^{3}]) の子午面分布", "JM95_HDIFF_CA/yz_{PTemp,Salt,DensEdd,DensPot}_mplane_1500yr.jpg") :results value raw :exports results
+ #+CALL: create_FigsTable(" 左から順に, t=5000yr における温位([K]), 塩分([psu]), シグマ密度([kg/m^{3}]), ポテンシャル密度(\\sigma \\theta)([kg/m^{3}]) の子午面分布", "JM95_HDIFF_CA/yz_{PTemp,Salt,DensEdd,DensPot}_mplane_5000yr.jpg") :results value raw :exports results
 
- #+CALL: create_FigsTable(" 左から順に温位([K]), 塩分([psu])の海底における分布の時間発展", "JM95_HDIFF_CA/tz_{PTemp,Salt,DensPot}_SeaBtm_0-1500yr.jpg") :results value raw :exports results
+ #+CALL: create_FigsTable(" 左から順に温位([K]), 塩分([psu])の海底における分布の時間発展", "JM95_HDIFF_CA/tz_{PTemp,Salt,DensPot}_SeaBtm_0-5000yr.jpg") :results value raw :exports results
 
 
 # ** 圧力

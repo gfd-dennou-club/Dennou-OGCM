@@ -84,20 +84,21 @@ contains
   !> @brief 
   !!
   !!
-  subroutine GovernEqSolverDriver_AdvanceTStep()
+  subroutine GovernEqSolverDriver_AdvanceTStep(isSelfStartSchemeUsed)
     
     ! モジュール引用; Use statement
     !
+    
     use TemporalIntegUtil_mod, only: &
          & timeIntMode_RK4, timeIntMode_Euler
 
     use TemporalIntegSet_mod, only: &
          & CurrentTimeStep, DelTime, &
-         & barocTimeIntMode, nStage_BarocTimeInt, isVarBUsed_BarocTimeInt, &
-         & SemiImplicitFlag
+         & barocTimeIntMode, nStage_BarocTimeInt, isVarBUsed_BarocTimeInt
 
     ! 宣言文; Declaration statement
     !
+    logical, optional :: isSelfStartSchemeUsed
     
     ! 局所変数
     ! Local variables
@@ -105,7 +106,6 @@ contains
     integer :: timeIntMode
     integer :: nStage
     logical :: is_VarB_Used
-    logical :: is_VStiffTerm_Implicit
 
     ! 実行文; Executable statement
     !
@@ -113,12 +113,9 @@ contains
     timeIntMode = barocTimeIntMode
     nStage = nStage_BarocTimeInt
     is_VarB_Used = isVarBUsed_BarocTimeInt
-    is_VStiffTerm_Implicit = SemiImplicitFlag
 
-    if(CurrentTimeStep == 1) then
-       ! For first time step, RK4 which  has an ability to self-start is used. 
+    if(present(isSelfStartSchemeUsed) .and. isSelfStartSchemeUsed) then
        timeIntMode = timeIntMode_RK4; nStage=4; is_VarB_Used = .false.
-       is_VStiffTerm_Implicit = .false.
     end if
 
     call HydroBouEqSolver_AdvanceTStep( &

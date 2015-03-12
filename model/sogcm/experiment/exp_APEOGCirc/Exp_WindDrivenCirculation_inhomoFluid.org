@@ -1,5 +1,5 @@
-#+TITLE: ����������ˤ����뼴�оΤ������۴Ĥο��ͼ¸� 2: ̩�������
-#+AUTOHR: �Ϲ� ͤ��
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様
+#+AUTOHR: 河合 佑太
 #+LANGUAGE: ja
 #+OPTIONS: H:2 ^:{}
 #+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
@@ -22,7 +22,7 @@
 #+END_SRC
 
 #+NAME: create_FigsTable
-#+BEGIN_SRC ruby ::results value raw :exports none :var caption="�ۤۤ��ۤ�" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/common/" :var figName="hoge"
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/common/" :var figName="hoge"
     require 'pathname'
 
     str =  "#+CAPTION: #{caption}.\n" 
@@ -39,68 +39,69 @@
     return str
 #+END_SRC
 
-* ���� 
+* 概要 
 
-  ��[[../exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html][����������ˤ����뼴�оΤ������۴Ĥο��ͼ¸� 1]]�פǤ�, ���Υ�ǥ���������γ�ǧ�ȿ���������γ�����۴Ĥδ��ܹ�¤������Τ����, 
-̩�ٰ��ͤ��ꤷ�ƷϤ��ñ������. 
-�����Ǥ�, �����β���������, ̩�١���ʬ����ͤʿ������μ��о������۴Ĥο��ͼ¸���Ԥ�. 
-�ܿ��ͼ¸�������Ū����Ū��, ��Ը���ο������¸�\cite{marshall2007mean}��Ʊ�ͤʳ��̶�����Ϳ�����Ȥ���, 
-��ȯ��γ��Υ�ǥ뤬\cite{marshall2007mean}�η׻���̤���ħ��Ƹ����뤫���ǧ���뤳�ȤǤ���. 
-�ޤ�, �����ο��ͼ¸��ˤ�����, 
-  - �浬�ϱ��ѥ�᥿�ꥼ�������θ���
-  - ��ήĴ�᥹������θ���
-�ˤĤ���Ĵ�٤뤳�Ȥˤ���. 
-�ͤ餤��, �浬�ϱ�����ή�ˤ�뺮���ɽ���Ȥ���, ���������ɽ����ˡ(GM ��������\cite{gent1990isopycnal}����ή��������[])
-����Ѥ����Ȥ���, ��ñ�ʺ����ɽ����ˡ(�㤨�п�ʿ��ץ饷����ˤ�뺮��)�η�̤ȤɤΤ褦�ʰ㤤�������뤫��Ĵ�٤�. 
-
-
-* ����������ˤ����뼴�оΤ������۴Ĥε���
-
-- [[file:./../../../../../note_OModeling/ogcirc_formul/main.pdf][������۴Ĥ򵭽Ҥ��뤿�����������]]
-- [[../exp_WindDrivenCirculation/note/axisym_windcirc/main.pdf][���������о������۴Ĥ��꼰��(̩�������)]]
+  「[[../exp_WindDrivenCirculation/Exp_WindDrivenCirculation_homoFluid.html][水惑星設定における軸対称な風成循環の数値実験 1]]」では, 海洋モデルの妥当性の確認と水惑星設定の海洋大循環の基本構造の理解のために, 
+密度一様を仮定して系を簡単化した. 
+ここでは, これらの仮定を取り除き, 密度・塩分非一様な水惑星の軸対称風成循環の数値実験を行う. 
+本数値実験の全体的な目的は, 先行研究の水惑星実験\cite{marshall2007mean}と同様な海面強制を与えたときに, 
+開発中の海洋モデルが\cite{marshall2007mean}の計算結果の特徴を再現するかを確認することである. 
+また, それらの数値実験において, 
+  - 中規模渦パラメタリゼーションの効果
+  - 対流調節スキームの効果
+について調べることにする. 
+ねらいは, 中規模渦や対流による混合の表現として, より精巧な表現方法(GM スキーム\cite{gent1990isopycnal}や対流スキーム[])
+を使用したときに, 簡単な混合の表現方法(例えば水平ラプラシアンによる混合)の結果とどのような違いが生じるかを調べる. 
 
 
-* �¸�����
+* 水惑星設定における軸対称な風成循環の記述
 
-** �������֤Ƕ��̤�����
+- [[file:./../../../../../note_OModeling/ogcirc_formul/main.pdf][海洋大循環を記述するための方程式系]]
+- [[../exp_WindDrivenCirculation/note/axisym_windcirc/main.pdf][水惑星軸対称風成循環の定式化(密度非一様)]]
 
-*** �׻��ΰ�
 
-- ����Ū�˹�����忼 $H= 5.2$ km �γ���. 
-  �����Ϸ���Φ��¸�ߤ��ʤ�.  
-- ���о�(���������˰���)�ʽ۴Ĥ�׻�. 
+* 実験設定
 
-*** ��ǥ�ε���
+** ケース間で共通な設定
 
-- ������۴ĥ�ǥ�λ���������
-  - ���ϳإ֥��ͥ���������
-    - ���о�����(������������ʬ�ϥ���)
+*** 計算領域
 
-- ����ξ���������
-  - �������(\cite{vallis2006atmospheric}�μ�(1.59))
-  - �󼡴ؿ����(\cite{vallis2006atmospheric}�μ�(1.169))
-  - ��ݾ���������\cite{jackett1995minimal}
+- 全球的に広がる水深 $H= 5.2$ km の海洋. 
+  海底地形や陸は存在しない.  
+- 軸対称(経度方向に一様)な循環を計算. 
+
+*** モデルの記述
+
+- 海洋大循環モデルの支配方程式
+  - 静力学ブジネスク方程式
+    - 軸対称設定(経度方向の微分はゼロ)
+
+- 海水の状態方程式
+  - 線形近似(\cite{vallis2006atmospheric}の式(1.59))
+  - 二次関数近似(\cite{vallis2006atmospheric}の式(1.169))
+  - 国際状態方程式\cite{jackett1995minimal}
   
-- ��Ǵ��, ���Ȼ�����
-  - ��ʿ�����α�Ǵ������ $A_{h}$ , ���Ȼ����� $K_{h}$  ������
+- 渦粘性, 渦拡散係数
+  - 水平方向の渦粘性係数 $A_{h}$ , 渦拡散係数 $K_{h}$  の設定
     - $A_{h}=1.0 \times 10^{3}$ [m^{2} s^{-1}]
-    - $K_{h}$ ��, GM ����������Ѥ�����ϥ�����, �Ѥ��ʤ����� $A_h$ ��Ʊ���ˤȤ�. 
-  - ��ľ�����α�Ǵ������ $A_{v}$ , ���Ȼ����� $K_{v}$ ������
-    - ����ή®�� \cite{marshall2007mean} ��Ʊ���٤ˤʤ�褦��, $A_{v}=1.0 \times 10^{-2}$ [m^{2} s^{-1}] �ˤȤ�. 
-    - \cite{marshall2007mean} ��Ʊ���褦��, $K_v=3 \times 10^{-5}$ [m^{2} s^{-1}] 
+    - $K_{h}$ は, GM スキームを用いる場合はゼロに, 用いない場合は $A_h$ と同じにとる. 
+  - 鉛直方向の渦粘性係数 $A_{v}$ , 渦拡散係数 $K_{v}$ の設定
+    - 海面流速が \cite{marshall2007mean} と同程度になるように, $A_{v}=1.0 \times 10^{-2}$ [m^{2} s^{-1}] にとる. 
+    - \cite{marshall2007mean} と同じように, $K_v=3 \times 10^{-5}$ [m^{2} s^{-1}] 
 
-*** �������
+*** DONE 境界条件
+    CLOSED: [2015-02-17 火 22:29]
 
-- ����
-  - ��ư��Ū���: ����ɽ�̶����ݤ�(�������ڤ�ե�å����ϥ���)
+- 海面
+  - 運動学的条件: 剛体表面近似を課す(境界を横切るフラックスはゼロ)
 
     \[
         w = 0  \;\;\;\;\;\; {\rm at} \; z=0. 
     \]   
 
-  - �ϳ�Ū���: 
-    �������¸� \cite{marshall2007mean} �ν�ʿ�վ��֤���ɽ��®����׻����줿, 
-    ���̱��Ϥ�����ʿ�Ѿ��ݤ�
+  - 力学的条件: 
+    水惑星実験 \cite{marshall2007mean} の準平衡状態の地表風速から計算された, 
+    海面応力の東西平均場を課す
   
   \[ 
      \rho_0 A_v \dfrac{\partial u}{\partial z} = \tau_{zx}, \;\;\; 
@@ -108,35 +109,35 @@
   \]
 
   
-  #+CALL: create_FigsTable(" ���̱���(\\tau_{zx})������ʬ��[ N/m^{2} ]", "windStressLon.png") :results value raw :exports results
+  #+CALL: create_FigsTable(" 海面応力(\\tau_{zx})の南北分布[ N/m^{2} ]", "windStressLon.png") :results value raw :exports results
 
-  - ǮŪ���: 
-    �������¸� \cite{marshall2007mean} �ν�ʿ�վ��֤��������벹�̡���ʬ�γ���ʬ�ۤ˴��¤���. 
-    ���»��� $\tau$ �� 60 ��. 
+  - 熱的条件: 
+    水惑星実験 \cite{marshall2007mean} の準平衡状態から得られる温位・塩分の海面分布に緩和する. 
+    緩和時間 $\tau$ は 60 日. 
 
     \[
         \left(\dfrac{\partial\Theta}{\partial t}\right)_{\rm relax} = - \dfrac{1}{\tau} (\Theta - \Theta_{\rm relax}), \;\;\;
-        \left(\dfrac{\partial S}{\partial t}\right)_{\rm relax} = - \dfrac{1}{\tau} (S - S_{\rm relax})  \;\;\;\;\;\; {\rm at} \; z=0. 
+        \left(\dfrac{\partial S}{\partial t}\right)_{\rm relax} = - \dfrac{1}{\tau} (S - S_{\rm relax})  \;\;\;\;\;\; {\rm  (一層目)}
     \]   
 
-  #+CALL: create_FigsTable(" ���̲���(\\Theta_{relax}) [K], ���̱�ʬ(S_{relax}) [psu] ������ʬ��", "y_{PTemp,Salt}Relax.png") :results value raw :exports results
+  #+CALL: create_FigsTable(" 海面温度(\\Theta_{relax}) [K], 海面塩分(S_{relax}) [psu] の南北分布", "y_{PTemp,Salt}Relax.png") :results value raw :exports results
 
 
-- ����
-  - ��ư��Ū���: �������ڤ�ե�å����ϥ���
+- 海底
+  - 運動学的条件: 境界を横切るフラックスはゼロ
 
     \[
         w = 0  \;\;\;\;\;\; {\rm at} \; z=-H. 
     \]   
 
-  - �ϳ�Ū���: ���̵�����
+  - 力学的条件: 滑り無し条件
 
     \[
         u = 0, \;\;\;
         v = 0  \;\;\;\;\;\; {\rm at} \; z=-H. 
     \]   
 
-  - ǮŪ���: ��Ǯ���(�������ڤ�ե�å����ϥ���)
+  - 熱的条件: 断熱条件(境界を横切るフラックスはゼロ)
 
     \[
         K_v \dfrac{\partial \Theta}{\partial z} = 0, \;\;\;
@@ -144,96 +145,96 @@
     \]   
 
   
-*** ������  
+*** 初期条件  
 
-- ��ư��: �Ż߾���
-- ���̡���ʬ��: 20 �����ε����ο��ͼ¸��η��[fn:init_dataset]����֡���ʿʿ�Ѥ�����Τ�, ����α�ľʬ�ۤȤ���Ϳ����(��ʿ����). 
+- 運動場: 静止状態
+- 温位・塩分場: 20 世紀の気候の数値実験の結果[fn:init_dataset]を時間・水平平均したものを, 初期の鉛直分布として与える(水平一様). 
 
-  #+CALL: create_FigsTable(" ����[K], ��ʬ[psu] �ν���α�ľʬ��(��ʿ�����ϰ���)", "z_{PTemp,Salt}Init.png") :results value raw :exports results
-
-
-[fn:init_dataset] http://data1.gfdl.noaa.gov/CM2.X/CM2.0/data/cm2.0_data.html ����������, 
-GFDL CM2.0 ��ǥ�ˤ�� 20 �����ε����׻��ν��ϥǡ��������, ���ͼ¸���CM2Q-d2_1861-2000-AllForc_h1�פν��ϥǡ������Ѥ���. 
+  #+CALL: create_FigsTable(" 温位[K], 塩分[psu] の初期の鉛直分布(水平方向は一様)", "z_{PTemp,Salt}Init.png") :results value raw :exports results
 
 
-** �Ƽ¸�����
+[fn:init_dataset] http://data1.gfdl.noaa.gov/CM2.X/CM2.0/data/cm2.0_data.html から得られる, 
+GFDL CM2.0 モデルによる 20 世紀の気候計算の出力データの中で, 数値実験「CM2Q-d2_1861-2000-AllForc_h1」の出力データを用いた. 
 
-   #+CAPTION: EOS:����ξ���������, K_{h}:��ʿ���Ȼ�������[m^{2} s^{-1}], K_{v}:��ʿ���Ȼ�������[m^{2} s^{-1}], Pl: �른���ɥ���ؿ��μ���, L: ��ľ��٥��, dt:���֥��åƥ�[hour]
-  | �¸�̾              | EOS    |   Kh | Kv             | ��ήĴ�᥹������ | ��̩���̺��祹������       | GM�������� | ������  | dt | ���� |
+
+** 各実験設定
+
+   #+CAPTION: EOS:海水の状態方程式, K_{h}:水平渦拡散性係数[m^{2} s^{-1}], K_{v}:水平渦拡散性係数[m^{2} s^{-1}], Pl: ルジャンドル陪関数の次数, L: 鉛直レベル数, dt:時間スッテプ[hour]
+  | 実験名              | EOS    |   Kh | Kv             | 対流調節スキーム | 等密度面混合スキーム       | GMスキーム | 解像度  | dt | 備考 |
   |---------------------+--------+------+----------------+------------------+----------------------------+------------+---------+----+------|
-  | EOSL_HDIFF          | linear | 1000 | 3\times10^{-5} | -                | -                          | -          | Pl42L60 |  3 |      |
-  | EOSQ_HDIFF          | quad   | 1000 | 3\times10^{-5} | -                | -                          | -          | Pl42L60 |  3 |      |
-  | EOSJM95_HDIFF       | JM95   | 1000 | 3\times10^{-5} | -                | -                          | -          | Pl42L60 |  3 |      |
-  | EOSL_HDIFF_VDIFF100 | linear | 1000 | 3\times10^{-3} | -                | -                          | -          | Pl42L60 |  3 |      |
+  | EOSL_HDIFF          | linear | 1000 | 3\times10^{-5} | -                | -                          | -          | Pl42L60 |  16 |      |
+  | EOSQ_HDIFF          | quad   | 1000 | 3\times10^{-5} | -                | -                          | -          | Pl42L60 |  16 |      |
+  | EOSJM95_HDIFF       | JM95   | 1000 | 3\times10^{-5} | -                | -                          | -          | Pl42L60 |  16 |      |
+  | EOSL_HDIFF_VDIFF100 | linear | 1000 | 3\times10^{-3} | -                | -                          | -          | Pl42L60 |  16 |      |
   |---------------------+--------+------+----------------+------------------+----------------------------+------------+---------+----+------|
-  | EOSL_HDIFF_CA       | linear | 1000 | 3\times10^{-5} | $\circ$          | -                          | -          | Pl42L60 |  3 |      |
-  | EOSQ_HDIFF_CA       | quad   | 1000 | 3\times10^{-5} | $\circ$          | -                          | -          | Pl42L60 |  3 |      |
-  | EOSJM95_HDIFF_CA    | JM95   | 1000 | 3\times10^{-5} | $\circ$          | -                          | -          | Pl42L60 |  3 |      |
+  | EOSL_HDIFF_CA       | linear | 1000 | 3\times10^{-5} | $\circ$          | -                          | -          | Pl42L60 |  16 |      |
+  | EOSQ_HDIFF_CA       | quad   | 1000 | 3\times10^{-5} | $\circ$          | -                          | -          | Pl42L60 |  16 |      |
+  | EOSJM95_HDIFF_CA    | JM95   | 1000 | 3\times10^{-5} | $\circ$          | -                          | -          | Pl42L60 |  16 |      |
   |---------------------+--------+------+----------------+------------------+----------------------------+------------+---------+----+------|
-  | EOSL_IDIFF_CA_GM    | linear |    - | 3\times10^{-5} | $\circ$          | $\circ$                    | $\circ$    | Pl42L60 |  3 |      |
-  | EOSQ_IDIFF_CA_GM    | quad   |    - | 3\times10^{-5} | $\circ$          | $\circ$                    | $\circ$    | Pl42L60 |  3 |      |
-  | EOSJM95_IDIFF_CA_GM | JM95   |    - | 3\times10^{-5} | $\circ$          | $\circ$                    | $\circ$    | Pl42L60 |  3 |      |
+  | EOSL_IDIFF_CA_GM    | linear |    - | 3\times10^{-5} | $\circ$          | $\circ$                    | $\circ$    | Pl42L60 |  16 |      |
+  | EOSQ_IDIFF_CA_GM    | quad   |    - | 3\times10^{-5} | $\circ$          | $\circ$                    | $\circ$    | Pl42L60 |  16 |      |
+  | EOSJM95_IDIFF_CA_GM | JM95   |    - | 3\times10^{-5} | $\circ$          | $\circ$                    | $\circ$    | Pl42L60 |  16 |      |
 
 
 
-- �¸����꡼������Ū
-  - ��ήĴ��, ��̩���̺���, GM ����������Ѥ��ʤ����
-    - ɸ��¸�: EOSJM95_HDIFF
-    - EOS ��¸��: EOSL_HDIFF, EOSQ_HDIFF, EOSJM95_HDIFF �η�̤���Ӥ���. 
-    - ��ľ���Ȼ�������¸��: EOSL_HDIFF, EOSL_HDIFF_VDIFF100 �η�̤���Ӥ���. 
-  - ��ήĴ�᥹��������Ѥ�����
-    - ɸ��¸�: EOSJM95_HDIFF_CA
-    - EOS ��¸��: EOSL_HDIFF_CA, EOSQ_HDIFF_CA, EOSJM95_HDIFF_CA �η�̤���Ӥ���. 
-  - ��ήĴ��, ��̩���̺���, GM ����������Ѥ�����
-    - ɸ��¸�: EOSJM95_IDIFF_CA_GM
-    - EOS ��¸��: EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM �η�̤���Ӥ���. 
+- 実験シリーズの目的
+  - 対流調節, 等密度面混合, GM スキームを用いない場合
+    - 標準実験: EOSJM95_HDIFF
+    - EOS 依存性: EOSL_HDIFF, EOSQ_HDIFF, EOSJM95_HDIFF の結果を比較する. 
+    - 鉛直渦拡散係数依存性: EOSL_HDIFF, EOSL_HDIFF_VDIFF100 の結果を比較する. 
+  - 対流調節スキームを用いる場合
+    - 標準実験: EOSJM95_HDIFF_CA
+    - EOS 依存性: EOSL_HDIFF_CA, EOSQ_HDIFF_CA, EOSJM95_HDIFF_CA の結果を比較する. 
+  - 対流調節, 等密度面混合, GM スキームを用いる場合
+    - 標準実験: EOSJM95_IDIFF_CA_GM
+    - EOS 依存性: EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM の結果を比較する. 
 
 
-- �Ƽ¸�������ե�����
-  - ��ήĴ��, ��̩���̺���, GM ����������Ѥ��ʤ����
+- 各実験の設定ファイル
+  - 対流調節, 等密度面混合, GM スキームを用いない場合
   #+CALL: create_link("EOSL_HDIFF,EOSQ_HDIFF,EOSJM95_HDIFF,EOSL_HDIFF_VDIFF100", "exp_{EOS{L,Q,JM95}_HDIFF,EOSL_HDIFF_VDIFF100}/config.nml") :results value raw :exports results
 
-  - ��ήĴ�᥹��������Ѥ�����
+  - 対流調節スキームを用いる場合
   #+CALL: create_link("EOSL_HDIFF_CA,EOSQ_HDIFF_CA,EOSJM95_HDIFF_CA", "exp_EOS{L,Q,JM95}_HDIFF_CA/config.nml") :results value raw :exports results
 
-  - ��ήĴ��, ��̩���̺���, GM ����������Ѥ�����
+  - 対流調節, 等密度面混合, GM スキームを用いる場合
   #+CALL: create_link("EOSL_IDIFF_CA_GM,EOSQ_IDIFF_CA_GM,EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/config.nml") :results value raw :exports results
 
 
-* �׻����
-** ��ήĴ��, ��̩���̺���, GM ����������Ѥ��ʤ����
-- [[file:./Exp_WindDrivenCirculation_inhomoFluid_result_noCA-Redi-GMScheme_refexp.html][ɸ��¸�]]
-- [[file:./Exp_WindDrivenCirculation_inhomoFluid_noCA-Redi-GMScheme_EOSComp.html][EOS ��¸��]]
-- [[file:./Exp_WindDrivenCirculation_inhomoFluid_noCA-Redi-GMScheme_VDiffComp.html][��ľ��Ǵ��������¸��]]
+* 計算結果
+** 対流調節, 等密度面混合, GM スキームを用いない場合
+- [[file:./Exp_WindDrivenCirculation_inhomoFluid_result_noCA-Redi-GMScheme_refexp.html][標準実験]]
+- [[file:./Exp_WindDrivenCirculation_inhomoFluid_noCA-Redi-GMScheme_EOSComp.html][EOS 依存性]]
+- [[file:./Exp_WindDrivenCirculation_inhomoFluid_noCA-Redi-GMScheme_VDiffComp.html][鉛直渦粘性係数依存性]]
 
-** ��ήĴ�᥹��������Ѥ�����
-- [[file:./Exp_WindDrivenCirculation_inhomoFluid_result_noRedi-GMScheme_refexp.html][ɸ��¸�]]
-- [[file:./Exp_WindDrivenCirculation_inhomoFluid_noRedi-GMScheme_EOSComp.html][EOS ��¸��]]
+** 対流調節スキームを用いる場合
+- [[file:./Exp_WindDrivenCirculation_inhomoFluid_result_noRedi-GMScheme_refexp.html][標準実験]]
+- [[file:./Exp_WindDrivenCirculation_inhomoFluid_noRedi-GMScheme_EOSComp.html][EOS 依存性]]
 
-** ��ήĴ��, ��̩���̺���, GM ����������Ѥ�����
-- ɸ��¸�
-- EOS ��¸��
+** 対流調節, 等密度面混合, GM スキームを用いる場合
+- [[file:./Exp_WindDrivenCirculation_inhomoFluid_result_CA-Redi-GMScheme_refexp.html][標準実験]]
+- [[file:./Exp_WindDrivenCirculation_inhomoFluid_CA-Redi-GMScheme_EOSComp.html][EOS 依存性]]
 
-# ** ����ޤǤη��(���ͽ��)
-# *** [[file:./Exp_WindDrivenCirculation_inhomoFluid_horiEddViscDiffComp.html][��ʿ��Ǵ�����Ȼ�������¸��]]
+# ** 前回までの結果(削除予定)
+# *** [[file:./Exp_WindDrivenCirculation_inhomoFluid_horiEddViscDiffComp.html][水平渦粘性・拡散係数依存性]]
 
-# *** [[file:./Exp_WindDrivenCirculation_inhomoFluid_PrComp.html][�ץ��ȥ����¸��]]
+# *** [[file:./Exp_WindDrivenCirculation_inhomoFluid_PrComp.html][プラントル数依存性]]
 
-# ** [[file:Exp_WindDrivenCirculation_inhomoFluid_TrelaxComp.html][���̶����δ��»��ְ�¸��]]
-# ** [[file:./Exp_WindDrivenCirculation_inhomoFluid_EddMixParamEffect.html][�����ɽ����ˡ�ΰ㤤�ˤ�����]]
-# ** [[file:./Exp_WindDrivenCirculation_inhomoFluid_3DCodeCheck.html][3 �����׻��ѥ����ɤγ�ǧ]]
-
-
-* �׻���̤β���
+# ** [[file:Exp_WindDrivenCirculation_inhomoFluid_TrelaxComp.html][海面強制の緩和時間依存性]]
+# ** [[file:./Exp_WindDrivenCirculation_inhomoFluid_EddMixParamEffect.html][混合の表現方法の違いによる効果]]
+# ** [[file:./Exp_WindDrivenCirculation_inhomoFluid_3DCodeCheck.html][3 次元計算用コードの確認]]
 
 
-* [[file:./Exp_WindDrivenCirculation_inhomoFluid_consider.html][�ͻ�]]
+* 計算結果の解析
 
 
-* �ޤȤ�
+* [[file:./Exp_WindDrivenCirculation_inhomoFluid_consider.html][考察]]
 
 
-* ����ʸ��
+* まとめ
+
+
+* 参考文献
 
 #+BIBLIOGRAPHY: Dennou-OGCM_reflist plain limit:t
 

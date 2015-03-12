@@ -101,10 +101,11 @@ program ogcm_main
   do while( .not. EndTemporalInteg() )
 
      !
-
-     call GovernEqSolverDriver_AdvanceTStep()
-
-
+     if(CurrentTimeStep == 1 .and. (.not. RestartFlag)) then
+        call GovernEqSolverDriver_AdvanceTStep(isSelfStartSchemeUsed=.true.)
+     else
+        call GovernEqSolverDriver_AdvanceTStep()
+     end if
 
      !
      call TemporalIntegSet_AdvanceLongTStep()
@@ -196,7 +197,7 @@ contains
     call DataFileSet_Init(datFile, configNmlFile)
     call RestartDataFileSet_Init(configNmlFile)
     call GovernEqSet_Init(configNmlFile)
-    call PhysicsDriver_Init(datFile)
+    call PhysicsDriver_Init(datFile, configNmlFile)
     call GovernEqSolverDriver_Init()
 
     ! 

@@ -247,7 +247,6 @@ contains
     real(DP) :: xyzA(0:iMax-1,jMax,0:kMax)
     
     xyzA = xyzN + xyzRHSN*dt
-
   end function xyz_timeIntEuler
   
   function wt_timeIntEuler(wtN, wtRHSN) result(wtA) 
@@ -264,7 +263,6 @@ contains
     real(DP) :: xyA(0:iMax-1, jMax)
 
     xyA = xyN + xyRHSN*dt
-
   end function xy_timeIntEuler
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -563,7 +561,8 @@ contains
     real(DP), intent(in) :: RHS(lMax,0:tMax)
     integer, intent(in) :: stage
     real(DP) :: val(lMax,0:tMax)
-    
+    integer :: t
+
     interface
        ! Call a solver for the homogeneous problem, A (val**) = (val*). 
        function implicitSolver(wt_val) result(wt_ret)
@@ -583,11 +582,12 @@ contains
     select case(stage)
     case(1)
        wt_valImpl(:,:) = implicitSolver(valB + 2d0*dt*RHS)
-       !$omp parallel workshare
-       val = ( 5d0*wt_valImpl  + 8d0*valN - valB )/12d0
-       !$omp end parallel workshare
+       !$omp parallel do
+       do t=0,tMax
+          val(:,t) = ( 5d0*wt_valImpl(:,t)  + 8d0*valN(:,t) - valB(:,t) )/12d0
+       end do
     case(2)
-       val = implicitSolver(valN + dt*RHS)
+       val(:,:) = implicitSolver(valN + dt*RHS)
     end select
 
   end function wt_timeIntLFAM3_IMEX
@@ -619,7 +619,7 @@ contains
     case(1)
        xy_valImpl = implicitSolver(valB + 2d0*dt*RHS)
        !$omp parallel workshare
-       val = ( 5d0*xy_valImpl + 8d0*valN - valB )/12d0
+       val(:,:) = ( 5d0*xy_valImpl + 8d0*valN - valB )/12d0
        !$omp end parallel workshare
     case(2)
        val = implicitSolver(valN + dt*RHS)

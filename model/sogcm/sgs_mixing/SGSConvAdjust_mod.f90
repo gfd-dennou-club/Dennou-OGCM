@@ -104,6 +104,7 @@ contains
     ! 実行文; Executable statement
     !
 
+
     !$omp parallel do private(i, z_PTemp, z_Salt, z_Depth)
     do j=1,jMax
        do i=0,iMax-1
@@ -120,7 +121,6 @@ contains
        end do
     end do
     
-
   end subroutine SGSConvAdjust_perform_GCMDriver
 
   subroutine SGSConvAdjust_perform_1D( z_PTemp, z_Salt, &
@@ -160,9 +160,6 @@ contains
 
     call DGELS('N', kMax, kMax+1, 1, A, kMax, B, kMax+1, Work, 2*(kMax+1), info)
     z_LyrThick = b
-
-!write(*,*) z_LyrThick
-!stop
 
     !
     call EOSDriver_Eval(rhoEdd=z_DensPotEdd,        & ! (out)

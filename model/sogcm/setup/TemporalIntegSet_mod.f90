@@ -19,7 +19,7 @@ module TemporalIntegSet_mod
   use dc_calendar, only: &
        & DC_CAL, DC_CAL_DATE
 
-  use TemporalIntegUtil_mod, only: &
+  use TemporalIntegUtil_mod2, only: &
        & TimeIntMode_Euler, &
        & TemporalIntegUtil_getInfo
 
@@ -61,8 +61,11 @@ module TemporalIntegSet_mod
   integer, save, public :: BarocTimeIntMode
   logical, save, public :: isVarBUsed_BarocTimeInt
   integer, save, public :: nStage_BarocTimeInt
-  logical, save, public :: SemiImplicitFlag
 
+  !
+  logical, save, public :: SemiImplicitFlag
+  real(DP), save, public :: CoriolisTermACoef
+  real(DP), save, public :: VDiffTermACoef
 
   type(DC_CAL_DATE), save, public :: InitDate
   type(DC_CAL_DATE), save, public :: RestartDate
@@ -271,6 +274,9 @@ contains
          & SubCycleNum, &
          & ProgMessageIntVal, ProgMessageIntUnit
 
+    namelist /SemiImplicitScheme_nml/ &
+         & VDiffTermACoef, CoriolisTermACoef
+    
     ! 実行文; Executable statements
 
     ! デフォルト値の設定
@@ -293,6 +299,10 @@ contains
 
     ProgMessageIntVal = -1d0
 
+    ! Default valuse for Semi-implicit scheme
+    VDiffTermACoef = 0d0
+    CoriolisTermACoef = 0d0
+    
     ! NAMELIST からの入力
     ! Input from NAMELIST
     !
@@ -304,6 +314,11 @@ contains
        rewind( unit_nml )
        read( unit_nml, &                  ! (in)
             & nml = temporalInteg_nml, &  ! (out)
+            & iostat = iostat_nml )   ! (out)
+       
+       rewind( unit_nml )
+       read( unit_nml, &                               ! (in)
+            & nml = SemiImplicitScheme_nml,         &  ! (out)
             & iostat = iostat_nml )   ! (out)
        close( unit_nml )
     end if
@@ -365,6 +380,10 @@ contains
     call DCCalDateInquire(RestartDateStr, date=RestartDate)
     call MessageNotify( 'M', module_name, '  TimeIntegPeriod      = %a - %a', ca=(/InitDateStr, EndDateStr/)) 
     call MessageNotify( 'M', module_name, '  Init/RestartDate     = %c', c1=RestartDateStr )
+
+    call MessageNotify( 'M', module_name, '**** SemiImplicit scheme **********' )
+    call MessageNotify( 'M', module_name, '  VDiffTermACoef       = %f', d=(/ VDiffTermACoef /))
+    call MessageNotify( 'M', module_name, '  CoriolisTermACoef    = %f', d=(/ CoriolisTermACoef /))
 
   end subroutine read_nmlData
 

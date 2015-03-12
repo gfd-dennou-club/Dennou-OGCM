@@ -19,6 +19,10 @@ module RestartDataFileSet_mod
   use gtool_history, only: &
        & gt_history
 
+  use VariableSet_mod, only: &
+       & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_SaltN, &
+       & xyz_UB, xyz_VB, xyz_PTempEddB, xyz_SaltB
+
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -35,7 +39,8 @@ module RestartDataFileSet_mod
   real(DP), save, public :: IntValue
   character(TOKEN), save, public :: IntUnit
   real(DP), save, public :: IntTime
-
+  logical, save, public :: RestartFlag
+  
   ! 非公開手続き
   ! Private procedure
   !
@@ -62,7 +67,9 @@ contains
     ! 実行文; Executable statements
     !
 
-
+    !
+    RestartFlag = .false.
+    
     !
     call read_nmlData(configNmlFileName)
  
@@ -101,9 +108,6 @@ contains
     use TemporalIntegSet_mod, only: &
          & CurrentTime, InitDate
 
-    use VariableSet_mod, only: &
-         & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_SaltN
-
     ! 宣言文; Declaration statement
     !
     
@@ -119,23 +123,31 @@ contains
 
     call MessageNotify('M', module_name, 'Output data to restart..')
 
-    call HistorySetTime(timed=CurrentTime, history=gthst_rst)
 
+    ! Output data of some variables for restarting a simulation.
+    
+    call HistorySetTime(timed=CurrentTime, history=gthst_rst)
     call DCCalDateInquire(dateStr, &
          & elapse_sec=CurrentTime, date=InitDate)
     
     call HistoryPut('datetime', dateStr, history=gthst_rst)
+
     call HistoryPut('UN', xyz_UN, history=gthst_rst)
     call HistoryPut('VN', xyz_VN, history=gthst_rst)
     call HistoryPut('PTempEddN', xyz_PTempEddN, history=gthst_rst)
     call HistoryPut('SaltN', xyz_SaltN, history=gthst_rst)
+
+    call HistoryPut('UB', xyz_UB, history=gthst_rst)
+    call HistoryPut('VB', xyz_VB, history=gthst_rst)
+    call HistoryPut('PTempEddB', xyz_PTempEddB, history=gthst_rst)
+    call HistoryPut('SaltB', xyz_SaltB, history=gthst_rst)
 
   end subroutine RestartDataFileSet_Output
 
   !> @brief 
   !!
   !!
-  subroutine RestartDataFileSet_Input()
+  subroutine RestartDataFileSet_Input(isRestartDataInput)
     
     
     ! モジュール引用; Use statement
@@ -149,12 +161,10 @@ contains
     use TemporalIntegSet_mod, only: &
          & RestartTime
 
-    use VariableSet_mod, only: &
-         & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_SaltN
 
     ! 宣言文; Declaration statement
     !
-    
+    logical, intent(out), optional :: isRestartDataInput
     
     ! 局所変数
     ! Local variables
@@ -167,7 +177,14 @@ contains
     ! 実行文; Executable statement
     !
     
-    if( InputFileName == '' ) return
+    if( InputFileName == '' ) then
+       RestartFlag = .false.
+       return
+    end if
+
+    ! Input data of prognostic variables output at the previous simulation.
+    
+    RestartFlag = .true.
 
     call MessageNotify( 'M', module_name, &
          & "Initial/Restart data is input from '%c'..", c1=InputFileName )
@@ -181,6 +198,7 @@ contains
     
     timeRange = 'time=' // toChar(RestartTime)
 
+    !
     call HistoryGet( InputFileName, 'UN', range=timeRange, &
          & array=xyz_UN )
     call HistoryGet( InputFileName, 'VN', range=timeRange, &
@@ -189,6 +207,15 @@ contains
          & array=xyz_PTempEddN )
     call HistoryGet( InputFileName, 'SaltN', range=timeRange, &
          & array=xyz_SaltN )
+
+    call HistoryGet( InputFileName, 'UB', range=timeRange, &
+         & array=xyz_UB )
+    call HistoryGet( InputFileName, 'VB', range=timeRange, &
+         & array=xyz_VB )
+    call HistoryGet( InputFileName, 'PTempEddB', range=timeRange, &
+         & array=xyz_PTempEddB )
+    call HistoryGet( InputFileName, 'SaltB', range=timeRange, &
+         & array=xyz_SaltB )
 
 
   end subroutine RestartDataFileSet_Input
@@ -356,7 +383,7 @@ contains
       & 'lon', xyz_Lon(:,1,1)/PI*180d0, & ! (in)
       & history = gthst_rst )           ! (inout)
     call HistoryPut( &
-      & 'lat', xyz_Lat(1,:,1)/PI*180d0, & ! (in)
+      & 'lat', xyz_Lat(0,:,1)/PI*180d0, & ! (in)
       & history = gthst_rst )           ! (inout)
     call HistoryPut( &
       & 'sig', g_Sig, &               ! (in)
@@ -364,23 +391,25 @@ contains
 
     !
     !
-    call HistoryAddVariable( 'UN', (/ 'lon ', 'lat ', 'sig ', 'time' /), &
-         & 'zonal velociy (at t)', 'm s-1', xtype = 'double', &                    
-         & history = gthst_rst )                  
+    call regist_Variable('UN', 'zonal velociy (at t)', 'm s-1')
+    call regist_Variable('VN', 'meridional velociy (at t)', 'm s-1')
+    call regist_Variable('PTempEddN', 'eddy component of potential temerature (at t)', 'K')
+    call regist_Variable('SaltN', 'salinity (at t)', 'psu')
 
-    call HistoryAddVariable( 'VN', (/ 'lon ', 'lat ', 'sig ', 'time' /), &
-         & 'meridional velociy (at t)', 'm s-1', xtype = 'double', &                    
-         & history = gthst_rst )                  
+    call regist_Variable('UB', 'zonal velociy (at t-1)', 'm s-1')
+    call regist_Variable('VB', 'meridional velociy (at t-1)', 'm s-1')
+    call regist_Variable('PTempEddB', 'eddy component of potential temerature (at t-1)', 'K')
+    call regist_Variable('SaltB', 'salinity (at t-1)', 'psu')
 
-    call HistoryAddVariable( 'PTempEddN', (/ 'lon ', 'lat ', 'sig ', 'time' /), &
-         & 'eddy componet of potential temperature (at t)', 'K', xtype = 'double', &                    
-         & history = gthst_rst )                  
+  contains
 
-    call HistoryAddVariable( 'SaltN', (/ 'lon ', 'lat ', 'sig ', 'time' /), &
-         & 'salinity (at t)', 'm s-1', xtype = 'kg m-3', &                    
-         & history = gthst_rst )                  
+    subroutine regist_Variable(varName, long_name, units)
+      character(*), intent(in) :: varName, long_name, units
 
-
+      call HistoryAddVariable(varName, (/ 'lon ', 'lat ', 'sig ', 'time' /), &
+           & long_name, units, xtype='double', history=gthst_rst)
+    end subroutine regist_Variable
+    
   end subroutine createRestartFile
 
 end module RestartDataFileSet_mod

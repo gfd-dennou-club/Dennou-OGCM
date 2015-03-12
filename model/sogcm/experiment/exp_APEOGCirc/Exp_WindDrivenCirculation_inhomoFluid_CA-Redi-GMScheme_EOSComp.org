@@ -1,0 +1,70 @@
+#+TITLE: 水惑星設定における軸対称な風成循環の数値実験 2: 密度非一様  ~ 対流調節, 等密度面混合, GM スキームを用いる場合
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{}
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/"
+    require 'pathname'
+
+    str = "#+CAPTION: #{caption}.\n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |"
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+[[file:./Exp_WindDrivenCirculation_inhomoFluid.html][数値実験トップページに戻る]]
+
+* 計算結果: EOS 依存性(EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM)
+
+** 全球的な分布の比較
+
+*** 東西流, 子午面循環
+
+   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/yz_U_mplane_10000yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環(オイラー平均)[Sv]の比較. 左から順に, EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/yz_MassStreamFunc_mplane_10000yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("子午面循環(ボーラス輸送)[Sv]の比較. 左から順に, EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/yz_BolusMStreamFunc_mplane_10000yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("残差循環[Sv]の比較. 左から順に, EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/yz_ResMStreamFunc_mplane_10000yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("運動エネルギーの全球平均値[J/(m^3*kg)]の時間発展の比較. EOSL_IDIFF_CA_GM(破線), EOSQ_IDIFF_CA_GM(実線), EOSJM95_IDIFF_CA_GM(点線)", "EOSComp/CARediGM/KEAvg_EOSCompari.jpg") :results value raw :exports results
+
+*** 対流
+
+   #+CALL: create_FigsTable("対流インデックス(一タイムスッテプあたりの対流調節の回数)の子午面分布の比較. 左から順に, EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/yz_ConvIndex_mplane_10000yr.jpg") :results value raw :exports results
+
+*** 温位・塩分・密度
+
+   #+CALL: create_FigsTable("温位[K]の子午面分布の比較. 左から順に, EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/yz_PTemp_mplane_10000yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("塩分[psu]の比較. 左から順に, EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/yz_Salt_mplane_10000yr.jpg") :results value raw :exports results
+
+   #+CALL: create_FigsTable("ポテンシャル密度[kg/m^{3}]の比較. 左から順に, EOSL_IDIFF_CA_GM, EOSQ_IDIFF_CA_GM, EOSJM95_IDIFF_CA_GM", "exp_EOS{L,Q,JM95}_IDIFF_CA_GM/yz_DensPot_mplane_10000yr.jpg") :results value raw :exports results
+
+
+# *** 圧力
+
+#   #+CALL: create_FigsTable("圧力偏差(力学的圧力)[Pa]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_PressEdd_mplane_300yr.jpg") :results value raw :exports results
+
+
+
+# ** 赤道近傍の分布の比較
+
+# *** 東西流, 子午面循環
+
+#   #+CALL: create_FigsTable("東西流速[m/s]の子午面分布の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_U_mplane_eq_300yr.jpg") :results value raw :exports results
+
+#   #+CALL: create_FigsTable("子午面循環[Sv]の比較. 左から順に, Ah1e3Prh1Prv1, Ah1e4Prh1Prv1, Ah1e5Prh1Prv1", "exp_Ah1e{3,4,5}Prh1Prv1/yz_MassStreamFunc_mplane_eq_300yr.jpg") :results value raw :exports results
+

@@ -18,6 +18,10 @@ module VariableSet_mod
 
   !* Dennou-OGCM
 
+  use GridSet_mod, only: &
+       & iMax, jMax, kMax
+
+
   use TemporalIntegSet_mod, only: &
        & nLongTimeLevel
 
@@ -64,7 +68,7 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_SeaSurfTemp(:,:), xy_SurfTempFlux(:,:)
   real(DP), public, save, allocatable :: xy_SeaSurfSalt(:,:), xy_SurfSaltFlux(:,:)
 
-  real(DP), public, save, allocatable :: xyz_ConvectParam(:,:,:)
+  real(DP), public, save, allocatable :: xyz_ConvIndex(:,:,:)
 
 
   character(TOKEN), public, parameter :: VARSET_KEY_U  = 'U'
@@ -87,7 +91,7 @@ module VariableSet_mod
   character(TOKEN), public, parameter :: VARSET_KEY_WINDSTRESSLAT = 'WindStressLat'
   character(TOKEN), public, parameter :: VARSET_KEY_WINDSTRESSLON = 'WindStressLon'
 
-  character(TOKEN), public, parameter :: VARSET_KEY_CONVECTPARAM = 'ConvectParam'
+  character(TOKEN), public, parameter :: VARSET_KEY_CONVINDEX = 'ConvIndex'
 
   ! 非公開手続き
   ! Private procedure
@@ -107,8 +111,6 @@ contains
 
     ! モジュール引用; Use statements
     !
-    use GridSet_mod, only: &
-         & iMax, jMax, kMax
 
     ! 宣言文; Declaration statement
     !
@@ -130,7 +132,7 @@ contains
     call malloc1DVar(z_PTempBasic)
     call malloc2DVar(xy_SurfPressA);  call malloc2DVar(xy_SurfPressN); call malloc2DVar(xy_SurfPressB);
 
-    call malloc3DVar(xyz_ConvectParam)
+    call malloc3DVar(xyz_ConvIndex)
 
     ! Variable used in applying the boundary condition at the surface. 
 
@@ -190,7 +192,7 @@ contains
        deallocate( xy_SurfTempFlux, xy_SeaSurfTemp )
        deallocate( xy_SurfSaltFlux, xy_SeaSurfSalt )
 
-       deallocate( xyz_ConvectParam )
+       deallocate( xyz_ConvIndex )
     end if
 
   end subroutine VariableSet_Final
@@ -208,38 +210,22 @@ contains
     ! 局所変数
     ! Local variables
     !
-    
+    integer :: j, k
     
     ! 実行文; Executable statement
     !
 
-    !$omp parallel
+    !$omp parallel workshare
+    xyz_UB(:,:,:) = xyz_UN; xyz_UN(:,:,:) = xyz_UA; xyz_UA(:,:,:) = 0d0
+    xyz_VB(:,:,:) = xyz_VN; xyz_VN(:,:,:) = xyz_VA; xyz_VA(:,:,:) = 0d0
+    xyz_PTempEddB(:,:,:) = xyz_PTempEddN; xyz_PTempEddN(:,:,:) = xyz_PTempEddA; xyz_PTempEddA(:,:,:) = 0d0
+    xyz_SaltB(:,:,:) = xyz_SaltN; xyz_SaltN(:,:,:) = xyz_SaltA; xyz_SaltA(:,:,:) = 0d0
+    !$omp end parallel workshare
 
-    !$omp workshare    
-    xyz_UB = xyz_UN; xyz_VB = xyz_VN; xyz_PTempEddB = xyz_PTempEddN; 
-    xyz_SaltB = xyz_SaltN; xy_SurfHeightB = xy_SurfHeightN;
-    xy_SurfPressB = xy_SurfPressN
-    !$omp end workshare
-
-    !$omp workshare
-    xyz_UN = xyz_UA; xyz_VN = xyz_VA; xyz_PTempEddN = xyz_PTempEddA; 
-    xyz_SaltN = xyz_SaltA; xy_SurfHeightN = xy_SurfHeightA    
-    xy_SurfPressN = xy_SurfPressA
-    !$omp end workshare
-
-    !$omp workshare
-    xyz_UA = 0d0; xyz_VA = 0d0; xyz_PTempEddA = 0d0
-    xyz_SaltA = 0d0; xy_SurfHeightA = 0d0
-    xy_SurfPressA = 0d0
-    !$omp end workshare
-
-!!$    xyz_UB = xyz_UN; xyz_UN = xyz_UA; xyz_UA = 0d0
-!!$    xyz_VB = xyz_VN; xyz_VN = xyz_VA; xyz_VA = 0d0
-!!$    xyz_PTempEddB = xyz_PTempEddN; xyz_PTempEddN = xyz_PTempEddA; xyz_PTempEddA = 0d0
-!!$    xyz_SaltB = xyz_SaltN; xyz_SaltN = xyz_SaltA; xyz_SaltA = 0d0
-!!$    xy_SurfHeightB = xy_SurfHeightN; xy_SurfHeightN = xy_SurfHeightA; xy_SurfHeightA = 0d0
-
-    !$omp end parallel
+    !$omp parallel workshare
+    xy_SurfHeightB(:,:) = xy_SurfHeightN; xy_SurfHeightN(:,:) = xy_SurfHeightA; xy_SurfHeightA(:,:) = 0d0
+    xy_SurfPressB(:,:) = xy_SurfPressN; xy_SurfPressN(:,:) = xy_SurfPressA; xy_SurfPressA(:,:) = 0d0
+    !$omp end parallel workshare
 
   end subroutine VariableSet_AdvanceTStep
 
