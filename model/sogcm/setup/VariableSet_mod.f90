@@ -69,7 +69,7 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_SeaSurfSalt(:,:), xy_SurfSaltFlux(:,:)
 
   real(DP), public, save, allocatable :: xyz_ConvIndex(:,:,:)
-
+  real(DP), public, save, allocatable :: xyz_VViscCoef(:,:,:), xyz_VDiffCoef(:,:,:)
 
   character(TOKEN), public, parameter :: VARSET_KEY_U  = 'U'
   character(TOKEN), public, parameter :: VARSET_KEY_UB = 'UB'
@@ -132,8 +132,10 @@ contains
     call malloc1DVar(z_PTempBasic)
     call malloc2DVar(xy_SurfPressA);  call malloc2DVar(xy_SurfPressN); call malloc2DVar(xy_SurfPressB);
 
+    call malloc3DVar(xyz_VViscCoef); call malloc3DVar(xyz_VDiffCoef)
+    
     call malloc3DVar(xyz_ConvIndex)
-
+    
     ! Variable used in applying the boundary condition at the surface. 
 
     call malloc2DVar(xy_WindStressU); call malloc2DVar(xy_WindStressV)
@@ -193,6 +195,7 @@ contains
        deallocate( xy_SurfSaltFlux, xy_SeaSurfSalt )
 
        deallocate( xyz_ConvIndex )
+       deallocate( xyz_VViscCoef, xyz_VDiffCoef )
     end if
 
   end subroutine VariableSet_Final

@@ -126,6 +126,8 @@ contains
   subroutine SGSConvAdjust_perform_1D( z_PTemp, z_Salt, &
        & z_Depth, isAdjustOccur )
 
+    use Constants_mod
+    
     ! 実行文; Executable statement
     ! 
     real(DP), dimension(0:kMax), intent(inout) :: z_PTemp, z_Salt

@@ -111,7 +111,19 @@ contains
 subroutine eval_EOS()  
 
   integer :: i,j,k
-  
+  real(DP) :: dens, dens_answer
+  real(DP), parameter :: acceptableError = 1d-08   ! The error relative to true value is less than 0.001%. 
+
+  ! test
+  !
+  dens = EOS_JM95_Eval(theta=3d0, s=35.5d0, p=300d0)
+  dens_answer = 1041.83267d0
+  call  AssertLessThan( &
+       &  message="Check EOS_JM95_Eval", &
+       &  answer=acceptableError, check= abs(dens-dens_answer)/dens_answer & 
+       & )
+
+  !
   do i=1,Nsal
      do j=1, Ntheta
         do k=1, Npress

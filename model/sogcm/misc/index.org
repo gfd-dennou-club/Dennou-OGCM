@@ -84,12 +84,13 @@
     - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131219_epasemi_ykawai/pub/][発表資料]])
     - Enderton, et al.(2009) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/140619_epasemi_ykawai/pub/][発表資料]])
     - Ferreira, et al.(2011) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/141106_epasemi_ykawai/pub/][発表資料]])
+    - Hu and Yang(2014) (発表資料)
 
 - 海氷モデリング
     - 海氷モデリングの基礎([[http://www.gfd-dennou.org/arch/prepri/2015/kobe-u/150115_epasemi_ykawai/pub/][発表資料]])
 
 * 海洋モデルミーティングログ
 
-#+CALL: create_MeetingLogTable("2014", "{2015-{02-18},01-21,2014-{12-17,11-17,07-16,06-26,05-28,04-23}}") :results value raw :exports results
+#+CALL: create_MeetingLogTable("2014", "{2015-{03-17,02-18},01-21,2014-{12-17,11-17,07-16,06-26,05-28,04-23}}") :results value raw :exports results
 
 #+CALL: create_MeetingLogTable("2013", "{2014-{03-28,02-19,01-15},2013-11-27}") :results value raw :exports results

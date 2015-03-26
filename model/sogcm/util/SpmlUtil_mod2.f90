@@ -81,6 +81,7 @@ module SpmlUtil_mod
 
   ! Procedures for the discritization of vertical differential or integrator with chebyshev spectral method
   public :: xyt_DSig_xyt, wt_DSig_wt, t_DSig_t, xyt_DSigDSig_xyt, wt_DSigDSig_wt
+  public :: xyz_DSig_xyz, xyz_DSigDSig_xyz
   public :: IntSig_BtmToTop, xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz, w_IntSig_BtmToTop_wz
 
   ! Procedures for the data conversion between real and spectral space with the spectral methods.
@@ -137,6 +138,8 @@ module SpmlUtil_mod
   integer :: lm      !< 
 
   real(DP), allocatable :: tr_vIntCoefMat(:,:)
+  real(DP), allocatable :: tr_vDeriv1CoefMat(:,:)
+  real(DP), allocatable :: tr_vDeriv2CoefMat(:,:)
   real(DP), allocatable :: vDiffProcInvMat(:,:)
 
   logical, save :: initalizedFlag = .false.
@@ -193,7 +196,7 @@ contains
     ! Allocate the memory of work variables in this module. 
     allocate(xy_CosLat(0:im-1,jm))
     xy_CosLat = cos(xy_Lat)
-    call construct_tr_vIntCoefMat()
+    call construct_VDerivateOptrMat()
     
     !
     call assign_IDRange(0, kMax+1, lkMin, lkMax)
@@ -943,31 +946,12 @@ contains
     end function xyt_DSig_xyt
 
     function xyt_DSigDSig_xyt(xyt)
-      !
-      ! 入力スペクトルデータに鉛直微分 ∂/sig を作用する.
-      !
-      ! スペクトルデータの動径微分とは, 対応する格子点データに動径微分を
-      ! 作用させたデータのスペクトル変換のことである.
-      !
+      
       real(8), dimension(0:im-1,jm,0:tm), intent(in) :: xyt
-      !(in) 2 次元球面調和函数チェビシェフスペクトルデータ
-
-      real(8), dimension(0:im-1,jm,0:tm)             :: xyt_DSigDSig_xyt
-      !(in) 動径微分された2 次元球面調和函数チェビシェフスペクトルデータ
-
-
       integer :: n
+      real(8), dimension(0:im-1,jm,0:tm) :: xyt_DSigDSig_xyt
+      
       real(DP) :: at_Work(im*jm, tm+1)
-
-!!$      at_Work = reshape(xyt, (/ im*jm, tm+1 /))
-!!$
-!!$      !$omp parallel do
-!!$      do n=1, nThread
-!!$         at_Work(lxyMin(n):lxyMax(n),:) = at_DSig_at(at_DSig_at(at_Work(lxyMin(n):lxyMax(n),:)))
-!!$      end do
-!!$
-!!$      xyt_DSigDSig_xyt = reshape(at_Work, shape(xyt_DSigDSig_xyt))
-
 
       xyt_DSigDSig_xyt(:,:,:) = reshape( &
            &         at_DSig_at(at_DSig_at( reshape(xyt, (/ im*jm, tm+1 /)) )), &
@@ -975,10 +959,46 @@ contains
 
     end function xyt_DSigDSig_xyt
 
+    function xyz_DSig_xyz(xyz)
+      real(8), dimension(0:im-1,jm,0:km), intent(in) :: xyz
+      real(8), dimension(0:im-1,jm,0:km) :: xyz_DSig_xyz
+
+      integer :: k, k2
+
+      xyz_DSig_xyz(:,:,:) = 0d0
+
+      !$omp parallel do private(k2)
+      do k=0, km
+         do k2=0, km
+            xyz_DSig_xyz(:,:,k) = xyz_DSig_xyz(:,:,k) + tr_vDeriv1CoefMat(k2,k)*xyz(:,:,k2)
+         end do
+      end do
+      
+    end function xyz_DSig_xyz
+    
+    function xyz_DSigDSig_xyz(xyz)
+      real(8), dimension(0:im-1,jm,0:km), intent(in) :: xyz
+      real(8), dimension(0:im-1,jm,0:km) :: xyz_DSigDSig_xyz
+
+      integer :: k, k2
+
+      xyz_DSigDSig_xyz(:,:,:) = 0d0
+
+      !$omp parallel do private(k2)
+      do k=0, km
+         do k2=0, km
+            xyz_DSigDSig_xyz(:,:,k) = xyz_DSigDSig_xyz(:,:,k) + tr_vDeriv2CoefMat(k2,k)*xyz(:,:,k2)
+         end do
+      end do
+      
+    end function xyz_DSigDSig_xyz
+    
     !--------------- 鉛直積分計算 -----------------
     
     function xy_IntSig_BtmToTop_xyz(xyz) result(xy_Int)
 
+      ! 宣言文; Declaration statement
+      !            
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
       real(8), dimension(0:im-1,1:jm) :: xy_Int
 
@@ -996,6 +1016,8 @@ contains
 
     function w_IntSig_BtmToTop_wz(wz) result(w_Int)
 
+      ! 宣言文; Declaration statement
+      !            
       real(8), dimension(lm,0:km), intent(in)   :: wz
       real(8), dimension(lm) :: w_Int
 
@@ -1011,20 +1033,18 @@ contains
 
     function xyz_IntSig_SigToTop_xyz(xyz) result(xyz_Int)
 
+      ! 宣言文; Declaration statement
+      !      
       real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
       real(8), dimension(0:im-1,1:jm,0:km) :: xyz_Int
-      
-      integer :: i, tr, ljm, k, k2
 
-!!$      !$omp parallel private(tr,i, ljm)
-!!$      tr = omp_get_thread_num() + 1
-!!$      ljm = ljMax(tr)-ljMin(tr)+1
-!!$
-!!$      do i=0, im-1
-!!$         xyz_Int(i,ljMin(tr):ljMax(tr),:) = matmul(xyz(i,ljMin(tr):ljMax(tr),:),tr_vIntCoefMat)
-!!$      end do
-!!$      !$omp end parallel
+      ! 局所変数
+      ! Local variables
+      !
+      integer :: k, k2 
 
+      ! 実行文; Executable statement
+      !      
       xyz_Int = 0d0
       !$omp parallel do private(k2)
       do k=0,km
@@ -1088,23 +1108,29 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
-    subroutine construct_tr_vIntCoefMat()
+    subroutine construct_VDerivateOptrMat
 
-      real(DP) :: tt_data(0:tm,0:tm)
+      !
+      real(DP) :: tt_I(0:tm,0:tm)
       real(DP) :: TMat(0:tm,0:km)
       real(DP) :: TIntMat(0:km,0:tm)
       real(DP) :: Sigk, theta, tl
       integer :: k, t, k2
 
+
+      !
+      
       allocate(tr_vIntCoefMat(0:km,0:km))
+      allocate(tr_vDeriv1CoefMat(0:km,0:km))
+      allocate(tr_vDeriv2CoefMat(0:km,0:km))
 
-      tt_data = 0d0
+      tt_I = 0d0
       do t=0, tm
-         tt_data(t,t) = 1d0
+         tt_I(t,t) = 1d0
       end do
-      TMat = transpose( at_az(tt_data) )
+      TMat = at_az(tt_I)
 
-
+      !
       do k=0, km
          theta = PI*k/dble(km)
          Sigk = cos(theta)
@@ -1121,9 +1147,13 @@ contains
 
      TIntMat = 0.5d0*(SigMax - SigMin) * TIntMat 
 
-     tr_vIntCoefMat = transpose( matmul(TIntMat, TMat) )
+     tr_vIntCoefMat = transpose( matmul(TIntMat, transpose(TMat)) )
 
-    end subroutine construct_tr_vIntCoefMat
+     !
+     tr_vDeriv1CoefMat = ( az_at(at_DSig_at(TMat)) )
+     tr_vDeriv2CoefMat = ( az_at(at_DSig_at(at_DSig_at(TMat))) )
+     
+   end subroutine construct_VDerivateOptrMat
 
 end module SpmlUtil_mod
 

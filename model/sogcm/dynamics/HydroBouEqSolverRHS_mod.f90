@@ -214,7 +214,7 @@ contains
   !!
   subroutine calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, &
        & wz_Vor, wz_Div, wz_PTemp, wz_Salt, &
-       & vViscTermCoef, vHyperViscTermCoef, vDiffTermCoef, vHyperDiffTermCoef, &
+       & xyz_VViscTermCoef, vHyperViscTermCoef, xyz_VDiffTermCoef, vHyperDiffTermCoef, &
        & isRHSReplace )
     
     !
@@ -226,7 +226,8 @@ contains
     !
     real(DP), intent(inout), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
     real(DP), intent(in), dimension(lMax,0:kMax) :: wz_Vor, wz_Div, wz_PTemp, wz_Salt
-    real(DP), intent(in) :: vViscTermCoef, vHyperViscTermCoef, vDiffTermCoef, vHyperDiffTermCoef
+    real(DP), intent(in) :: xyz_VViscTermCoef(0:iMax-1,jMax,0:kMax), vHyperViscTermCoef
+    real(DP), intent(in) :: xyz_VDiffTermCoef(0:iMax-1,jMax,0:kMax), vHyperDiffTermCoef
     logical, intent(in) :: isRHSReplace
 
     ! 局所変数
@@ -240,20 +241,20 @@ contains
 
     xyz_totDepth(:,:,:) = spread(xy_totDepthBasic, 3, kMax+1)
 
-    call calc_VDiffRHS(wz_VorRHS,                                    &  !(inout)
-         & wz_Vor, vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
+    call calc_VDiffRHS(wz_VorRHS,                                        &  !(inout)
+         & wz_Vor, xyz_vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
          & isRHSReplace=isRHSReplace )
 
-    call calc_VDiffRHS(wz_DivRHS,                                    &  !(inout)
-         & wz_Div, vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
+    call calc_VDiffRHS(wz_DivRHS,                                        &  !(inout)
+         & wz_Div, xyz_vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
          & isRHSReplace=isRHSReplace )
 
     call calc_VDiffRHS(wz_PTempRHS,                               &  !(inout)
-         & wz_PTemp, vDiffTermCoef, vHyperDiffTermCoef, xyz_totDepth,            &  !(in)
+         & wz_PTemp, xyz_vDiffTermCoef, vHyperDiffTermCoef, xyz_totDepth,   &  !(in)
          & isRHSReplace=isRHSReplace )
 
     call calc_VDiffRHS(wz_SaltRHS,                               &  !(inout)
-         & wz_Salt, vDiffTermCoef, vHyperDiffTermCoef, xyz_totDepth,            &  !(in)
+         & wz_Salt, xyz_vDiffTermCoef, vHyperDiffTermCoef, xyz_totDepth,     &  !(in)
          & isRHSReplace=isRHSReplace )
 
   end subroutine calc_HydroBouEqVViscRHS
@@ -296,9 +297,11 @@ contains
 
 
     xy_SinLat(:,:) = sin(xyz_Lat(:,:,0))
-    xyz_DSigUrf(:,:,:) = xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Urf)))
-    xyz_DSigVrf(:,:,:) = xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Vrf)))
-
+!!$    xyz_DSigUrf(:,:,:) = xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Urf)))
+!!$    xyz_DSigVrf(:,:,:) = xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Vrf)))
+    xyz_DSigUrf(:,:,:) = xyz_DSig_xyz(xyz_Urf)
+    xyz_DSigVrf(:,:,:) = xyz_DSig_xyz(xyz_Vrf)
+   
     !$omp parallel do private(w_GeoPot, xy_A, xy_B)
     do k=0, kMax
 
@@ -386,8 +389,8 @@ contains
   !> @brief 
   !!
   !!
-  subroutine calc_VDiffRHS(wz_RHSQuant,       & !(inout)
-       & wz_Quant, vDiffCoef, vHyperDiffCoef, & !(in)
+  subroutine calc_VDiffRHS(wz_RHSQuant,           & !(inout)
+       & wz_Quant, xyz_vDiffCoef, vHyperDiffCoef, & !(in)
        & xyz_totDepth, isRHSReplace           & !(in)
        & )
     
@@ -399,16 +402,17 @@ contains
     real(DP), intent(inout) :: wz_RHSQuant(lMax, 0:kMax)
     real(DP), intent(in) :: wz_Quant(lMax,0:kMax)
     real(DP), intent(in) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: vDiffCoef, vHyperDiffCoef
+    real(DP), intent(in) :: xyz_vDiffCoef(0:iMax-1,jMax,0:kMax), vHyperDiffCoef
     logical, optional, intent(in) :: isRHSReplace
     
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: t_QuantDIVDep2(0:tMax)
-    real(DP) :: t_QuantDIVDep4(0:tMax)
-    real(DP) :: xyz_Quant(0:iMax-1,jMax,0:kMax)
+!!$    real(DP) :: t_QuantDIVDep2(0:tMax)
+!!$    real(DP) :: t_QuantDIVDep4(0:tMax)
+!!$    real(DP) :: xyz_Quant(0:iMax-1,jMax,0:kMax)
     real(DP) :: xyz_VDiffTerm(0:iMax-1,jMax,0:kMax)
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_QuantDSig2, xyz_QuantDSig4
     integer :: i, j, k
 
     ! 実行文; Executable statement
@@ -418,27 +422,38 @@ contains
        wz_RHSQuant = 0d0
     end if
 
-    xyz_Quant = xyz_wz(wz_Quant)
-
-    !$omp parallel do private(i, t_QuantDIVDep2, t_QuantDIVDep4)
-    do j=1,jMax
-       do i=0, iMax-1
-          t_QuantDIVDep2(:) = t_g(xyz_Quant(i,j,:)/xyz_totDepth(i,j,:)**2)
-          t_QuantDIVDep4(:) = t_g(xyz_Quant(i,j,:)/xyz_totDepth(i,j,:)**4)
-
-          xyz_VDiffTerm(i,j,:) = g_t( &
-               &   t_Dx_t(t_Dx_t( &
-               &      vDiffCoef*t_QuantDIVDep2                      &
-               &    - vHyperDiffCoef*t_Dx_t(t_Dx_t(t_QuantDIVDep4)) &
-               &   )) &
-               & )
-       end do
-    end do
+    xyz_QuantDSig2(:,:,:) = xyz_DSigDSig_xyz(xyz_wz(wz_Quant))
+    xyz_QuantDSig4(:,:,:) = xyz_DSigDSig_xyz(xyz_QuantDSig2)
 
     !$omp parallel do
     do k=0, kMax
-       wz_RHSQuant(:,k) = wz_RHSQuant(:,k) + w_xy(xyz_VDiffTerm(:,:,k))
+       wz_RHSQuant(:,k) = w_xy( &
+            &   (   xyz_vDiffCoef(:,:,k)*xyz_QuantDSig2(:,:,k) &
+            &     - vHyperDiffCoef*xyz_QuantDSig4(:,:,k)/xyz_totDepth(:,:,k)**2 &
+            &   )/xyz_totDepth(:,:,k)**2 &
+            & )
     end do
+
+!!$    xyz_Quant = xyz_wz(wz_Quant)
+!!$    !$omp parallel do private(i, t_QuantDIVDep2, t_QuantDIVDep4)
+!!$    do j=1,jMax
+!!$       do i=0, iMax-1
+!!$          t_QuantDIVDep2(:) = t_g(xyz_Quant(i,j,:)/xyz_totDepth(i,j,:)**2)
+!!$          t_QuantDIVDep4(:) = t_g(xyz_Quant(i,j,:)/xyz_totDepth(i,j,:)**4)
+!!$
+!!$          xyz_VDiffTerm(i,j,:) = g_t( &
+!!$               &   t_Dx_t(t_Dx_t( &
+!!$               &      vDiffCoef*t_QuantDIVDep2                      &
+!!$               &    - vHyperDiffCoef*t_Dx_t(t_Dx_t(t_QuantDIVDep4)) &
+!!$               &   )) &
+!!$               & )
+!!$       end do
+!!$    end do
+!!$
+!!$    !$omp parallel do
+!!$    do k=0, kMax
+!!$       wz_RHSQuant(:,k) = wz_RHSQuant(:,k) + w_xy(xyz_VDiffTerm(:,:,k))
+!!$    end do
 
 
   end subroutine calc_VDiffRHS
@@ -455,8 +470,8 @@ contains
     integer :: k
     real(DP) :: xyz_DSigTracer(0:iMax-1,jMax,0:kMax)
 
-    xyz_DSigTracer = xyz_xyt(xyt_DSig_xyt(xyt_xyz(xyz_Tracer)))
-
+    xyz_DSigTracer(:,:,:) = xyz_DSig_xyz(xyz_Tracer)
+    
     !$omp parallel do
     do k=0, kMax
        wz_RHSTracer(:,k) =  &
@@ -464,6 +479,7 @@ contains
             & + w_xy(xyz_Tracer(:,:,k)*xyz_Div(:,:,k) - xyz_SigDot(:,:,k)*xyz_DSigTracer(:,:,k))
     end do
 
+    
 !!$    wz_RHSTracer =  &
 !!$         & - wz_AlphaOptr_xyz(xyz_Tracer*xyz_Urf, xyz_Tracer*xyz_Vrf) &
 !!$         & + wz_xyz(   xyz_Tracer*xyz_Div &

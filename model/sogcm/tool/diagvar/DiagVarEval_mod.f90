@@ -299,7 +299,7 @@ contains
     
     yz_MassStreamFunc = RPlanet*ya_IntLon_xya( &
          & xyz_IntSig_SigToTop_xyz( &
-         & - RefDens*xyz_V*spread(xy_totDepth, 3, kMax+1) ) &
+         & - RefDens*xyz_V*spread(cos(xyz_Lat(:,:,0))*xy_totDepth, 3, kMax+1) ) &
          & ) / OneSvUnit
 
   end function eval_MassStreamFunc

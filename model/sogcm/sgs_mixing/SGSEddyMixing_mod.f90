@@ -133,7 +133,7 @@ contains
 
     if(present(configNmlFileName)) call read_nmlData(configNmlFileName)
 
-    DFM08Flag = .true.
+    DFM08Flag = .false.
     allocate( &
          & DFM08Info%xy_BLD(0:iMax-1,jMax), DFM08Info%xy_TLT(0:iMax-1,jMax), &
          & DFM08Info%xy_Lamb(0:iMax-1,jMax) )
@@ -230,11 +230,13 @@ contains
             & 2d0/(2d0*Omega*sqrt(1d0 - xyz_CosLat(:,:,k)**2)) &
             & )
     end do
-!    xyz_T(:,:,:) = xyz_T(:,:,:)*TaperingFunc_LDD95(xyz_SLon, xyz_SLat, xyz_Depth, &
-!         & 2d0/(2d0*Omega*sqrt(1d0 - xyz_CosLat(:,:,0)**2)) )
-    call prepare_DFM08Info( &
-       & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth )
-    
+    xyz_T(:,:,:) = xyz_T(:,:,:)*TaperingFunc_LDD95(xyz_SLon, xyz_SLat, xyz_Depth, &
+         & 2d0/(2d0*Omega*sqrt(1d0 - xyz_CosLat(:,:,0)**2)) )
+
+    if(DFM08Flag) then
+       call prepare_DFM08Info( &
+            & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth )
+    end if
     
     call check_StaticStability(xyz_T, xyz_DensPot)
 
@@ -291,6 +293,7 @@ contains
 
       real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_FLon, xyz_FLat, xyz_FSig
 
+      
       ! 実行文; Executable statement
       !
 
@@ -298,6 +301,22 @@ contains
            & xyz_Tracer, wz_Tracer, xyz_SLon, xyz_SLat, xyz_T, xyz_Depth & ! (in)
            & )
 
+!!$      call calc_BolusVelocity( &
+!!$           & xyz_EddInducedU, xyz_EddInducedV, xyz_EddInducedW, & ! (out)
+!!$           & xyz_SLon, xyz_SLat, xyz_Depth, xyz_T      & ! (in)
+!!$           & )
+!!$      xyz_EddInducedW(:,:,0) = 0d0
+!!$      xyz_EddInducedW(:,:,kMax) = 0d0
+!!$      xyz_FLon = -xyz_EddInducedU*xyz_Tracer
+!!$      xyz_FLat = -xyz_EddInducedV*xyz_Tracer
+!!$      xyz_FSig = -xyz_EddInducedW*xyz_Tracer
+!!$
+!!$      wz_AdvTerm(:,:) = &
+!!$           &   wz_AlphaOptr_xyz(xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat) &
+!!$           & + wz_xyz( &
+!!$           &    xyz_Tracer*xyz_wz(wz_AlphaOptr_xyz(xyz_EddInducedU*xyz_CosLat, xyz_EddInducedV*xyz_CosLat)) &
+!!$           &  - xyz_EddInducedW*xyz_Dz_xyz(xyz_Tracer) &
+!!$           &   )
       wz_AdvTerm(:,:) = &
            &   wz_AlphaOptr_xyz( xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat ) &
            & + wz_xyz( xyz_Dz_xyz(xyz_FSig) )
@@ -379,11 +398,14 @@ contains
     xyz_DzT(:,:,:) = xyz_Dz_xyz(xyz_Tracer)
 
     !$omp parallel do
-    do k=0, kMax
+    do k=1, kMax-1
        xyz_PsiLon(:,:,k) = - Kappa_GM*xyz_T(:,:,k)*xyz_SLat(:,:,k)
        xyz_PsiLat(:,:,k) =   Kappa_GM*xyz_T(:,:,k)*xyz_SLon(:,:,k)       
     end do
 
+    xyz_PsiLat(:,:,0) = 0d0; xyz_PsiLon(:,:,0) = 0d0
+    xyz_PsiLat(:,:,kMax) = 0d0; xyz_PsiLon(:,:,kMax) = 0d0
+    
     if(DFM08Flag) then
        call TaperingDFM08_GM(xyz_PsiLon, xyz_PsiLat, &
             & DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb, xyz_Depth )
@@ -399,8 +421,6 @@ contains
             & )/RPlanet
     end do
 
-    xyz_FSig(:,:,0) = 0d0
-    xyz_FSig(:,:,kMax) = 0d0
 
   end subroutine calc_SkewFlux
 
@@ -537,11 +557,11 @@ contains
     real(DP), dimension(0:kMax)  :: z_DzDensPot, z_DzzDensPot
     real(DP) :: wt(2)
     real(DP) :: lamb, z, SlopeABS, ddzDensPot, ddzDensPotMax
-    integer :: k, DzMax_k
+    integer :: k, DzMax_k, minLocId(1)
     
     xyz_DzDensPot = xyz_Dz_xyz(xyz_DensPot)
     xyz_DzzDensPot = xyz_Dz_xyz(xyz_DzDensPot)
-    
+
     do j=1, jMax
        do i=0, iMax-1
 
@@ -564,7 +584,12 @@ contains
              if((z_DzDensPot(k) + ddzDensPotMax)*(z_DzDensPot(k-1) + ddzDensPotMax) <= 0d0) then
                 MLD_k = k; exit
              end if
-             if(k==kMax) MLD_k = 1
+             if(k==kMax) then
+                minLocId(:) = minloc(abs(z_DzzDensPot(:) + ddzDensPotMax))
+                MLD_k = minLocId(1)
+!!$                write(*,*) "j=", j, ": ddzDensPotMax=", ddzDensPotMax
+!!$                write(*,*) z_DzDensPot
+             end if
           end do
           wt(:) = abs(z_DzDensPot(MLD_k:MLD_k-1:-1) + ddzDensPotMax)/sum(abs(z_DzDensPot(MLD_k-1:MLD_k) + ddzDensPotMax)) 
 
@@ -587,7 +612,7 @@ contains
           wt(:) = abs(xyz_Depth(i,j,DLD_k:DLD_k-1:-1) + DLD)/sum(abs(xyz_Depth(i,j,DLD_k-1:DLD_k) + DLD))
 
           !
-          lamb = 100d100! abs( - sum(wt(:)*z_DzDensPot(DLD_k-1:DLD_k))/sum(wt(:)*z_DzzDensPot(DLD_k-1:DLD_k)) )
+          lamb = abs( - sum(wt(:)*z_DzDensPot(DLD_k-1:DLD_k))/sum(wt(:)*z_DzzDensPot(DLD_k-1:DLD_k)) )
 
           !
           DFM08Info%xy_BLD(i,j) = BLD; DFM08Info%xy_TLT(i,j) = TLT; 
@@ -728,7 +753,7 @@ contains
     ! 実行文; Executable statement
     !
 
-    xyz_DzDensPot(:,:,:) = xyz_Dz_xyz(xyz_DensPot)
+    xyz_DzDensPot(:,:,:) = xyz_Dz_xyz(xyz_DensPot, isUsedDF=.true.)
 
     !$omp parallel do private(w_DensPot)
     do k=0, kMax
@@ -739,15 +764,16 @@ contains
 
   end subroutine calc_IsoNeutralSlope
 
-  function xyz_Dz_xyz(xyz) 
+  function xyz_Dz_xyz(xyz, isUSedDF) 
 
     use VariableSet_mod
 
     ! 宣言文; Declaration statement
     !    
     real(DP), intent(in) :: xyz(0:iMax-1,jMax,0:kMax)
+    logical, intent(in), optional :: isUSedDF
     real(DP) :: xyz_Dz_xyz(0:iMax-1,jMax,0:kMax)
-
+    
     ! 局所変数
     ! Local variables
     !    
@@ -756,6 +782,9 @@ contains
 
     ! 実行文; Executable statement
     !
+
+!!$    if(present(isUsedDF) .and. isUsedDF) then
+    
     
     t(1:kMax-1) = g_Sig(0:kMax-2) - g_Sig(1:kMax-1)
     s(1:kMax-1) = g_Sig(1:kMax-1) - g_Sig(2:kMax)
@@ -771,6 +800,9 @@ contains
     xyz_Dz_xyz(:,:,kMax) = &
          & (xyz(:,:,kMax-1) - xyz(:,:,kMax))/(g_Sig(kMax-1) - g_Sig(kMax))/xy_totDepthBasic
 
+!!$ else
+!!$        xyz_Dz_xyz = xyz_DSig_xyz(xyz)/spread(xy_totDepthBasic,3,kMax+1)
+!!$     end if
   end function xyz_Dz_xyz
 
   subroutine calc_BolusVelocity( &
@@ -798,10 +830,13 @@ contains
 
 
     !$omp parallel do
-    do k=0, kMax
+    do k=1, kMax-1
        xyz_PsiLon(:,:,k) = - Kappa_GM*xyz_T(:,:,k)*xyz_SLat(:,:,k)
        xyz_PsiLat(:,:,k) =   Kappa_GM*xyz_T(:,:,k)*xyz_SLon(:,:,k)       
     end do
+
+    xyz_PsiLon(:,:,0) = 0d0; xyz_PsiLat(:,:,0) = 0d0    
+    xyz_PsiLon(:,:,kMax) = 0d0; xyz_PsiLat(:,:,kMax) = 0d0
 
     if(DFM08Flag) then
        call TaperingDFM08_GM(xyz_PsiLon, xyz_PsiLat, &
@@ -958,11 +993,14 @@ contains
             & 2d0/(2d0*Omega*abs(sin(xyz_Lat(:,:,k)))) &
             & )
     end do
-!!$    xyz_T(:,:,:) = xyz_T(:,:,:)*TaperingFunc_LDD95( xyz_SLon, xyz_SLat, xyz_Depth, &
-!!$         & 2d0/(2d0*Omega*abs(sin(xyz_Lat(:,:,0)))) )
-    call prepare_DFM08Info( &
-         & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth, &
-         & xyz_G )
+    xyz_T(:,:,:) = xyz_T(:,:,:)*TaperingFunc_LDD95( xyz_SLon, xyz_SLat, xyz_Depth, &
+         & 2d0/(2d0*Omega*abs(sin(xyz_Lat(:,:,0)))) )
+    xyz_G = 1d0
+    if(DFM08Flag) then
+       call prepare_DFM08Info( &
+            & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth, &
+            & xyz_G )
+    end if
     
     call check_StaticStability(xyz_T, xyz_DensPot)
 

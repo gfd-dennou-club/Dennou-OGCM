@@ -73,7 +73,7 @@ module HydroBoudEq_TimeInteg_mod
   use HydroBouEqSolverVImplProc_mod, only: &
        & HydroBouEqSolverVImplProc_Init, HydroBouEqSolverVImplProc_Final, &
        & HydroBouEqSolverVImplProc_Prepare, &
-       & Advance_VImplicitProc, Advance_VImplicitProc_DeltaForm
+       & Advance_VImplicitProc_DeltaForm
 
   ! 宣言文; Declareration statements
   !
@@ -166,7 +166,8 @@ contains
          & xy_SurfHeightB, xy_SurfHeightN, xy_SurfHeightA, &
          & xy_SurfPressB, xy_SurfPressN, xy_SurfPressA, &
          & xy_WindStressU, xy_WindStressV, xy_totDepthBasic, &
-         & xyz_SigDot, z_PTempBasic
+         & xyz_SigDot, z_PTempBasic, &
+         & xyz_VViscCoef, xyz_VDiffCoef
 
     ! 宣言文; Declaration statement
     !
@@ -248,7 +249,7 @@ contains
 
 
     call TemporalIntegUtil_SetDelTime(DelTime)
-
+    
     !
 
     !$omp parallel workshare
@@ -256,6 +257,12 @@ contains
     xy_SurfHeight(:,:) = xy_SurfHeightN; xy_SurfPress(:,:) = xy_SurfPressN;
     !$omp end parallel workshare
 
+    
+    call update_VViscDiffCoef( &
+         & xyz_UN, xyz_VN, xyz_PTempBasic+xyz_PTempEddN, xyz_SaltN &
+         & )
+    
+    
     !
     do Stage=1, nStage_BarocTimeInt
        
@@ -334,7 +341,8 @@ contains
           call replace_RHS_with_VBCTIntRHS( wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS )
           call timeInt_LFAM3(Stage)
        end select              !=====================================================================================
-       
+
+       !       
        call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, wz_Vor, wz_Div, wz_PTempEdd, wz_Salt )
        call apply_boundaryConditions2(wz_Vor, wz_Div, wz_PTempEdd, wz_Salt, &
             & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS )
@@ -402,19 +410,21 @@ contains
         !
         select case(tLvl)
            case('B')
-              call calc_HydroBouEqInvisRHS( &
-                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &                  ! (out)
-                   & xyz_Urf, xyz_Vrf, xyz_wz(wz_Vor), xyz_wz(wz_Div), xyz_wz(wz_PTempEdd), xyz_wz(wz_Salt),     &  ! (in)
-                   & xy_SurfHeight, xy_SurfPress, xy_totDepthBasic, z_PTempBasic,                                &  ! (in)
-                   & xyz_UrfCori, xyz_VrfCori &
-                   & )
+!!$              call calc_HydroBouEqInvisRHS( &
+!!$                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &                  ! (out)
+!!$                   & xyz_Urf, xyz_Vrf, xyz_wz(wz_Vor), xyz_wz(wz_Div), xyz_wz(wz_PTempEdd), xyz_wz(wz_Salt),     &  ! (in)
+!!$                   & xy_SurfHeight, xy_SurfPress, xy_totDepthBasic, z_PTempBasic,                                &  ! (in)
+!!$                   & xyz_UrfCori, xyz_VrfCori &
+!!$                   & )
+              stop
            case('N')
-              call calc_HydroBouEqInvisRHS( &
-                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &                  ! (out)
-                   & xyz_Urf, xyz_Vrf, xyz_wz(wz_Vor), xyz_wz(wz_Div), xyz_wz(wz_PTempEdd), xyz_wz(wz_Salt),    &  ! (in)
-                   & xy_SurfHeight, xy_SurfPress, xy_totDepthBasic, z_PTempBasic,                                &  ! (in)
-                   & xyz_UrfCori, xyz_VrfCori &
-                   & )
+!!$              call calc_HydroBouEqInvisRHS( &
+!!$                   & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &                  ! (out)
+!!$                   & xyz_Urf, xyz_Vrf, xyz_wz(wz_Vor), xyz_wz(wz_Div), xyz_wz(wz_PTempEdd), xyz_wz(wz_Salt),    &  ! (in)
+!!$                   & xy_SurfHeight, xy_SurfPress, xy_totDepthBasic, z_PTempBasic,                                &  ! (in)
+!!$                   & xyz_UrfCori, xyz_VrfCori &
+!!$                   & )
+              stop
            case default
               call calc_HydroBouEqInvisRHS( &
                    & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, w_SurfHeightRHS, &                  ! (out)
@@ -479,6 +489,8 @@ contains
            & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, & 
            & tLevel, vViscTermCoef, isRHSAppend)
 
+        !
+
         ! 宣言文; Declaration statement
         !
         real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
@@ -513,17 +525,17 @@ contains
         case('B')
            call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,              & ! (inout)  
                 & wz_VorB, wz_DivB, wz_xyz(xyz_PTempBasic/theta + xyz_PTempEddB), wz_SaltB,          & ! (in)
-                & theta*vViscCoef, theta*vHyperViscCoef, theta*vDiffCoef, theta*vHyperDiffCoef,      & ! (in)
+                & theta*xyz_VViscCoef, theta*vHyperViscCoef, theta*xyz_VDiffCoef, theta*vHyperDiffCoef,      & ! (in)
                 & isRHSReplace=isRHSReplace )     
         case('N')
            call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,          & ! (inout)  
                 & wz_VorN, wz_DivN, wz_xyz(xyz_PTempBasic/theta + xyz_PTempEddN), wz_SaltN,      & ! (in)
-                & theta*vViscCoef, theta*vHyperViscCoef, theta*vDiffCoef, theta*vHyperDiffCoef,  & ! (in)
+                & theta*xyz_VViscCoef, theta*vHyperViscCoef, theta*xyz_VDiffCoef, theta*vHyperDiffCoef,  & ! (in)
                 & isRHSReplace=isRHSReplace )     
         case default 
            call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,          & ! (inout)  
                 & wz_Vor, wz_Div, wz_xyz(xyz_PTempBasic/theta) + wz_PTempEdd, wz_Salt,           & ! (in)
-                & theta*vViscCoef, theta*vHyperViscCoef, theta*vDiffCoef, theta*vHyperDiffCoef,  & ! (in)
+                & theta*xyz_VViscCoef, theta*vHyperViscCoef, theta*xyz_VDiffCoef, theta*vHyperDiffCoef,  & ! (in)
                 & isRHSReplace=isRHSReplace )
         end select
 
@@ -688,7 +700,7 @@ contains
 
         call Advance_VImplicitProc_DeltaForm(wz_DVor, wz_DDiv, wz_DPTempEdd, wz_DSalt, xy_SurfPressA, &
              & wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, &
-             & xy_totDepthBasic+xy_SurfHeight,  &
+             & xyz_VViscCoef, xyz_VDiffCoef, xy_totDepthBasic+xy_SurfHeight,  &
              & DynBC_Surface, DynBC_Bottom, ThermBC_Surface, ThermBC_Bottom, SaltBC_Surface, SaltBC_Bottom &  !(in)
              & )
     
@@ -720,7 +732,7 @@ contains
          wz_Salt = timeIntRK( wz_SaltN, wz_SaltExplRHS, RKOrder,  RKStage, wz_SaltRHSTIntTmp )
          xy_SurfHeight = timeIntRK( xy_SurfHeightN, xy_w(w_SurfHeightExplRHS), RKOrder, RKStage, xy_SurfHeightRHSTIntTmp )
 
-         !
+          !
          call perform_adjustmentProcess(wz_PTempEdd, wz_Salt, &   ! (inout)
               & xy_SurfHeight)                                    ! (in)
          
@@ -834,17 +846,14 @@ contains
          ! Work variables
          !
          integer :: k
-         real(DP), dimension(lMax,0:kMax) :: wz_PTemp
 
          ! 実行文; Executable statement
          !
 
 
-         wz_PTemp(:,:) = wz_PTempEdd  + wz_xyz(xyz_PTempBasic)
-
          if(ThermBC_Surface == ThermBCTYPE_TempRelaxed) then
             wz_PTempRHS(:,1) =  wz_PTempRHS(:,1) &
-                 & - ( wz_PTemp(:,1) - w_xy(xy_SeaSurfTemp) )/SurfTempRelaxedTime
+                 & - ( wz_PTempEdd(:,1) - w_xy(xy_SeaSurfTemp-xyz_PTempBasic(:,:,0)) )/SurfTempRelaxedTime
          end if
 
          if(ThermBC_Bottom == ThermBCTYPE_TempRelaxed) then
@@ -863,10 +872,129 @@ contains
 
        end subroutine replace_RHS_with_VBCTIntRHS
 
+       subroutine update_VViscDiffCoef( &
+            & xyz_U, xyz_V, xyz_PTemp, xyz_Salt  )
+
+         use EOSDriver_mod, only: EOSDriver_Eval
+         
+         real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: xyz_U, xyz_V, xyz_PTemp, xyz_Salt
+
+         real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_DensPot, xyz_RefPress
+    
+!         xyz_VViscCoef(:,:,:) = vViscCoef; xyz_VDiffCoef(:,:,:) = vDiffCoef
+
+
+         xyz_RefPress = 0d0
+         call EOSDriver_Eval( rhoEdd=xyz_DensPot,               & ! (out)
+              & theta=xyz_PTemp, S=xyz_Salt, p=xyz_RefPress )     ! (in)
+
+         call calc_vViscDiffCoef_PP81( &
+              & xyz_VViscCoef, xyz_VDiffCoef,                    & !(out)
+              & xyz_U, xyz_V, xyz_DensPot, xy_totDepthBasic+xy_SurfHeight, & !(in)
+              & vViscCoef, vDiffCoef                                       & !(in)
+              & )
+
+       end subroutine update_VViscDiffCoef
   end subroutine HydroBouEqSolver_AdvanceTStep
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+
+  subroutine calc_vViscDiffCoef_PP81( &
+       & xyz_VViscCoef, xyz_VDiffCoef, &
+       & xyz_U, xyz_V, xyz_DensPot, xy_totDepth, vViscCoefBG, vDiffCoefBG )
+
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(out) :: xyz_VViscCoef, xyz_VDiffCoef
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: xyz_U, xyz_V, xyz_DensPot
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    real(DP), intent(in) :: vViscCoefBG, vDiffCoefBG
+
+    real(DP), parameter :: AvRic = 1d-2
+    real(DP), parameter :: a = 5d0
+    integer, parameter :: n = 2d0
+    
+
+    real(DP), dimension(0:iMax-1,jMax, 0:kMax) :: xyz_Ri
+    integer :: i, j, k
+
+    xyz_VViscCoef = vViscCoef
+    xyz_VDiffCoef = vDiffCoef
+    
+!!$    xyz_Ri(:,:,:) = diagnose_RicardsonNumber(xyz_U, xyz_V, xyz_DensPot, xy_totDepth)
+!!$    where(xyz_Ri < 0d0)
+!!$       xyz_Ri = 0d0
+!!$    end where
+!!$    
+!!$    !$omp parallel workshare
+!!$    xyz_VViscCoef(:,:,:) = 0d0*AvRic/(1d0 + a*xyz_Ri)**n + vViscCoefBG
+!!$    xyz_VDiffCoef(:,:,:) = 0d0*AvRic/(1d0 + a*xyz_Ri) + vDiffCoefBG
+!!$    !$omp end parallel workshare
+
+
+!!$    write(*,*) "=-------------"
+!!$    write(*,*) "Av:", xyz_VViscCoef(0,1:32,0)
+!!$    write(*,*) "MaxAv;", maxval(xyz_VViscCoef), maxloc(xyz_VViscCoef) 
+
+  end subroutine calc_vViscDiffCoef_PP81
+
+
+
+  function diagnose_RicardsonNumber(xyz_U, xyz_V, xyz_DensPot, xy_totDepth) result(xyz_Ri)
+
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: xyz_U, xyz_V, xyz_DensPot
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Ri, xyz_N2
+
+    
+    xyz_Ri(:,:,:) = ( &
+         &      -Grav/RefDens*xyz_Dz_xyz(xyz_DensPot)           &
+         &     /(xyz_Dz_xyz(xyz_U)**2 + xyz_Dz_xyz(xyz_V)**2) &
+         &   )
+
+!!$    xyz_N2 = -Grav/RefDens*xyz_Dz_xyz(xyz_DensPot)
+!!$    write(*,*) "=-------------"
+!!$    write(*,*) "Ri:", xyz_Ri(0,20,:)
+!!$    write(*,*) "N2:", xyz_N2(0,20,:)
+!!$    write(*,*) "(dUdz)^2:", xyz_N2(0,20,:)/xyz_Ri(0,20,:)
+!!$    write(*,*) "DensPot:", xyz_Denspot(0,20,:)
+!!$    write(*,*) 
+    
+  end function diagnose_RicardsonNumber
+
+   function xyz_Dz_xyz(xyz) 
+
+    use VariableSet_mod
+
+    ! 宣言文; Declaration statement
+    !    
+    real(DP), intent(in) :: xyz(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_Dz_xyz(0:iMax-1,jMax,0:kMax)
+
+    ! 局所変数
+    ! Local variables
+    !    
+    real(DP) :: s(0:kMax), t(0:kMax), xyt(0:iMax-1,jMax,0:tMax)
+    integer :: k
+
+    ! 実行文; Executable statement
+    !
+    
+    t(1:kMax-1) = g_Sig(0:kMax-2) - g_Sig(1:kMax-1)
+    s(1:kMax-1) = g_Sig(1:kMax-1) - g_Sig(2:kMax)
+
+    !$omp parallel do
+    do k=1,kMax-1
+       xyz_Dz_xyz(:,:,k) = &
+            & (s(k)**2*xyz(:,:,k-1) - (s(k)**2-t(k)**2)*xyz(:,:,k) - t(k)**2*xyz(:,:,k+1)) &
+            & /(s(k)*t(k)*(s(k) + t(k)))/xy_totDepthBasic
+    end do
+    xyz_Dz_xyz(:,:,0) = &
+         & (xyz(:,:,0) - xyz(:,:,1))/(g_Sig(0) - g_Sig(1))/xy_totDepthBasic
+    xyz_Dz_xyz(:,:,kMax) = &
+         & (xyz(:,:,kMax-1) - xyz(:,:,kMax))/(g_Sig(kMax-1) - g_Sig(kMax))/xy_totDepthBasic
+
+  end function xyz_Dz_xyz
+ 
   !> @brief 
   !!
   !!
@@ -881,7 +1009,8 @@ contains
          & xy_WindStressU, xy_WindStressV, &
          & xy_SeaSurfTemp, xy_SurfTempFlux, &
          & xy_SeaSurfSalt, xy_SurfSaltFlux, &
-         & xy_totDepthBasic, z_PTempBasic
+         & xy_totDepthBasic, z_PTempBasic, &
+         & xyz_VViscCoef, xyz_VDiffCoef
 
     use BoundCondSet_mod, only: &
          & SurfTempRelaxedTime, SurfSaltRelaxedTime
@@ -950,12 +1079,13 @@ contains
        case(ThermBCTYPE_TempFixed)
           wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp  - z_PTempBasic(0))
        case(ThermBCTYPE_TempRelaxed)
-          wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp - z_PTempBasic(0))
+          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
+          wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp - z_PTempBasic(0)) !-wz_PTempTmp(:,0) !
        end select
 
        select case(ThermBC_Bottom)
        case(ThermBCTYPE_Adiabat)
-          wz_PTempTmp = wz_wt(wt_DSig_wt(wt_xyz(xyz_PTempBasic)))
+          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
           wa_PTempEddBCRHS(:,2) = - wz_PTempTmp(:,kMax)
        case(ThermBCTYPE_FluxFixed)
        case(ThermBCTYPE_TempFixed)

@@ -39,7 +39,8 @@ module HydroBouEqSolverVImplProc_mod
   !
   public :: HydroBouEqSolverVImplProc_Init, HydroBouEqSolverVImplProc_Final
   public :: HydroBouEqSolverVImplProc_Prepare
-  public :: Advance_VImplicitProc, Advance_VImplicitProc_DeltaForm
+!!$  public :: Advance_VImplicitProc
+  public :: Advance_VImplicitProc_DeltaForm
 
   ! 非公開手続き
   ! Private procedure
@@ -118,6 +119,7 @@ contains
     do t=0, tMax
        tt_I(t,t) = 1d0
     end do
+    tt_I = at_ag(tt_I)
     gt_Mat = ag_at(tt_I)
     gt_DSig1Mat = ag_at( at_Dx_at(tt_I) )
     gt_DSig2Mat = ag_at( at_Dx_at(at_Dx_at(tt_I)) )
@@ -129,86 +131,86 @@ contains
   end subroutine HydroBouEqSolverVImplProc_Prepare
 
  
-  !> @brief 
-  !!
-  !!
-  subroutine Advance_VImplicitProc(wz_Vor, wz_Div, wz_PTempEdd, wz_Salt, xy_SurfPress, &
-    & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, xy_totDepth, &
-    & DynBCSurf, DynBCBottom, ThermBCSurf, ThermBCBottom, SaltBCSurf, SaltBCBottom )
-    
-    !
-    !
-
-use at_module_omp
-
-    ! 宣言文; Declaration statement
-    !
-    real(DP), dimension(lMax,0:kMax), intent(inout)  :: &
-         & wz_Vor, wz_Div, wz_PTempEdd, wz_Salt
-    real(DP), intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
-    real(DP), dimension(lMax,2), intent(in) :: &
-         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
-    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
-    integer, intent(in) :: DynBCSurf, DynBCBottom
-    integer, intent(in) :: ThermBCSurf, ThermBCBottom
-    integer, intent(in) :: SaltBCSurf, SaltBCBottom
-
-
-    ! 局所変数
-    ! Local variables
-    !
-    real(DP) :: xyz_RHSWork(0:iMax-1,jMax,0:kMax+1)
-
-    ! 実行文; Executable statement
-    !
-    
-    if(.not. isDifferentialMatInit) then
-       call MessageNotify('E', module_name, "HydroBouEqSolverVImplProc_Prepare has not been called.")
-    end if
-
-    !
-
-    !
-    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_Vor)
-    xyz_RHSWork(:,:,0) = xy_w(wa_VorBCRHS(:,1))
-    xyz_RHSWork(:,:,kMax) = xy_w(wa_VorBCRHS(:,2))
-
-    wz_Vor(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
-         & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
-         & vViscDiffTermCoef*vViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .false. )
-
-    !
-    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_Div)
-    xyz_RHSWork(:,:,0) = xy_w(wa_DivBCRHS(:,1))
-    xyz_RHSWork(:,:,kMax) = xy_w(wa_DivBCRHS(:,2))
-    xyz_RHSWork(:,:,kMax+1) = 0d0
-
-    wz_Div(:,:) = solve( xyz_RHSWork(:,:,0:kMax+1), &
-         & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
-         & vViscDiffTermCoef*vViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .true., xy_SurfPress )
-!!$       wt_Div(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
-!!$            & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
-!!$            & vViscDiffTermCoef*vViscCoef, vViscDiffTermCoef*vHyperViscCoef, .false. )
-
-
-    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_PTempEdd)
-    xyz_RHSWork(:,:,0) = xy_w(wa_PTempEddBCRHS(:,1))
-    xyz_RHSWork(:,:,kMax) = xy_w(wa_PTempEddBCRHS(:,2))
-
-    wz_PTempEdd(:,:) = solve( xyz_RHSWork(:,:,0:kMax), & 
-         & inquire_VBCSpecType(ThermBCSurf), inquire_VBCSpecType(ThermBCBottom), &
-         & vViscDiffTermCoef*vDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
-
-
-    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_Salt)
-    xyz_RHSWork(:,:,0) = xy_w(wa_SaltBCRHS(:,1))
-    xyz_RHSWork(:,:,kMax) = xy_w(wa_SaltBCRHS(:,2))
-
-    wz_Salt(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
-         & inquire_VBCSpecType(SaltBCSurf), inquire_VBCSpecType(SaltBCBottom), &
-         & vViscDiffTermCoef*vDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
-
-  end subroutine Advance_VImplicitProc
+!!$  !> @brief 
+!!$  !!
+!!$  !!
+!!$  subroutine Advance_VImplicitProc(wz_Vor, wz_Div, wz_PTempEdd, wz_Salt, xy_SurfPress, &
+!!$    & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, xy_totDepth, &
+!!$    & DynBCSurf, DynBCBottom, ThermBCSurf, ThermBCBottom, SaltBCSurf, SaltBCBottom )
+!!$    
+!!$    !
+!!$    !
+!!$
+!!$use at_module_omp
+!!$
+!!$    ! 宣言文; Declaration statement
+!!$    !
+!!$    real(DP), dimension(lMax,0:kMax), intent(inout)  :: &
+!!$         & wz_Vor, wz_Div, wz_PTempEdd, wz_Salt
+!!$    real(DP), intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
+!!$    real(DP), dimension(lMax,2), intent(in) :: &
+!!$         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
+!!$    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+!!$    integer, intent(in) :: DynBCSurf, DynBCBottom
+!!$    integer, intent(in) :: ThermBCSurf, ThermBCBottom
+!!$    integer, intent(in) :: SaltBCSurf, SaltBCBottom
+!!$
+!!$
+!!$    ! 局所変数
+!!$    ! Local variables
+!!$    !
+!!$    real(DP) :: xyz_RHSWork(0:iMax-1,jMax,0:kMax+1)
+!!$
+!!$    ! 実行文; Executable statement
+!!$    !
+!!$    
+!!$    if(.not. isDifferentialMatInit) then
+!!$       call MessageNotify('E', module_name, "HydroBouEqSolverVImplProc_Prepare has not been called.")
+!!$    end if
+!!$
+!!$    !
+!!$
+!!$    !
+!!$    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_Vor)
+!!$    xyz_RHSWork(:,:,0) = xy_w(wa_VorBCRHS(:,1))
+!!$    xyz_RHSWork(:,:,kMax) = xy_w(wa_VorBCRHS(:,2))
+!!$
+!!$    wz_Vor(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
+!!$         & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
+!!$         & vViscDiffTermCoef*vViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .false. )
+!!$
+!!$    !
+!!$    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_Div)
+!!$    xyz_RHSWork(:,:,0) = xy_w(wa_DivBCRHS(:,1))
+!!$    xyz_RHSWork(:,:,kMax) = xy_w(wa_DivBCRHS(:,2))
+!!$    xyz_RHSWork(:,:,kMax+1) = 0d0
+!!$
+!!$    wz_Div(:,:) = solve( xyz_RHSWork(:,:,0:kMax+1), &
+!!$         & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
+!!$         & vViscDiffTermCoef*vViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .true., xy_SurfPress )
+!!$ !      wt_Div(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
+!!$ !           & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
+!!$ !           & vViscDiffTermCoef*vViscCoef, vViscDiffTermCoef*vHyperViscCoef, .false. )
+!!$
+!!$
+!!$    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_PTempEdd)
+!!$    xyz_RHSWork(:,:,0) = xy_w(wa_PTempEddBCRHS(:,1))
+!!$    xyz_RHSWork(:,:,kMax) = xy_w(wa_PTempEddBCRHS(:,2))
+!!$
+!!$    wz_PTempEdd(:,:) = solve( xyz_RHSWork(:,:,0:kMax), & 
+!!$         & inquire_VBCSpecType(ThermBCSurf), inquire_VBCSpecType(ThermBCBottom), &
+!!$         & vViscDiffTermCoef*vDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
+!!$
+!!$
+!!$    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_Salt)
+!!$    xyz_RHSWork(:,:,0) = xy_w(wa_SaltBCRHS(:,1))
+!!$    xyz_RHSWork(:,:,kMax) = xy_w(wa_SaltBCRHS(:,2))
+!!$
+!!$    wz_Salt(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
+!!$         & inquire_VBCSpecType(SaltBCSurf), inquire_VBCSpecType(SaltBCBottom), &
+!!$         & vViscDiffTermCoef*vDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
+!!$
+!!$  end subroutine Advance_VImplicitProc
 
      
   !> @brief 
@@ -216,7 +218,7 @@ use at_module_omp
   !!
   subroutine Advance_VImplicitProc_DeltaForm(wz_DVor, wz_DDiv, wz_DPTempEdd, wz_DSalt, xy_SurfPress, &
        & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, &
-       & xy_totDepth, &
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_totDepth, &
        & DynBCSurf, DynBCBottom, ThermBCSurf, ThermBCBottom, SaltBCSurf, SaltBCBottom )
     
     !
@@ -231,6 +233,8 @@ use at_module_omp
     real(dp), intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
     real(DP), dimension(lMax,0:kMax), intent(inout) :: &
          & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: &
+         & xyz_VViscCoef, xyz_VDiffCoef
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     integer, intent(in) :: DynBCSurf, DynBCBottom
     integer, intent(in) :: ThermBCSurf, ThermBCBottom
@@ -269,40 +273,41 @@ use at_module_omp
     xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
     wz_DVor(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
          & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
-         & vViscDiffTermCoef*vViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .false. )
+         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .false. )
 
     !
     xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_DivRHS*dt)
     xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax:kMax+1) = 0d0;
     wz_DDiv(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
          & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
-         & vViscDiffTermCoef*vViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .false. )
+         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .false. )
 
     !
     xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_PTempRHS*dt)
     xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
     wz_DPTempEdd(:,:) = solve( xyz_RHSWork(:,:,0:kMax), & 
          & inquire_VBCSpecType(ThermBCSurf), inquire_VBCSpecType(ThermBCBottom), &
-         & vViscDiffTermCoef*vDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
+         & vViscDiffTermCoef*xyz_VDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
 
     !
     xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_SaltRHS*dt)
     xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
     wz_DSalt(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
          & inquire_VBCSpecType(SaltBCSurf), inquire_VBCSpecType(SaltBCBottom), &
-         & vViscDiffTermCoef*vDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
+         & vViscDiffTermCoef*xyz_VDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
 
   end subroutine Advance_VImplicitProc_DeltaForm
 
   function solve( &
-       & xyz_RHS, BCUpper, BCBottom, vDiffTermCoef, vHyperDiffTermCoef, xy_totDepth, isDivEq, &
+       & xyz_RHS, BCUpper, BCBottom, xyz_vDiffTermCoef, vHyperDiffTermCoef, xy_totDepth, isDivEq, &
        & xy_SurfPress) result(wz_ret)
 
     ! 宣言文; Declaration statement
     !
     real(DP), intent(in) :: xyz_RHS(0:,:,0:)
     character, intent(in) :: BCUpper, BCBottom
-    real(DP), intent(in) :: vDiffTermCoef, vHyperDiffTermCoef
+    real(DP), intent(in) :: xyz_vDiffTermCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: vHyperDiffTermCoef
     logical, intent(in) :: isDivEq
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     real(DP), optional, intent(inout) :: xy_SurfPress(0:iMax-1,jMax)    
@@ -323,14 +328,16 @@ use at_module_omp
     do j=1,jMax
        do i=0,iMax-1
           call constrct_VImplMat(gt_VImplMat,                                &  ! (out)
-               & dt, xy_totDepth(i,j), vDiffTermCoef, vHyperDiffCoef, BCUpper, BCBottom, isDivEq  & !(in)
+               & dt, xy_totDepth(i,j), xyz_vDiffTermCoef(i,j,:), vHyperDiffCoef, & ! (in)
+               & BCUpper, BCBottom, isDivEq                                      & ! (in)
                & )
 
           xyt_Tmp(i,j,:) = solve_LinearEq(gt_VImplMat(0:size(xyz_RHS,3)-1,0:size(xyz_RHS,3)-1), xyz_RHS(i,j,:))
        end do
     end do
 
-    wz_ret(:,:) = wz_wt(wt_xyt(xyt_Tmp(:,:,0:tMax)))
+!    wz_ret(:,:) = wz_wt(wt_xyt(xyt_Tmp(:,:,0:tMax)))
+    wz_ret(:,:) = wz_xyz(xyt_Tmp(:,:,0:tMax))
 
   end function solve
 
@@ -367,13 +374,13 @@ use at_module_omp
   end function solve_LinearEq
 
   subroutine constrct_VImplMat(gt_VImplMat, &
-       & dt, totDepth, vDiffTermCoef, vHyperDiffTermCoef, BCKindUpper, BCKindBottom, isDivEq )
+       & dt, totDepth, z_vDiffTermCoef, vHyperDiffTermCoef, BCKindUpper, BCKindBottom, isDivEq )
 
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: gt_VImplMat(0:kMax+1,0:tMax+1)
 
-    real(DP), intent(in) :: dt, totDepth, vDiffTermCoef, vHyperDiffTermCoef
+    real(DP), intent(in) :: dt, totDepth, z_vDiffTermCoef(0:kMax), vHyperDiffTermCoef
     character, intent(in) :: BCKindUpper, BCKindBottom
     logical, intent(in) :: isDivEq
 
@@ -390,7 +397,7 @@ use at_module_omp
        do t=0,tMax
           gt_VImplMat(k,t) = &
                &   gt_Mat(t,k) &
-               & - dt*vDiffTermCoef/totDepth**2 * gt_DSig2Mat(t,k) &
+               & - dt/totDepth**2 * dot_product(gt_DSig1Mat(t,:),z_vDiffTermCoef(:)*gt_DSig1Mat(:,k)) &
                & + dt*vHyperDiffTermCoef/totDepth**4 * gt_DSig4Mat(t,k)
        end do
     end do

@@ -101,7 +101,7 @@ contains
   
   pure function check_intfunc1_intBtmToTop() result(val)
     real(DP) :: val
-    val = sin(nMode*PI)
+    val = sin(nMode*PI)/(nMode*PI)
   end function check_intfunc1_intBtmToTop
 
   pure function eval_func1_intSigToTop(sig) result(val)
