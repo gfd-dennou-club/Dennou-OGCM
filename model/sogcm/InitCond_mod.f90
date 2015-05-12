@@ -15,7 +15,7 @@ module InitCond_mod
        & xyz_UN, xyz_VN, xyz_SigDot, &
        & xyz_PTempEddN, xy_SurfPressN, &
        & xy_WindStressU, xy_WindStressV, &
-       & xy_SeaSurfTemp, xy_SurfTempFlux, &
+       & xy_SeaSurfTemp, xy_SurfHeatFlux, &
        & xy_SeaSurfSalt, xy_SurfSaltFlux, &
        & xyz_ConvIndex
 
@@ -54,7 +54,7 @@ contains
     xy_SurfPressN = 0d0;
 
     xy_WindStressU = 0d0; xy_WindStressV = 0d0;
-    xy_SeaSurfTemp = 0d0; xy_SurfTempFlux = 0d0;
+    xy_SeaSurfTemp = 0d0; xy_SurfHeatFlux = 0d0;
     xy_SeaSurfSalt = 0d0; xy_SurfSaltFlux = 0d0;
 
     xyz_ConvIndex = 0d0

@@ -80,7 +80,7 @@ contains
 
     if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_CONVADJUST_NAME)) then
        call SGSConvAdjust_Init()
-!       call SGSSlowConvAdjust_Init(GCMTimeStep=DelTime)
+       call SGSSlowConvAdjust_Init(GCMTimeStep=DelTime)
     end if
   end subroutine PhysicsDriver_Init
 

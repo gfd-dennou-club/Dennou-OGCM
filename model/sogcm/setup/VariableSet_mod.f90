@@ -26,11 +26,11 @@ module VariableSet_mod
        & nLongTimeLevel
 
   use BoundCondSet_mod, only: &
-       & ThermBCTYPE_FluxFixed, ThermBCTYPE_Adiabat, &
-       & ThermBCTYPE_TempFixed, ThermBCTYPELBL_TempRelaxed, &
+       & ThermBCTYPE_PrescFlux, ThermBCTYPE_Adiabat, &
+       & ThermBCTYPE_PrescTemp, ThermBCTYPELBL_TempRelaxed, &
        & ThermBC_Surface, &
-       & SaltBCTYPE_FluxFixed, SaltBCTYPE_Adiabat, &
-       & SaltBCTYPE_SaltFixed, SaltBCTYPELBL_SaltRelaxed, &
+       & SaltBCTYPE_PrescFlux, SaltBCTYPE_Adiabat, &
+       & SaltBCTYPE_PrescSalt, SaltBCTYPELBL_SaltRelaxed, &
        & SaltBC_Surface
 
 
@@ -65,7 +65,7 @@ module VariableSet_mod
 
   real(DP), public, save, allocatable :: xy_WindStressU(:,:)
   real(DP), public, save, allocatable :: xy_WindStressV(:,:)
-  real(DP), public, save, allocatable :: xy_SeaSurfTemp(:,:), xy_SurfTempFlux(:,:)
+  real(DP), public, save, allocatable :: xy_SeaSurfAirTemp(:,:), xy_SeaSurfTemp(:,:), xy_SurfHeatFlux(:,:)
   real(DP), public, save, allocatable :: xy_SeaSurfSalt(:,:), xy_SurfSaltFlux(:,:)
 
   real(DP), public, save, allocatable :: xyz_ConvIndex(:,:,:)
@@ -139,7 +139,7 @@ contains
     ! Variable used in applying the boundary condition at the surface. 
 
     call malloc2DVar(xy_WindStressU); call malloc2DVar(xy_WindStressV)
-    call malloc2DVar(xy_SurfTempFlux); call malloc2DVar(xy_SeaSurfTemp)
+    call malloc2DVar(xy_SurfHeatFlux); call malloc2DVar(xy_SeaSurfTemp); call malloc2DVar(xy_SeaSurfAirTemp)
     call malloc2DVar(xy_SurfSaltFlux); call malloc2DVar(xy_SeaSurfSalt)
 
     !
@@ -191,7 +191,7 @@ contains
        deallocate( xy_totDepthBasic )
        deallocate( xy_SurfPressA, xy_SurfPressN, xy_SurfPressB )
        deallocate( xy_WindStressU, xy_WindStressV )
-       deallocate( xy_SurfTempFlux, xy_SeaSurfTemp )
+       deallocate( xy_SurfHeatFlux, xy_SeaSurfTemp, xy_SeaSurfAirTemp )
        deallocate( xy_SurfSaltFlux, xy_SeaSurfSalt )
 
        deallocate( xyz_ConvIndex )

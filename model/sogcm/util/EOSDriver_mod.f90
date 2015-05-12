@@ -129,7 +129,8 @@ contains
     
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: rhoEdd, theta, S, p
+    real(DP), intent(out) :: rhoEdd
+    real(DP), intent(in) :: theta, S, p
     
     ! 局所変数
     ! Local variables
@@ -145,7 +146,7 @@ contains
     case(EOSTYPE_SIMPLENONLINEAR)
        rhoEdd = EOS_SimpleNonLinear_Eval(theta, S, p)
     case(EOSTYPE_JM95)
-       rhoEdd = EOS_JM95_Eval(theta, S, p) - RefDens
+       rhoEdd = EOS_JM95_Eval(K2degC(theta), S, Pa2bar(p)) - RefDens
     end select
 
   end subroutine EOSDriver_Eval_element

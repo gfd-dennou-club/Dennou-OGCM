@@ -145,6 +145,11 @@ contains
     real(DP) :: A(kMax,0:kMax), B(kMax+1), Work(2*(kMax+1))
     integer :: info
 
+    integer :: r
+    real(DP) :: r_RefPress(1:kMax)
+    logical :: r_StaticStableFlag(1:kMax)
+    real(DP) :: DensPotPair(2)
+    
     ! 実行文; Executable statement
     !
 
@@ -152,7 +157,6 @@ contains
     z_PressRef = 0d0
 
     !
-
     A = 0d0; B = 0d0
     do k=1,kMax
        A(k,k-1:k) = 0.5d0
@@ -168,33 +172,89 @@ contains
          & theta=z_PTemp, S=z_Salt, p=z_PressRef    & ! (in)
          & )
 
+    r_StaticStableFlag(:) = .true.
+    do k_=1, kMax
+       r_RefPress(k_) = sum(z_LyrThick(0:k_-1))*RefDens*Grav
+       call EOSDriver_Eval(rhoEdd=DensPotPair(1), &
+            & theta=z_PTemp(k_-1), S=z_Salt(k_-1), p=r_RefPress(k_))
+       call EOSDriver_Eval(rhoEdd=DensPotPair(2), &
+            & theta=z_PTemp(k_), S=z_Salt(k_), p=r_RefPress(k_))
+
+       if(DensPotPair(1) > DensPotPair(2)) then
+          r_StaticStableFlag(k_) = .false.
+       end if
+    end do
+    
     !
     k_ = 0
     nItr = 0
     isColumnStable = .false.
     isAdjustOccur(:) = .false.
 
+    
     !
     do while(.not. isColumnStable)
        nItr = nItr + 1
 !write(*,*) "itr=", nItr, "*densPot:", z_DensPotEdd
        !
-       do k_=0,kMax-1
-          if(z_DensPotEdd(k_) > z_DensPotEdd(k_+1)) then
-             call mix_below1stUnstableLyr(z_DensPotEdd, k_)
+!!$       do k_=0,kMax-1
+!!$          if(z_DensPotEdd(k_) > z_DensPotEdd(k_+1)) then
+!!$             call mix_below1stUnstableLyr(z_DensPotEdd, k_)
+!!$             exit
+!!$          end if
+!!$          if(k_==kMax-1) then
+!!$             ! If k has reached kMax-1, the sea water column is stable, and exit this subroutine.
+!!$             isColumnStable = .true.
+!!$          end if
+!!$       end do
+!!$
+       do k_=1, kMax
+          if(.not. r_StaticStableFlag(k_)) then
+             call mix_UnstableLyr(k_)
              exit
           end if
-          if(k_==kMax-1) then
-             ! If k has reached kMax-1, the sea water column is stable, and exit this subroutine.
-             isColumnStable = .true.
-          end if
+          if(k_==kMax) isColumnStable = .true.
        end do
-
     end do
 
     !
     !
   contains
+    subroutine mix_UnstableLyr(k_)
+      integer, intent(in) :: k_
+      integer :: nLyrMix
+      real(DP) :: DensPotPair(2)
+      integer :: LyrLId, LyrUId, m
+
+      
+      nLyrMix = 1
+      do m=2, kMax-k_+2
+         LyrLId = k_-1
+         LyrUId = k_+m-2
+         nLyrMix = nLyrMix + 1
+
+         call vmixing_PTempAndSalt(z_PTemp(LyrLId:LyrUId), z_Salt(LyrLId:LyrUId), &
+              & z_LyrThick(LyrLId:LyrUId), nLyrMix )
+
+         if(LyrUId+1 /= kMax+1) then
+            call EOSDriver_Eval(rhoEdd=DensPotPair(:), &
+                 & theta=z_PTemp(LyrUId:LyrUId+1), S=z_Salt(LyrUId:LyrUId+1), p=spread(r_RefPress(k_+nLyrMix-1),1,2) )
+            if(DensPotPair(1) <= DensPotPair(2)) exit
+         end if
+      end do
+
+      r_StaticStableFlag(k_:k_+nLyrMix-2) = .true.
+      
+      if(LyrLId /= 0) then
+         call EOSDriver_Eval(rhoEdd=DensPotPair(:), &
+              & theta=z_PTemp(LyrLId-1:LyrLId), S=z_Salt(LyrLId-1:LyrLId), p=spread(r_RefPress(k_-1),1,2) )
+            if(DensPotPair(1) > DensPotPair(2)) r_StaticStableFlag(k_-1) = .false.
+      end if
+
+      isAdjustOccur(LyrLId:LyrUId) = .true.
+
+    end subroutine mix_UnstableLyr
+    
     subroutine mix_below1stUnstableLyr(z_DensPotEdd, k)
 
       real(DP), intent(inout) :: z_DensPotEdd(0:kMax)

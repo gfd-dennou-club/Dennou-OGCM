@@ -223,7 +223,9 @@ contains
     
     !
     !
-
+    use Constants_mod, only: Cp0, RefDens
+    use VariableSet_mod, only: xy_SurfSaltFlux
+    
 use at_module_omp
 
     ! 宣言文; Declaration statement
@@ -247,6 +249,7 @@ use at_module_omp
     real(DP), dimension(0:iMax-1,jMax,0:kMax) :: &
          & xyz_UrfRHS, xyz_VrfRHS, xyz_fCoef
     real(DP) :: xyz_RHSWork(0:iMax-1,jMax,0:kMax+1)
+    real(DP), dimension(2,0:iMax-1,jMax) :: axy_RobinBCUpCoef, axy_RobinBCBtmCoef
     
     ! 実行文; Executable statement
     !
@@ -269,48 +272,74 @@ use at_module_omp
 !!$    call invert_CoriTermOptr(wz_DivRHS, wz_VorRHS)    
 
     !
+    call set_RobinBCCoef(axy_RobinBCUpCoef, inquire_VBCSpecType(DynBCSurf))
+    call set_RobinBCCoef(axy_RobinBCBtmCoef, inquire_VBCSpecType(DynBCBottom))
+
     xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_VorRHS*dt)
     xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
     wz_DVor(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
-         & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
-         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .false. )
+         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, &
+         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef )
 
     !
     xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_DivRHS*dt)
     xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax:kMax+1) = 0d0;
     wz_DDiv(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
-         & inquire_VBCSpecType(DynBCSurf), inquire_VBCSpecType(DynBCBottom), &
-         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, .false. )
+         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, &
+         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef )
 
+    
     !
+    !
+!!$    axy_RobinBCUpCoef(1,:,:) = 0d0!vDiffCoef/xy_totDepth
+!!$    axy_RobinBCUpCoef(2,:,:) = 1d0!40d0/(RefDens*Cp0)
+    call set_RobinBCCoef(axy_RobinBCUpCoef, inquire_VBCSpecType(ThermBCSurf))        
+    call set_RobinBCCoef(axy_RobinBCBtmCoef, inquire_VBCSpecType(ThermBCBottom))    
     xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_PTempRHS*dt)
     xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
+
     wz_DPTempEdd(:,:) = solve( xyz_RHSWork(:,:,0:kMax), & 
-         & inquire_VBCSpecType(ThermBCSurf), inquire_VBCSpecType(ThermBCBottom), &
-         & vViscDiffTermCoef*xyz_VDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
+         & vViscDiffTermCoef*xyz_VDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, &
+         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef  )
 
     !
+!!$    axy_RobinBCUpCoef(1,:,:) = vDiffCoef/xy_totDepth
+!!$    axy_RobinBCUpCoef(2,:,:) = 0d0!(27.7d0*1d-3/86400d0)*35d0
+    call set_RobinBCCoef(axy_RobinBCUpCoef, inquire_VBCSpecType(SaltBCSurf))            
+    call set_RobinBCCoef(axy_RobinBCBtmCoef, inquire_VBCSpecType(SaltBCBottom))        
     xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_SaltRHS*dt)
     xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
     wz_DSalt(:,:) = solve( xyz_RHSWork(:,:,0:kMax), &
-         & inquire_VBCSpecType(SaltBCSurf), inquire_VBCSpecType(SaltBCBottom), &
-         & vViscDiffTermCoef*xyz_VDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, .false. )
+         & vViscDiffTermCoef*xyz_VDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, &
+         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef )
 
   end subroutine Advance_VImplicitProc_DeltaForm
 
+  subroutine set_RobinBCCoef(axy_RobinBCCoef, BCType)
+    real(DP), intent(inout) :: axy_RobinBCCoef(2,0:iMax-1,jMax)
+    character :: BCType
+
+    select case(BCType)
+    case ('D')
+       axy_RobinBCCoef(1,:,:) = 0d0;  axy_RobinBCCoef(2,:,:) = 1d0;
+    case ('N')
+       axy_RobinBCCoef(1,:,:) = 1d0;  axy_RobinBCCoef(2,:,:) = 0d0;
+    end select
+  end subroutine set_RobinBCCoef
+  
   function solve( &
-       & xyz_RHS, BCUpper, BCBottom, xyz_vDiffTermCoef, vHyperDiffTermCoef, xy_totDepth, isDivEq, &
-       & xy_SurfPress) result(wz_ret)
+       & xyz_RHS, xyz_vDiffTermCoef, vHyperDiffTermCoef, xy_totDepth, isDivEq, &
+       & axy_RobinBCUpCoef, axy_RobinBCBtmCoef, xy_SurfPress) result(wz_ret)
 
     ! 宣言文; Declaration statement
     !
     real(DP), intent(in) :: xyz_RHS(0:,:,0:)
-    character, intent(in) :: BCUpper, BCBottom
     real(DP), intent(in) :: xyz_vDiffTermCoef(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: vHyperDiffTermCoef
     logical, intent(in) :: isDivEq
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
-    real(DP), optional, intent(inout) :: xy_SurfPress(0:iMax-1,jMax)    
+    real(DP), intent(in), dimension(2,0:iMax-1,jMax) :: axy_RobinBCUpCoef, axy_RobinBCBtmCoef
+    real(DP), optional, intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
     real(DP) :: wz_ret(lMax,0:kMax)
 
 
@@ -329,7 +358,7 @@ use at_module_omp
        do i=0,iMax-1
           call constrct_VImplMat(gt_VImplMat,                                &  ! (out)
                & dt, xy_totDepth(i,j), xyz_vDiffTermCoef(i,j,:), vHyperDiffCoef, & ! (in)
-               & BCUpper, BCBottom, isDivEq                                      & ! (in)
+               & isDivEq, axy_RobinBCUpCoef(:,i,j), axy_RobinBCBtmCoef(:,i,j)    & ! (in)
                & )
 
           xyt_Tmp(i,j,:) = solve_LinearEq(gt_VImplMat(0:size(xyz_RHS,3)-1,0:size(xyz_RHS,3)-1), xyz_RHS(i,j,:))
@@ -374,15 +403,15 @@ use at_module_omp
   end function solve_LinearEq
 
   subroutine constrct_VImplMat(gt_VImplMat, &
-       & dt, totDepth, z_vDiffTermCoef, vHyperDiffTermCoef, BCKindUpper, BCKindBottom, isDivEq )
+       & dt, totDepth, z_vDiffTermCoef, vHyperDiffTermCoef, &
+       & isDivEq, RobinBCUpCoef, RobinBCBtmCoef )
 
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: gt_VImplMat(0:kMax+1,0:tMax+1)
-
     real(DP), intent(in) :: dt, totDepth, z_vDiffTermCoef(0:kMax), vHyperDiffTermCoef
-    character, intent(in) :: BCKindUpper, BCKindBottom
     logical, intent(in) :: isDivEq
+    real(DP), optional, intent(in) :: RobinBCUpCoef(2), RobinBCBtmCoef(2)
 
     ! 局所変数
     ! Local variables
@@ -402,19 +431,11 @@ use at_module_omp
        end do
     end do
 
-    select case(BCKindUpper)
-       case ('N') 
-          gt_VImplMat(0,0:tMax) = gt_DSig1Mat(:,0)
-       case ('D')
-          gt_VImplMat(0,0:tMax) = gt_Mat(:,0)
-    end select
+    gt_VImplMat(0,0:tMax) = &
+         & RobinBCUpCoef(1)*gt_DSig1Mat(:,0) + RobinBCUpCoef(2)*gt_Mat(:,0)
 
-    select case(BCKindBottom)
-       case ('N') 
-          gt_VImplMat(kMax,0:tMax) = gt_DSig1Mat(:,kMax)
-       case ('D')
-          gt_VImplMat(kMax,0:tMax) = gt_Mat(:,kMax)
-    end select
+    gt_VImplMat(kMax,0:tMax) = &
+         & RobinBCBtmCoef(1)*gt_DSig1Mat(:,kMax) + RobinBCBtmCoef(2)*gt_Mat(:,kMax)
     
     if(isDivEq) then
        gt_VImplMat(1:kMax-1,tMax+1) = dt

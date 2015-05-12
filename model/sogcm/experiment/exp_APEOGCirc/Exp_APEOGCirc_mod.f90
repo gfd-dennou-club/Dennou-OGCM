@@ -20,6 +20,8 @@ module Exp_APEOGCirc_mod
          & iMax, jMax, kMax, nMax, lMax, &
          & xyz_Lat, xyz_Lon
 
+  use SpmlUtil_mod
+  
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -97,11 +99,12 @@ contains
 
     integer :: i, j, m
     real(DP) :: TempAvg
-    real(DP) :: z_PTemp(0:kMax)
+    real(DP) :: z_PTemp(0:kMax),  z_Salt(0:kMax)
     real(DP) :: w(lMax)
 
     real(DP), parameter :: ICELAT = 55d0/180d0*PI
     real(DP), parameter :: TRANSITION_LATWIDTH = 5d0/180d0*PI
+    real(DP) :: depth
     
     ! 実行文; Executable statement
     !
@@ -116,28 +119,36 @@ contains
 !!$    xy_WindStressU = construct_WindStressU_analysticFunc()
     xy_WindStressV = 0d0
 
-    write(*,*) 'total angular momentum=', AvrLonLat_xy( xy_WindStressU*cos(xyz_Lat(:,:,0)) )
 
     do k=0, kMax
-       z_PTempBasic(k) = eval_PTempBasic(g_Sig(k))
+       z_PTempBasic(k) = eval_PTempBasic(g_Sig(k)) !-2d0
+       z_Salt(k) = eval_SaltBasic(g_Sig(k))
     end do
     xy_SeaSurfTemp = eval_SSTref(xyz_Lat(:,:,0))
+    xy_SurfHeatFlux = eval_SurfHeatFlux(xyz_Lat(:,:,0))
     xy_SeaSurfSalt = eval_SSSalref(xyz_Lat(:,:,0))
+    xy_SurfSaltFlux = eval_SurfSaltFlux(xyz_Lat(:,:,0))
+
 
     do k=0, kMax
        xyz_PTempEddN(:,:,k) = 0d0
-       xyz_SaltN(:,:,k) = eval_SaltBasic(g_Sig(k))
+       xyz_SaltN(:,:,k) = z_Salt(k)
     end do
 
     xyz_SaltN(:,:,0) = xy_SeaSurfSalt
     xyz_PTempEddN(:,:,0) = xy_SeaSurfTemp - z_PTempBasic(0)
-    
+
     ! Consider the insulation effect due to sea ice.
-    xy_WindStressU = xy_WindStressU &
-         & *0.5d0*(1d0 + tanh(  (xyz_Lat(:,:,0) + ICELAT)/TRANSITION_LATWIDTH )) &
-         & *0.5d0*(1d0 - tanh(  (xyz_Lat(:,:,0) - ICELAT)/TRANSITION_LATWIDTH ))
+!!$    xy_WindStressU = xy_WindStressU &
+!!$         & *0.5d0*(1d0 + tanh(  (xyz_Lat(:,:,0) + ICELAT)/TRANSITION_LATWIDTH )) &
+!!$         & *0.5d0*(1d0 - tanh(  (xyz_Lat(:,:,0) - ICELAT)/TRANSITION_LATWIDTH ))
          
-         
+
+    write(*,*) 'total angular momentum=', AvrLonLat_xy( xy_WindStressU*cos(xyz_Lat(:,:,0)) )
+    write(*,*) 'avg net heat flux', AvrLonLat_xy( xy_SurfHeatFlux ), "[W/m2]"    
+    write(*,*) 'avg freshWater flux', AvrLonLat_xy( xy_SurfSaltFlux )*86400d0*1000d0, "[mm/day]"
+
+    
 !!$write(*,*) "-- WindStressU ------------"
 !!$w = w_xy(xy_WindStressU*cos(xy_lat))
 !!$do m=1, lMax
@@ -268,11 +279,11 @@ write(*,*) xy(1,1:jMax)
 !!$         & -0.00669052658301952, 0.0754931613076543 /)
 
       real(DP), parameter :: coef(0:16) = &
-           & (/10.4846470707141,16.9201129948892,3.31991522711242,-3.16955938828512,-1.63768403660208, &
-           &   0.863620980400173,0.386516363671378,-0.816212922451911,-0.452732941210521,0.382928080805639, &
-           &   0.260242933015325, -0.224268160063797,-0.145705858536682,0.156479835076032,0.1277242642053, &
-           &  -0.0845844499969591,-0.141700597749938 /)
-      
+           & (/10.6435444110813,17.2847917338434,3.21122139519528,-3.62524005301091,-1.76668382565106, &
+           & 0.943112720633994,0.431533266627803,-0.701462999385676,-0.248473818232278,0.429577844513523, &
+           & 0.115731085734234, -0.226470790580922,0.00375548886092566,0.146927367241713,-0.0740193477114944, &
+           & -0.132270924506267,0.0347574438535314 /)
+
       integer :: m
 
       xy_SSTref = 0d0
@@ -284,6 +295,55 @@ write(*,*) xy(1,1:jMax)
 
     end function eval_SSTref
 
+    function eval_SurfHeatFlux(xy_lat) result(xy_flux)
+      
+      use UnitConversion_mod, only: degC2K
+
+      real(DP), intent(in) :: xy_lat(0:iMax-1,jMax)
+      real(DP) :: xy_flux(0:iMax-1,jMax)
+
+      real(DP), parameter :: coef(0:16) = &
+           (/3.33713133170955,-13.3797268808912,-22.3594729003247,-20.4493345982933,-16.275944402452, &
+           & -11.4613921574136,-4.37240400313909,-1.83687479353307,-3.72265252261965,-2.71759599662067, &
+           & -0.241231040511238, 0.00723912752752596,-0.242404003257023,0.484836607999407,0.513491931700212, &
+           & 0.364142605441467,0.858051582481175 /)
+
+      integer :: m
+
+      xy_flux = 0d0
+      do m=0, 16
+         xy_flux = xy_flux + coef(m)*cos(2d0*m*xy_lat)
+      end do
+
+      xy_flux = xy_flux - AvrLonLat_xy(xy_flux)
+
+    end function eval_SurfHeatFlux
+
+    function eval_SurfSaltFlux(xy_lat) result(xy_flux)
+      
+      use UnitConversion_mod, only: degC2K
+
+      real(DP), intent(in) :: xy_lat(0:iMax-1,jMax)
+      real(DP) :: xy_flux(0:iMax-1,jMax)
+
+      real(DP), parameter :: coef(0:16) = &
+           & (/-0.225418406793706,0.978329429699937,0.313623927883297,-1.12506473607188,-1.03910349943007, &
+           & -0.254647663381689,-0.0269479246985595,-0.0643349005499737,0.0663980578173322,0.119725702476315, &
+           & 0.108615057652722, 0.146697447085433,0.130829853079252,0.0498252418729739,0.0152505737017472, &
+           & 0.0411828076911684,0.063528334183836 /)
+
+      integer :: m
+
+      xy_flux = 0d0
+      do m=0, 16
+         xy_flux = xy_flux + coef(m)*cos(2d0*m*xy_lat)
+      end do
+
+      xy_flux = xy_flux - AvrLonLat_xy(xy_flux)      
+      xy_flux = xy_flux *1d-3/86400d0
+
+    end function eval_SurfSaltFlux
+    
     function eval_SSSalref(xy_lat) result(xy_SSSalref)
       
       real(DP), intent(in) :: xy_lat(0:iMax-1,jMax)
@@ -297,17 +357,17 @@ write(*,*) xy(1,1:jMax)
 
 
       real(DP), parameter :: coef(0:16) = &
-           & (/ 34.7193371658508,1.03140464190159,0.185017553103083,-0.516815286313809,-0.277883576531944, &
-           &    0.130745435976909, 0.178118776351552, 0.0437025153892307,-0.026722909710127,0.00132566814111667, &
-           &    0.020196052256281,0.00884167566036886, -0.0063256680879711, -0.0193570342463816, -0.015857276242817, &
-           &    0.00279995594308569,0.0106294819854725 /)
+           & (/34.7637464489794,1.051234697145,0.14236961978175,-0.619301930415567,-0.269350521029104, &
+           & 0.173395861002524,0.203604009069993,0.0695294147072904,-0.0180873718247458,-0.0330484535144368, &
+           & -0.00905946324146973,-0.0162817975967151,-0.00750710204111945,0.00760675898215889,0.00916853734527952, &
+           & -0.00346164327996474,-0.0100834132695167 /)
 
+!!$           (/34.7825375509604,1.03842433663076,0.0883273377454709,-0.520140557430786,-0.315009600760316, &
+!!$           & 0.127365359039471,0.250630657680549,0.0877657409636654,-0.0466327816722313,-0.04174176874417,-&
+!!$           & 0.00177200676103769,-0.000567452261260674,-0.0115915645347134,-0.00438358376247672,0.00866997545821757, &
+!!$           & 0.00332368662059798,-0.0064656444960895 /)
       
-!!$           & (/     34.8739898858289,      0.93479973040681,    0.146142308577052,   -0.655998201079069, &
-!!$           &      -0.258239251494549,     0.181498630620586,     0.18964643832445,   0.0406602840460617, &
-!!$           &     -0.0425891529034616,   -0.0457575494355511,  -0.0164201824359261, -0.00879566672699608, &
-!!$           &     0.00297977165778247,   0.00390695222130102, -0.00411614450437732, -0.00551689779206387,  -0.000232280628627581 /)
-
+!!$      
 
       
       

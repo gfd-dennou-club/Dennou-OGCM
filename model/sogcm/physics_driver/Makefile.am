@@ -21,6 +21,7 @@ CLEANFILES = *$(MODEXT)
 
 noinst_LTLIBRARIES= libDSOGCMPhysicsDriver.la 
 nodist_libDSOGCMPhysicsDriver_la_SOURCES= \
+	../sgs_mixing/SGSEddyMixingHelper_mod.f90 \
 	../sgs_mixing/SGSEddyMixing_mod.f90 \
 	../sgs_mixing/SGSConvAdjust_mod.f90 \
 	../sgs_mixing/SGSSlowConvAdjust_mod.f90 \

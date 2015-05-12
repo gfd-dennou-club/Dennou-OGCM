@@ -105,7 +105,7 @@ contains
   !!
   subroutine SGSSlowConvAdjust_perform_GCMDriver( &
        & xyz_PTemp, xyz_Salt, xy_totDepth, &
-       & xy_isAdjustOccur )
+       & xyz_isAdjustOccur )
 
     !
     use SpmlUtil_mod, only: g_Sig
@@ -115,7 +115,7 @@ contains
     real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: &
          & xyz_PTemp, xyz_Salt
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
-    logical, intent(out) :: xy_isAdjustOccur(0:iMax-1,jMax)
+    logical, intent(out) :: xyz_isAdjustOccur(0:iMax-1,jMax,0:kMax)
 
     ! 局所変数
     ! Local variables
@@ -130,13 +130,14 @@ contains
     !$omp parallel do private(i, z_PTemp, z_Salt, z_Depth)
     do j=1,jMax
        do i=0,iMax-1
+
           z_PTemp(:) = xyz_PTemp(i,j,:)
           z_Salt(:) = xyz_Salt(i,j,:)
           z_Depth(:) = xy_totDepth(i,j)*g_Sig(:)
 
           call SGSSlowConvAdjust_perform(z_PTemp, z_Salt, & !(inout)
                & z_Depth,                             & !(in)
-               & xy_isAdjustOccur(i,j) )
+               & xyz_isAdjustOccur(i,j,:) )
 
           xyz_PTemp(i,j,:) = z_PTemp(:)
           xyz_Salt(i,j,:) = z_Salt(:)
@@ -154,12 +155,15 @@ contains
     ! 
     real(DP), dimension(0:kMax), intent(inout) :: z_PTemp, z_Salt
     real(DP), dimension(0:kMax), intent(out) :: z_Depth
-    logical, intent(out) :: isAdjustOccur
+    logical, intent(out) :: isAdjustOccur(0:kMax)
 
     ! 局所変数
     ! Local variables
     !
     real(DP), dimension(0:kMax) :: z_DensPotEdd, z_PressRef, z_LyrThick
+
+    real(DP) :: A(kMax,0:kMax), B(kMax+1), Work(2*(kMax+1))
+    integer :: info
     
     integer :: nLayer
     integer :: k_, k, n_, n, N_homo
@@ -173,12 +177,19 @@ contains
     z_PressRef = 0d0
 
     !
-    z_LyrThick(0) = z_Depth(0) - z_Depth(1)
-    z_LyrThick(kMax) = z_Depth(kMax-1) - z_Depth(kMax)
-    do k=1,kMax-1
-       z_LyrThick(k) = 0.5d0*(z_Depth(k-1)-z_Depth(k+1))
+    !
+    A = 0d0; B = 0d0
+    do k=1,kMax
+       A(k,k-1:k) = 0.5d0
+       B(k) = z_Depth(k-1) - z_Depth(k) !g_Sig(k-1) - g_Sig(k)
     end do
+    A(1,0) = 1; A(kMax,kMax) = 1
 
+    call DGELS('N', kMax, kMax+1, 1, A, kMax, B, kMax+1, Work, 2*(kMax+1), info)
+    z_LyrThick = b
+
+
+    !
     !
     do k=0, kMax-1
        do n_=1,kMax-k
@@ -194,7 +205,7 @@ contains
 !       write(*,*) k, sum(z_LyrThick(k+1:k+n)), z_Depth(k), n
     end do
     z_NMix(kMax) = 0
-
+    
     !
     call EOSDriver_Eval(rhoEdd=z_DensPotEdd,        & ! (out)
          & theta=z_PTemp, S=z_Salt, p=z_PressRef    & ! (in)
@@ -202,15 +213,16 @@ contains
 
 
     !
-    isAdjustOccur = .false.
-
+    isAdjustOccur(:) = .false.
+    
     !
     k_ = kMax-1
     do while(k_ >= 0)
        if(z_DensPotEdd(k_) > z_DensPotEdd(k_+1)) then
+          isAdjustOccur(k_:k_+1) = .true.
           call mix_below1stUnstableLyr(z_DensPotEdd, k_, N_homo)
+
           k_ = k_ - N_homo
-          isAdjustOccur = .true.
        else
           k_ = k_ - 1
        end if
@@ -226,6 +238,7 @@ contains
       integer, intent(out) :: N_h
 
       real(DP), parameter :: EPS = 1d-16
+      integer :: N_Mix, k_
       
       N_h = 1
       if(k /= 0) then
@@ -235,8 +248,16 @@ contains
          end do
       end if
 
-      call vmixing_Tracer(z_PTemp, z_LyrThick, k, N_h, z_Nmix(k))
-      call vmixing_Tracer(z_Salt, z_LyrThick, k, N_h, z_Nmix(k))
+      N_Mix = 1
+      do k_=k, k+z_NMix(k)
+         if(z_DensPotEdd(k_) < z_DensPotEdd(k_+1) .or. k+N_Mix==kMax) exit
+         N_Mix = N_Mix + 1
+      end do
+
+
+      call vmixing_Tracer(z_PTemp, z_LyrThick, k, N_h, N_Mix)
+      call vmixing_Tracer(z_Salt, z_LyrThick, k, N_h, N_Mix)
+
 
     end subroutine mix_below1stUnstableLyr
 
@@ -253,7 +274,7 @@ contains
         
     k_u = k - N_h + 1
     k_l = k + N_mix
-
+   
     w = sum(LyrThick(k_u:k))/sum(LyrThick(k_u:k_l))
 
 !!$if(k_u < 0 .or. k_l > kMax) then

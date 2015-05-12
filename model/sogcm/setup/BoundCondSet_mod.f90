@@ -53,13 +53,13 @@ module BoundCondSet_mod
   integer, public, parameter :: KinBCTYPE_RigidLid = 202
 
   integer, public, parameter :: ThermBCTYPE_Adiabat     = 301
-  integer, public, parameter :: ThermBCTYPE_FluxFixed   = 302
-  integer, public, parameter :: ThermBCTYPE_TempFixed   = 303
+  integer, public, parameter :: ThermBCTYPE_PrescFlux   = 302
+  integer, public, parameter :: ThermBCTYPE_PrescTemp   = 303
   integer, public, parameter :: ThermBCTYPE_TempRelaxed = 304
 
   integer, public, parameter :: SaltBCTYPE_Adiabat     = 401
-  integer, public, parameter :: SaltBCTYPE_FluxFixed   = 402
-  integer, public, parameter :: SaltBCTYPE_SaltFixed   = 403
+  integer, public, parameter :: SaltBCTYPE_PrescFlux   = 402
+  integer, public, parameter :: SaltBCTYPE_PrescSalt   = 403
   integer, public, parameter :: SaltBCTYPE_SaltRelaxed = 404
 
   ! Labels to identify the type of boundary condition
@@ -72,13 +72,13 @@ module BoundCondSet_mod
   character(*), public, parameter :: KinBCTYPELBL_RigidLid = 'Rigid'
 
   character(*), public, parameter :: ThermBCTYPELBL_Adiabat = 'Adiabat'
-  character(*), public, parameter :: ThermBCTYPELBL_FluxFixed = 'FluxFixed'
-  character(*), public, parameter :: ThermBCTYPELBL_TempFixed = 'TempFixed'
+  character(*), public, parameter :: ThermBCTYPELBL_PrescFlux = 'PrescFlux'
+  character(*), public, parameter :: ThermBCTYPELBL_PrescTemp = 'PrescTemp'
   character(*), public, parameter :: ThermBCTYPELBL_TempRelaxed = 'TempRelaxed'
 
   character(*), public, parameter :: SaltBCTYPELBL_Adiabat = 'Adiabat'
-  character(*), public, parameter :: SaltBCTYPELBL_FluxFixed = 'FluxFixed'
-  character(*), public, parameter :: SaltBCTYPELBL_SaltFixed = 'SaltFixed'
+  character(*), public, parameter :: SaltBCTYPELBL_PrescFlux = 'PrescFlux'
+  character(*), public, parameter :: SaltBCTYPELBL_PrescSalt = 'PrescSalt'
   character(*), public, parameter :: SaltBCTYPELBL_SaltRelaxed = 'SaltRelaxed'
 
   !
@@ -158,19 +158,19 @@ contains
           VBCSpecType = 'N'
        case(ThermBCTYPE_Adiabat)     !-- thermal boundary condition ------------ 
           VBCSpecType = 'N'
-       case(ThermBCTYPE_TempFixed)
+       case(ThermBCTYPE_PrescTemp)
           VBCSpecType = 'D'
        case(ThermBCTYPE_TempRelaxed)
           VBCSpecType = 'D'
-       case(ThermBCTYPE_FluxFixed)
+       case(ThermBCTYPE_PrescFlux)
           VBCSpecType = 'N'
        case(SaltBCTYPE_Adiabat)     !-- Salinity boundary condition ------------ 
           VBCSpecType = 'N'
-       case(SaltBCTYPE_SaltFixed)
+       case(SaltBCTYPE_PrescSalt)
           VBCSpecType = 'D'
        case(SaltBCTYPE_SaltRelaxed)
           VBCSpecType = 'D'
-       case(SaltBCTYPE_FluxFixed)
+       case(SaltBCTYPE_PrescFlux)
           VBCSpecType = 'N'
        case Default
           call MessageNotify("E", module_name, &
@@ -361,10 +361,10 @@ contains
     select case (ThermBCLBL)
        case(ThermBCTYPELBL_Adiabat)
           ThermBCID = ThermBCTYPE_Adiabat
-       case(ThermBCTYPELBL_TempFixed)
-          ThermBCID = ThermBCTYPE_TempFixed
-       case(ThermBCTYPELBL_FluxFixed)
-          ThermBCID = ThermBCTYPE_FluxFixed
+       case(ThermBCTYPELBL_PrescTemp)
+          ThermBCID = ThermBCTYPE_PrescTemp
+       case(ThermBCTYPELBL_PrescFlux)
+          ThermBCID = ThermBCTYPE_PrescFlux
        case(ThermBCTYPELBL_TempRelaxed)
           ThermBCID = ThermBCTYPE_TempRelaxed
        case default
@@ -375,10 +375,10 @@ contains
     select case (SaltBCLBL)
        case(SaltBCTYPELBL_Adiabat)
           SaltBCID = SaltBCTYPE_Adiabat
-       case(SaltBCTYPELBL_SaltFixed)
-          SaltBCID = SaltBCTYPE_SaltFixed
-       case(SaltBCTYPELBL_FluxFixed)
-          SaltBCID = SaltBCTYPE_FluxFixed
+       case(SaltBCTYPELBL_PrescSalt)
+          SaltBCID = SaltBCTYPE_PrescSalt
+       case(SaltBCTYPELBL_PrescFlux)
+          SaltBCID = SaltBCTYPE_PrescFlux
        case(SaltBCTYPELBL_SaltRelaxed)
           SaltBCID = SaltBCTYPE_SaltRelaxed
        case default

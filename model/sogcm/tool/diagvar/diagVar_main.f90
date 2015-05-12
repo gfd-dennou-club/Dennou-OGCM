@@ -176,7 +176,7 @@ contains
     call DiagVarFileSet_Init(configNmlFile, diagVar_gthsInfo)
     call BudgetAnalysis_Init(diagVar_gthsInfo, BudgetTypesName)
     call SpectralAnalysis_Init(diagVar_gthsInfo, SpectralTypesName)
-    call GMSchemeAnalysis_Init(configNmlFile, diagVar_gthsInfo, GMSchemeAnalysisFlag)
+    call GMSchemeAnalysis_Init(ogcmConfigNmlFile, diagVar_gthsInfo, GMSchemeAnalysisFlag)
 
     !
     call MessageNotify('M', PROGRAM_NAME, &

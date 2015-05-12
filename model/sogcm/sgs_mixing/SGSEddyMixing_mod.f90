@@ -21,8 +21,7 @@ module SGSEddyMixing_mod
   
   use gtool_history
 
-  ! Dennou-OGCM
-
+  !* Dennou-OGCM
 
   use Constants_mod, only: &
        & PI, RPlanet, Omega
@@ -40,6 +39,12 @@ module SGSEddyMixing_mod
 
   use VariableSet_mod
 
+  use SGSEddyMixingHelper_mod, only: &
+       & SGSEddyMixingHelper_Init, SGSEddyMixingHelper_Final, &
+       & xyz_Dz_xyz, &
+       & prepare_SlopeTapering, &
+       & DFM08Info, prepare_DFM08Info, TaperingDFM08_GM, TaperingDFM08_IDIFF
+  
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -53,8 +58,6 @@ module SGSEddyMixing_mod
   public :: SGSEddyMixing_Output, SGSEddyMixing_PrepareOutput
   public :: SGSEddyMixing_AddMixingTerm
   public :: calc_IsoNeutralSlope, calc_BolusVelocity
-  public :: TaperingFunc_DM95, TaperingFunc_LDD95
-  public :: prepare_DFM08Info
   
   ! 公開変数
   ! Public variable
@@ -76,19 +79,11 @@ module SGSEddyMixing_mod
   real(DP) :: SGSEddyMixType
   real(DP) :: Kappa_Redi              !< Isopycnal diffusivity with Redi scheme [m^2/s]
   real(DP) :: Kappa_GM                !< Diffusivity with GM scheme             [m^2/s]
-  real(DP) :: SlopeMaxVal
-  real(DP) :: Sd
 
   type(gt_history), save :: hst_SGSEddyMix
   logical :: OutputFlag
 
-  type :: DiabaticLyrInfo_DFM08
-     real(DP), pointer :: xy_BLD(:,:)
-     real(DP), pointer :: xy_TLT(:,:)
-     real(DP), pointer :: xy_Lamb(:,:)
-  end type DiabaticLyrInfo_DFM08
 
-  type(DiabaticLyrInfo_DFM08), save :: DFM08Info
   logical :: DFM08Flag
   
 contains
@@ -120,8 +115,6 @@ contains
     SGSEddyMixType = SGSEddyMixing_Redi
     Kappa_Redi = 1000d0
     Kappa_GM   = 1000d0
-    SlopeMaxVal = 4d-3
-    Sd = 1d-3
     OutputFlag = .false.
 
     !
@@ -133,10 +126,7 @@ contains
 
     if(present(configNmlFileName)) call read_nmlData(configNmlFileName)
 
-    DFM08Flag = .false.
-    allocate( &
-         & DFM08Info%xy_BLD(0:iMax-1,jMax), DFM08Info%xy_TLT(0:iMax-1,jMax), &
-         & DFM08Info%xy_Lamb(0:iMax-1,jMax) )
+    call SGSEddyMixingHelper_Init()
     
   end subroutine SGSEddyMixing_Init
 
@@ -160,12 +150,11 @@ contains
 
     ! 実行文; Executable statements
     !
+
+    call SGSEddyMixingHelper_Final()
+    
     if(OutputFlag) call HistoryClose(hst_SGSEddyMix)
 
-    if(DFM08Flag) then
-       deallocate(DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb)
-       nullify(DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb)
-    end if
     
   end subroutine SGSEddyMixing_Final
 
@@ -193,9 +182,7 @@ contains
          & xyz_SLat     !< The latitude componet of th slope of isopycnal surface
 
     real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_PTemp, xyz_Salt, xyz_KappRho, xyz_Depth
-
-    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_T
-    
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_T    
     integer :: k
 
     ! 実行文; Executable statement
@@ -222,23 +209,11 @@ contains
          & xyz_DensPot, xyz_totDepth )               !(in)
 
     !
-    
-    !$omp parallel do
-    do k=0, kMax
-       xyz_T(:,:,k) = TaperingFunc_DM95( &
-            & xyz_SLon(:,:,k), xyz_SLat(:,:,k), xyz_Depth(:,:,k), xyz_Depth(:,:,kMax), &
-            & 2d0/(2d0*Omega*sqrt(1d0 - xyz_CosLat(:,:,k)**2)) &
-            & )
-    end do
-    xyz_T(:,:,:) = xyz_T(:,:,:)*TaperingFunc_LDD95(xyz_SLon, xyz_SLat, xyz_Depth, &
-         & 2d0/(2d0*Omega*sqrt(1d0 - xyz_CosLat(:,:,0)**2)) )
+    call prepare_SlopeTapering(xyz_T, xyz_SLon, xyz_SLat, & ! (inout)
+         & xyz_DensPot, xyz_Depth                         & ! (in)
+         & )
 
-    if(DFM08Flag) then
-       call prepare_DFM08Info( &
-            & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth )
-    end if
-    
-    call check_StaticStability(xyz_T, xyz_DensPot)
+!    call check_StaticStability(xyz_T, xyz_DensPot)
 
     !
     wz_PTempRHS(:,:) = wz_PTempRHS + calc_IsopycDiffTerm(wz_PTemp, xyz_PTemp)
@@ -271,7 +246,7 @@ contains
            & )
 
       wz_DiffTerm(:,:) = &
-           &    wz_AlphaOptr_xyz(xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat) & 
+           &    wz_AlphaOptr_xyz(xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat) &
            & +  wz_xyz(xyz_Dz_xyz(xyz_FSig))
 
     end function calc_IsopycDiffTerm
@@ -350,11 +325,13 @@ contains
     xyz_GradLonT(:,:,:) = xyz_GradLon_wz(wz_Tracer)
     xyz_GradLatT(:,:,:) = xyz_GradLat_wz(wz_Tracer)
     xyz_DzT(:,:,:) = xyz_Dz_xyz(xyz_Tracer)
-
+    
     xyz_AI(:,:,:) = Kappa_Redi*xyz_T
     !$omp parallel workshare
-    xyz_FLon(:,:,:) = xyz_AI*(xyz_GradLonT + xyz_SLon*xyz_DzT)
-    xyz_FLat(:,:,:) = xyz_AI*(xyz_GradLatT + xyz_SLat*xyz_DzT)
+    xyz_FLon(:,:,:) = Kappa_Redi*(xyz_GradLonT + xyz_T*xyz_SLon*xyz_DzT)
+    xyz_FLat(:,:,:) = Kappa_Redi*(xyz_GradLatT + xyz_T*xyz_SLat*xyz_DzT)
+!!$    xyz_FLon(:,:,:) = xyz_AI*(xyz_GradLonT + xyz_SLon*xyz_DzT)
+!!$    xyz_FLat(:,:,:) = xyz_AI*(xyz_GradLatT + xyz_SLat*xyz_DzT)    
     xyz_FSig(:,:,:) = xyz_AI*( &
          &             xyz_SLon*xyz_GradLonT + xyz_SLat*xyz_GradLatT &
          &          + (xyz_SLon**2 + xyz_SLat**2)*xyz_DzT            &
@@ -367,9 +344,8 @@ contains
        xyz_FLon(:,:,:) = xyz_C*xyz_AI*xyz_GradLonT + (1d0 - xyz_C)*xyz_FLon
        xyz_FLat(:,:,:) = xyz_C*xyz_AI*xyz_GradLatT + (1d0 - xyz_C)*xyz_FLat
     end if
-    
-    xyz_FSig(:,:,0) = 0d0
-    xyz_FSig(:,:,kMax) = 0d0
+
+    xyz_FSig(:,:,0) = 0d0; xyz_FSig(:,:,kMax) = 0d0
 
   end subroutine calc_IsopycDiffFlux
 
@@ -421,316 +397,8 @@ contains
             & )/RPlanet
     end do
 
-
   end subroutine calc_SkewFlux
 
-  subroutine check_StaticStability(xyz_KappRho, xyz_DensPot)
-
-    ! 宣言文; Declaration statement
-    !
-    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: xyz_KappRho
-    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: xyz_DensPot
-
-    ! 局所変数
-    ! Local variables
-    !
-    integer :: k
-
-    ! 実行文; Executable statement
-    !
-
-    return
-    
-!    !$omp parallel do
-    do k=0, kMax-1
-       where(xyz_DensPot(:,:,k) > xyz_DensPot(:,:,k+1))
-          xyz_KappRho(:,:,k) = 0d0
-          xyz_KappRho(:,:,k+1) = 0d0
-       end where
-    end do
-
-  end subroutine check_StaticStability
-
-  elemental function TaperingFunc_DM95(SLon, SLat, Depth, totDepth, BarocEddDispH) result(f)
-
-    ! 宣言文; Declaration statement
-    !
-    real(DP), intent(in) :: SLon, SLat, Depth, totDepth, BarocEddDispH
-    real(DP) :: f
-
-    ! 局所変数
-    ! Local variables
-    !    
-    real(DP) :: r, BarocEddyDispZ, SlopeABS
-
-    ! 実行文; Executable statement
-    !
-
-    SlopeABS = sqrt(SLon**2 + SLat**2)
-    f = 0.5d0*(1d0 + tanh((SlopeMaxVal - SlopeABS)/Sd))
-    
-    !
-!!$    BarocEddyDispZ = min(max(15d3, BarocEddDispH), 100d3)*SlopeABS
-!!$    r =  min(0d0 - Depth, Depth - totDepth)/BarocEddyDispZ
-!!$    if(r < 1d0) then
-!!$       f = f* 0.5d0*(1d0 + sin(PI*(r - 0.5d0)))
-!!$    end if
-
-  end function TaperingFunc_DM95
-
-  function TaperingFunc_LDD95(xyz_SLon, xyz_SLat, xyz_Depth, xy_BarocEddDispH) result(xyz_f)
-
-    ! 宣言文; Declaration statement
-    !
-    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: &
-         & xyz_SLon, xyz_SLat, xyz_Depth
-    real(DP), intent(in) :: xy_BarocEddDispH(0:iMax-1,jMax)
-    real(DP) :: xyz_f(0:iMax-1, jMax, 0:kMax)
-
-    ! 局所変数
-    ! Local variables
-    !    
-    real(DP) :: r, xy_BarocEddyDispZ(0:iMax-1,jMax), tmpBarocEddyDispZ, SlopeABS
-    real(DP) :: xyz_r(0:iMax-1,jMax,0:kMax)
-    integer :: i, j, k, kStart(1)
-    
-    ! 実行文; Executable statement
-    !
-
-    
-    do j=1,jMax
-       do i=0, iMax-1
-          xy_BarocEddyDispZ(i,j) = SlopeMaxVal*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
-       end do
-    end do
-
-    xyz_r(:,:,:) = 1d0
-    do j=1,jMax
-       do i=0, iMax-1
-
-          !
-          kStart = minloc(abs(xy_BarocEddyDispZ(i,j)-(0d0-xyz_Depth(i,j,:))))
-          do k=kStart(1), 0, -1
-             SlopeABS = sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
-             tmpBarocEddyDispZ = SlopeABS*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
-             if((0d0 - xyz_Depth(i,j,k))/tmpBarocEddyDispZ < 1d0) then
-                xyz_r(i,j,0:k) = (0d0 - xyz_Depth(i,j,0:k))/tmpBarocEddyDispZ; exit
-             end if
-          end do
-
-          kStart = minloc(abs(xy_BarocEddyDispZ(i,j)-(xyz_Depth(i,j,:)-xyz_Depth(i,j,kMax))))
-          do k=kStart(1), kMax
-             SlopeABS = sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
-             tmpBarocEddyDispZ = SlopeABS*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
-             if((xyz_Depth(i,j,k)-xyz_Depth(i,j,kMax))/tmpBarocEddyDispZ < 1d0) then
-                xyz_r(i,j,k:kMax) = (xyz_Depth(i,j,k:kMax) - xyz_Depth(i,j,kMax))/tmpBarocEddyDispZ; exit
-             end if
-          end do
-
-
-       end do
-    end do
-
-    !
-    xyz_f(:,:,:) = 1d0
-    where (xyz_r < 1d0)
-       xyz_f = 0.5d0*(1d0 + sin(PI*(xyz_r - 0.5d0)))
-    end where
-
-  end function TaperingFunc_LDD95
-
-  
-  subroutine prepare_DFM08Info( &
-       & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth, &
-       & xyz_G )
-
-    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: &
-         & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth
-    real(DP), intent(out), optional :: xyz_G(0:iMax-1,jMax,0:kMax)
-    
-    integer :: i, j
-    integer :: MLD_k, DLD_k
-    real(DP) :: DLD, BLD, TLT
-
-    real(DP), parameter :: c = 2d0
-    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_DzDensPot, xyz_DzzDensPot
-    real(DP), dimension(0:kMax)  :: z_DzDensPot, z_DzzDensPot
-    real(DP) :: wt(2)
-    real(DP) :: lamb, z, SlopeABS, ddzDensPot, ddzDensPotMax
-    integer :: k, DzMax_k, minLocId(1)
-    
-    xyz_DzDensPot = xyz_Dz_xyz(xyz_DensPot)
-    xyz_DzzDensPot = xyz_Dz_xyz(xyz_DzDensPot)
-
-    do j=1, jMax
-       do i=0, iMax-1
-
-          z_DzDensPot(:) = xyz_DzDensPot(i,j,:)
-          z_DzzDensPot(:) = xyz_DzzDensPot(i,j,:)
-
-          ddzDensPotMax = 0d0
-          do k=1, kMax
-             ddzDensPot = -(xyz_DensPot(i,j,0) - xyz_DensPot(i,j,k))/(xyz_Depth(i,j,0) - xyz_Depth(i,j,k))
-             if(ddzDensPotMax < ddzDensPot) then
-                ddzDensPotMax = ddzDensPot
-             else if(k > 1) then
-                DzMax_k = k
-                exit
-             end if
-          end do
-          
-          !
-          do k=1, kMax
-             if((z_DzDensPot(k) + ddzDensPotMax)*(z_DzDensPot(k-1) + ddzDensPotMax) <= 0d0) then
-                MLD_k = k; exit
-             end if
-             if(k==kMax) then
-                minLocId(:) = minloc(abs(z_DzzDensPot(:) + ddzDensPotMax))
-                MLD_k = minLocId(1)
-!!$                write(*,*) "j=", j, ": ddzDensPotMax=", ddzDensPotMax
-!!$                write(*,*) z_DzDensPot
-             end if
-          end do
-          wt(:) = abs(z_DzDensPot(MLD_k:MLD_k-1:-1) + ddzDensPotMax)/sum(abs(z_DzDensPot(MLD_k-1:MLD_k) + ddzDensPotMax)) 
-
-          !
-          BLD = abs(sum(wt(:)*xyz_Depth(i,j,MLD_k-1:MLD_k)))
-
-          SlopeABS = sqrt(xyz_SLon(i,j,MLD_k)**2 + xyz_SLat(i,j,MLD_k)**2)
-          TLT =  min(SlopeABS,SlopeMaxVal)*min(max(15d3,c/(2d0*Omega*abs(sin(xyz_Lat(i,j,0))))), 100d3) + 1d0
-
-          DLD = min(BLD + TLT, abs(xyz_Depth(i,j,kMax)))
-
-          DLD_k = MLD_k
-          do k=MLD_k, kMax
-             if( xyz_Depth(i,j,k) <= -DLD ) then
-                DLD_k = k; exit
-             end if
-             if(k==kMax) DLD_k = k
-          end do
-          
-          wt(:) = abs(xyz_Depth(i,j,DLD_k:DLD_k-1:-1) + DLD)/sum(abs(xyz_Depth(i,j,DLD_k-1:DLD_k) + DLD))
-
-          !
-          lamb = abs( - sum(wt(:)*z_DzDensPot(DLD_k-1:DLD_k))/sum(wt(:)*z_DzzDensPot(DLD_k-1:DLD_k)) )
-
-          !
-          DFM08Info%xy_BLD(i,j) = BLD; DFM08Info%xy_TLT(i,j) = TLT; 
-          DFM08Info%xy_Lamb(i,j) = lamb
-
-!!$          if(DLD_k == kMax) then
-!!$             write(*,*) "DensPot", xyz_DensPot(i,j,:)
-!!$             write(*,*) "Dz", z_DzDensPot
-!!$             write(*,*) "Max", DzMax_k, ddzDensPotMax
-!!$             stop
-!!$          end if
-       end do
-    end do
-
-
-    if(present(xyz_G)) then
-       xyz_G = 1d0
-       do k=0, kMax
-          where (-DFM08Info%xy_BLD(:,:) < xyz_Depth(:,:,k))
-             xyz_G(:,:,k) = -xyz_Depth(:,:,k)/(2d0*DFM08Info%xy_BLD + DFM08Info%xy_TLT) &
-                  &        *(2d0 + DFM08Info%xy_TLT/DFM08Info%xy_Lamb)
-          end where
-       end do
-    end if
-!!$
-!!$    write(*,*) "-- DFM08INFO ---------"
-!!$    do j=1, jMax/2+1
-!!$    write(*,*) "j=", j, "BLD=", DFM08Info%xy_BLD(0,j), "TLT=", DFM08Info%xy_TLT(0,j), "lamb=", DFM08Info%xy_Lamb(0,j)
-!!$    end do
-
-  end subroutine prepare_DFM08Info
-
-  subroutine TaperingDFM08_GM(xyz_PsiLon, xyz_PsiLat, &
-       & xy_BLD, xy_TLT, xy_Lamb, xyz_Depth )
-
-    real(DP), intent(inout), dimension(0:iMax-1,jMax,0:kMax) :: &
-         & xyz_PsiLon, xyz_PsiLat
-    real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_BLD, xy_TLT, xy_Lamb
-    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Depth
-
-    integer :: k, i, j
-    real(DP), dimension(0:iMax-1,jMax) :: xy_DLD, xy_G, xy_PsiILon, xy_PsiILat
-    real(DP) :: G
-    logical :: terminate
-    
-    xy_DLD = xy_BLD + xy_TLT
-
-    xy_PsiILon = 0d0; xy_PsiILat = 0d0
-    do k=1, kMax
-       where(xyz_Depth(:,:,k) < -xy_DLD .and. xyz_Depth(:,:,k-1) >= -xy_DLD)
-          xy_PsiILon(:,:) = xyz_PsiLon(:,:,k);  xy_PsiILat(:,:) = xyz_PsiLat(:,:,k)
-       end where
-    end do
-
-    terminate = .false.
-    do k=0, kMax
-       do j=1, jMax
-          do i=0, iMax-1
-             if(-xy_BLD(i,j) < xyz_Depth(i,j,k)) then
-                G = - xyz_Depth(i,j,k)/(2d0*xy_BLD(i,j) + xy_TLT(i,j))*(2d0 + xy_TLT(i,j)/xy_Lamb(i,j))
-                xyz_PsiLon(i,j,k) = G*xy_PsiILon(i,j); xyz_PsiLat(i,j,k) = G*xy_PsiILat(i,j);
-!!$                if(j== 5) then
-!!$                   write(*,*) "*", j, k, ":", xy_BLD(i,j), xy_DLD(i,j), G
-!!$                end if
-
-             else if(-xy_DLD(i,j) < xyz_Depth(i,j,k)) then
-                G =   - (xyz_Depth(i,j,k) + xy_BLD(i,j))**2/(xy_DLD(i,j)**2 - xy_BLD(i,j)**2)*(1d0 + xy_DLD(i,j)/xy_Lamb(i,j)) &
-                     & - xyz_Depth(i,j,k)/(2d0*xy_BLD(i,j) + xy_TLT(i,j))*(2d0 + xy_TLT(i,j)/xy_Lamb(i,j))
-
-!                G = 1d0
-                xyz_PsiLon(i,j,k) = G*xy_PsiILon(i,j); xyz_PsiLat(i,j,k) = G*xy_PsiILat(i,j)
-!!$                if(j<= 32) then
-!!$                   write(*,*) j, k, ":", xy_BLD(i,j), xy_DLD(i,j), G
-!!$                end if
-             else if(-xy_DLD(i,j) <  xyz_Depth(i,j,kMax))then
-!!$                write(*,*) "Error", j, xy_DLD(i,j)
-                terminate = .true.
-             end if
-          end do
-       end do
-       if(terminate) stop
-!!$       where(-xy_BLD < xyz_Depth(:,:,k))
-!!$          xy_G = -xyz_Depth(:,:,k)/(2d0*xy_BLD + xy_TLT)*(2d0 + xy_TLT/xy_Lamb)
-!!$          xyz_PsiLon(:,:,k) = xy_G*xy_PsiILon; xyz_PsiLat(:,:,k) = xy_G*xy_PsiILat;
-!!$       end where
-!!$       where(-xy_DLD < xyz_Depth(:,:,k) .and. -xy_BLD > xyz_Depth(:,:,k) )
-!!$          xy_G = 1d0!(xyz_Depth(:,:,k) + xy_BLD)**2/(xy_DLD**2 - xy_BLD**2)*(1d0 + xy_DLD/xy_Lamb) &
-!!$!               & - xyz_Depth(:,:,k)/(2d0*xy_BLD + xy_TLT)*(2d0 + xy_TLT/xy_Lamb)
-!!$          xyz_PsiLon(:,:,k) = xy_G*xy_PsiILon; xyz_PsiLat(:,:,k) = xy_G*xy_PsiILat;          
-!!$       end where
-    end do
-
-  end subroutine TaperingDFM08_GM
-
-  subroutine TaperingDFM08_IDIFF(xyz_C, &
-       & xy_BLD, xy_TLT, xyz_Depth )
-
-    real(DP), intent(inout), dimension(0:iMax-1,jMax,0:kMax) :: xyz_C
-    real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_BLD, xy_TLT
-    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Depth
-
-    integer :: k
-    real(DP), dimension(0:iMax-1,jMax) :: xy_DLD, xy_C
-
-    
-    xy_DLD(:,:) = xy_BLD + xy_TLT
-
-    xyz_C(:,:,:) = 0d0
-    
-    do k=0, kMax
-       where(-xy_BLD < xyz_Depth(:,:,k))
-          xyz_C(:,:,k) = 1d0
-       elsewhere(-xy_DLD < xyz_Depth(:,:,k))
-          xyz_C(:,:,k) = (xyz_Depth(:,:,k) + xy_DLD)/xy_TLT
-       end where
-    end do
-    
-  end subroutine TaperingDFM08_IDIFF
   
   subroutine calc_IsoNeutralSlope( xyz_SLon, xyz_SLat,          &  ! (out)
        & xyz_DensPot, xyz_totDepth                              &  ! (in)
@@ -761,50 +429,38 @@ contains
        xyz_SLon(:,:,k) = - xy_GradLon_w(w_DensPot)/(xyz_DzDensPot(:,:,k) - EPS)/RPlanet
        xyz_SLat(:,:,k) = - xy_GradLat_w(w_DensPot)/(xyz_DzDensPot(:,:,k) - EPS)/RPlanet
     end do
-
+    
   end subroutine calc_IsoNeutralSlope
 
-  function xyz_Dz_xyz(xyz, isUSedDF) 
 
-    use VariableSet_mod
-
-    ! 宣言文; Declaration statement
-    !    
-    real(DP), intent(in) :: xyz(0:iMax-1,jMax,0:kMax)
-    logical, intent(in), optional :: isUSedDF
-    real(DP) :: xyz_Dz_xyz(0:iMax-1,jMax,0:kMax)
-    
-    ! 局所変数
-    ! Local variables
-    !    
-    real(DP) :: s(0:kMax), t(0:kMax), xyt(0:iMax-1,jMax,0:tMax)
-    integer :: k
-
-    ! 実行文; Executable statement
-    !
-
-!!$    if(present(isUsedDF) .and. isUsedDF) then
-    
-    
-    t(1:kMax-1) = g_Sig(0:kMax-2) - g_Sig(1:kMax-1)
-    s(1:kMax-1) = g_Sig(1:kMax-1) - g_Sig(2:kMax)
-
-    !$omp parallel do
-    do k=1,kMax-1
-       xyz_Dz_xyz(:,:,k) = &
-            & (s(k)**2*xyz(:,:,k-1) - (s(k)**2-t(k)**2)*xyz(:,:,k) - t(k)**2*xyz(:,:,k+1)) &
-            & /(s(k)*t(k)*(s(k) + t(k)))/xy_totDepthBasic
-    end do
-    xyz_Dz_xyz(:,:,0) = &
-         & (xyz(:,:,0) - xyz(:,:,1))/(g_Sig(0) - g_Sig(1))/xy_totDepthBasic
-    xyz_Dz_xyz(:,:,kMax) = &
-         & (xyz(:,:,kMax-1) - xyz(:,:,kMax))/(g_Sig(kMax-1) - g_Sig(kMax))/xy_totDepthBasic
-
-!!$ else
-!!$        xyz_Dz_xyz = xyz_DSig_xyz(xyz)/spread(xy_totDepthBasic,3,kMax+1)
-!!$     end if
-  end function xyz_Dz_xyz
-
+  
+!!$  subroutine check_StaticStability(xyz_KappRho, xyz_DensPot)
+!!$
+!!$    ! 宣言文; Declaration statement
+!!$    !
+!!$    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: xyz_KappRho
+!!$    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: xyz_DensPot
+!!$
+!!$    ! 局所変数
+!!$    ! Local variables
+!!$    !
+!!$    integer :: k
+!!$
+!!$    ! 実行文; Executable statement
+!!$    !
+!!$
+!!$    return
+!!$    
+!!$!    !$omp parallel do
+!!$    do k=0, kMax-1
+!!$       where(xyz_DensPot(:,:,k) > xyz_DensPot(:,:,k+1))
+!!$          xyz_KappRho(:,:,k) = 0d0
+!!$          xyz_KappRho(:,:,k+1) = 0d0
+!!$       end where
+!!$    end do
+!!$
+!!$  end subroutine check_StaticStability
+  
   subroutine calc_BolusVelocity( &
        & xyz_EddInducedU, xyz_EddInducedV, xyz_EddInducedW, & ! (out)
        & xyz_SLon, xyz_SLat, xyz_Depth, xyz_T      & ! (in)
@@ -857,7 +513,10 @@ contains
 
     ! モジュール引用; Use statement
     !
-
+    use SGSEddyMixingHelper_mod, only: &
+         & init_taperingScheme, &
+         & TAPERINGTYPE_DM95_NAME, PBLTAPERINGTYPE_LDD95_NAME
+    
     ! ファイル入出力補助
     ! File I/O support
     !
@@ -885,6 +544,9 @@ contains
     ! IOSTAT of NAMELIST read
     character(TOKEN) :: EddyMixTypeName
     real(DP) :: DiffCoefRedi, DiffCoefGM
+    character(TOKEN) :: InteriorTaperingName, PBLTaperingName 
+    real(DP) :: SlopeMax, Sd
+    logical :: isUsedDFM08
     logical :: DiagOutputFlag
     character(STRING) :: msg
 
@@ -893,7 +555,11 @@ contains
     !
     namelist /SGSEddyMix_nml/ &
          & EddyMixTypeName, &
-         & DiffCoefRedi, DiffCoefGM, DiagOutputFlag
+         & DiffCoefRedi, DiffCoefGM, &
+         & InteriorTaperingName, PBLTaperingName, &
+         & SlopeMax, Sd, &
+         & isUsedDFM08, &
+         & DiagOutputFlag
 
     ! 実行文; Executable statements
 
@@ -903,6 +569,12 @@ contains
     EddyMixTypeName = SGSEddyMixing_Redi_NAME
     DiffCoefRedi = Kappa_Redi
     DiffCoefGM = Kappa_GM
+
+    InteriorTaperingName = TAPERINGTYPE_DM95_NAME
+    PBLTaperingName = PBLTAPERINGTYPE_LDD95_NAME
+    SlopeMax = 4d-3; Sd = 1d-3;
+    isUsedDFM08 = .false.
+    
     DiagOutputFlag = OutputFlag
     
     ! NAMELIST からの入力
@@ -920,6 +592,7 @@ contains
        close( unit_nml )
     end if
 
+    !
     select case(EddyMixTypeName)
     case(SGSEddyMixing_Redi_NAME)
        SGSEddyMixType = SGSEddyMixing_Redi
@@ -930,6 +603,13 @@ contains
             & ' EddyMixTypeName ''%c'' is invalid.', c1=trim(EddyMixTypeName) )
     end select
 
+    ! Initialize tapering scheme
+    call init_taperingScheme( &
+         & interiorTaperingName, PBLTaperingName, &
+         & SlopeMax, Sd, isUsedDFM08 )
+         
+
+    ! Set diffusivity and some flags   
     Kappa_Redi = DiffCoefRedi
     Kappa_GM = DiffCoefGM
     OutputFlag = DiagOutputFlag
@@ -940,6 +620,11 @@ contains
     call MessageNotify( 'M', module_name, ' EddyMixTypeName   = %c', c1=EddyMixTypeName )
     call MessageNotify( 'M', module_name, ' DiffCoefRedi      = %f', d=(/ DiffCoefRedi  /) )
     call MessageNotify( 'M', module_name, ' DiffCoefGM        = %f', d=(/ DiffCoefGM  /) )
+    call MessageNotify( 'M', module_name, ' InteriorTaperngName = %c', c1=InteriorTaperingName )
+    call MessageNotify( 'M', module_name, ' PBLTaperngName      = %c', c1=PBLTaperingName )
+    call MessageNotify( 'M', module_name, ' SlopeMax          = %f', d=(/ SlopeMax  /) )
+    call MessageNotify( 'M', module_name, ' Sd                = %f', d=(/ Sd  /) )    
+    call MessageNotify( 'M', module_name, ' isUsedDFM08       = %b', L=(/ isUsedDFM08 /) )    
     call MessageNotify( 'M', module_name, ' DiagOutputFlag    = %b', L=(/ DiagOutputFlag /) )
     
   end subroutine read_nmlData
@@ -964,6 +649,8 @@ contains
          & xyz_BolusU, xyz_BolusV, xyz_BolusW, &
          & xyz_T, xyz_G, xyz_C
 
+    real(DP), dimension(0:iMax-1,jMax)  :: xy_BLD
+
     integer :: k
 
     ! 実行文; Executable statement
@@ -987,36 +674,26 @@ contains
          & xyz_DensPot, xyz_totDepth ) !(in)
 
     !
-    do k=0, kMax
-       xyz_T(:,:,k) = TaperingFunc_DM95( &
-            & xyz_SLon(:,:,k), xyz_SLat(:,:,k), xyz_Depth(:,:,k), xyz_Depth(:,:,kMax), &
-            & 2d0/(2d0*Omega*abs(sin(xyz_Lat(:,:,k)))) &
-            & )
-    end do
-    xyz_T(:,:,:) = xyz_T(:,:,:)*TaperingFunc_LDD95( xyz_SLon, xyz_SLat, xyz_Depth, &
-         & 2d0/(2d0*Omega*abs(sin(xyz_Lat(:,:,0)))) )
-    xyz_G = 1d0
-    if(DFM08Flag) then
-       call prepare_DFM08Info( &
-            & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth, &
-            & xyz_G )
-    end if
+    !
+    call prepare_SlopeTapering(xyz_T, xyz_SLon, xyz_SLat,  & ! (inout)
+         & xyz_DensPot, xyz_Depth,                         & ! (in)
+         & xy_BLD                                          & ! (out)
+         & )
     
-    call check_StaticStability(xyz_T, xyz_DensPot)
+!    call check_StaticStability(xyz_T, xyz_DensPot)
 
     
     xyz_Tracer = xyz_PTemp
     call calc_IsopycDiffFlux(xyz_FLon, xyz_FLat, xyz_FSig,                &  !(out)      
          & xyz_Tracer, wz_xyz(xyz_Tracer), xyz_SLon, xyz_SLat, xyz_T, xyz_Depth &  !(in)
          & )
-    
     call HistoryPut('Etc1', xyz_FLat, hst_SGSEddyMix)
     call HistoryPut('Etc2', xyz_FSig, hst_SGSEddyMix)
     call HistoryPut('Etc3', &
          & +   xyz_wz( wz_AlphaOptr_xyz(xyz_FLon*cos(xyz_Lat), xyz_FLat*cos(xyz_Lat)) ) & 
          & +   xyz_Dz_xyz(xyz_FSig)  &
          &    , hst_SGSEddyMix )
-
+    
     call calc_SkewFlux( &
          & xyz_FLon, xyz_FLat, xyz_FSig, &
          & xyz_Tracer, wz_xyz(xyz_Tracer), xyz_SLon, xyz_SLat, xyz_T, xyz_Depth )
@@ -1026,11 +703,12 @@ contains
          & +   xyz_wz( wz_AlphaOptr_xyz(xyz_FLon*cos(xyz_Lat), xyz_FLat*cos(xyz_Lat)) ) & 
          & +   xyz_Dz_xyz(xyz_FSig)  &
          &    , hst_SGSEddyMix )
-      
+
     call HistoryPut('DensPot', xyz_DensPot, hst_SGSEddyMix)
     call HistoryPut('SlopeLon', xyz_T*xyz_SLon, hst_SGSEddyMix)
     call HistoryPut('SlopeLat', xyz_T*xyz_SLat, hst_SGSEddyMix)
-    call HistoryPut('diffCoefEff', xyz_T*xyz_G, hst_SGSEddyMix)
+    call HistoryPut('diffCoefEff', xyz_T, hst_SGSEddyMix)
+!    call HistoryPut('MixLyrDepth', xy_BLD, hst_SGSEddyMix)
 
     !
     if(SGSEddyMixType == SGSEddyMixing_GM90) then
@@ -1056,8 +734,8 @@ contains
     ! 局所変数
     ! Local variables
     !
-    character(TOKEN) :: lonName, latName, sigName, timeName
-    character(TOKEN) :: dims_XYZT(4)
+    Character(TOKEN) :: lonName, latName, sigName, timeName
+
 
     ! 実行文; Executable statement
     !
@@ -1067,7 +745,6 @@ contains
     
     !
     lonName = 'lon'; latName='lat'; sigName='sig'; timeName='t'
-    dims_XYZT = (/ lonName, latName, sigName, timeName /)
 
     call HistoryCreate( &                            ! ヒストリー作成
          & file=trim(FilePrefix) // 'SGSEddyMixOutput.nc', title='OGCM Output',             &
@@ -1085,32 +762,48 @@ contains
     call HistoryPut(latName, xyz_Lat(0,:,0)*180d0/PI, hst_SGSEddyMix)
     call HistoryPut(sigName, g_Sig, hst_SGSEddyMix)
 
-    call regist_Variable('Etc1', 'tendency term1', 's-1')
-    call regist_Variable('Etc2', 'tendency term2', 's-1')
-    call regist_Variable('Etc3', 'tendency term3', 's-1')
-    call regist_Variable('Etc4', 'tendency term1', 's-1')
-    call regist_Variable('Etc5', 'tendency term2', 's-1')
-    call regist_Variable('Etc6', 'tendency term3', 's-1')
+    call regist_XYZTVariable('Etc1', 'tendency term1', 's-1')
+    call regist_XYZTVariable('Etc2', 'tendency term2', 's-1')
+    call regist_XYZTVariable('Etc3', 'tendency term3', 's-1')
+    call regist_XYZTVariable('Etc4', 'tendency term1', 's-1')
+    call regist_XYZTVariable('Etc5', 'tendency term2', 's-1')
+    call regist_XYZTVariable('Etc6', 'tendency term3', 's-1')
 
-    call regist_Variable('DensPot', 'potential density', 'kg/m3')
-    call regist_Variable('SlopeLon', 'the longitude component of slope of isoneutral', '1')
-    call regist_Variable('SlopeLat', 'the latitude component of slope of isoneutral', '1')
-    call regist_Variable('diffCoefEff', 'rescale factor of diffusivity', '1')
-
+    call regist_XYZTVariable('DensPot', 'potential density', 'kg/m3')
+    call regist_XYZTVariable('SlopeLon', 'the longitude component of slope of isoneutral', '1')
+    call regist_XYZTVariable('SlopeLat', 'the latitude component of slope of isoneutral', '1')
+    call regist_XYZTVariable('diffCoefEff', 'rescale factor of diffusivity', '1')
+    call regist_XYTVariable('MixLyrDepth', 'depth of mixed layer used in linear tapering near the surface', 'm')
+    
     if(SGSEddyMixType == SGSEddyMixing_GM90) then
-       call regist_Variable('BolusU', 'bolus velocity(longitude)', 'm/s')
-       call regist_Variable('BolusV', 'bolus velocity(meridional)', 'm/s')
-       call regist_Variable('BolusW', 'bolus velocity(vertical)', 'm/s')
+       call regist_XYZTVariable('BolusU', 'bolus velocity(longitude)', 'm/s')
+       call regist_XYZTVariable('BolusV', 'bolus velocity(meridional)', 'm/s')
+       call regist_XYZTVariable('BolusW', 'bolus velocity(vertical)', 'm/s')
     end if
 
   contains
-    subroutine regist_Variable(varName, long_name, units)
+    subroutine regist_XYZTVariable(varName, long_name, units)
       character(*), intent(in) :: varName, long_name, units
 
+      character(TOKEN) :: dims_XYZT(4)
+      
+      dims_XYZT = (/ lonName, latName, sigName, timeName /)      
       call HistoryAddVariable(varName, dims_XYZT, &
            & long_name, units, xtype='float', history=hst_SGSEddyMix)
 
-    end subroutine regist_Variable
+    end subroutine regist_XYZTVariable
+
+    subroutine regist_XYTVariable(varName, long_name, units)
+      character(*), intent(in) :: varName, long_name, units
+
+      character(TOKEN) :: dims_XYT(3)
+      
+      dims_XYT = (/ lonName, latName, timeName /)      
+      call HistoryAddVariable(varName, dims_XYT, &
+           & long_name, units, xtype='float', history=hst_SGSEddyMix)
+
+    end subroutine regist_XYTVariable
+
   end subroutine SGSEddyMixing_PrepareOutput
 
 end module SGSEddyMixing_mod
