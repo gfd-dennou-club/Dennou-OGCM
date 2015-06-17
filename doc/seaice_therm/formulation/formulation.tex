@@ -1,0 +1,113 @@
+%
+% Dennou-SOGCM
+%
+%   2015/06/15  海洋モデル 定式化
+%               河合　佑太
+%
+% style  Setting             %%%%%%%%
+% フォント: 12point (最大), 片面印刷
+\documentclass[a4j,12pt,openbib,oneside]{jreport}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%             Package Include            %%%%%%%%
+
+\usepackage{ascmac}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{Dennou6}		% 電脳スタイル ver 6
+\usepackage[round]{natbib}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%            PageStyle Setting           %%%%%%%%
+\pagestyle{DAmyheadings}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%        Title and Auther Setting        %%%%%%%%
+%%
+%%  [ ] はヘッダに書き出される.
+%%  { } は表題 (\maketitle) に書き出される.
+
+\Dtitle{Dennou-SOGCM}   % 変更不可
+\Dauthor{河合佑太}        % 担当者の名前
+\Ddate{2015/06/16}        % 変更日時 (毎回変更すること)
+\Dfile{formulatiom.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%   Set Counter (chapter, section etc. ) %%%%%%%%
+\setcounter{chapter}{0}    % 章番号
+\setcounter{section}{1}    % 節番号
+\setcounter{subsection}{1}    % 節番号
+\setcounter{equation}{1}   % 式番号
+\setcounter{page}{1}     % 必ず開始ページは明記する
+\setcounter{figure}{0}     % 図番号
+\setcounter{table}{0}      % 表番号
+%\setcounter{footnote}{0}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%        Counter Output Format           %%%%%%%%
+\def\thechapter{\arabic{chapter}}
+\def\thesection{\arabic{chapter}.\arabic{section}}
+\def\thesubsection{\arabic{chapter}.\arabic{section}.\alph{subsection}}
+\def\theequation{\arabic{chapter}.\arabic{section}.\arabic{equation}}
+\def\thepage{\arabic{page}}
+\def\thefigure{\arabic{chapter}.\arabic{section}.\arabic{figure}}
+\def\thetable{\arabic{chapter}.\arabic{section}.\arabic{table}}
+\def\thefootnote{*\arabic{footnote}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%        Dennou-Style Definition         %%%%%%%%
+
+%% 改段落時の空行設定
+\Dparskip      % 改段落時に一行空行を入れる
+%\Dnoparskip    % 改段落時に一行空行を入れない
+
+%% 改段落時のインデント設定
+\Dparindent    % 改段落時にインデントする
+%\Dnoparindent  % 改段落時にインデントしない
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Macro defined by author
+\def\univec#1{ \hat{ \Dvect{\rm #1}} }
+\newcommand{\Deg}{\(^{\circ} \) \kern-.4em}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%             Text Start                 %%%%%%%%
+\begin{document}
+
+\chapter{海氷熱力学モデルの定式化}
+
+\section{系の設定}
+%%
+%%
+\begin{figure}[b]]
+ \includegraphics[width=10cm]{seaice_therm_model_config.eps}
+ \caption{系の設定}
+ \label{fig:configuration}
+\end{figure} 
+%%
+多くの海氷熱力学モデル\citep{maykut1971some,semtner1976model,winton2000reformulated}は,
+海氷を図\ref{fig:configuration}のような雪層と氷層から成る鉛直一次元のカラムとして考える. 
+また, 海氷の上端では大気, 下端では海洋に接しており, 
+そこで海氷は大気や海洋と熱のやりとりをする.
+
+雪層や氷層内の鉛直温度分布は, 各層において熱伝導方程式を解くによって決定される.
+この熱伝導方程式に課す境界条件は, 大気からの熱フラックスや海洋から熱フラックス
+である. 
+%%
+\include{./governeq}
+%%
+\include{./seaice_specheat}
+
+%% 参考文献
+\bibliographystyle{plainnat}
+\bibliography{Dennou-OGCM_reflist}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

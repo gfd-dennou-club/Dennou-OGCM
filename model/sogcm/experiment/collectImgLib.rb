@@ -2,6 +2,35 @@ module CollectImgLib
 
 require "fileutils"
 
+class FigureGenCmd
+  def execute(fig)
+  end
+end
+
+
+class GpviewFigGen  < FigureGenCmd
+  def execute(fig)
+    p "command: gpview #{fig.ncFilePath}@#{fig.varName},#{fig.cutpos} #{fig.gpviewOpt}"
+    `gpview #{fig.ncFilePath}@#{fig.varName},#{fig.cutpos} #{fig.gpviewOpt}`
+  end
+end
+
+class GpviewOverpoltFigGen  < FigureGenCmd
+  def execute(fig)
+
+    ncFilePaths = fig.ncFilePaths.split(",")
+    
+    targets = "--overplot #{ncFilePaths.length} "
+    fig.varNames.split(",").each_with_index{|varName,i|
+      targets << " #{ncFilePaths[i]}@#{varName}"
+      targets << ",#{fig.cutpos}" if fig.cutpos.length > 0
+    }
+
+    p "command: gpview #{targets} #{fig.gpviewOpt}"
+    `gpview #{targets} #{fig.gpviewOpt}`
+  end
+end
+
 class Figure
   attr_accessor :name, :ncFilePath, :varName, :cutpos, :gpviewOpt, :convertOpt, :figPicExt
 
@@ -11,7 +40,7 @@ class Figure
     @varName = varName
     @cutpos = cutpos
 
-    @gpviewOpt = "--wsn 4 -sw:lwnd=f"
+    @gpviewOpt = "--wsn 4 -sw:lwnd=f" # -sw:lwnd=f is option for DCL
     @gpviewOpt << " --range #{range}" if range.length != 0
     @gpviewOpt << " --int #{intrv}" if intrv.length != 0
     @gpviewOpt << " #{gpOpts}" if gpOpts.length != 0
@@ -22,6 +51,12 @@ class Figure
   def createFigure(dirPath)
   end
 
+  def convert_picformat(oriPicName, newPicName)
+    p "convert.. #{oriPicName} => #{figPicExt} (options #{@convertOpt})"    
+    `convert #{@convertOpt} #{oriPicName}  #{newPicName}`
+    `rm #{oriPicName}`
+  end
+    
   @@DEFAULT_CONVERT_OPT = "-trim -delay 20"
 end
 
@@ -52,9 +87,7 @@ class AnimFig < Figure
     end
 
     animFigPath = "#{dirPath}#{@name}_#{animTimeInfo.init}-#{@animTimeInfo.end}.#{@figPicExt}"
-    p "convert.. png => gif animation (options #{@convertOpt})"
-    `convert #{@convertOpt} #{@name}_*.png #{animFigPath}`
-    `rm #{@name}_*.png` 
+    convert_picformat("#{@name}_*.png", animFigPath)
   end 
 
 end
@@ -65,40 +98,25 @@ class NoAnimFig < Figure
     @figPicExt = "jpg"
   end
 
-  def createFigure(dirPath)
-
-    p "command: gpview #{@ncFilePath}@#{@varName},#{@cutpos} #{@gpviewOpt}"
-    `gpview #{@ncFilePath}@#{@varName},#{@cutpos} #{@gpviewOpt}`
-    p "convert.. ps => #{figPicExt} (options #{@convertOpt}"    
-    `convert #{@convertOpt} dcl_001.png #{dirPath}#{@name}.#{figPicExt}`
-    `rm dcl_001.png`
+  def createFigure(dirPath, figGenObj=GpviewFigGen.new())
+    figGenObj.execute(self)
+    convert_picformat("dcl_001.png", "#{dirPath}#{name}.#{figPicExt}")
   end 
 end
 
 class NoAnimOverplotFig < Figure
-  attr_accessor :ncFilePaths, :varNames
+  attr_accessor :ncFilePaths, :varNames, :range
   def initialize(figname, ncFilePaths, varNames, cutpos, intrv="", range="", gpOpts="")
     super(figname, "", "", cutpos, intrv, range, gpOpts)
     @ncFilePaths = ncFilePaths
     @varNames = varNames
     @figPicExt = "jpg"
+    @range = range
   end
 
-  def createFigure(dirPath)
-
-    ncFilePaths_ary = @ncFilePaths.split(",")
-    
-    targets = "--overplot #{ncFilePaths_ary.length} "
-    @varNames.split(",").each_with_index{|varName,i|
-      targets << " #{ncFilePaths_ary[i]}@#{varName}"
-      targets << ",#{@cutpos}" if @cutpos.length > 0
-    }
-
-    p "command: gpview #{targets} #{@gpviewOpt}"
-    `gpview #{targets} #{@gpviewOpt}`
-    p "convert.. ps => #{dirPath}#{@name}.#{figPicExt} (options #{@convertOpt})"    
-    `convert #{@convertOpt} dcl_001.png #{dirPath}#{@name}.#{figPicExt}`
-    `rm dcl_001.png`
+  def createFigure(dirPath, figGenObj=GpviewOverpoltFigGen.new())
+    figGenObj.execute(self)
+    convert_picformat("dcl_001.png", "#{dirPath}#{name}.#{figPicExt}")
   end 
 end
 

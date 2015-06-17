@@ -1,0 +1,16 @@
+&SeaIceConstats_nml
+    SBConst  = 5.67d-8,    ! Stefan=Boltzmann constant [W.m-2.K-4]
+    DensIce  = 905d0,      ! Density of ice [kg/m3]
+    DensSnow = 330d0,      ! Density of snow [kg/m3]
+    DensSeaWater = 1030d0, ! Density of sea water [kg/m3]
+    CIce = 2100d0,         ! Ice heat capacity (excluding internal melt) [J.kg-1.K-1]
+    LFreeze = 334d3,       ! Latent heat of freezeing [J.kg-1]
+    KIce = 2.03d0,         ! Thermal conductivity of sea ice [W.m-1.degC-1]
+    KSnow = 0.31d0,        ! Thermal conductivity of snow [W.m-1.degC-1]
+    Mu = 0.054d0,          ! Constant relating freezing temersture to salinity [degC.ppt-1]
+    SaltSeaIce = 1d0,      ! Salinity of sea ice [ppt]
+    FreezeTempSW   = -1.8d0,  ! Freezing temperature of seawater [degC]
+    AlbedoSnow     = 0.80d0,  ! Albedo of snow [(1)]
+    AlbedoMeltSnow = 0.755d0, ! Albedo of melting snow [(1)]
+    AlbedoIce      = 0.65d0,  ! Albedo of ice [(1)]
+/

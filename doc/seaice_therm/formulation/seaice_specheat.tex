@@ -1,0 +1,160 @@
+\chapter*{付録 A: 海氷の比熱の式の導出}
+ここでは, 海氷熱力学モデルで用いられる海氷の比熱の近似式
+%%
+\begin{equation*}
+ c_{\rm si} = c_o + \dfrac{L \mu S}{T^2}
+  \tag{A.1}
+\end{equation*}
+%%
+の導出を\citep{ono1967specific}に従って行う.
+ただし, $L$は　0$\circ$C における純氷の融解の潜熱,
+$\mu$は経験的な定数(以下の導出を参照), $S$は海氷の塩分量である. 
+本文と同様に以下でも, 温度の単位として摂氏を用いることに注意されたい. 
+
+今, 海氷は純氷と濃縮された塩類溶液(ブライン)から成るとし, 気泡などの存在無視すれば, 
+海氷 1 g の温度を$\Delta T$ $^\circ$C 上昇させるための熱量$C_{si}\Delta T$は,
+%%
+\begin{equation*}
+ C_{si} \Delta T = C_i m_i \Delta T + C_b m_b \Delta T - \lambda_T \DD{m_i}{T} \Delta T
+ \tag{A.2}
+\end{equation*}
+%%
+と書ける.
+ここで, $m_i, m_b$はそれぞれ海氷 1 g 中の純氷およびブラインの質量である.
+また, $C_i$は純氷の比熱, $C_b$はブラインの比熱である.
+$\lambda_T$は$T$ $^\circ$C における氷の融解の潜熱であり,
+%%
+\begin{equation*}
+ \lambda_T = \lambda_0 + (C_w - C_i)T
+ \tag{A.3}
+\end{equation*}
+%%
+表される.
+すなわち, $\lambda_T$は, $T$$^\circ$C の純氷 1 g をまず 0$^\circ$C まで暖め,
+0 $^\circ$C で溶かし, 溶けた水の温度をまた $T$$^\circ$C まで下げるのに必要な熱量に等しい.
+比熱は 1 g の物質の温度を 1$^\circ$C 上昇させるのに必要な熱量で定義されるので,
+(A.2) から海水の比熱は,
+%%
+\begin{equation*}
+ C_{si} = C_i m_i + C_b m_b - \lambda_T \DD{m_i}{T}
+ \tag{A.4}
+\end{equation*}
+%%
+と書ける.
+
+海氷 1 g 中のブライン$m_b$ gは, $m_w$ g の水に$m_s$ g の塩類%
+\footnote{
+$m_s$は海氷中の塩類の質量分率であり, 塩分量$S$(単位はパーミル)とは,
+%%
+$$
+ S = m_s \times 1000 
+$$
+%%
+の関係がある.  
+}
+が溶けてできているとする.
+このとき,
+%
+\begin{equation*}
+ m_i + m_b = m_i + m_w + m_s = 1
+ \tag{A.5}
+\end{equation*}
+%%
+である.
+比熱の中に現れるブライン中の水の質量$m_w$を$m_s$を使って書くために,
+塩分の質量比
+%%
+\begin{equation*}
+ \gamma = \dfrac{m_s}{m_w}
+ \tag{A.6}
+\end{equation*}
+%%
+を導入すれば, $m_w$は,
+%%
+\begin{equation*}
+ m_w = \dfrac{m_s}{\gamma}
+ \tag{A.7}  
+\end{equation*}
+%%
+と書ける.
+同様にして, 純粋の質量$m_i$は,
+%%
+\begin{equation*}
+ m_i = 1 - m_s - \dfrac{m_s}{\gamma}
+ \tag{A.8}  
+\end{equation*}
+%%
+と書ける.
+
+ブラインの比熱$C_b$は, 塩分量が増加すると小さくなり,
+温度が下がるとわずかに大きくなる. したがって, ブラインの比熱を
+%%
+\begin{equation*}
+ C_b = C_w  - \beta(S,T)
+ \tag{A.9}  
+\end{equation*}
+%%
+の形式で書くことができる.
+
+(A.4) に (A.5),(A.7),(A.8),(A.9) を代入すれば,
+%%
+\begin{equation*}
+ C_{\rm si} =
+  C_i - \lambda_0 \DD{m_i}{T}
+  + (C_w - C_i)\left(\dfrac{m_s}{\gamma} - T\DD{m_i}{T} \right)
+  + (C_w - C_i - \beta)m_s - \beta\dfrac{m_s}{\gamma}
+  \tag{A.10}
+\end{equation*}
+%%
+を得る.
+さらに,
+$m_s$が$T$に依存しないことに注意すれば, 純氷の変化量は,
+%%
+$$
+ \DD{m_i}{T} = - \DD{m_w}{T} = - \DD{}{T}\left(\dfrac{m_s}{\gamma}\right)
+ = \dfrac{m_s}{\gamma^2}\DD{\gamma}{T}
+ $$
+ と$m_s$と$\gamma$を用いて書き表されるので, (A.10) は,
+ %%
+ \begin{equation*}
+ C_{\rm si} =
+  C_i - \lambda_0 \dfrac{m_s}{\gamma^2}\DD{\gamma}{T}
+  + (C_w - C_i) \dfrac{m_s}{\gamma} \left(1 - \dfrac{T}{\gamma}\DD{\gamma}{T} \right)
+  + (C_w - C_i - \beta)m_s - \beta\dfrac{m_s}{\gamma}
+  \tag{A.10}  
+ \end{equation*}
+ %%
+ となる.
+
+ 温度 $T ^\circ$C を結氷温度とするような平衡濃度にあるブラインの質量比$\gamma$と
+ $T$には,
+ %%
+ \begin{equation*}
+  T = - \alpha \gamma
+  \tag{A.11}
+ \end{equation*}
+ %%
+ のような線形の関係が成り立つことが知られている.
+ -8.2 $^\circ$C 以上の温度範囲を考えるとき, 
+ 比例定数$\alpha$は 54.11 に取られる.
+ (A.11)を(A.10)に代入すれば,
+ %%
+ \begin{equation*}
+ C_{\rm si} =
+  C_i + \lambda_0 \alpha \dfrac{m_s}{T^2}
+  + (C_w - C_i - \beta)m_s + \alpha \beta\dfrac{m_s}{T}
+  \tag{A.10}  
+ \end{equation*}
+ %%
+ を得る.
+ 今考える温度範囲では, 右辺 3,4 項目の寄与は 2 項目に比べて小さい\citep{ono1967specific}ので
+ 無視すれば, 海氷の比熱は,
+ %%
+ \begin{equation*}
+ C_{\rm si} =
+  C_i + \lambda_0 \mu \dfrac{S}{T^2}
+  \tag{A.10}  
+ \end{equation*}
+ %%
+ と書ける.
+ ただし, $m_s$を塩分量$S$で書き直し, $\mu = \alpha \times 1000$と置き直した. 

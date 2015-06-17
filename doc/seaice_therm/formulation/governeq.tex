@@ -1,0 +1,126 @@
+\section{支配方程式系}
+以下に, 一般的な海氷熱力学モデルにおける支配方程式系を示す.
+これらの方程式は, 雪層・氷層の温度(それぞれを$T_{\rm snow}=T_{\rm snow}(z,t)$, $T_{\rm ice}=T_{\rm ice}(z,t)$とおく)
+の鉛直分布や雪層・氷層の厚さ(それぞれを$h_{\rm snow}=h_{\rm snow}(t)$, $h_{\rm ice}=h_{\rm ice}(t)$)を決定する. 
+なお, 以下では, 特に断らない限り温度の単位として摂氏($^\circ$ C)を用いる. 
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{雪層に対する熱伝導方程式}
+%%
+\begin{equation}
+ \rho_{\rm snow} \; c_{\rm snow} \DP{T_{\rm snow}}{t}
+  = k_{\rm snow} \DP[2]{T_{\rm snow}}{z}
+    + \kappa_s I(0) \exp{[\kappa_{\rm snow} z]}
+\end{equation}
+%%
+ここで, $\rho_{\rm snow}$は雪の密度, $c_{\rm snow}=c_{\rm snow}$は雪の比熱,
+$k_{\rm snow}$は雪の熱伝導係数, $\kappa_{\rm snow}$は雪の透過係数, 
+$I(0)$は雪層表面を貫く短波放射である.
+
+\subsection*{雪層に対する質量保存則}
+%%
+\begin{equation}
+  \rho_{\rm snow} \DD{h_{\rm snow}}{t} = M_{\rm snow} + F_{\rm snowfall}
+\end{equation}
+%%
+ここで, $M_{\rm snow}$, $F_{\rm snowfall}$はそれぞれ, 単位時間あたりの雪層の融解量と積雪量である. 
+
+\subsection*{氷層に対する熱伝導方程式}
+%%
+\begin{equation}
+ \rho_{\rm ice} \; c_{\rm ice} \DP{T_{\rm ice}}{t}
+  = k_{\rm ice} \DP[2]{T_{\rm ice}}{z}
+    + \kappa_s I(-h_s) \exp{[\kappa_{\rm ice} (z + h_s)]}
+\end{equation}
+%%
+ここで, $\rho_{\rm ice}$は海氷の密度, $c_{\rm ice}=c_{\rm ice}$は海氷の比熱,
+$k_{\rm ice}$は海氷の熱伝導係数, $\kappa_{\rm ice}$は海氷の透過係数である.
+また, $I(-h_s)$は氷層表面を貫く短波放射である.
+
+\subsection*{氷層に対する質量保存則}
+%%
+\begin{equation}
+  \rho_{\rm ice} \DD{h_{\rm ice}}{t} = M_{\rm ice}
+\end{equation}
+%%
+ここで, $M_{\rm ice}$は単位時間あたりの氷層の融解量である.
+
+\section{境界条件}
+
+\subsubsection*{海氷表面($z=0$)における境界条件(表面熱収支)}
+雪層の存在する場合, 海氷表面において次の熱収支バランスを満たすとする. 
+%%
+\begin{equation}
+ \begin{split}
+    (1 - \alpha_s) F_r - I(0) + F_L &- \sigma [T_{\rm snow}(0) + 273.15]^4 + F_s + F_e
+    + k_{\rm snow} \left(\DP{T_{\rm snow}}{z}\right)_{z=0} \\
+  &= \begin{cases} 
+      0 \;\;\; (T_{\rm snow} < 0 \; {\rm ^\circ C}) \\
+      H_{\rm snow} \;\;\; (T_{\rm snow} = 0 \; {\rm ^\circ C} )
+     \end{cases}
+ \end{split}
+\end{equation}
+%%
+ここで, $F_r, F_L, F_s, F_e$はそれぞれ海氷表面における入射短波放射フラックス, 入射長波放射フラックス,
+顕熱フラックス, 潜熱フラックスである(これらのフラックスの符号は, 鉛直上向きを正にとる).
+また, $\alpha_s$は雪のアルベド, $\sigma$はステファン・ボルツマン定数である. 
+$H_{\rm snow}$は, 雪層表面の融解に伴う単位時間あたりの融解熱を表す. 
+
+一方, 雪層が存在せず氷層表面が大気にさらされている場合($h_s=0$の場合)は,
+海氷表面において次の熱収支バランスを満たすとする. 
+%%
+%%
+\begin{equation}
+ \begin{split}
+    (1 - \alpha_i) F_r - I(0) &- \sigma [T_{\rm ice}(0) + 273.15]^4 + F_s + F_e
+    + k_{\rm snow} \left(\DP{T_{\rm ice}}{z}\right)_{z=0} \\
+  &= \begin{cases} 
+      0 \;\;\; (T_{\rm ice} < T_{f,{\rm si}}) \\
+      H_{s,{\rm ice}} \;\;\; (T_{\rm ice} = T_{f,{\rm si}} )
+     \end{cases}
+ \end{split}
+\end{equation}
+%%
+ここで, $\alpha_s$は雪のアルベド, $T_{f,{\rm si}}$は海氷の氷点, 
+$H_{s,{\rm ice}}$は氷層表面の融解に伴う単位時間あたりの融解熱を表す. 
+
+\subsubsection*{雪層・氷層間の境界条件}
+雪層と氷層の間で, 熱伝導フラックスは連続であることを課す.
+すなわち, 
+%%
+\begin{equation}
+   \kappa_{\rm snow} \left(\DP{T_{\rm snow}}{z} \right)_{z=-h_s}
+=  \kappa_{\rm ice} \left(\DP{T_{\rm ice}}{z} \right)_{z=-h_s}. 
+\end{equation}
+
+\subsubsection*{海氷下端の境界条件}
+%%
+海氷下端($z=-(h_s + h_i)\equiv z_b$)の氷の温度は, 海水の氷点$T_{f,{\rm sw}}$に固定する.
+すなわち, 
+%%
+\begin{equation}
+  T_{\rm ice} (z_b)  = T_{f,{\rm sw}}.
+\end{equation}
+
+\subsubsection*{氷層・海洋間の境界条件}
+%%
+海氷下端では, 
+\begin{equation}
+  F_b + k_{\rm ice} \left(\DP{T_{\rm ice}}{z} \right)_{z=z_b} = H_{b,{\rm ice}}
+\end{equation}
+%%
+の熱収支バランスを満たすとする.
+ここで, $F_b$は海洋熱フラックス, $H_{b,{\rm ice}}$は海氷下端の海氷生成・融解に伴う融解熱である.
+
+\section{海氷の比熱}
+海氷の比熱は, 次の近似式\citep{untersteiner1961mass,ono1967specific}を用いて求める%
+\footnote{
+海氷の比熱の近似式の導出は, 付録 A を参照されたい.
+}. 
+%%
+\begin{equation}
+  c_{\rm ice}(T,S) = c_o + \dfrac{L \mu S}{T^2}. 
+\end{equation}
+%%
+ここで, $c_o$は純粋な氷の比熱, $S$は塩分量(単位はパーミル)である. 
+また, $\mu (= -T_{f,{\rm ice}}/S)$は経験的な定数である(詳細は付録 A を参照). 

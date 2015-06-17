@@ -205,7 +205,8 @@ contains
     case(TAPERINGTYPE_DM95_ID)
        !$omp parallel workshare       
        xyz_T1 = TaperingFunc_DM95(xyz_SLon, xyz_SLat)
-       !$omp end parallel workshare              
+       !$omp end parallel workshare
+
     end select
 
     select case(PBLTaperingType)
@@ -270,12 +271,13 @@ contains
     ! 実行文; Executable statement
     !
 
-    xy_BarocEddDispH = c/(2d0*Omega*sin(xyz_Lat(:,:,0)))
+    xy_BarocEddDispH = c/(2d0*Omega*abs(sin(xyz_Lat(:,:,0))))
     
 !!$    xyz_f = 1d0
 !!$    xyz_f(:,:,0) = 0d0; xyz_f(:,:,kMax) = 0d0
 !!$    return
-    
+
+
 !!$    do k=0,kMax
 !!$       do j=1,jMax
 !!$          do i=0, iMax-1

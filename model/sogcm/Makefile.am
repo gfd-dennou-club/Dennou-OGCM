@@ -1,6 +1,6 @@
 SUBDIRS = \
-	util setup dynamics experiment physics_driver governeq_driver \
-	unit_test tool
+	util setup dynamics physics_driver seaice governeq_driver \
+	experiment unit_test tool
 
 # util dynamics
 

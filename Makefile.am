@@ -3,6 +3,7 @@ SUBDIRS = src \
 	tool \
 	model/globalSWModel_FVM \
 	model/globalSWModel_DG \
+	model/globalSWModel_DG2 \
 	model/ogcm \
 	model/sogcm
 

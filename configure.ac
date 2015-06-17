@@ -271,6 +271,7 @@ AC_CONFIG_FILES([
 		 tool/Makefile
 		 model/globalSWModel_FVM/Makefile
 		 model/globalSWModel_DG/Makefile
+		 model/globalSWModel_DG2/Makefile		 
 		 model/ogcm/Makefile
 		 model/ogcm/setup/Makefile
 		 model/ogcm/util/Makefile
@@ -280,6 +281,7 @@ AC_CONFIG_FILES([
 		 model/sogcm/util/Makefile
 		 model/sogcm/dynamics/Makefile
 		 model/sogcm/physics_driver/Makefile
+		 model/sogcm/seaice/Makefile		 
 		 model/sogcm/governeq_driver/Makefile
 		 model/sogcm/experiment/Makefile
 		 model/sogcm/unit_test/Makefile

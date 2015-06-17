@@ -133,7 +133,7 @@ end
 
 t_KECompari_EOSComp = NoAnimOverplotFig.new("KEAvg_EOSCompari", 
                      "#{getExpDirPath("EOSQ_IDIFF_CA_GM")}/KEAvg.nc, \
-                      #{getExpDirPath("EOSL_IDIFF_CA_GM")}/KEAvg.nc, \
+                     #{getExpDirPath("EOSL_IDIFF_CA_GM")}/KEAvg.nc, \
                       #{getExpDirPath("EOSJM95_IDIFF_CA_GM")}/KEAvg.nc", 
                      "KEAvg,KEAvg,KEAvg", "t=0:1e10", "", "0:0.05", "--title 'K.E.(global mean)'") 
 t_KECompari_EOSComp.createFigure(getExpDirPath("EOSComp_CARediGM"))

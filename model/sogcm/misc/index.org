@@ -50,8 +50,8 @@
 球面調和関数と Chebyshev 多項式展開によるスペクトル法を用いた海洋モデル
 
 - モデルの記述
-  - [[file:./../../../doc/formulation/formulation.pdf][定式化]]
-  - [[file:./../../../doc/numeric/numeric.pdf][数値手法]]
+  - [[file:./../../../doc/ogcm/formulation/formulation.pdf][定式化]]
+  - [[file:./../../../doc/ogcm/numeric/spectral/numeric.pdf][数値手法]]
 
 - テスト計算
   - [[./../experiment/exp_BarotRossbyWave/Exp_BarotRossbyWave_mod.html][順圧ロスビー波の伝播]]
@@ -77,19 +77,35 @@
 #    - 全球浅水モデルの標準テスト(Williamson, 1992)
 #    - 理想化した海陸分布における環流
 
+** 海氷(熱力学)モデル
 
-* 論文紹介資料
-- 水惑星実験の先行研究
+- モデルの記述
+  - [[file:./../../../doc/seaice_therm/formulation/formulation.pdf][定式化]]
+  - [[file:./../../../doc/seaice_therm/numeric/numeric.pdf][数値手法]]
+  
+- テスト計算
+  - [[../experiment/exp_SeaIceThermTest/Exp_SeaIceThermS78Cases.html][Semtner(1976) と同じ海面フラックスを与える数値実験]]
+
+** 大気海洋氷結合モデル
+
+
+
+* 発表資料
+- 水惑星実験の先行研究の調査
     - [[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][Smith, et al.(2006)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131031_epasemi_ykawai/pub/][発表資料]])
     - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131219_epasemi_ykawai/pub/][発表資料]])
     - Enderton, et al.(2009) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/140619_epasemi_ykawai/pub/][発表資料]])
     - Ferreira, et al.(2011) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/141106_epasemi_ykawai/pub/][発表資料]])
     - Hu and Yang(2014) (発表資料)
+    - Rose(2015) (発表資料)
 
 - 海氷モデリング
     - 海氷モデリングの基礎([[http://www.gfd-dennou.org/arch/prepri/2015/kobe-u/150115_epasemi_ykawai/pub/][発表資料]])
+    - Winton(2000) の 3 層海氷熱力学モデルの定式化について(発表資料)
 
 * 海洋モデルミーティングログ
+
+#+CALL: create_MeetingLogTable("2015", "{2015-{05-20}}") :results value raw :exports results
 
 #+CALL: create_MeetingLogTable("2014", "{2015-{03-17,02-18},01-21,2014-{12-17,11-17,07-16,06-26,05-28,04-23}}") :results value raw :exports results
 

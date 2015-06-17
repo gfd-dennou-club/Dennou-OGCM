@@ -11,6 +11,7 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../ \
         $(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../util \
+        $(MODPATHFLAG)$(srcdir)/../seaice \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
@@ -21,8 +22,13 @@ CLEANFILES = *$(MODEXT)
 
 bin_PROGRAMS = \
 	exp_WindDrivenCirculation/script/numsol_check_eq \
-	exp_WindDrivenCirculation/check_numsol
+	exp_WindDrivenCirculation/check_numsol \
+	exp_SeaIceThermTest/seaicetherm_S78Cases
 
+
+################################################################
+
+# Some programs to analyze the result of exp_WindDrivenCirculation
 
 exp_WindDrivenCirculation_script_numsol_check_eq_SOURCES= \
 	exp_WindDrivenCirculation/script/numsol_check_eq.f90
@@ -41,6 +47,19 @@ exp_WindDrivenCirculation_check_numsol_LDADD= \
 	$(srcdir)/../util/libSpmlUtil.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 
+################################################################
+
+# A program to validiate the implementin of sea ice thermdynamics model.
+
+exp_SeaIceThermTest_seaicetherm_S78Cases_SOURCES= \
+	exp_SeaIceThermTest/seaicetherm_S78Cases.f90
+
+exp_SeaIceThermTest_seaicetherm_S78Cases_LDADD= \
+	$(srcdir)/../seaice/libDSOGCMSeaIce.la \
+	$(SYSLDFLAGS) $(SYSLDLIBS)
+
+
+#################################################################
 
 noinst_LTLIBRARIES= libDSOGCMExp.la 
 nodist_libDSOGCMExp_la_SOURCES= \

@@ -1,0 +1,134 @@
+#+TITLE: 海氷熱力学モデルの妥当性の検証
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{}
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_link
+#+BEGIN_SRC ruby :: result value raw :exports none :var labels="hoge1,hoge2,hoge3" :var fileName="exp_Ah1e{3,4,5}Pl341L60/config.nml" :var fileDirPath="./expdata_inhomoFluid/"
+  require 'pathname'
+  labelStrs = labels.split(",")
+
+  str = "| "
+
+  fileNameStr = Dir.glob("#{fileDirPath}#{fileName}")
+  labelStrs.each_with_index{|label,i|
+     str << " [[file:#{fileNameStr[i]}][#{label}]] |"
+  }
+
+  return str
+#+END_SRC
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./exp_data/" :var figName="hoge"
+    require 'pathname'
+
+    str =  "#+CAPTION: #{caption}.\n" 
+    str << "#+NAME: fig:#{figName} \n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+    
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |" 
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 概要
+大気海洋氷結合モデルを用いた水惑星の気候状態の探索に向けて, 
+\cite{winton2000reformulated}に基づく三層海氷熱力学モデルを実装した. 
+実装した海氷熱力学モデルの妥当性を検証するために, 
+\cite{semtner1976model}で行われた数値実験を行った. 
+ここでは, その数値実験の結果を示す. 
+
+* 海氷熱力学モデルの定式化と数値手法
+
+- [[../../../../doc/seaice_therm/formulation/formulation.pdf][定式化]]
+- [[../../../../doc/seaice_therm/numeric/numeric.pdf][数値手法]]
+
+
+* 実験設定
+
+** 境界条件
+- 海氷表面
+  - \cite{semtner1976model}の検証実験と同様の熱フラックスを本実験でも用いる(下図を参照). 
+  
+ #+CALL: create_FigsTable("海氷面の境界条件として用いる海面フラックス[W/m^{2}]. 鉛直上向きを正にとっている. 黒線:入射長波放射, 赤線: 入射短波放射, 緑線: 潜熱フラックス, 青線: 潜熱フラックス ", "{common/SSFlux.jpg}") :results value raw :exports results
+
+- 海氷底面
+  - 海洋からの熱フラックス $F_{b}$ として 2 [W/m^{2}] を与える. 
+  
+** 積雪量
+
+- 年間 40 cm
+- 8/20-10/30 間に 30 cm, 11/1-4/30 間に 5 cm, 5/1-5/30 間に 5 cm づつ線形的に積もらす. 
+
+** パラメータの設定
+
+- アルベド
+  - 雪: 0.8, 融解中の雪: 0.735, 氷: 0.64
+- 海氷底面における海洋からの熱フラックス
+  - $F_b=2$ [W/m^{2}]. 
+  - ただし, $F_b$ に対する感度を調べるときは $F_b=0, 1, 2, 4, 6$ [W/m^{2}] を与える. 
+- 海氷の短波放射の透過率
+  - $i_0=0.17$
+  - ただし, $i_0$ に対する感度を調べるときは $i_0=0.34, \; 0.255, \; 0.17, \; 0.085$ を与える. 
+
+
+* 計算結果
+
+** 標準実験(ctrl)
+
+ #+CALL: create_FigsTable("(左図)雪,氷の厚さ[cm]. 実線:積雪+氷の厚さ, 破線: 氷の厚さ. (右図)氷層の温度[deg C]. 実線: 氷層上側の温度, 破線: 氷層下側の温度 ", "{ctrl/{hshi,T1T2}.jpg}") :results value raw :exports results
+
+** 海氷底面からの海洋熱フラックス $F_{b}$ に対する感度実験
+
+ #+CALL: create_FigsTable("氷の厚さの $F_{b}$ に対する依存性. (左図)本モデル. 単位[W/m^{2}], (右図) Semtner(1976) Fig.4. 破線:3 層モデル", "{FbComp/hi_FbComp{,_S76}.jpg}") :results value raw :exports results
+
+ #+CALL: create_FigsTable("氷の厚さ(年平均値)の $F_{b}$ に対する依存性. 実線: 本モデル. 破線: S76 の３層モデル", "{FbComp/hi_FbS76Comp.jpg}") :results value raw :exports results
+
+ - 海洋熱フラックス $F_b$ が増加するほど, 平衡状態における海氷の厚さは減少する. 
+ - $F_b > 4$ [W/m^{2}] では, $F_b$ に対する海氷の厚さの減少は緩やかになる.
+   -  この特徴は, S76 の 3 層モデルと結果には見られない. 
+ 
+
+** 海氷の短波放射の透過率 $i_{0}$ に対する感度実験
+
+ #+CALL: create_FigsTable("氷の厚さの $i_{0}$ に対する依存性. (左図)本モデル, (右図) Semtner(1976) Fig.5. 破線:3 層モデル", "{i0Comp/{hi_i0Comp{,_S76}.jpg}}") :results value raw :exports results
+
+ #+CALL: create_FigsTable("氷の厚さ(年平均値)の $i_{0}$ に対する依存性. 実線: 本モデル. 破線: S76 の３層モデル", "{i0Comp/hi_i0S76Comp.jpg}") :results value raw :exports results
+
+ - 海氷の短波放射の透過率 $i_0$ の増加するほど, 海氷の厚さは増加する. 
+ - 調べた $i_0$ の範囲において, S76 の 3 層モデルとほぼ同じ結果が得られた. 
+
+** 年合計降雪量に対する感度実験
+
+ #+CALL: create_FigsTable("氷の厚さの年合計降雪量に対する依存性. (左図)本モデル", "{SnowComp/{hi_SnowComp.jpg}}") :results value raw :exports results
+
+ #+CALL: create_FigsTable("氷の厚さ(年平均値)の年合計降雪量に対する依存性. 実線: 本モデル. 破線: S76 の３層モデル", "{SnowComp/hi_SnowS76Comp.jpg}") :results value raw :exports results
+
+ - 年合計降雪量が 80 cm 以下までは, 雪層の断熱効果によって, 年合計積雪量の増加とともに氷の厚さは減少する. 
+ - 年合計降雪量が 80 cm 以上では, 夏季に雪層が消失せず氷層が溶けないので, 年合計積雪量の増加とともに氷の厚さは増加する. 
+ - 本モデルの結果は S76 の 3 層モデルよりも 80 cm 以上の年合計降雪量に対する氷層の厚さの増加量が大きい. 
+   - 本モデルでは雪層の熱容量を考慮していないのが原因かもしれない. 
+
+* まとめ
+
+大気海洋氷結合モデルによる水惑星の気候状態の探索のために, \cite{winton2000reformulated}に基づく三層海氷熱力学モデルを実装した. 
+また, 実装した海氷熱力学モデルの妥当性を検証するために, \cite{semtner1976model}と同様の数値実験を行い, その結果を示した.  
+本モデルは, \cite{semtner1976model}で見られたような海氷の厚さの季節サイクルを表現している. 
+また, 海洋からの熱フラックス, 海氷の短波放射の透過率, 年合計降雪量に対する海氷の厚さの感度実験においても, 
+海洋からの熱フラックスが十分に大きい場合と雪層が十分に厚い場合を除いて, \cite{semtner1976model}と定量的に同様な振る舞いが得られた. 
+\cite{semtner1976model}の結果と異なる特徴が見られた原因は, 雪層内の熱伝導や海氷中のブラインの効果の定式化が異なることが原因として考えられる. 
+特に, 本モデルでは雪層の熱容量を無視しているため, 降雪量が多い場合の計算結果には注意すべきであり, 
+雪層が厚い場合にも対応できるように, 雪層においても熱伝導方程式を解き, 雪層の熱容量を考慮する必要があるかもしれない. 
+
+* 参考文献
+
+#+BIBLIOGRAPHY: Dennou-OGCM_reflist plain limit:t
+
