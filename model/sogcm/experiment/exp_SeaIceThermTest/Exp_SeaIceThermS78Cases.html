@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head>
+<title>海氷熱力学モデルの妥当性の検証</title>
+<!-- 2015-06-17 水 13:32 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="Yuta Kawai" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="./../org.css" />
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+<script type="text/javascript"> </script>
+<script type="text/x-mathjax-config">
+   MathJax.Hub.Config({
+    TeX: { equationNumbers: { autoNumber: "AMS" } }
+    });
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">海氷熱力学モデルの妥当性の検証</h1>
+<div id="table-of-contents">
+<h2>&#30446;&#27425;</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. 概要</a></li>
+<li><a href="#sec-2">2. 海氷熱力学モデルの定式化と数値手法</a></li>
+<li><a href="#sec-3">3. 実験設定</a>
+<ul>
+<li><a href="#sec-3-1">3.1. 境界条件</a></li>
+<li><a href="#sec-3-2">3.2. 積雪量</a></li>
+<li><a href="#sec-3-3">3.3. パラメータの設定</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. 計算結果</a>
+<ul>
+<li><a href="#sec-4-1">4.1. 標準実験(ctrl)</a></li>
+<li><a href="#sec-4-2">4.2. 海氷底面からの海洋熱フラックス \(F_{b}\) に対する感度実験</a></li>
+<li><a href="#sec-4-3">4.3. 海氷の短波放射の透過率 \(i_{0}\) に対する感度実験</a></li>
+<li><a href="#sec-4-4">4.4. 年合計降雪量に対する感度実験</a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5. まとめ</a></li>
+<li><a href="#sec-6">6. 参考文献</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 概要</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+大気海洋氷結合モデルを用いた水惑星の気候状態の探索に向けて, 
+[<a href="#winton2000reformulated">2</a>]に基づく三層海氷熱力学モデルを実装した. 
+実装した海氷熱力学モデルの妥当性を検証するために, 
+[<a href="#semtner1976model">1</a>]で行われた数値実験を行った. 
+ここでは, その数値実験の結果を示す. 
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 海氷熱力学モデルの定式化と数値手法</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li><a href="../../../../doc/seaice_therm/formulation/formulation.pdf">定式化</a>
+</li>
+<li><a href="../../../../doc/seaice_therm/numeric/numeric.pdf">数値手法</a>
+</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> 実験設定</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> 境界条件</h3>
+<div class="outline-text-3" id="text-3-1">
+<ul class="org-ul">
+<li>海氷表面
+<ul class="org-ul">
+<li>[<a href="#semtner1976model">1</a>]の検証実験と同様の熱フラックスを本実験でも用いる(下図を参照). 
+</li>
+</ul>
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;1:</span> 海氷面の境界条件として用いる海面フラックス[W/m<sup>2</sup>]. 鉛直上向きを正にとっている. 黒線:入射長波放射, 赤線: 入射短波放射, 緑線: 潜熱フラックス, 青線: 潜熱フラックス .</caption>
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./exp_data/common/SSFlux.jpg"><img src="./exp_data/common/SSFlux_thumb.png" alt="SSFlux_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</li>
+
+<li>海氷底面
+<ul class="org-ul">
+<li>海洋からの熱フラックス \(F_{b}\) として 2 [W/m<sup>2</sup>] を与える. 
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> 積雪量</h3>
+<div class="outline-text-3" id="text-3-2">
+<ul class="org-ul">
+<li>年間 40 cm
+</li>
+<li>8/20-10/30 間に 30 cm, 11/1-4/30 間に 5 cm, 5/1-5/30 間に 5 cm づつ線形的に積もらす. 
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3-3" class="outline-3">
+<h3 id="sec-3-3"><span class="section-number-3">3.3</span> パラメータの設定</h3>
+<div class="outline-text-3" id="text-3-3">
+<ul class="org-ul">
+<li>アルベド
+<ul class="org-ul">
+<li>雪: 0.8, 融解中の雪: 0.735, 氷: 0.64
+</li>
+</ul>
+</li>
+<li>海氷底面における海洋からの熱フラックス
+<ul class="org-ul">
+<li>\(F_b=2\) [W/m<sup>2</sup>]. 
+</li>
+<li>ただし, \(F_b\) に対する感度を調べるときは \(F_b=0, 1, 2, 4, 6\) [W/m<sup>2</sup>] を与える. 
+</li>
+</ul>
+</li>
+<li>海氷の短波放射の透過率
+<ul class="org-ul">
+<li>\(i_0=0.17\)
+</li>
+<li>ただし, \(i_0\) に対する感度を調べるときは \(i_0=0.34, \; 0.255, \; 0.17, \; 0.085\) を与える. 
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> 計算結果</h2>
+<div class="outline-text-2" id="text-4">
+</div><div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> 標準実験(ctrl)</h3>
+<div class="outline-text-3" id="text-4-1">
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;2:</span> (左図) 雪,氷の厚さ[cm]. 実線:積雪+氷の厚さ, 破線: 氷の厚さ. (右図)氷層の温度[deg C]. 実線: 氷層上側の温度, 破線: 氷層下側の温度 .</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./exp_data/ctrl/hshi.jpg"><img src="./exp_data/ctrl/hshi_thumb.png" alt="hshi_thumb.png" /></a></td>
+<td class="left"><a href="./exp_data/ctrl/T1T2.jpg"><img src="./exp_data/ctrl/T1T2_thumb.png" alt="T1T2_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-sec-4-2" class="outline-3">
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> 海氷底面からの海洋熱フラックス \(F_{b}\) に対する感度実験</h3>
+<div class="outline-text-3" id="text-4-2">
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;3:</span> 氷の厚さの \(F_{b}\) に対する依存性. (左図) 本モデル. 単位[W/m<sup>2</sup>], (右図) Semtner(1976) Fig.4. 破線:3 層モデル.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./exp_data/FbComp/hi_FbComp.jpg"><img src="./exp_data/FbComp/hi_FbComp_thumb.png" alt="hi_FbComp_thumb.png" /></a></td>
+<td class="left"><a href="./exp_data/FbComp/hi_FbComp_S76.jpg"><img src="./exp_data/FbComp/hi_FbComp_S76_thumb.png" alt="hi_FbComp_S76_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;4:</span> 氷の厚さ(年平均値) の \(F_{b}\) に対する依存性. 実線: 本モデル. 破線: S76 の３層モデル.</caption>
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./exp_data/FbComp/hi_FbS76Comp.jpg"><img src="./exp_data/FbComp/hi_FbS76Comp_thumb.png" alt="hi_FbS76Comp_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<ul class="org-ul">
+<li>海洋熱フラックス \(F_b\) が増加するほど, 平衡状態における海氷の厚さは減少する. 
+</li>
+<li>\(F_b > 4\) [W/m<sup>2</sup>] では, \(F_b\) に対する海氷の厚さの減少は緩やかになる.
+<ul class="org-ul">
+<li>この特徴は, S76 の 3 層モデルと結果には見られない. 
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> 海氷の短波放射の透過率 \(i_{0}\) に対する感度実験</h3>
+<div class="outline-text-3" id="text-4-3">
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;5:</span> 氷の厚さの \(i_{0}\) に対する依存性. (左図) 本モデル, (右図) Semtner(1976) Fig.5. 破線:3 層モデル.</caption>
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./exp_data/i0Comp/hi_i0Comp.jpg"><img src="./exp_data/i0Comp/hi_i0Comp_thumb.png" alt="hi_i0Comp_thumb.png" /></a></td>
+<td class="left"><a href="./exp_data/i0Comp/hi_i0Comp_S76.jpg"><img src="./exp_data/i0Comp/hi_i0Comp_S76_thumb.png" alt="hi_i0Comp_S76_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;6:</span> 氷の厚さ(年平均値) の \(i_{0}\) に対する依存性. 実線: 本モデル. 破線: S76 の３層モデル.</caption>
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./exp_data/i0Comp/hi_i0S76Comp.jpg"><img src="./exp_data/i0Comp/hi_i0S76Comp_thumb.png" alt="hi_i0S76Comp_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<ul class="org-ul">
+<li>海氷の短波放射の透過率 \(i_0\) の増加するほど, 海氷の厚さは増加する. 
+</li>
+<li>調べた \(i_0\) の範囲において, S76 の 3 層モデルとほぼ同じ結果が得られた. 
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4-4" class="outline-3">
+<h3 id="sec-4-4"><span class="section-number-3">4.4</span> 年合計降雪量に対する感度実験</h3>
+<div class="outline-text-3" id="text-4-4">
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;7:</span> 氷の厚さの年合計降雪量に対する依存性. (左図) 本モデル.</caption>
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./exp_data/SnowComp/hi_SnowComp.jpg"><img src="./exp_data/SnowComp/hi_SnowComp_thumb.png" alt="hi_SnowComp_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<table id="fig:hoge" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<caption class="t-above"><span class="table-number">&#34920;8:</span> 氷の厚さ(年平均値) の年合計降雪量に対する依存性. 実線: 本モデル. 破線: S76 の３層モデル.</caption>
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left"><a href="./exp_data/SnowComp/hi_SnowS76Comp.jpg"><img src="./exp_data/SnowComp/hi_SnowS76Comp_thumb.png" alt="hi_SnowS76Comp_thumb.png" /></a></td>
+</tr>
+</tbody>
+</table>
+
+<ul class="org-ul">
+<li>年合計降雪量が 80 cm 以下までは, 雪層の断熱効果によって, 年合計積雪量の増加とともに氷の厚さは減少する. 
+</li>
+<li>年合計降雪量が 80 cm 以上では, 夏季に雪層が消失せず氷層が溶けないので, 年合計積雪量の増加とともに氷の厚さは増加する. 
+</li>
+<li>本モデルの結果は S76 の 3 層モデルよりも 80 cm 以上の年合計降雪量に対する氷層の厚さの増加量が大きい. 
+<ul class="org-ul">
+<li>本モデルでは雪層の熱容量を考慮していないのが原因かもしれない. 
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> まとめ</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+大気海洋氷結合モデルによる水惑星の気候状態の探索のために, [<a href="#winton2000reformulated">2</a>]に基づく三層海氷熱力学モデルを実装した. 
+また, 実装した海氷熱力学モデルの妥当性を検証するために, [<a href="#semtner1976model">1</a>]と同様の数値実験を行い, その結果を示した.  
+本モデルは, [<a href="#semtner1976model">1</a>]で見られたような海氷の厚さの季節サイクルを表現している. 
+また, 海洋からの熱フラックス, 海氷の短波放射の透過率, 年合計降雪量に対する海氷の厚さの感度実験においても, 
+海洋からの熱フラックスが十分に大きい場合と雪層が十分に厚い場合を除いて, [<a href="#semtner1976model">1</a>]と定量的に同様な振る舞いが得られた. 
+[<a href="#semtner1976model">1</a>]の結果と異なる特徴が見られた原因は, 雪層内の熱伝導や海氷中のブラインの効果の定式化が異なることが原因として考えられる. 
+特に, 本モデルでは雪層の熱容量を無視しているため, 降雪量が多い場合の計算結果には注意すべきであり, 
+雪層が厚い場合にも対応できるように, 雪層においても熱伝導方程式を解き, 雪層の熱容量を考慮する必要があるかもしれない. 
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> 参考文献</h2>
+<div class="outline-text-2" id="text-6">
+<div id="bibliography">
+<h2>References</h2>
+
+</div>
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="semtner1976model">1</a>]
+</td>
+<td class="bibtexitem">
+Albert&nbsp;J Semtner&nbsp;Jr.
+ A model for the thermodynamic growth of sea ice in numerical
+  investigations of climate.
+ <em>Journal of Physical Oceanography</em>, 6(3):379--389, 1976.
+[&nbsp;<a href="Dennou-OGCM_reflist_bib.html#semtner1976model">bib</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="winton2000reformulated">2</a>]
+</td>
+<td class="bibtexitem">
+Michael Winton.
+ A reformulated three-layer sea ice model.
+ <em>Journal of Atmospheric and Oceanic Technology</em>, 17(4):525--531,
+  2000.
+[&nbsp;<a href="Dennou-OGCM_reflist_bib.html#winton2000reformulated">bib</a>&nbsp;]
+
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">&#33879;&#32773;: Yuta Kawai</p>
+<p class="date">Created: 2015-06-17 水 13:32</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.4.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
