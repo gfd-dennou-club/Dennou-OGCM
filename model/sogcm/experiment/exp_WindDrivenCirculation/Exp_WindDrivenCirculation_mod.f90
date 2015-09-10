@@ -79,8 +79,14 @@ contains
     !
     !
 
-    use VariableSet_mod
+    use VariableSet_mod, only: &
+         & z_PTempBasic, xyz_PTempEddN, &
+         & xy_totDepthBasic
 
+    use BoundaryCondO_mod, only: &
+         & xy_WindStressU, xy_WindStressV, &
+         & xy_SeaSurfTemp
+    
     use SpmlUtil_mod
 
     ! 宣言文; Declaration statement
@@ -107,7 +113,6 @@ real(DP) :: w(lMax)
 
     h0 = 5.2d03
     xy_totDepthBasic = h0
-    xy_SurfHeightN = 0d0
 
     xy_WindStressU = construct_WindStressU_Marshall07(xyz_Lat(:,:,0))
 !!$    xy_WindStressU = construct_WindStressU_analysticFunc()

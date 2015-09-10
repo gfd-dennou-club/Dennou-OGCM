@@ -10,8 +10,10 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
         $(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../util \
+        $(MODPATHFLAG)$(srcdir)/../seaice \
+        $(MODPATHFLAG)$(srcdir)/../boundary_cond \
+        $(MODPATHFLAG)$(srcdir)/../io \
         $(MODPATHFLAG)$(srcdir)/../dynamics \
-        $(MODPATHFLAG)$(srcdir)/../experiment \
         $(MODPATHFLAG)$(srcdir)/../physics_driver \
 	$(FCFLAGS) $(SYSFFLAGS)
 
@@ -23,5 +25,6 @@ CLEANFILES = *$(MODEXT)
 noinst_LTLIBRARIES= libDSOGCMGovernEqDriver.la 
 nodist_libDSOGCMGovernEqDriver_la_SOURCES= \
 	HydroBouEq_TimeInteg_mod.f90 \
+	SeaiceEq_TimeInteg_mod.f90 \
 	GovernEqSolverDriver_mod.f90
 

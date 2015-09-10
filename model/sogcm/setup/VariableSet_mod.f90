@@ -63,11 +63,6 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: z_PTempBasic(:)
   real(DP), public, save, allocatable :: xy_SurfPressA(:,:), xy_SurfPressN(:,:), xy_SurfPressB(:,:)
 
-  real(DP), public, save, allocatable :: xy_WindStressU(:,:)
-  real(DP), public, save, allocatable :: xy_WindStressV(:,:)
-  real(DP), public, save, allocatable :: xy_SeaSurfAirTemp(:,:), xy_SeaSurfTemp(:,:), xy_SurfHeatFlux(:,:)
-  real(DP), public, save, allocatable :: xy_SeaSurfSalt(:,:), xy_SurfSaltFlux(:,:)
-
   real(DP), public, save, allocatable :: xyz_ConvIndex(:,:,:)
   real(DP), public, save, allocatable :: xyz_VViscCoef(:,:,:), xyz_VDiffCoef(:,:,:)
 
@@ -80,6 +75,7 @@ module VariableSet_mod
   character(TOKEN), public, parameter :: VARSET_KEY_SALT  = 'Salt'
   character(TOKEN), public, parameter :: VARSET_KEY_SALTB = 'SaltB'
   character(TOKEN), public, parameter :: VARSET_KEY_SURFHEIGHT = 'SurfHeight'
+  character(TOKEN), public, parameter :: VARSET_KEY_SURFHEIGHTB = 'SurfHeightB'
 
   character(TOKEN), public, parameter :: VARSET_KEY_SIGDOT = 'SigDot'
   character(TOKEN), public, parameter :: VARSET_KEY_SURFPRESS = 'SurfPress'
@@ -136,12 +132,6 @@ contains
     
     call malloc3DVar(xyz_ConvIndex)
     
-    ! Variable used in applying the boundary condition at the surface. 
-
-    call malloc2DVar(xy_WindStressU); call malloc2DVar(xy_WindStressV)
-    call malloc2DVar(xy_SurfHeatFlux); call malloc2DVar(xy_SeaSurfTemp); call malloc2DVar(xy_SeaSurfAirTemp)
-    call malloc2DVar(xy_SurfSaltFlux); call malloc2DVar(xy_SeaSurfSalt)
-
     !
     TracerNum = 2
     SaltTracerID = 1
@@ -190,10 +180,6 @@ contains
        deallocate( xy_SurfHeightA, xy_SurfHeightN, xy_SurfHeightB )
        deallocate( xy_totDepthBasic )
        deallocate( xy_SurfPressA, xy_SurfPressN, xy_SurfPressB )
-       deallocate( xy_WindStressU, xy_WindStressV )
-       deallocate( xy_SurfHeatFlux, xy_SeaSurfTemp, xy_SeaSurfAirTemp )
-       deallocate( xy_SurfSaltFlux, xy_SeaSurfSalt )
-
        deallocate( xyz_ConvIndex )
        deallocate( xyz_VViscCoef, xyz_VDiffCoef )
     end if

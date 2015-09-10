@@ -224,7 +224,9 @@ contains
     !
     !
     use Constants_mod, only: Cp0, RefDens
-    use VariableSet_mod, only: xy_SurfSaltFlux
+
+    use BoundaryCondO_mod, only: &
+         & xy_SurfFwFlxO
     
 use at_module_omp
 

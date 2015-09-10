@@ -9,10 +9,8 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/mesh2 \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
         $(MODPATHFLAG)$(srcdir)/../util \
-	$(MODPATHFLAG)$(srcdir)/../setup \
-        $(MODPATHFLAG)$(srcdir)/../boudary_cond \
-        $(MODPATHFLAG)$(srcdir)/../dynamics \
-        $(MODPATHFLAG)$(srcdir)/../io \
+        $(MODPATHFLAG)$(srcdir)/../setup \
+        $(MODPATHFLAG)$(srcdir)/../seaice \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
@@ -20,11 +18,12 @@ LDADD = \
 
 CLEANFILES = *$(MODEXT)
 
-noinst_LTLIBRARIES= libDSOGCMPhysicsDriver.la 
-nodist_libDSOGCMPhysicsDriver_la_SOURCES= \
-	../sgs_mixing/SGSEddyMixingHelper_mod.f90 \
-	../sgs_mixing/SGSEddyMixing_mod.f90 \
-	../sgs_mixing/SGSConvAdjust_mod.f90 \
-	../sgs_mixing/SGSSlowConvAdjust_mod.f90 \
-	PhysicsDriver_mod.f90
+bin_PROGRAMS = 
 
+noinst_LTLIBRARIES= libDSOGCMBC.la 
+nodist_libDSOGCMBC_la_SOURCES= \
+	BoundaryCondO_mod.f90
+
+BoundaryCondO_mod.f90: \
+	../seaice/VarSetSeaice_mod.f90 \
+	../seaice/SeaIceBoundaryCond_mod.f90

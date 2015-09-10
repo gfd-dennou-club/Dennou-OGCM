@@ -13,13 +13,17 @@ module InitCond_mod
 
   use VariableSet_mod, only: &
        & xyz_UN, xyz_VN, xyz_SigDot, &
-       & xyz_PTempEddN, xy_SurfPressN, &
+       & xyz_PTempEddN, xyz_SaltN, xy_SurfHeightN, &
+       & xy_SurfPressN, xyz_ConvIndex
+
+  use VarSetSeaice_mod, only: &
+       & VarSetSeaice_SetDefualtValue
+
+  use BoundaryCondO_mod, only: &
        & xy_WindStressU, xy_WindStressV, &
-       & xy_SeaSurfTemp, xy_SurfHeatFlux, &
-       & xy_SeaSurfSalt, xy_SurfSaltFlux, &
-       & xyz_ConvIndex
-
-
+       & xy_SeaSurfTemp, xy_SeaSurfSalt, &
+       & xy_SurfHFlxO, xy_SurfFwFlxO
+       
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -49,16 +53,23 @@ contains
 
     ! 実行文; Executable statements
     !
+
+    ! Set initial values for variable in OGCM
+    !
     xyz_UN = 0d0; xyz_VN = 0d0; xyz_SigDot = 0d0
-    xyz_PTempEddN = 0d0
-    xy_SurfPressN = 0d0;
+    xyz_PTempEddN = 0d0; xyz_SaltN = 35d0;
+    xy_SurfHeightN = 0d0; xy_SurfPressN = 0d0;
 
     xy_WindStressU = 0d0; xy_WindStressV = 0d0;
-    xy_SeaSurfTemp = 0d0; xy_SurfHeatFlux = 0d0;
-    xy_SeaSurfSalt = 0d0; xy_SurfSaltFlux = 0d0;
+    xy_SeaSurfTemp = 300d0; xy_SurfHFlxO = 0d0;
+    xy_SeaSurfSalt = 35d0; xy_SurfFwFlxO = 0d0;
 
     xyz_ConvIndex = 0d0
 
+    ! Set initial values for variables in seaice model
+    !
+    call VarSetSeaice_SetDefualtValue()
+    
   end subroutine InitCond_Init
 
   !> @brief 

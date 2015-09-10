@@ -69,8 +69,15 @@ module Constants_mod
   real(DP), public, save :: RefSoundSpeed
   real(DP), public, save :: ThermalExpanCoef 
 
+  !< Albedo of open ocean [(1)]  
+  real(DP), public :: albedoOcean
 
+  !< Emissivity of open ocean surface [(1)]  
+  real(DP), public :: emissivOcean
 
+  !
+  real(DP), public :: LatentHeat
+  
   ! 非公開手続き
   ! Private procedure
   !
@@ -130,7 +137,9 @@ contains
       & hHyperViscCoef, vHyperViscCoef, &
       & hDiffCoef, vDiffCoef, &
       & hHyperDiffCoef, vHyperDiffCoef, &
-      & RoughnessParamBottom
+      & RoughnessParamBottom, &
+      & emissivOcean, albedoOcean, &
+      & LatentHeat
 
     ! 実行文; Executable statements
 
@@ -156,7 +165,11 @@ contains
     RefSoundSpeed    = 1490d0
     ThermalExpanCoef = 1.67d-04
     
+    AlbedoOcean = 0.1d0
+    EmissivOcean = 0.97d0
 
+    LatentHeat = 2.501d6
+    
     ! NAMELIST からの入力
     ! Input from NAMELIST
     !
@@ -193,7 +206,8 @@ contains
     call MessageNotify( 'M', module_name, '  Cp0               = %f', d=(/ Cp0 /) )
     call MessageNotify( 'M', module_name, '  RefSoundSpeed     = %f', d=(/ RefSoundSpeed /) )
     call MessageNotify( 'M', module_name, '  ThermalExpanCoef  = %f', d=(/ ThermalExpanCoef /) )
-        
+    call MessageNotify( 'M', module_name, '  AlbedoOcean       = %f', d=(/ AlbedoOcean /) )
+    call MessageNotify( 'M', module_name, '  EmissivOcean      = %f', d=(/ EmissivOcean /) )
 
 end subroutine Constants_Init
 

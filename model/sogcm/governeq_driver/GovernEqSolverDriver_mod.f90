@@ -20,6 +20,10 @@ module GovernEqSolverDriver_mod
        & HydroBouEq_TimeInteg_Init, HydroBouEq_TimeInteg_Final, &
        & HydroBouEqSolver_AdvanceTStep
 
+  use SeaiceEq_TimeInteg_mod, only: &
+       & SeaiceEq_TimeInteg_Init, SeaiceEq_TimeInteg_Final, &
+       & SeaiceEqSolver_AdvanceTStep
+  
   use EOSDriver_mod, only: &
        & EOSDriver_Init, EOSDriver_Final
 
@@ -96,6 +100,12 @@ contains
          & CurrentTimeStep, DelTime, &
          & barocTimeIntMode, nStage_BarocTimeInt, isVarBUsed_BarocTimeInt
 
+    use VarSetSeaice_mod, only: &
+         & xy_SIceConA, xy_SIceConN, xy_Wice
+
+    use BoundaryCondO_mod, only: &
+         & BoundaryCondO_Update
+    
     ! 宣言文; Declaration statement
     !
     logical, optional :: isSelfStartSchemeUsed
@@ -118,6 +128,14 @@ contains
        timeIntMode = timeIntMode_RK4; nStage=4; is_VarB_Used = .false.
     end if
 
+    !
+    call SeaiceEqSolver_AdvanceTStep( &
+         & DelTime )
+
+    !
+    call BoundaryCondO_Update(xy_SIceConA, xy_Wice)
+    
+    !
     call HydroBouEqSolver_AdvanceTStep( &
          & DelTime, timeIntMode, nStage, is_VarB_Used )
 

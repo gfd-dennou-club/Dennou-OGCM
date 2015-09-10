@@ -62,9 +62,15 @@ module SeaIceConstants_mod
   !< Salinity of sea ice [ppt]
   real(DP), public :: SaltSeaIce
 
+  !< Freezing temperature of (fresh)water [degC]
+  real(DP), public :: FreezeTempWater
+  
   !< Freezing temperature of seawater [degC]
   real(DP), public :: FreezeTempSW
 
+  !< Albedo of open ocean
+  real(DP), public :: AlbedoOcean
+  
   !< Albedo of snow [(1)]
   real(DP), public :: AlbedoSnow
 
@@ -74,9 +80,28 @@ module SeaIceConstants_mod
   !< Albedo of ice [(1)]    
   real(DP), public :: AlbedoIce
 
+  !< Emissivity of open ocean surface
+  real(DP), public :: EmissivOcean
+  
+  !< Emissivity of snow surface [(1)]
+  real(DP), public :: EmissivSnow
+
+  !< Emissivity of sea-ice surface [(1)]
+  real(DP), public :: EmissivIce
+  
   !> Fraction of the net incoming solar radiation which penetrates into the interior
   !! of snow-free ice [(1)]
   real(DP), public :: I0  
+
+  !> Base-melting heat transfer coeffiecient (between ice and water) [(1)]
+  !! This parameter corresponds
+  !! \[
+  !     \dfrac{1}{P_{\rm rt}} k^{-1} \ln{(-z/z_0)} + B_T}. 
+  !! \]
+  !!  Please check Eq.18a,b in Mellor and Kantha(1989).
+  !!
+  real(DP), public :: BaseMeltHeatTransCoef
+
   
 contains
 
@@ -149,8 +174,9 @@ contains
          & DensIce, DensSnow, DensSeaWater, &
          & CIce, LFreeze, &
          & KIce, KSnow, &
-         & Mu, SaltSeaIce, FreezeTempSW, &
-         & AlbedoSnow, AlbedoMeltSnow, AlbedoIce, &
+         & Mu, SaltSeaIce, FreezeTempWater, FreezeTempSW, &
+         & AlbedoOcean, AlbedoSnow, AlbedoMeltSnow, AlbedoIce, &
+         & EmissivOcean, EmissivSnow, EmissivIce, &
          & I0
 
     ! 実行文; Executable statements
@@ -164,16 +190,25 @@ contains
     LFreeze = 334d3
     KIce = 2.03d0
     KSnow = 0.31d0
+    
     Mu = 0.054d0
     SaltSeaIce = 1d0
+    FreezeTempWater = 0d0
     FreezeTempSW = -2d0!-1.8d0
-
+    
+    AlbedoOcean = 0.1d0
     AlbedoSnow = 0.8d0
     AlbedoMeltSnow = 0.735d0
-    AlbedoIce = 0.58d0
+    AlbedoIce = 0.65d0
 
-    I0 = 0.3d0!*2d0
+    EmissivOcean = 0.97d0
+    EmissivSnow      = 0.97d0
+    EmissivIce       = 0.97d0
+    
+    I0 = 0.34d0!*2d0
 
+    baseMeltHeatTransCoef = 6d-3
+    
     ! NAMELIST からの入力
     ! Input from NAMELIST
     !
@@ -197,6 +232,12 @@ contains
     call MessageNotify( 'M', module_name, 'DensSnow     = %f [kg/m3]',     d=(/ DensSnow /))    
     call MessageNotify( 'M', module_name, 'DensIce      = %f [kg/m3]',     d=(/ DensIce /))
     call MessageNotify( 'M', module_name, 'DensSeaWater = %f [kg/m3]',     d=(/ DensSeaWater /))
+    call MessageNotify( 'M', module_name, 'KSnow        = %f [W.m-1.degC-1]',     d=(/ KSnow /))    
+    call MessageNotify( 'M', module_name, 'KIce         = %f [W.m-1.degC-1]',     d=(/ KIce /))    
+    call MessageNotify( 'M', module_name, 'AlbedoSnow       = %f [(1)]  ',     d=(/ AlbedoSnow   /))
+    call MessageNotify( 'M', module_name, 'AlbedoMeltSnow   = %f [(1)]  ',     d=(/ AlbedoMeltSnow   /))
+    call MessageNotify( 'M', module_name, 'AlbedoIce        = %f [(1)]  ',     d=(/ AlbedoIce   /))
+    call MessageNotify( 'M', module_name, 'AlbedoOcean      = %f [(1)]  ',     d=(/ AlbedoOcean   /))
     
   end subroutine read_namelist
 end module SeaIceConstants_mod

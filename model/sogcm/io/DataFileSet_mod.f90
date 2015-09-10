@@ -22,6 +22,10 @@ module DataFileSet_mod
 
   use VariableSet_mod
 
+  use VarSetSeaice_mod
+
+  use BoundaryCondO_mod, only: &
+       & xy_WindStressU, xy_WindStressV
   
   ! 宣言文; Declareration statements
   !
@@ -43,6 +47,7 @@ module DataFileSet_mod
   public :: DataFileSet_OutputData, DataFileSet_OutputBasicData
   public :: DataFileSet_isOutputTiming
 
+  
   ! 非公開手続き
   ! Private procedure
   !
@@ -93,9 +98,12 @@ contains
          & title='OGCM Output',             &
          & source='OGCM Output',    &
          & institution='GFD_Dennou Club OGCM project',    &
-         & dims=(/'lon','lat','sig','t  '/), dimsizes=(/iMax,jMax,kMax+1,0/),       &
-         & longnames=(/'longitude','latitude ','sigma    ', 'time     '/),      &
-         & units=(/'degree_east ','degree_north','(1)         ', 'sec.        '/), &
+         & dims=(/'lon ', 'lat ', 'sig ', 'sig2', 't   '/),   &
+         & dimsizes=(/iMax, jMax, kMax+1, 2, 0 /),       &
+         & longnames=(/'longitude   ', 'latitude    ', 'sigma       ', &
+         &             'sigma-seaice', 'time        '   /),             &
+         & units=(/'degree_east ', 'degree_north', '(1)         ',   &
+         &         '(1)         ', 'sec.        ' /), &
          & origin=RestartTime, interval=this%outputIntrvalSec, terminus=EndTime,          &
          & namelist_filename=configNmlFileName )    
 
@@ -186,6 +194,9 @@ contains
 
     xy_totDepth = xy_totDepthBasic + xy_SurfHeightN
 
+    ! Output variables in OGCM
+    !
+    
     call HistoryAutoPut(CurrentTime, VARSET_KEY_U, xyz_UN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_V, xyz_VN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHEIGHT, xy_SurfHeightN)
@@ -194,7 +205,7 @@ contains
 
     call HistoryAutoPut(CurrentTime, VARSET_KEY_UB, xyz_UB)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_VB, xyz_VB)
-!    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHEIGHT, xy_SurfHeightN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHEIGHTB, xy_SurfHeightB)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_PTEMPEDDB, xyz_PTempEddB)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SALTB, xyz_SaltB)
     
@@ -212,6 +223,8 @@ contains
 
     xyz_HydroPressEdd = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
 
+    !
+    !
     call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
     call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
     call HistoryAutoPut(CurrentTime, "Div", xyz_wz(wz_Div))
@@ -224,6 +237,14 @@ contains
 
     call HistoryAutoPut(CurrentTime, VARSET_KEY_CONVINDEX, xyz_ConvIndex)
 
+    ! Output variables in sea-ice model
+    !
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SICECON, xy_SIceConN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_ICETHICK, xy_IceThickN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SNOWTHICK, xy_SnowThickN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SICETEMP, xyz_SIceTempN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SICESURFTEMP, xy_SIceSurfTempN)
+    
   end subroutine DataFileSet_OutputData
 
   !> @brief 
@@ -280,10 +301,10 @@ contains
     !
     character(TOKEN) :: lonName
     character(TOKEN) :: latName
-    character(TOKEN) :: sigName
+    character(TOKEN) :: sigName, sig2Name
     character(TOKEN) :: timeName
 
-    character(TOKEN) :: dims_Z(1), dims_XY(2), dims_ZT(2), dims_XYT(3), dims_XYZT(4)
+    character(TOKEN) :: dims_Z(1), dims_XY(2), dims_ZT(2), dims_XYT(3), dims_XYZT(4), dims_XYZ2T(4)
     
     ! 実行文; Executable statement
     !
@@ -291,12 +312,14 @@ contains
     ! Regist coordinates
     !
     lonName = 'lon'; latName='lat'; sigName='sig'; timeName='t'
+    sig2Name = 'sig2'
 
     call HistoryAutoPutAxis(lonName, xyz_Lon(:,1,0)*180/PI)
     call HistoryAutoAddAttr(lonName, 'topology', 'circular')
     call HistoryAutoAddAttr(lonName, 'modulo', 360.0)
     call HistoryAutoPutAxis(latName, xyz_Lat(0,:,0)*180/PI)
     call HistoryAutoPutAxis(sigName, g_Sig)
+    call HistoryAutoPutAxis(sig2Name, (/ -0.25d0, -0.75d0 /))
 
 
     !
@@ -306,10 +329,13 @@ contains
     dims_ZT = (/ sigName, timeName /)
     dims_XYT = (/ lonName, latName, timeName /)
     dims_XYZT = (/ lonName, latName, sigName, timeName /)
+    dims_XYZ2T = (/ lonName, latName, sig2Name, timeName /)
 
     ! Regist prognostic variables
     !
 
+    ! Regist variables in OGCM
+    
     call HistoryAutoAddVariable( varname=VARSET_KEY_U, &
          & dims=dims_XYZT, longname='velocity(longitude) ', units='m/s')
 
@@ -321,10 +347,12 @@ contains
     call HistoryAutoAddVariable( varname=VARSET_KEY_VB, &
          & dims=dims_XYZT, longname='velocity(latitude) ', units='m/s')
 
-
     call HistoryAutoAddVariable( varname=VARSET_KEY_SURFHEIGHT, &
          & dims=dims_XYT, longname='surface height ', units='m')
 
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SURFHEIGHTB, &
+         & dims=dims_XYT, longname='surface height ', units='m')
+    
     call HistoryAutoAddVariable( varname=VARSET_KEY_PTEMPEDD, &
          & dims=dims_XYZT, longname='eddy component of potential temperature ', units='K')
 
@@ -337,7 +365,31 @@ contains
     call HistoryAutoAddVariable( varname=VARSET_KEY_SALTB, &
          & dims=dims_XYZT, longname='salinity', units='psu')
 
+    ! Regist variables in seaice model
+    
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SICECON, &
+         & dims=dims_XYT, longname='seaice concentration ', units='1')
 
+    call HistoryAutoAddVariable( varname=VARSET_KEY_ICETHICK, &
+         & dims=dims_XYT, longname='effective sea-ice thickness ', units='m')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_ICETHICKB, &
+         & dims=dims_XYT, longname='effective sea-ice thickness ', units='m')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SNOWTHICK, &
+         & dims=dims_XYT, longname='effective snow depth ', units='m')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SNOWTHICKB, &
+         & dims=dims_XYT, longname='effective snow depth ', units='m')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SICETEMP, &
+         & dims=dims_XYZ2T, longname='sea-ice temperature ', units='K')  
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_SICETEMPB, &
+         & dims=dims_XYZ2T, longname='sea-ice temperature ', units='K')  
+    
+    ! 
+    ! For variables in ocean model
     ! Regist diagnostic variables
     !
 
@@ -350,6 +402,13 @@ contains
     call HistoryAutoAddVariable( varname=VARSET_KEY_HYDROPRESSEDD, &
          & dims=dims_XYZT, longname='deviation of hydrostatic pressure ', units='Pa')
 
+    ! 
+    ! For variables in sea-ice model
+    ! Regist diagnostic variables
+    !
+    call HistoryAutoAddVariable( varName=VARSET_KEY_SICESURFTEMP, &
+         & dims=dims_XYT, longname='Surface temperature of snow or ice layer', units='degC')
+    
     ! Regist accessory variables
     !
 

@@ -1,10 +1,16 @@
 !-------------------------------------------------------------
 ! Copyright (c) 2013-2015 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
-!> @brief a template module
-!! 
+!> @brief Thermodynamics process of sea-ice model formulated by Winton(2000). 
 !! @author Yuta Kawai
 !!
+!! This module provide some procedures to advance thermodynamics process of the sea-ice model.
+!! The themodynamic model implemented here is formulated in Winton(2000). 
+!!
+!! To advance thermodynmics process you just should call four subroutines(update_effConductiveCoupling, calc_layersTemprature,
+!! calc_SnowIceLyrMassChange and adjust_IceLyrInternal). If you consider stand-alone sea-ice thermodynamics
+!! model run, and then the prescribed flux at boundary(i.e. We need not to calculate of the flux at boundary),
+!! two interfaces(advance_SeaIceThermDynProc, update_SeaIceThermDynProcVar) will be convinence. 
 !!
 module SeaIceThermDyn_Winton2000_mod 
 
@@ -31,8 +37,18 @@ module SeaIceThermDyn_Winton2000_mod
   ! Public procedure
   !
   public :: SeaIceThermDyn_Winton2000_Init, SeaIceThermDyn_Winton2000_Final
+
+  ! Three subroutines which should be called in order to advance thermdynamics process
+  ! of the sea-ice model.
+  public :: update_effConductiveCoupling, calc_layersTemprature, calc_SnowIceLyrMassChange, adjust_IceLyrInternal
+  
+  ! Subroutines which are called in the stand-alone  sea-ice thermodynamics model run.
   public :: advance_SeaIceThermDynProc, update_SeaIceThermDynProcVar
 
+  ! Service routines
+  !
+  public :: calc_E_IceLyr1, calc_E_IceLyr2
+  
   ! 非公開手続き
   ! Private procedure
   !
@@ -40,6 +56,11 @@ module SeaIceThermDyn_Winton2000_mod
   ! 公開変数
   ! Public variable
   !
+
+  !> A set of prognostic and diagnostic variables, and parameters.
+  !! The derived type will be used to manage these variables in the
+  !! stand-alone mode.
+  !!
   type, public :: SeaIceThermDynVarSet
      real(DP) :: hsA, hsN
      real(DP) :: hiA, hiN
@@ -55,7 +76,6 @@ module SeaIceThermDyn_Winton2000_mod
   !
   character(*), parameter:: module_name = 'SeaIceThermDyn_Winton2000_mod' !< Module Name
   
-
 contains
 
   !>
@@ -79,6 +99,7 @@ contains
   end subroutine SeaIceThermDyn_Winton2000_Final
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine update_SeaIceThermDynProcVar(varset)
 
     ! 宣言文; Declaration statement
@@ -113,7 +134,8 @@ contains
     real(DP) :: K_12, K_23
     real(DP) :: A, B
     real(DP) :: dhs, dh1, dh2
-    
+    real(DP) :: SurfMeltEn, BtmMeltEn
+    real(DP) :: dummyTempO
     logical :: isSnowLyrExist, isSnowLyrMelt, isIceLyrMelt
     
     !> The flux of penetrating solar radiation(if there is no snow). 
@@ -131,10 +153,6 @@ contains
        isSnowLyrExist = .true.
     end if
     
-    !
-    call update_effConductiveCoupling(K_12, K_23, & ! (out)
-         & varset%hsN, varset%hiN )
-
     !
     call update_albedo(varset%albedo_snow, varset%albedo_ice, & ! (out)
          & varset%TsN, varset%hsN )
@@ -154,15 +172,23 @@ contains
 !!$    write(*,*) "A=", A, ", B=", B, ", I=", I
 !!$    write(*,*) "K_1/2(T1 - Ts)=", K_12*(varset%T1N - varset%TsN)
 
-    call calc_layersTemprature( varset%TsA, varset%T1A, varset%T2A, &  ! (out)
-         & varset%T1N, varset%T2N, varset%hiN, DelTime, A, B,       &  ! (in)
-         & I, K_12, K_23, isSnowLyrExist )                             ! (in)
+    !
+    call update_effConductiveCoupling(K_12, K_23, & ! (out)
+         & varset%hsN, varset%hiN )
+
+    BtmMeltEn = Fb
+    call calc_layersTemprature( &
+         & varset%TsA, varset%T1A, varset%T2A, SurfMeltEn,            &  ! (out)
+         & BtmMeltEn,                                                 &  ! (inout)
+         & varset%T1N, varset%T2N, varset%hiN, DelTime, A, B,         &  ! (in)
+         & I, K_12, K_23, isSnowLyrExist )                               ! (in)
 
     !
     call calc_SnowIceLyrMassChange( &
          & dhs, dh1, dh2, excessMeltEnergy,                        & ! (out)
-         & varset%T1A, varset%T2A,                                 & ! (inout)
-         & varset%hsN, varset%hiN, varset%TsA, DelTime, Fb, K_12, A, B     & ! (in)
+         & varset%T1A, varset%T2A, dummyTempO,                     & ! (inout)
+         & varset%hsN, varset%hiN, varset%TsA, DelTime,            & ! (in)
+         & SurfMeltEn, BtmMeltEn                                   & ! (in)
          & )
 
     !
@@ -252,13 +278,16 @@ contains
 
   end subroutine update_SurfaceUpwardFluxInfo
 
-  subroutine calc_layersTemprature( TsA, T1A, T2A,             &  ! (out)
+  subroutine calc_layersTemprature( &
+       & TsA, T1A, T2A, SurfMeltEn,                            &  ! (out)
+       & BtmMeltEn,                                             &  ! (inout)
        & T1N, T2N, hi, dt, A, B, I, K_12, K_23, isSnowLyrExist &  ! (in)
        & )
 
     ! 宣言文; Declaration statement
     !    
     real(DP), intent(out) :: TsA, T1A, T2A
+    real(DP), intent(out) :: SurfMeltEn, BtmMeltEn
     real(DP), intent(in) :: T1N, T2N, hi, I, dt
     real(DP), intent(in) :: A, B, K_12, K_23
     logical, intent(in) :: isSnowLyrExist
@@ -303,30 +332,31 @@ contains
        A1 = A10 + K_12
        B1 = B10 - K_12*TsA
        T1A = -(B1 + sqrt(B1**2 - 4d0*A1*C1))/(2d0*A1)
-       T2A = (2d0*dt*K_23*(T1A + 2d0*FreezeTempSW) + HCIce*T2N)/Work1       
+       T2A = (2d0*dt*K_23*(T1A + 2d0*FreezeTempSW) + HCIce*T2N)/Work1
     end if
 
     !
-  
+    SurfMeltEn = K_12*(T1A - TsA) - (A + B*TsA)
+    BtmMeltEn  = BtmMeltEn - 4d0*KIce*(FreezeTempSW - T2A)/hi
+    
   end subroutine calc_layersTemprature
 
   subroutine calc_SnowIceLyrMassChange( &
        & dhs, dh1, dh2, excessMeltEnergy,                 & ! (out)
-       & T1, T2,                                          & ! (inout)
-       & hsOld_, hiOld_, Ts, dt, Fb, K_12, A, B           & ! (in)
+       & T1, T2, TsOcean,                                 & ! (inout)
+       & hsOld_, hiOld_, Ts, dt, SurfMeltEn, BtmMeltEn    & ! (in)
        & )
 
     ! 宣言文; Declaration statement
     !    
     real(DP), intent(out) :: dhs, dh1, dh2, excessMeltEnergy
-    real(DP), intent(inout) :: T1, T2
+    real(DP), intent(inout) :: T1, T2, TsOcean
     real(DP), intent(in) :: hsOld_, hiOld_, Ts
-    real(DP), intent(in) :: dt, Fb, K_12, A, B
+    real(DP), intent(in) :: dt, SurfMeltEn, BtmMeltEn
 
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: Ms, Mb
     real(DP) :: E1, E2
     real(DP) :: hsOld, h1Old, h2Old
     real(DP) :: Work
@@ -342,29 +372,36 @@ contains
     h1Old = 0.5d0*hiOld_; h2Old = 0.5d0*hiOld_
     excessMeltEnergy = 0d0
     
+    !* Freezing
     !
-    Ms = K_12*(T1 - Ts) - (A + B*Ts)
-    Mb = Fb - 4d0*KIce*(FreezeTempSW - T2)/hiOld_
-!!$    write(*,*) Ms, Mb, Fb
-
     
-    !
-
-    !
-    !
     dh2Freeze = 0d0
-    if(Mb <= 0d0) then
-       dh2Freeze = Mb*dt/(DensIce*calc_E_IceLyr2(FreezeTempSW, SaltSeaIce))
-!!$       write(*,*) "dh2Freeze=", dh2Freeze
+    if(BtmMeltEn <= 0d0) then
+       dh2Freeze = BtmMeltEn*dt/(DensIce*calc_E_IceLyr2(FreezeTempSW, SaltSeaIce))
        T2 = (dh2Freeze*FreezeTempSW + h2Old*T2)/(h2Old + dh2Freeze)
+
+       if(hiOld_ == 0d0) then
+          if(dh2Freeze > 1d-4) then
+             ! The first layer temperature for intialized sea ice is calculated by adjust_IceLyrInternal.
+             ! Before calculating the temperature, T1 need to be set *non* zero. 
+             T1 = - Mu*SaltSeaIce
+          else
+             dh2Freeze = 0d0
+          end if
+       end if
+
+       if(dh2Freeze > 0d0) &
+            & TsOcean = degC2K(FreezeTempSW)
     end if
+    
 
     
-    ! Melting
+    !* Melting
     !
+    
     dhsMelt = 0d0; dh1Melt = 0d0; dh2Melt = 0d0
-    if(Ms > 0d0) then
-       Work = Ms*dt
+    if(SurfMeltEn > 0d0) then
+       Work = SurfMeltEn*dt
        dhsMelt = - min(Work/(DensSnow*LFreeze), hsOld)
 
        E1 = calc_E_IceLyr1(T1, SaltSeaIce)
@@ -382,9 +419,9 @@ contains
        h2Old = h2Old + dh2Melt       
     end if
     
-    if(Mb > 0d0) then
+    if(BtmMeltEn > 0d0) then
        E2 = calc_E_IceLyr2(T2, SaltSeaIce)
-       Work = Mb*dt
+       Work =BtmMeltEn*dt
        dh2Melt = dh2Melt - min(-Work/(DensIce*E2), h2Old)
        
        E1 = calc_E_IceLyr1(T1, SaltSeaIce)
@@ -395,6 +432,7 @@ contains
        dhsMelt = dhsMelt - min( max(Work/(DensSnow*LFreeze), 0d0), hsOld )
 
        excessMeltEnergy = excessMeltEnergy + max(Work - DensSnow*LFreeze*hsOld, 0d0)
+
     end if
 
     dhs = dhsMelt
@@ -417,41 +455,49 @@ contains
     ! 局所変数
     ! Local variables
     !    
-    Real(DP) :: dhs, dh1
+    Real(DP) :: dhs, dh1, h1_
     real(DP) :: coef, dummy, T1Tmp, T2Tmp, h1Tmp
     real(DP) :: extraSE, dh
 
     
     !
     !
-    
-    coef = (hs - (DensSeaWater - DensIce)/DensSnow*(h1 + h2))/DensSeaWater
-    dhs = - max(coef*DensIce, 0d0)
-    dh1 =   max(coef*DensSeaWater, 0d0)
-
-    hs = hs + dhs    
-    h1Tmp = h1 + dh1    
-
-    !
-    call calc_NewTemp(T1Tmp, dummy, &
-         & T1, -Mu*SaltSeaIce, h1/h1Tmp)
-
-!!$    write(*,*) "Adjust the snow layer below waterline dhs=", dhs, ", dh1=", dh1
+    h1_ = h1
+    hi = h1_ + h2    
     
     !
     !
+    if(hs > 0d0) then
+       coef = (hs - (DensSeaWater - DensIce)/DensSnow*hi)/DensSeaWater
+       dhs = - max(coef*DensIce, 0d0)
+       dh1 =   max(coef*DensSeaWater, 0d0)
 
-    hi = h1Tmp + h2
+       !
+       hs = hs + dhs; h1_ = h1 + dh1
+       call calc_NewTemp(T1Tmp, dummy, &
+            & T1, -Mu*SaltSeaIce, h1/h1_)
+
+!!$    write(*,*) "Adjust the snow layer below waterline dhs=", dhs, ", dh1=", dh1, ", hi=", hi
+       T1 = T1Tmp
+    end if
+
+
     
-    if(h1Tmp < h2) then
+    !
+    !
+
+
+    if(h1_ < h2) then
 !       write(*,*) "h1 < h2"
-       call calc_NewTemp(T1, dummy, &
-            & T1Tmp, T2Tmp, h1Tmp/(0.5d0*hi))
+       call calc_NewTemp(T1Tmp, dummy, &
+            & T1, T2, h1_/(0.5d0*hi))
+       T1 = T1Tmp
     else
 !       write(*,*) "h1 >= h2", h1Tmp, h2
-       T2Tmp = T2
-       call calc_NewTemp(dummy, T2, &
-            & T1Tmp, T2Tmp, h1Tmp/(0.5d0*hi)-1d0)
+       call calc_NewTemp(dummy, T2Tmp, &
+            & T1, T2, h1_/(0.5d0*hi)-1d0)
+       T2 = T2Tmp
+       
        if(T2 > - Mu*SaltSeaIce) then
 
           T2 = - Mu*SaltSeaIce
@@ -523,7 +569,7 @@ contains
     ! 実行文; Executable statements
     !
 
-    K = 273.16d0 + degC
+    K = 273.15d0 + degC
   end function degC2K
   
   

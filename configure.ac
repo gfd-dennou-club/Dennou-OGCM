@@ -12,7 +12,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 # Check cross-compile
 AC_CANONICAL_HOST
 # Call automake
-AM_INIT_AUTOMAKE([foreign -Wall -Werror])
+AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror])
 # Turn off shared libraries by default
 #AC_DISABLE_SHARED([])
 # Checks for programs.
@@ -243,7 +243,7 @@ esac
 #
 # * set flags
 #
-SYSLDFLAGS="-L$spml_libdir -L$ispack_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdff_libdir -L$netcdf_libdir -L/usr/lib/"
+SYSLDFLAGS="-L$spml_libdir -L$ispack_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdff_libdir -L$netcdf_libdir -L/usr/lib/ -L/usr/lib/"
 SYSLDLIBS="-l$spml_libname -l$ispack_libname -l$gtool5_libname $SYSLDLIBS -l$netcdff_libname -l$netcdf_libname -llapack -lblas"
 SYSFFLAGS="$ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir $ax_cv_fortran_modflag$spml_moddir $SYSFFLAGS"
 
@@ -255,6 +255,8 @@ AC_SUBST(SYSFFLAGS)
 # Checks for typedefs, structures, and compiler characteristics.
 # Checks for library functions.
 # * Calling libtool
+
+AM_PROG_AR
 
 LT_INIT
 AC_CONFIG_FILES([
@@ -277,12 +279,14 @@ AC_CONFIG_FILES([
 		 model/ogcm/util/Makefile
 		 model/ogcm/dynamics/Makefile
 		 model/sogcm/Makefile
-		 model/sogcm/setup/Makefile
 		 model/sogcm/util/Makefile
+		 model/sogcm/setup/Makefile
+		 model/sogcm/governeq_driver/Makefile		 
+		 model/sogcm/boundary_cond/Makefile		 
 		 model/sogcm/dynamics/Makefile
 		 model/sogcm/physics_driver/Makefile
-		 model/sogcm/seaice/Makefile		 
-		 model/sogcm/governeq_driver/Makefile
+		 model/sogcm/seaice/Makefile
+		 model/sogcm/io/Makefile		 
 		 model/sogcm/experiment/Makefile
 		 model/sogcm/unit_test/Makefile
 		 model/sogcm/tool/Makefile

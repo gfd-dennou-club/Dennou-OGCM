@@ -86,7 +86,15 @@
 - テスト計算
   - [[../experiment/exp_SeaIceThermTest/Exp_SeaIceThermS78Cases.html][Semtner(1976) と同じ海面フラックスを与える数値実験]]
 
-** 大気海洋氷結合モデル
+** 海洋海氷結合モデル
+
+- テスト計算
+
+
+** 大気海洋海氷結合モデル
+
+- テスト計算
+  
 
 
 
@@ -97,7 +105,7 @@
     - Enderton, et al.(2009) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/140619_epasemi_ykawai/pub/][発表資料]])
     - Ferreira, et al.(2011) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/141106_epasemi_ykawai/pub/][発表資料]])
     - Hu and Yang(2014) (発表資料)
-    - Rose(2015) (発表資料)
+    - Rose(2015) ([[http://www.gfd-dennou.org/arch/prepri/2015/kobe-u/150604_epasemi_ykawai/pub/][発表資料]])
 
 - 海氷モデリング
     - 海氷モデリングの基礎([[http://www.gfd-dennou.org/arch/prepri/2015/kobe-u/150115_epasemi_ykawai/pub/][発表資料]])
@@ -105,7 +113,7 @@
 
 * 海洋モデルミーティングログ
 
-#+CALL: create_MeetingLogTable("2015", "{2015-{05-20}}") :results value raw :exports results
+#+CALL: create_MeetingLogTable("2015", "{2015-{06-17,05-20}}") :results value raw :exports results
 
 #+CALL: create_MeetingLogTable("2014", "{2015-{03-17,02-18},01-21,2014-{12-17,11-17,07-16,06-26,05-28,04-23}}") :results value raw :exports results
 

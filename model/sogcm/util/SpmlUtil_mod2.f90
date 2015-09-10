@@ -81,7 +81,7 @@ module SpmlUtil_mod
 
   ! Procedures for the discritization of vertical differential or integrator with chebyshev spectral method
   public :: xyt_DSig_xyt, wt_DSig_wt, t_DSig_t, xyt_DSigDSig_xyt, wt_DSigDSig_wt
-  public :: xyz_DSig_xyz, xyz_DSigDSig_xyz
+  public :: z_DSig_z, xyz_DSig_xyz, xyz_DSigDSig_xyz
   public :: IntSig_BtmToTop, xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz, w_IntSig_BtmToTop_wz
 
   ! Procedures for the data conversion between real and spectral space with the spectral methods.
@@ -959,6 +959,17 @@ contains
 
     end function xyt_DSigDSig_xyt
 
+    function z_DSig_z(z)
+      real(8), dimension(0:km) :: z
+      real(8), dimension(0:km) :: z_DSig_z
+
+      integer :: k
+
+      forAll(k=0:km) &
+           & z_DSig_z(k) = sum(tr_vDeriv1CoefMat(:,k)*z(:))
+      
+    end function z_DSig_z
+    
     function xyz_DSig_xyz(xyz)
       real(8), dimension(0:im-1,jm,0:km), intent(in) :: xyz
       real(8), dimension(0:im-1,jm,0:km) :: xyz_DSig_xyz

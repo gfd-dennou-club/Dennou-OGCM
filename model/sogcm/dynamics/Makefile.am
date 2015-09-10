@@ -10,6 +10,7 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
         $(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../util \
+        $(MODPATHFLAG)$(srcdir)/../boundary_cond \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \

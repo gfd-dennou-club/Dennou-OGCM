@@ -22,8 +22,9 @@ program diagVar_main
 
   use GridSet_mod
   use SpmlUtil_mod
-  use BoundCondSet_mod
 
+  use BoundCondSet_mod
+  use BoundaryCondO_mod
   use GovernEqSet_mod, only: &
        & GovernEqSet_Init, GovernEqSet_Final, &
        & EOSType
@@ -144,6 +145,7 @@ contains
     call TemporalIntegSet_Init(ogcmConfigNmlFile)
     call BoundCondSet_Init(ogcmConfigNmlFile)
     call GridSet_Init(ogcmConfigNmlFile)
+    call BoundaryCondO_Init()
     call GovernEqSet_Init(ogcmConfigNmlFile)
     call EOSDriver_Init(EOSType)
 
@@ -221,6 +223,7 @@ contains
 
     call EOSDriver_Final()
     call GovernEqSet_Final()
+    call BoundaryCondO_Final()
     call VariableSet_Final()
     call SpmlUtil_Final()
     call GridSet_Final()
@@ -564,8 +567,12 @@ contains
 
 !!$    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "SurfHeight.nc", &
 !!$         & 'SurfHeight', xy_SurfHeightN, range=rangeStr )
+    xy_SurfHeightN = 0d0
 
-    xy_totDepth = xy_totDepthBasic  !+ xy_SurfHeightN
+    !
+    !
+    
+    xy_totDepth = xy_totDepthBasic  + xy_SurfHeightN
 
     forAll(k=0:kMax) xyz_PTemp(:,:,k) = z_PTempBasic(k) + xyz_PTempEddN(:,:,k)
 
@@ -573,6 +580,9 @@ contains
     xyz_HydroPressEdd = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
     xyz_PressEdd = eval_PressEdd(xy_SurfPressN, xyz_HydroPressEdd)
 
+    !
+    !
+    
     do varID=1, size(diagVarsName)
        select case(diagVarsName(varID))
           case(DVARKEY_DIV)

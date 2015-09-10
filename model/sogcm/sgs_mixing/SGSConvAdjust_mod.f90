@@ -23,7 +23,9 @@ module SGSConvAdjust_mod
 
   use EOSDriver_mod
 
-  use GridSet_mod
+  use GridSet_mod, only: &
+       & iMax, jMax, kMax, &
+       & z_LyrThickSig
 
   ! 宣言文; Declareration statements
   !
@@ -99,21 +101,20 @@ contains
     ! Local variables
     !
     integer :: i, j
-    real(DP), dimension(0:kMax) ::  z_PTemp, z_Salt, z_Depth
+    real(DP), dimension(0:kMax) ::  z_PTemp, z_Salt
     
     ! 実行文; Executable statement
     !
 
 
-    !$omp parallel do private(i, z_PTemp, z_Salt, z_Depth)
+    !$omp parallel do private(i, z_PTemp, z_Salt)
     do j=1,jMax
        do i=0,iMax-1
           z_PTemp(:) = xyz_PTemp(i,j,:)
           z_Salt(:) = xyz_Salt(i,j,:)
-          z_Depth(:) = xy_totDepth(i,j)*g_Sig(:)
 
-          call SGSConvAdjust_perform(z_PTemp, z_Salt, & !(inout)
-               & z_Depth,                             & !(in)
+          call SGSConvAdjust_perform(z_PTemp, z_Salt,      & !(inout)
+               & xy_totDepth(i,j)*z_LyrThickSig(:),        & !(in)
                & xyz_isAdjustOccur(i,j,:) )
 
           xyz_PTemp(i,j,:) = z_PTemp(:)
@@ -124,26 +125,23 @@ contains
   end subroutine SGSConvAdjust_perform_GCMDriver
 
   subroutine SGSConvAdjust_perform_1D( z_PTemp, z_Salt, &
-       & z_Depth, isAdjustOccur )
+       & z_LyrThick, isAdjustOccur )
 
     use Constants_mod
     
     ! 実行文; Executable statement
     ! 
     real(DP), dimension(0:kMax), intent(inout) :: z_PTemp, z_Salt
-    real(DP), dimension(0:kMax), intent(in) :: z_Depth
+    real(DP), dimension(0:kMax), intent(in) :: z_LyrThick
     logical, dimension(0:kMax), intent(inout) :: isAdjustOccur
 
     ! 局所変数
     ! Local variables
     !
-    real(DP), dimension(0:kMax) :: z_DensPotEdd, z_PressRef, z_LyrThick
+    real(DP), dimension(0:kMax) :: z_DensPotEdd, z_PressRef
     integer :: k_, k
     logical :: isColumnStable
     integer :: nItr
-
-    real(DP) :: A(kMax,0:kMax), B(kMax+1), Work(2*(kMax+1))
-    integer :: info
 
     integer :: r
     real(DP) :: r_RefPress(1:kMax)
@@ -155,17 +153,6 @@ contains
 
     !
     z_PressRef = 0d0
-
-    !
-    A = 0d0; B = 0d0
-    do k=1,kMax
-       A(k,k-1:k) = 0.5d0
-       B(k) = z_Depth(k-1) - z_Depth(k) !g_Sig(k-1) - g_Sig(k)
-    end do
-    A(1,0) = 1; A(kMax,kMax) = 1
-
-    call DGELS('N', kMax, kMax+1, 1, A, kMax, B, kMax+1, Work, 2*(kMax+1), info)
-    z_LyrThick = b
 
     !
     call EOSDriver_Eval(rhoEdd=z_DensPotEdd,        & ! (out)

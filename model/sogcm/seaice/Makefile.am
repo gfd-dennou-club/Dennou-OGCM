@@ -23,7 +23,9 @@ CLEANFILES = *$(MODEXT)
 noinst_LTLIBRARIES= libDSOGCMSeaIce.la 
 nodist_libDSOGCMSeaIce_la_SOURCES= \
 	SeaIceConstants_mod.f90 \
-	SeaIceThermDyn_Winton2000_mod.f90
+	SeaIceBoundaryCond_mod.f90 \
+	SeaIceThermDyn_Winton2000_mod.f90 \
+	VarSetSeaice_mod.f90
 
 
 #seaice_thermdyn_mom_SOURCES=\

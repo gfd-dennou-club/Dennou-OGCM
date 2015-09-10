@@ -354,7 +354,7 @@ contains
     ! 実行文; Executable statement
     !
     
-    KEAvg = 0.5d0*AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyz_u**2 + xyz_v**2) )
+    KEAvg = 0.5d0*AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(RefDens*(xyz_u**2 + xyz_v**2)) )
 
   end function eval_kineticEnergyAvg
 
@@ -374,12 +374,14 @@ contains
     ! Local variables
     !
     real(DP) :: temp(0:iMax-1,jMax,0:kMax)
+    
     ! 実行文; Executable statement
     !
 
     PEAvg = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
-                    xyz_DensEdd*Diagnose_GeoPot(xy_totDepth) &
-            & ))
+                      xyz_DensEdd*Grav*Diagnose_GeoPot(xy_totDepth) &
+                      & ) )
+                    
 
   end function eval_potentialEnergyAvg
 

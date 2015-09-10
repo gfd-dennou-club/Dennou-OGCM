@@ -78,10 +78,17 @@ contains
   !!
   subroutine setInitCondition()
     
-    !
+    ! モジュール引用; Use statements
     !
 
-    use VariableSet_mod
+    use VariableSet_mod, only: &
+         & z_PTempBasic, xyz_SaltN, xyz_PTempEddN, &
+         & xy_totDepthBasic
+
+    use BoundaryCondO_mod, only: &
+         & xy_WindStressU, xy_WindStressV, &
+         & xy_SeaSurfTemp, xy_SeaSurfSalt, &
+         & xy_SurfHFlxO, xy_SurfFwFlxO
 
     use SpmlUtil_mod
 
@@ -113,7 +120,6 @@ contains
 
     h0 = 5.2d03
     xy_totDepthBasic = h0
-    xy_SurfHeightN = 0d0
 
     xy_WindStressU = construct_WindStressU_Marshall07_2(xyz_Lat(:,:,0))
 !!$    xy_WindStressU = construct_WindStressU_analysticFunc()
@@ -125,11 +131,11 @@ contains
        z_Salt(k) = eval_SaltBasic(g_Sig(k))
     end do
     xy_SeaSurfTemp = eval_SSTref(xyz_Lat(:,:,0))
-    xy_SurfHeatFlux = eval_SurfHeatFlux(xyz_Lat(:,:,0))
+    xy_SurfHFlxO = eval_SurfHeatFlux(xyz_Lat(:,:,0))
     xy_SeaSurfSalt = eval_SSSalref(xyz_Lat(:,:,0))
-    xy_SurfSaltFlux = eval_SurfSaltFlux(xyz_Lat(:,:,0))
+    xy_SurfFwFlxO = eval_SurfFreshWaterFlux(xyz_Lat(:,:,0))
 
-
+    
     do k=0, kMax
        xyz_PTempEddN(:,:,k) = 0d0
        xyz_SaltN(:,:,k) = z_Salt(k)
@@ -145,8 +151,8 @@ contains
          
 
     write(*,*) 'total angular momentum=', AvrLonLat_xy( xy_WindStressU*cos(xyz_Lat(:,:,0)) )
-    write(*,*) 'avg net heat flux', AvrLonLat_xy( xy_SurfHeatFlux ), "[W/m2]"    
-    write(*,*) 'avg freshWater flux', AvrLonLat_xy( xy_SurfSaltFlux )*86400d0*1000d0, "[mm/day]"
+    write(*,*) 'avg net heat flux', AvrLonLat_xy( xy_SurfHFlxO ), "[W/m2]"    
+    write(*,*) 'avg freshWater flux', AvrLonLat_xy( xy_SurfFwFlxO )*86400d0*1000d0, "[mm/day]"
 
     
 !!$write(*,*) "-- WindStressU ------------"
@@ -319,7 +325,7 @@ write(*,*) xy(1,1:jMax)
 
     end function eval_SurfHeatFlux
 
-    function eval_SurfSaltFlux(xy_lat) result(xy_flux)
+    function eval_SurfFreshWaterFlux(xy_lat) result(xy_flux)
       
       use UnitConversion_mod, only: degC2K
 
@@ -342,7 +348,7 @@ write(*,*) xy(1,1:jMax)
       xy_flux = xy_flux - AvrLonLat_xy(xy_flux)      
       xy_flux = xy_flux *1d-3/86400d0
 
-    end function eval_SurfSaltFlux
+    end function eval_SurfFreshWaterFlux
     
     function eval_SSSalref(xy_lat) result(xy_SSSalref)
       

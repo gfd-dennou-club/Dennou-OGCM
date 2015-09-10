@@ -8,6 +8,7 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../src/fvm \
         $(MODPATHFLAG)$(srcdir)/../../../src/mesh2 \
         $(MODPATHFLAG)$(srcdir)/../../../src/io \
+        $(MODPATHFLAG)$(srcdir)/../seaice \
         $(MODPATHFLAG)$(srcdir)/../util \
 	$(FCFLAGS) $(SYSFFLAGS)
 
@@ -26,13 +27,6 @@ nodist_libDSOGCMSetup_la_SOURCES= \
 	TemporalIntegSet_mod.f90 \
 	BoundCondSet_mod.f90 \
 	VariableSet_mod.f90 \
-	DataFileSet_mod.f90 \
-	RestartDataFileSet_mod.f90 \
 	GovernEqSet_mod.f90
 
 
-GridSet_mod.f90: \
-	../util/SpmlUtil_mod2.o
-
-DataFileSet_mod.f90: \
-	../util/EOSDriver_mod.o

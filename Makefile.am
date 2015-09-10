@@ -3,10 +3,10 @@ SUBDIRS = src \
 	tool \
 	model/globalSWModel_FVM \
 	model/globalSWModel_DG \
-	model/globalSWModel_DG2 \
 	model/ogcm \
 	model/sogcm
 
+#	model/globalSWModel_DG2 
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -32,3 +32,6 @@ test: check
 	@echo ""
 
 
+install-data-hook:
+	$(MKDIR_P) $(DESTDIR)$(includedir)
+	$(install_sh_DATA) $(srcdir)/include/*@MODEXT@ $(DESTDIR)$(includedir)

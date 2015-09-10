@@ -46,8 +46,8 @@ module HydroBoudEq_TimeInteg_mod
        & ThermBCTYPE_PrescFlux, ThermBCTYPE_Adiabat, ThermBCTYPE_PrescTemp, ThermBCTYPE_TempRelaxed, & 
        & SaltBCTYPE_PrescFlux, SaltBCTYPE_Adiabat, SaltBCTYPE_PrescSalt, SaltBCTYPE_SaltRelaxed, & 
        & KinBC_Surface, DynBC_Surface, ThermBC_Surface, SaltBC_Surface, &
-       & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, SaltBC_Bottom 
-
+       & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, SaltBC_Bottom
+  
 !!$  use TemporalIntegUtil_mod, only: &
 !!$       & TemporalIntegUtil_Init, TemporalIntegUtil_Final, &
 !!$       & timeIntMode_Euler, xy_timeIntEuler, wt_timeIntEuler, &
@@ -75,6 +75,7 @@ module HydroBoudEq_TimeInteg_mod
        & HydroBouEqSolverVImplProc_Prepare, &
        & Advance_VImplicitProc_DeltaForm
 
+  
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -165,10 +166,13 @@ contains
          & xyz_SaltB, xyz_SaltN, xyz_SaltA, &
          & xy_SurfHeightB, xy_SurfHeightN, xy_SurfHeightA, &
          & xy_SurfPressB, xy_SurfPressN, xy_SurfPressA, &
-         & xy_WindStressU, xy_WindStressV, xy_totDepthBasic, &
+         & xy_totDepthBasic, &
          & xyz_SigDot, z_PTempBasic, &
          & xyz_VViscCoef, xyz_VDiffCoef
 
+    use BoundaryCondO_mod, only: &
+         & apply_VBoundaryCondO
+    
     ! 宣言文; Declaration statement
     !
     real(DP), intent(in) :: DelTime
@@ -204,7 +208,8 @@ contains
     real(DP) :: xyz_CosLat(0:iMax-1, jMax, 0:kMax)
     real(DP), dimension(lMax,2) :: wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
     integer :: j, k
-
+    real(DP) :: xyz_Tmp(0:iMax-1,jMax,0:kMax)
+    
     logical :: isCoriTermSemiImplicit
     
     ! 実行文; Executable statement
@@ -344,29 +349,40 @@ contains
        end select              !=====================================================================================
 
        !       
-       call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, wz_Vor, wz_Div, wz_PTempEdd, wz_Salt )
-       
-       call apply_boundaryConditions2(wz_Vor, wz_Div, wz_PTempEdd, wz_Salt, &
-            & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS )
+!!$       call update_VBCRHS( wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, wz_Vor, wz_Div, wz_PTempEdd, wz_Salt )
+!!$       
+!!$       call apply_boundaryConditions2(wz_Vor, wz_Div, wz_PTempEdd, wz_Salt, &
+!!$            & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS )
 
        call wz_VorDiv2VectorCosLat( wz_Vor, wz_Div,      &  !(in)
             & xyz_Urf, xyz_Vrf                           &  !(out)
             & )
-
-
+       
+       xyz_UA = xyz_Urf/xyz_CosLat; xyz_VA =  xyz_Vrf/xyz_CosLat
+       xyz_PTempEddA = xyz_wz(wz_PTempEdd); xyz_SaltA = xyz_wz(wz_Salt)       
+       call apply_VBoundaryCondO(xyz_UA, xyz_VA, xyz_PTempEddA, xyz_SaltA)
+       
+       if(Stage < nStage_BarocTimeInt) then
+          xyz_Urf = xyz_UA*xyz_CosLat; xyz_Vrf = xyz_VA*xyz_CosLat
+          wz_PTempEdd = wz_xyz(xyz_PTempEddA); wz_Salt = wz_xyz(xyz_SaltA)
+          call wz_VectorCosLat2VorDiv(xyz_Urf, xyz_Vrf, & !(in) 
+               & wz_Vor, wz_Div                       )   !(out)
+       end if
+       
     end do  ! End of do loop for a multi-stage temporal scheme.
 
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    xyz_PTempEddA(:,:,:) = xyz_wz(wz_PTempEdd)
-    xyz_SaltA(:,:,:) = xyz_wz(wz_Salt)
+    
+!    xyz_PTempEddA(:,:,:) = xyz_wz(wz_PTempEdd)
+!    xyz_SaltA(:,:,:) = xyz_wz(wz_Salt)
 
     !$omp parallel workshare
 !    xy_SurfPressA = xy_SurfPress
-    xyz_UA(:,:,:) = xyz_Urf/xyz_CosLat
-    xyz_VA(:,:,:) = xyz_Vrf/xyz_CosLat
+!    xyz_UA(:,:,:) = xyz_Urf/xyz_CosLat
+!    xyz_VA(:,:,:) = xyz_Vrf/xyz_CosLat
     !$omp end parallel workshare
     xy_SurfHeightA(:,:) = xy_SurfHeight
 
@@ -541,6 +557,7 @@ contains
                 & isRHSReplace=isRHSReplace )
         end select
 
+                
       end subroutine calc_VViscRHS
 
       subroutine calc_ExplTermWithPhysicsRHS( &
@@ -834,11 +851,15 @@ contains
          ! モジュール引用; Use statements
          !
          use VariableSet_mod, only: &
-              & xy_SeaSurfTemp, xy_SurfHeatFlux, xy_SeaSurfSalt, xy_SurfSaltFlux, xy_totDepthBasic
+              & xy_totDepthBasic
 
          use BoundCondSet_mod, only: &
               & SurfTempRelaxedTime, SurfSaltRelaxedTime
 
+         use BoundaryCondO_mod, only: &
+              & xy_SeaSurfTemp, xy_SeaSurfSalt, &
+              & xy_SurfHFlxO, xy_SurfFwFlxO
+         
          use SpmlUtil_mod
          
          ! 宣言文; Declaration statement
@@ -861,7 +882,7 @@ contains
 
             wz_PTempRHS(:,1) = wz_PTempRHS(:,1) &
                  & - ( wz_PTempEdd(:,1) - w_xy(xy_SeaSurfTemp-xyz_PTempBasic(:,:,1)) )/SurfTempRelaxedTime &
-                 & - 0d0*w_xy(xy_SurfHeatFlux)/(RefDens*3986d0*dz1)
+                 & - 0d0*w_xy(xy_SurfHFlxO)/(RefDens*3986d0*dz1)
 !!$            do k=0, 1!kMax
 !!$               if(-xy_totDepthBasic(0,1)*g_Sig(k) <= 50d0) then
 !!$                  wz_PTempRHS(:,k) = wz_PTempRHS(:,k) &
@@ -880,7 +901,7 @@ contains
          if(SaltBC_Surface == SaltBCTYPE_SaltRelaxed) then
             wz_SaltRHS(:,1) = wz_SaltRHS(:,1) &
                  & - ( wz_Salt(:,1) - w_xy(xy_SeaSurfSalt) )/SurfSaltRelaxedTime &
-                 & + 0d0*w_xy(xy_SurfSaltFlux*35d0)/dz1
+                 & + 0d0*w_xy(xy_SurfFwFlxO*35d0)/dz1
 !!$            do k=0, 1!kMax
 !!$               if(-xy_totDepthBasic(0,1)*g_Sig(k) <= 50d0) then
 !!$                  wz_SaltRHS(:,k) = wz_SaltRHS(:,k) &
@@ -1020,196 +1041,202 @@ contains
 
   end function xyz_Dz_xyz
  
-  !> @brief 
-  !!
-  !!
-  subroutine update_VBCRHS( &
-       & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, &
-       & wz_Vor, wz_Div, wz_PTempEdd, wz_Salt )
-
-    
-    ! モジュール引用; Use statements
-    !
-    use VariableSet_mod, only: &
-         & xy_WindStressU, xy_WindStressV, &
-         & xy_SeaSurfTemp, xy_SurfHeatFlux, &
-         & xy_SeaSurfSalt, xy_SurfSaltFlux, &
-         & xy_totDepthBasic, z_PTempBasic, &
-         & xyz_VViscCoef, xyz_VDiffCoef
-
-    use BoundCondSet_mod, only: &
-         & SurfTempRelaxedTime, SurfSaltRelaxedTime
-
-    ! 宣言文; Declaration statement
-    !
-    real(DP), dimension(lMax, 1:2), intent(inout), optional :: &
-         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
-    real(DP), dimension(lMax,0:kMax), intent(in), optional :: wz_Vor, wz_Div, wz_PTempEdd, wz_Salt
-    
-
-    ! 作業変数
-    ! Work variables
-    !
-    real(DP) :: xy_Coef(0:iMax-1,jMax)
-    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_PTempTmp, xyz_PTempBasic
-    real(DP) :: wz_PTempTmp(lMax,0:kMax), wz_SaltTmp(lMax,0:kMax)
-    integer :: k
-    logical :: isVorUpdate, isDivUpdate, isPTempEddUpdate, isSaltUpdate
-    real(DP) :: dz1
-    
-    ! 実行文; Executable statement
-    !
-
-    xy_Coef(:,:) = xy_totDepthBasic*xy_CosLat
-    forAll(k=0:kMax) xyz_PTempBasic(:,:,k) = z_PTempBasic(k)
-    dz1 = xy_totDepthBasic(0,1)*(-g_Sig(1)*2d0)
-
-
-    isVorUpdate = .false.; isDivUpdate = .false.; isPTempEddUpdate = .false.; isSaltUpdate = .false.
-    if(present(wa_VorBCRHS)) isVorUpdate = .true.
-    if(present(wa_DivBCRHS)) isDivUpdate = .true.
-    if(present(wa_PTempEddBCRHS)) isPTempEddUpdate = .true.
-    if(present(wa_SaltBCRHS)) isSaltUpdate = .true.
-
-    if(isVorUpdate .or. isDivUpdate ) then
-       select case(DynBC_Surface)
-       case(DynBCTYPE_NoSlip)
-          if(isVorUpdate) wa_VorBCRHS(:,1) = 0d0
-          if(isDivUpdate) wa_DivBCRHS(:,1) = 0d0
-       case(DynBCTYPE_SpecStress)
-          if(isVorUpdate) &
-               & wa_VorBCRHS(:,1) = w_AlphaOptr_xy(xy_WindStressV*xy_Coef, -xy_WindStressU*xy_Coef)/(RefDens*vViscCoef)
-          if(isDivUpdate) &
-               & wa_DivBCRHS(:,1) = w_AlphaOptr_xy(xy_WindStressU*xy_Coef,  xy_WindStressV*xy_Coef)/(RefDens*vViscCoef)
-       case(DynBCTYPE_Slip)
-          if(isVorUpdate) wa_VorBCRHS(:,1) = 0d0
-          if(isDivUpdate) wa_DivBCRHS(:,1) = 0d0
-       end select
-
-       select case(DynBC_Bottom)
-       case(DynBCTYPE_NoSlip)
-          if(isVorUpdate) wa_VorBCRHS(:,2) = 0d0
-          if(isDivUpdate) wa_DivBCRHS(:,2) = 0d0
-       case(DynBCTYPE_SpecStress)
-       case(DynBCTYPE_Slip)
-          if(isVorUpdate) wa_VorBCRHS(:,2) = 0d0
-          if(isDivUpdate) wa_DivBCRHS(:,2) = 0d0
-       end select
-    end if
-
-    if (isPTempEddUpdate) then
-       select case(ThermBC_Surface)
-       case(ThermBCTYPE_Adiabat)
-          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
-          wa_PTempEddBCRHS(:,1) = - wz_PTempTmp(:,0)
-       case(ThermBCTYPE_PrescFlux)
-          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
-          wa_PTempEddBCRHS(:,1) = &
-               & w_xy( xy_totDepthBasic/(RefDens*Cp0*vDiffCoef)*( &
-               & - xy_SurfHeatFlux &
-               & - 0d0*40d0*(xy_w(wz_PTempEdd(:,1)) - xy_SeaSurfTemp + xyz_PTempBasic(:,:,1))  &
-               & ) ) &
-               & - wz_PTempTmp(:,0)
-
-       case(ThermBCTYPE_PrescTemp)
-          wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp  - z_PTempBasic(0))
-       case(ThermBCTYPE_TempRelaxed)
-          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
-          wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp - z_PTempBasic(0))
-!!$          wa_PTempEddBCRHS(:,1) = - wz_PTempTmp(:,0) !
-       end select
-
-       select case(ThermBC_Bottom)
-       case(ThermBCTYPE_Adiabat)
-          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
-          wa_PTempEddBCRHS(:,2) = - wz_PTempTmp(:,kMax)
-       case(ThermBCTYPE_PrescFlux)
-       case(ThermBCTYPE_PrescTemp)
-       case(ThermBCTYPE_TempRelaxed)
-       end select
-    end if
-
-    if (isSaltUpdate) then
-       select case(SaltBC_Surface)
-       case(SaltBCTYPE_Adiabat)
-          wa_SaltBCRHS(:,1) = 0d0
-       case(SaltBCTYPE_PrescFlux)
-          wa_SaltBCRHS(:,1) = &
-               & w_xy( xy_totDepthBasic/vDiffCoef*( &
-               &   xy_SurfSaltFlux & !xy_w(wz_Salt(:,0)) &
-               & - 0d0*(27.7d0*1d-3/86400d0)*(xy_w(wz_Salt(:,1)) - xy_SeaSurfSalt) &
-               & )*35d0 )
-       case(SaltBCTYPE_PrescSalt)
-          wa_SaltBCRHS(:,1) = w_xy(xy_SeaSurfSalt)
-       case(SaltBCTYPE_SaltRelaxed)
-          wa_SaltBCRHS(:,1) = w_xy(xy_SeaSurfSalt)
+!!$  !> @brief 
+!!$  !!
+!!$  !!
+!!$  subroutine update_VBCRHS( &
+!!$       & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS, &
+!!$       & wz_Vor, wz_Div, wz_PTempEdd, wz_Salt )
+!!$
+!!$    
+!!$    ! モジュール引用; Use statements
+!!$    !
+!!$    use VariableSet_mod, only: &
+!!$         & xy_totDepthBasic, z_PTempBasic, &
+!!$         & xyz_VViscCoef, xyz_VDiffCoef
+!!$
+!!$    use BoundaryCondO_mod, only: &
+!!$         & xy_WindStressU, xy_WindStressV, &
+!!$         & xy_SeaSurfTemp, xy_SeaSurfSalt, &
+!!$         & xy_SurfHFlxO, xy_SurfFwFlxO
+!!$         
+!!$    use BoundCondSet_mod, only: &
+!!$         & SurfTempRelaxedTime, SurfSaltRelaxedTime
+!!$
+!!$    ! 宣言文; Declaration statement
+!!$    !
+!!$    real(DP), dimension(lMax, 1:2), intent(inout), optional :: &
+!!$         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
+!!$    real(DP), dimension(lMax,0:kMax), intent(in), optional :: wz_Vor, wz_Div, wz_PTempEdd, wz_Salt
+!!$    
+!!$
+!!$    ! 作業変数
+!!$    ! Work variables
+!!$    !
+!!$    real(DP) :: xy_Coef(0:iMax-1,jMax)
+!!$    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_PTempTmp, xyz_PTempBasic
+!!$    real(DP) :: wz_PTempTmp(lMax,0:kMax), wz_SaltTmp(lMax,0:kMax)
+!!$    integer :: k
+!!$    logical :: isVorUpdate, isDivUpdate, isPTempEddUpdate, isSaltUpdate
+!!$    real(DP) :: dz1
+!!$    
+!!$    ! 実行文; Executable statement
+!!$    !
+!!$
+!!$    xy_Coef(:,:) = xy_totDepthBasic*xy_CosLat
+!!$    forAll(k=0:kMax) xyz_PTempBasic(:,:,k) = z_PTempBasic(k)
+!!$    dz1 = xy_totDepthBasic(0,1)*(-g_Sig(1)*2d0)
+!!$
+!!$
+!!$    isVorUpdate = .false.; isDivUpdate = .false.; isPTempEddUpdate = .false.; isSaltUpdate = .false.
+!!$    if(present(wa_VorBCRHS)) isVorUpdate = .true.
+!!$    if(present(wa_DivBCRHS)) isDivUpdate = .true.
+!!$    if(present(wa_PTempEddBCRHS)) isPTempEddUpdate = .true.
+!!$    if(present(wa_SaltBCRHS)) isSaltUpdate = .true.
+!!$
+!!$    if(isVorUpdate .or. isDivUpdate ) then
+!!$       select case(DynBC_Surface)
+!!$       case(DynBCTYPE_NoSlip)
+!!$          if(isVorUpdate) wa_VorBCRHS(:,1) = 0d0
+!!$          if(isDivUpdate) wa_DivBCRHS(:,1) = 0d0
+!!$       case(DynBCTYPE_SpecStress)
+!!$          if(isVorUpdate) &
+!!$               & wa_VorBCRHS(:,1) = w_AlphaOptr_xy(xy_WindStressV*xy_Coef, -xy_WindStressU*xy_Coef)/(RefDens*vViscCoef)
+!!$          if(isDivUpdate) &
+!!$               & wa_DivBCRHS(:,1) = w_AlphaOptr_xy(xy_WindStressU*xy_Coef,  xy_WindStressV*xy_Coef)/(RefDens*vViscCoef)
+!!$       case(DynBCTYPE_Slip)
+!!$          if(isVorUpdate) wa_VorBCRHS(:,1) = 0d0
+!!$          if(isDivUpdate) wa_DivBCRHS(:,1) = 0d0
+!!$       end select
+!!$
+!!$       select case(DynBC_Bottom)
+!!$       case(DynBCTYPE_NoSlip)
+!!$          if(isVorUpdate) wa_VorBCRHS(:,2) = 0d0
+!!$          if(isDivUpdate) wa_DivBCRHS(:,2) = 0d0
+!!$       case(DynBCTYPE_SpecStress)
+!!$       case(DynBCTYPE_Slip)
+!!$          if(isVorUpdate) wa_VorBCRHS(:,2) = 0d0
+!!$          if(isDivUpdate) wa_DivBCRHS(:,2) = 0d0
+!!$       end select
+!!$    end if
+!!$
+!!$    if (isPTempEddUpdate) then
+!!$       select case(ThermBC_Surface)
+!!$       case(ThermBCTYPE_Adiabat)
+!!$          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
+!!$          wa_PTempEddBCRHS(:,1) = - wz_PTempTmp(:,0)
+!!$       case(ThermBCTYPE_PrescFlux)
+!!$          xyz_PTempTmp = xyz_DSig_xyz(xyz_wz(wz_PTempEdd) + xyz_PTempBasic)
+!!$          write(*,*) "=== xy_SurfHFlxO::", xy_SurfHFlxO(0,1), &
+!!$               & Cp0*RefDens*vDiffCoef*xyz_PTempTmp(0,1,0)/5.2d3
+!!$          write(*,*) "~~~~", xy_SurfHFlxO(0,1:10)
+!!$          xyz_PTempTmp(:,:,0) = xy_w(w_xy(xy_SurfHFlxO))
+!!$          write(*,*) "~~~>", xyz_PTempTmp(0,1:10,0)
+!!$          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
+!!$          wa_PTempEddBCRHS(:,1) = &
+!!$               & w_xy( xy_totDepthBasic/(RefDens*Cp0*vDiffCoef)*( &
+!!$               & - xy_SurfHFlxO &
+!!$               & - 0d0*40d0*(xy_w(wz_PTempEdd(:,1)) - xy_SeaSurfTemp + xyz_PTempBasic(:,:,1))  &
+!!$               & ) ) &
+!!$               & - wz_PTempTmp(:,0)
+!!$
+!!$       case(ThermBCTYPE_PrescTemp)
+!!$          wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp  - z_PTempBasic(0))
+!!$       case(ThermBCTYPE_TempRelaxed)
+!!$          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
+!!$          wa_PTempEddBCRHS(:,1) = w_xy(xy_SeaSurfTemp - z_PTempBasic(0))
+!!$       end select
+!!$
+!!$       select case(ThermBC_Bottom)
+!!$       case(ThermBCTYPE_Adiabat)
+!!$          wz_PTempTmp = wz_xyz(xyz_DSig_xyz(xyz_PTempBasic))
+!!$          wa_PTempEddBCRHS(:,2) = - wz_PTempTmp(:,kMax)
+!!$       case(ThermBCTYPE_PrescFlux)
+!!$       case(ThermBCTYPE_PrescTemp)
+!!$       case(ThermBCTYPE_TempRelaxed)
+!!$       end select
+!!$    end if
+!!$
+!!$    if (isSaltUpdate) then
+!!$       select case(SaltBC_Surface)
+!!$       case(SaltBCTYPE_Adiabat)
 !!$          wa_SaltBCRHS(:,1) = 0d0
-       end select
-
-       select case(SaltBC_Bottom)
-       case(SaltBCTYPE_Adiabat)
-          wa_SaltBCRHS(:,2) = 0d0
-       case(SaltBCTYPE_PrescFlux)
-       case(SaltBCTYPE_PrescSalt)
-       case(SaltBCTYPE_SaltRelaxed)
-       end select
-    end if
-
-  end subroutine Update_VBCRHS
-
-
-  !> @brief 
-  !!
-  !!
-  subroutine apply_boundaryConditions2( &
-       & wz_Vor, wz_Div, wz_PTempEdd, wz_Salt, &
-       & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS )
-    
-    ! モジュール引用; Use statements
-    !
-
-    ! 宣言文; Declaration statement
-    !
-    real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_Vor, wz_Div, wz_PTempEdd, wz_Salt
-    real(DP), dimension(lMax, 1:2), intent(in) :: &
-         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
-
-    !
-    !
-    real(DP), dimension(lMax,0:tMax) :: wt_Vor, wt_Div, wt_PTempEdd, wt_Salt
-
-    
-    ! 実行文; Executable statement
-    !
-
-    wt_Vor = wt_wz(wz_Vor)
-    wt_Div = wt_wz(wz_Div)
-    wt_PTempEdd = wt_wz(wz_PTempEdd)
-    wt_Salt = wt_wz(wz_Salt)
-
-    call apply_ZBoundaryCond( wt_Vor, &
-         & inquire_VBCSpecType(DynBC_Surface), inquire_VBCSpecType(DynBC_Bottom), &
-         & w_SurfBCWork=wa_VorBCRHS(:,1), w_BtmBCWork=wa_VorBCRHS(:,2) )
-    
-    call apply_ZBoundaryCond( wt_Div, &
-         & inquire_VBCSpecType(DynBC_Surface), inquire_VBCSpecType(DynBC_Bottom), &
-         & w_SurfBCWork=wa_DivBCRHS(:,1), w_BtmBCWork=wa_DivBCRHS(:,2) )
-
-    call apply_ZBoundaryCond( wt_PTempEdd, &
-         & inquire_VBCSpecType(ThermBC_Surface), inquire_VBCSpecType(ThermBC_Bottom), &
-         & w_SurfBCWork=wa_PTempEddBCRHS(:,1), w_BtmBCWork=wa_PTempEddBCRHS(:,2) )
-
-    call apply_ZBoundaryCond( wt_Salt, &
-         & inquire_VBCSpecType(SaltBC_Surface), inquire_VBCSpecType(SaltBC_Bottom), &
-         & w_SurfBCWork=wa_SaltBCRHS(:,1), w_BtmBCWork=wa_SaltBCRHS(:,2) )
-
-
-    wz_Vor = wz_wt(wt_Vor)
-    wz_Div = wz_wt(wt_Div)
-    wz_PTempEdd = wz_wt(wt_PTempEdd)
-    wz_Salt = wz_wt(wt_Salt)
-
-  end subroutine apply_boundaryConditions2
+!!$       case(SaltBCTYPE_PrescFlux)
+!!$          wa_SaltBCRHS(:,1) = &
+!!$               & w_xy( xy_totDepthBasic/vDiffCoef*( &
+!!$               &   xy_SurfFwFlxO                    & !xy_w(wz_Salt(:,0)) &
+!!$               & - 0d0*(27.7d0*1d-3/86400d0)*(xy_w(wz_Salt(:,1)) - xy_SeaSurfSalt) &
+!!$               & )*35d0 )
+!!$       case(SaltBCTYPE_PrescSalt)
+!!$          wa_SaltBCRHS(:,1) = w_xy(xy_SeaSurfSalt)
+!!$       case(SaltBCTYPE_SaltRelaxed)
+!!$          wa_SaltBCRHS(:,1) = w_xy(xy_SeaSurfSalt)
+!!$       end select
+!!$
+!!$       select case(SaltBC_Bottom)
+!!$       case(SaltBCTYPE_Adiabat)
+!!$          wa_SaltBCRHS(:,2) = 0d0
+!!$       case(SaltBCTYPE_PrescFlux)
+!!$       case(SaltBCTYPE_PrescSalt)
+!!$       case(SaltBCTYPE_SaltRelaxed)
+!!$       end select
+!!$    end if
+!!$
+!!$  end subroutine Update_VBCRHS
+!!$
+!!$
+!!$  !> @brief 
+!!$  !!
+!!$  !!
+!!$  subroutine apply_boundaryConditions2( &
+!!$       & wz_Vor, wz_Div, wz_PTempEdd, wz_Salt, &
+!!$       & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS )
+!!$    
+!!$    ! モジュール引用; Use statements
+!!$    !
+!!$
+!!$    ! 宣言文; Declaration statement
+!!$    !
+!!$    real(DP), dimension(lMax,0:kMax), intent(inout) :: wz_Vor, wz_Div, wz_PTempEdd, wz_Salt
+!!$    real(DP), dimension(lMax, 1:2), intent(in) :: &
+!!$         & wa_VorBCRHS, wa_DivBCRHS, wa_PTempEddBCRHS, wa_SaltBCRHS
+!!$
+!!$    !
+!!$    !
+!!$    real(DP), dimension(lMax,0:tMax) :: wt_Vor, wt_Div, wt_PTempEdd, wt_Salt
+!!$
+!!$    
+!!$    ! 実行文; Executable statement
+!!$    !
+!!$
+!!$    wt_Vor = wt_wz(wz_Vor)
+!!$    wt_Div = wt_wz(wz_Div)
+!!$    wt_PTempEdd = wt_wz(wz_PTempEdd)
+!!$    wt_Salt = wt_wz(wz_Salt)
+!!$
+!!$    call apply_ZBoundaryCond( wt_Vor, &
+!!$         & inquire_VBCSpecType(DynBC_Surface), inquire_VBCSpecType(DynBC_Bottom), &
+!!$         & w_SurfBCWork=wa_VorBCRHS(:,1), w_BtmBCWork=wa_VorBCRHS(:,2) )
+!!$    
+!!$    call apply_ZBoundaryCond( wt_Div, &
+!!$         & inquire_VBCSpecType(DynBC_Surface), inquire_VBCSpecType(DynBC_Bottom), &
+!!$         & w_SurfBCWork=wa_DivBCRHS(:,1), w_BtmBCWork=wa_DivBCRHS(:,2) )
+!!$
+!!$    call apply_ZBoundaryCond( wt_PTempEdd, &
+!!$         & inquire_VBCSpecType(ThermBC_Surface), inquire_VBCSpecType(ThermBC_Bottom), &
+!!$         & w_SurfBCWork=wa_PTempEddBCRHS(:,1), w_BtmBCWork=wa_PTempEddBCRHS(:,2) )
+!!$
+!!$    call apply_ZBoundaryCond( wt_Salt, &
+!!$         & inquire_VBCSpecType(SaltBC_Surface), inquire_VBCSpecType(SaltBC_Bottom), &
+!!$         & w_SurfBCWork=wa_SaltBCRHS(:,1), w_BtmBCWork=wa_SaltBCRHS(:,2) )
+!!$
+!!$
+!!$    wz_Vor = wz_wt(wt_Vor)
+!!$    wz_Div = wz_wt(wt_Div)
+!!$    wz_PTempEdd = wz_wt(wt_PTempEdd)
+!!$    wz_Salt = wz_wt(wt_Salt)
+!!$
+!!$  end subroutine apply_boundaryConditions2
 
 end module HydroBoudEq_TimeInteg_mod
 
