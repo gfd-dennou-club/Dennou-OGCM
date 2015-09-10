@@ -113,7 +113,7 @@
 
 * 海洋モデルミーティングログ
 
-#+CALL: create_MeetingLogTable("2015", "{2015-{06-17,05-20}}") :results value raw :exports results
+#+CALL: create_MeetingLogTable("2015", "{2015-{09-09,07-27,06-17,05-20}}") :results value raw :exports results
 
 #+CALL: create_MeetingLogTable("2014", "{2015-{03-17,02-18},01-21,2014-{12-17,11-17,07-16,06-26,05-28,04-23}}") :results value raw :exports results
 
