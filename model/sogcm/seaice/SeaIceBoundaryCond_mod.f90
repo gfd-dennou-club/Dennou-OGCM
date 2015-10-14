@@ -90,9 +90,10 @@ contains
   !! @param xy_SurfTemp  Temperature of snow or sea-ice(if there is no snow) surface [Units: K].
   !! @param xy_SurfTempO Temperature of ocean surface [Units: K]
   !!
-  subroutine calc_SurfaceHeatFluxSIce( xy_SurfHFlxAI, xy_SurfHFlxAO, xy_PenSWRFlxSI,       & ! (out) 
-    & xy_SWDWRFlx, xy_LWDWRFlx, xy_LatentDWHFlx, xy_SensDWHFlx,       & ! (in) 
-    & xy_SIceCon, xy_SnowThick, xy_SurfTemp, xy_SurfTempO                         & ! (in)
+  subroutine calc_SurfaceHeatFluxSIce( xy_SurfHFlxAI, xy_SurfHFlxAO, xy_PenSWRFlxSI,       & ! (out)
+    & xy_DSurfHFlxDTsAI,                                                                   & ! (out)
+    & xy_SWDWRFlx, xy_LWDWRFlx, xy_LatentDWHFlx, xy_SensDWHFlx, xy_DSurfHFlxDTsTmp,        & ! (in) 
+    & xy_SIceCon, xy_SnowThick, xy_SurfTemp, xy_SurfTempO                                  & ! (in)
     & )
 
     ! モジュール引用; use statements
@@ -101,10 +102,11 @@ contains
     ! 宣言文; Declaration statement
     !
     real(DP), intent(out), dimension(0:iMax-1,jMax) :: &
-         & xy_SurfHFlxAI, xy_SurfHFlxAO, xy_PenSWRFlxSI
+         & xy_SurfHFlxAI, xy_SurfHFlxAO, xy_PenSWRFlxSI, &
+         & xy_DSurfHFlxDTsAI
   
     real(DP), intent(in), dimension(0:iMax-1,jMax) :: &
-         & xy_SWDWRFlx, xy_LWDWRFlx, xy_LatentDWHFlx, xy_SensDWHFlx, &
+         & xy_SWDWRFlx, xy_LWDWRFlx, xy_LatentDWHFlx, xy_SensDWHFlx, xy_DSurfHFlxDTsTmp, &
          & xy_SIceCon, xy_SnowThick, xy_SurfTemp, xy_SurfTempO
     
     ! 局所変数
@@ -131,8 +133,10 @@ contains
        xy_Albedo = AlbedoSnow; xy_Emissivity = EmissivSnow
        xy_PenSWRFlxSI = 0d0
     end where
-    call calcSurfHFlux(xy_SurfHFlxAI, xy_Albedo, xy_Emissivity, xy_SurfTemp)
-
+    call calcSurfHFlux( xy_SurfHFlxAI, &
+         & xy_Albedo, xy_Emissivity, xy_SurfTemp, xy_DSurfHFlxDTsTmp, &
+         & xy_DSurfHFlxDTsAI)
+    
 !    write(*,*) xy_SurfHFlxAO
 !!$    write(*,*) "* SIceSurfFlx:", "albedo=", xy_Albedo(0,DEBUG_j), "Emissivty=", xy_Emissivity(0,DEBUG_j), &
 !!$         & "LI=", - xy_LatentDWHFlx(0,DEBUG_j), "SI=", - xy_SensDWHFlx(0,DEBUG_j), &
@@ -144,17 +148,33 @@ contains
     !>
     !! @param xy_SurfHFlx Surface heat flux (positive upward) [W/m2]
     !!
-    subroutine calcSurfHFlux(xy_SurfHFlux, xy_Albedo, xy_Emissivity, xy_SurfTemp)
+    subroutine calcSurfHFlux( &
+         & xy_SurfHFlux,                            & ! (out)
+         & xy_Albedo, xy_Emissivity, xy_SurfTemp,   & ! (in)
+         & xy_DSurfHFlxDTsTmp,                      & ! (in)
+         & xy_DSurfHFlxDTs                          & ! (out)
+         & )
+
       real(DP), dimension(0:iMax-1,jMax), intent(out) :: xy_SurfHFlux
       real(DP), dimension(0:iMax-1,jMax), intent(in) :: xy_Albedo, xy_Emissivity, xy_SurfTemp
+      real(DP), dimension(0:iMax-1,jMax), intent(in), optional :: xy_DSurfHFlxDTsTmp
+      real(DP), dimension(0:iMax-1,jMax), intent(out), optional :: xy_DSurfHFlxDTs
 
       !$omp parallel workshare
       xy_SurfHFlux(:,:) = &
-           & - xy_LatentDWHFlx - xy_SensDWHFlx       &
-           & - xy_Emissivity*xy_LWDWRFlx             &
-           & - (1d0 - xy_Albedo)*xy_SWDWRFlx         &
+           & - xy_LatentDWHFlx - xy_SensDWHFlx        &
+           & - xy_Emissivity*xy_LWDWRFlx              &
+           & - (1d0 - xy_Albedo)*xy_SWDWRFlx          &
            & + xy_Emissivity*(SBConst*xy_SurfTemp**4)
       !$omp end parallel workshare
+
+      if(present(xy_DSurfHFlxDTs)) then
+         !$omp parallel workshare
+         xy_DSurfHFlxDTs(:,:) = &
+              &   4d0*xy_Emissivity*(SBConst*xy_SurfTemp**3) &
+              & + xy_DSurfHFlxDTsTmp
+         !$omp end parallel workshare
+      end if
     end subroutine calcSurfHFlux
     
   end subroutine calc_SurfaceHeatFluxSIce

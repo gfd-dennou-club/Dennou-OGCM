@@ -60,9 +60,15 @@ module DSOGCM_main_mod
 !!$       & Exp_Init => Exp_APEOGCirc_Init, &
 !!$       & Exp_Final => Exp_APEOGCirc_Final, &
 !!$       & Exp_SetInitCond => SetInitCondition
-  use Exp_APEOGCircSeaice_mod, only: &
-       & Exp_Init => Exp_APEOGCircSeaice_Init, &
-       & Exp_Final => Exp_APEOGCircSeaice_Final, &
+!------------------------------------------------  
+!!$  use Exp_APEOGCircSeaice_mod, only: &
+!!$       & Exp_Init => Exp_APEOGCircSeaice_Init, &
+!!$       & Exp_Final => Exp_APEOGCircSeaice_Final, &
+!!$       & Exp_SetInitCond => SetInitCondition
+
+  use Exp_APECoupledAOGCMSeaice_mod, only: &
+       & Exp_Init => Exp_APECoupledAOGCMSeaice_Init, &
+       & Exp_Final => Exp_APECoupledAOGCMSeaice_Final, &
        & Exp_SetInitCond => SetInitCondition
 
   use InitCond_mod

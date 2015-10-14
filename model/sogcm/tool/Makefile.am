@@ -42,6 +42,7 @@ diagVar3d_SOURCES =\
 	diagvar/DiagVarEval_mod.f90 \
 	diagvar/DiagVarFileSet_mod.f90 \
 	diagvar/EnergyBudgetAnalysis_mod.f90 \
+	diagvar/EnergyBudgetAnalysisT2013_mod.f90 \
 	diagvar/BudgetAnalysis_mod.f90 \
 	diagvar/SpectralAnalysis_mod.f90 \
 	diagvar/GMSchemeAnalysis_mod.f90 \
@@ -57,6 +58,7 @@ diagVar_axisym_SOURCES =\
 	diagvar/DiagVarEval_mod.f90 \
 	diagvar/DiagVarFileSet_mod.f90 \
 	diagvar/EnergyBudgetAnalysis_mod.f90 \
+	diagvar/EnergyBudgetAnalysisT2013_mod.f90 \
 	diagvar/BudgetAnalysis_mod.f90 \
 	diagvar/SpectralAnalysis_mod.f90 \
 	diagvar/GMSchemeAnalysis_mod.f90 \

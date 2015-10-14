@@ -38,10 +38,16 @@ module BudgetAnalysis_mod
   use DiagVarFileSet_mod, only: &
        & gtool_historyauto_info
     
-  use EnergyBudgetAnalysis_mod, only: &
-       & ENBUDGANAKEY_GLOBALMEANENERGY, ENBUDGANAKEY_ENERGYBUDGET, &
-       & EnergyBudgetAnalysis_Init, EnergyBudgetAnalysis_Final, &
-       & EnergyBudgetAnalysis_Perform
+!!$  use EnergyBudgetAnalysis_mod, only: &
+!!$       & ENBUDGANAKEY_GLOBALMEANENERGY, ENBUDGANAKEY_ENERGYBUDGET, &
+!!$       & EnergyBudgetAnalysis_Init, EnergyBudgetAnalysis_Final, &
+!!$       & EnergyBudgetAnalysis_Perform
+
+  use EnergyBudgetAnalysisT2013_mod, only: &
+       & ENBUDGANAKEY_GLOBALMEANENERGY, ENBUDGANAKEY_ENERGYBUDGET,      &
+       & EnergyBudgetAnalysis_Init => EnergyBudgetAnalysisT2013_Init,   &
+       & EnergyBudgetAnalysis_Final => EnergyBudgetAnalysisT2013_Final, &
+       & EnergyBudgetAnalysis_Perform => EnergyBudgetAnalysisT2013_Perform
   
   ! 宣言文; Declareration statements
   !

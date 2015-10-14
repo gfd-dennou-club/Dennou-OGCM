@@ -84,11 +84,12 @@ module VariableSet_mod
   character(TOKEN), public, parameter :: VARSET_KEY_TOTDEPTHBASIC = 'TotDepthBasic'
   character(TOKEN), public, parameter :: VARSET_KEY_PTEMPBASIC = 'PTempBasic'
 
-  character(TOKEN), public, parameter :: VARSET_KEY_WINDSTRESSLAT = 'WindStressLat'
-  character(TOKEN), public, parameter :: VARSET_KEY_WINDSTRESSLON = 'WindStressLon'
 
   character(TOKEN), public, parameter :: VARSET_KEY_CONVINDEX = 'ConvIndex'
 
+  character(TOKEN), public, parameter :: VARSET_KEY_VVISCCOEF = 'VViscCoef'
+  character(TOKEN), public, parameter :: VARSET_KEY_VDIFFCOEF = 'VDiffCoef'
+  
   ! 非公開手続き
   ! Private procedure
   !

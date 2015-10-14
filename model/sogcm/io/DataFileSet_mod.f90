@@ -25,6 +25,7 @@ module DataFileSet_mod
   use VarSetSeaice_mod
 
   use BoundaryCondO_mod, only: &
+       & VARSET_KEY_WINDSTRESSLON, VARSET_KEY_WINDSTRESSLAT, &
        & xy_WindStressU, xy_WindStressV
   
   ! 宣言文; Declareration statements
@@ -98,7 +99,7 @@ contains
          & title='OGCM Output',             &
          & source='OGCM Output',    &
          & institution='GFD_Dennou Club OGCM project',    &
-         & dims=(/'lon ', 'lat ', 'sig ', 'sig2', 't   '/),   &
+         & dims=(/'lon ', 'lat ', 'sig ', 'sig2', 'time'/),   &
          & dimsizes=(/iMax, jMax, kMax+1, 2, 0 /),       &
          & longnames=(/'longitude   ', 'latitude    ', 'sigma       ', &
          &             'sigma-seaice', 'time        '   /),             &
@@ -237,6 +238,10 @@ contains
 
     call HistoryAutoPut(CurrentTime, VARSET_KEY_CONVINDEX, xyz_ConvIndex)
 
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_VVISCCOEF, xyz_VViscCoef)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_VDIFFCOEF, xyz_VDiffCoef)
+    
+   
     ! Output variables in sea-ice model
     !
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SICECON, xy_SIceConN)
@@ -311,7 +316,7 @@ contains
  
     ! Regist coordinates
     !
-    lonName = 'lon'; latName='lat'; sigName='sig'; timeName='t'
+    lonName = 'lon'; latName='lat'; sigName='sig'; timeName='time'
     sig2Name = 'sig2'
 
     call HistoryAutoPutAxis(lonName, xyz_Lon(:,1,0)*180/PI)
@@ -365,7 +370,16 @@ contains
     call HistoryAutoAddVariable( varname=VARSET_KEY_SALTB, &
          & dims=dims_XYZT, longname='salinity', units='psu')
 
+    call HistoryAutoAddVariable( varname=VARSET_KEY_VVISCCOEF, &
+         & dims=dims_XYZT, longname='Vertical eddy viscosity', units='m2/s')
+
+    call HistoryAutoAddVariable( varname=VARSET_KEY_VDIFFCOEF, &
+         & dims=dims_XYZT, longname='Vertical eddy diffusivity', units='m2/s')
+
+    
+    !
     ! Regist variables in seaice model
+    !
     
     call HistoryAutoAddVariable( varname=VARSET_KEY_SICECON, &
          & dims=dims_XYT, longname='seaice concentration ', units='1')

@@ -163,11 +163,13 @@ contains
     call HistoryPut(VARSET_KEY_ICETHICK, xy_IceThickN, history=gthst_rst)
     call HistoryPut(VARSET_KEY_SNOWTHICK, xy_SnowThickN, history=gthst_rst)
     call HistoryPut(VARSET_KEY_SICETEMP, xyz_SIceTempN, history=gthst_rst)
+    call HistoryPut(VARSET_KEY_SICESURFTEMP, xy_SIceSurfTempN, history=gthst_rst)
 
     call HistoryPut(VARSET_KEY_SICECONB, xy_SIceConB, history=gthst_rst)
     call HistoryPut(VARSET_KEY_ICETHICKB, xy_IceThickB, history=gthst_rst)
     call HistoryPut(VARSET_KEY_SNOWTHICKB, xy_SnowThickB, history=gthst_rst)
     call HistoryPut(VARSET_KEY_SICETEMPB, xyz_SIceTempB, history=gthst_rst)
+    call HistoryPut(VARSET_KEY_SICESURFTEMPB, xy_SIceSurfTempB, history=gthst_rst)
     
     
   end subroutine RestartDataFileSet_Output
@@ -251,13 +253,15 @@ contains
     call input_XYVar(VARSET_KEY_SNOWTHICK, xy_SnowThickN)
     call HistoryGet( InputFileName, VARSET_KEY_SICETEMP, range=timeRange, &
          & array=xyz_SIceTempN )
+    call input_XYVar(VARSET_KEY_SICESURFTEMP, xy_SIceSurfTempN)
 
     call input_XYVar(VARSET_KEY_SICECONB, xy_SIceConB)
     call input_XYVar(VARSET_KEY_ICETHICKB, xy_IceThickB)
     call input_XYVar(VARSET_KEY_SNOWTHICKB, xy_SnowThickB)
     call HistoryGet( InputFileName, VARSET_KEY_SICETEMPB, range=timeRange, &
          & array=xyz_SIceTempB )
-    
+    call input_XYVar(VARSET_KEY_SICESURFTEMPB, xy_SIceSurfTempB)
+
   contains
     subroutine input_XYZVar( varName, xyz )
       
@@ -448,7 +452,7 @@ contains
       & history = gthst_rst )                    ! (inout)
     call HistoryAddAttr( &
       & 'sig', attrname = 'positive', &          ! (in)
-      & value = 'down', &                        ! (in)
+      & value = 'up', &                          ! (in)
       & history = gthst_rst )                    ! (inout)
 
     call HistoryPut( &

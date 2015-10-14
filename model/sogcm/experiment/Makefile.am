@@ -31,8 +31,8 @@ nodist_libDSOGCMExp_la_SOURCES= \
 	exp_InternalGravWave/Exp_InternalGravWave_mod.f90 \
 	exp_WindDrivenCirculation/Exp_WindDrivenCirculation_mod.f90 \
 	exp_APEOGCirc/Exp_APEOGCirc_mod.f90 \
-	exp_APEOGCircSeaice/Exp_APEOGCircSeaice_mod.f90
-
+	exp_APEOGCircSeaice/Exp_APEOGCircSeaice_mod.f90 \
+	exp_APECoupledAOGCMSeaice/Exp_APECoupledAOGCMSeaice_mod.f90
 
 
 ###########################################################

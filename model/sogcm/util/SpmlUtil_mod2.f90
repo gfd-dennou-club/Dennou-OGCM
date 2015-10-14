@@ -53,6 +53,7 @@ module SpmlUtil_mod
        & t_g, g_t, &
        & IntSig_BtmToTop => Int_g, &
        & t_DSig_t => t_Dx_t, at_DSig_at => at_Dx_at, &
+       & Interpolate_t, a_Interpolate_at, &
        & at_BoundariesGrid_NN, at_BoundariesGrid_DD, &
        & at_BoundariesGrid_ND, at_BoundariesGrid_DN
 
@@ -111,10 +112,14 @@ module SpmlUtil_mod
   public :: IntLonLat_xy, ya_IntLon_xya
   public :: AvrLonLat_xy, ya_AvrLon_xya
   public :: a_Interpolate_wa, Interpolate_w
+
+  ! Interpolation
+  public :: Interpolate_t, a_Interpolate_at
   
   ! Operation for spectral analysis
   public :: nma_EnergyFromStreamfunc_wa, na_EnergyFromStreamfunc_wa
   public :: nma_EnstrophyFromStreamfunc_wa, na_EnstrophyFromStreamfunc_wa
+
 
   ! 非公開手続き
   ! Private procedure

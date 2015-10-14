@@ -30,7 +30,7 @@ module SeaIceEq_TimeInteg_mod
   use SeaIceConstants_mod, only: &
        & SBConst, &
        & Mu, SaltSeaIce, &
-       & CIce
+       & CIce, emissivOcean
 
   use Constants_mod, only: &
        & CpOcn => Cp0, &
@@ -62,8 +62,8 @@ module SeaIceEq_TimeInteg_mod
   !
   character(*), parameter:: module_name = 'SeaIceEq_TimeInteg_mod' !< Module Name
 
-  integer, parameter :: DEBUG_j = -1
-  
+  integer, parameter :: DEBUG_j = 1!-1
+
 contains
 
   !>
@@ -110,7 +110,8 @@ contains
 
     use BoundaryCondO_mod, only: &
          & xy_SWDWRFlx, xy_LWDWRFlx, xy_LatentDWHFlx, xy_SensDWHFlx, &
-         & xy_SurfHFlxIO, xy_Wsnow
+         & xy_SurfHFlxIO, xy_Wsnow, &
+         & xy_DSurfHFlxDTsTmp => xy_DSurfHFlxDTs
     
     use VariableSet_mod, only: &
          & z_PTempBasic, xyz_PTempEddN, &
@@ -140,7 +141,9 @@ contains
     ! Local variables
     !
     integer :: i, j, k
-    real(DP), dimension(0:iMax-1,jMax) :: xy_SurfHFlxAIN, xy_SurfHFlxAON, xy_PenSWRFlxSIN, xy_BtmHFlxION
+    real(DP), dimension(0:iMax-1,jMax) :: &
+         & xy_SurfHFlxAIN, xy_SurfHFlxAON, xy_PenSWRFlxSIN, xy_BtmHFlxION, &
+         & xy_DSurfHFlxDTsAIN
     real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_PTempO
     real(DP), dimension(0:iMax-1,jMax) :: xy_FreezePot, xy_FreezeTempO, xy_SurfMeltEn, xy_BtmMeltEn
     real(DP) :: SurfTempO, FreezePotTmp, FreezePotRes, dPTemp
@@ -157,9 +160,10 @@ contains
          & xyz_PTempO, xyz_SaltON, DelTime  &  ! (in)
          & )
     
-    call calc_SurfaceHeatFluxSIce( xy_SurfHFlxAIN, xy_SurfHFlxAON, xy_PenSWRFlxSIN,       & ! (out) 
-         & xy_SWDWRFlx, xy_LWDWRFlx, xy_LatentDWHFlx, xy_SensDWHFlx,                      & ! (in) 
-         & xy_SIceConN, xy_SnowThickN, degC2K(xy_SIceSurfTempN), xyz_PTempO(:,:,0)        & ! (in)
+    call calc_SurfaceHeatFluxSIce( xy_SurfHFlxAIN, xy_SurfHFlxAON, xy_PenSWRFlxSIN,          & ! (out) 
+         & xy_DSurfHFlxDTsAIN,                                                               & ! (out)
+         & xy_SWDWRFlx, xy_LWDWRFlx, xy_LatentDWHFlx, xy_SensDWHFlx, xy_DSurfHFlxDTsTmp,     & ! (in) 
+         & xy_SIceConN, xy_SnowThickN, degC2K(xy_SIceSurfTempN), xyz_PTempO(:,:,0)           & ! (in)
          & )
 
     call calc_BottomHeatFluxSIce( xy_BtmHFlxION,                         & ! (out)
@@ -176,26 +180,29 @@ contains
           if(j==DEBUG_j) then
              write(*,*) "---------- Start sea ice process ----------------"             
              write(*,*) "* TempO=", K2degC(xyz_PTempO(i,j,0:1)), ", SaltO=", xyz_SaltON(i,j,0)
-             write(*,*) "* IceThick=", xy_IceThickN(i,j), "BtmMeltEn=", xy_BtmMeltEn(i,j)
+             write(*,*) "* SurfTempN=", xy_SIceSurfTempN(i,j), ", IceThickN=", xy_IceThickN(i,j), &
+                  &     ", BtmMeltEn=", xy_BtmMeltEn(i,j)
+             write(*,*) "* FlxInfo(Down +):", "LW=", xy_LWDWRFlx(i,j), "SW=", xy_SWDWRFlx(i,j), "Latent=", xy_LatentDWHFlx(i,j), &
+                  &                   "Sens=", xy_SensDWHFlx(i,j), "LWup=", emissivOcean*SBConst*degC2K(xy_SIceSurfTempN(i,j))**4
           end if
           
           !
           if(xy_IceThickN(i,j) > 0d0) then
              call advance_ThermDyncProc_SIceTemp_zColum( &
-                  & xy_SIceSurfTempA(i,j), xyz_SIceTempA(i,j,1), xyz_SIceTempA(i,j,2),     &  ! (out)  
-                  & xy_SurfMeltEn(i,j),                                                    &  ! (out)
-                  & xy_BtmMeltEn(i,j),                                                     &  ! (inout)
-                  & xy_SnowThickN(i,j), xy_IceThickN(i,j),                                 &  ! (in) 
-                  & xy_SIceSurfTempN(i,j), xyz_SIceTempN(i,j,1), xyz_SIceTempN(i,j,2),     &  ! (in)
-                  & xy_SurfHFlxAIN(i,j), xy_PenSWRFlxSIN(i,j),                             &  ! (in)
-                  & DelTime                                                                &  !(in)
+                  & xy_SIceSurfTempA(i,j), xyz_SIceTempA(i,j,1), xyz_SIceTempA(i,j,2),        &  ! (out)  
+                  & xy_SurfMeltEn(i,j),                                                       &  ! (out)
+                  & xy_BtmMeltEn(i,j),                                                        &  ! (inout)
+                  & xy_SnowThickN(i,j), xy_IceThickN(i,j),                                    &  ! (in) 
+                  & xy_SIceSurfTempN(i,j), xyz_SIceTempN(i,j,1), xyz_SIceTempN(i,j,2),        &  ! (in)
+                  & xy_SurfHFlxAIN(i,j),   xy_DSurfHFlxDTsAIN(i,j), xy_PenSWRFlxSIN(i,j),     &  ! (in)
+                  & DelTime                                                                   &  ! (in)
                   & )
           end if
 
           !
           !
           if(j==DEBUG_j) then
-             write(*,*) " - SurfTemp=", xy_SIceSurfTempA(i,j), "SIceTemp=", xyz_SIceTempA(i,j,:)
+             write(*,*) " - SurfTempA=", xy_SIceSurfTempA(i,j), "SIceTempA=", xyz_SIceTempA(i,j,:)
              write(*,*) " - SurfMeltEn=", xy_SurfMeltEn(i,j), "BtmMeltEn=", xy_BtmMeltEn(i,j)
           end if
 
@@ -304,7 +311,8 @@ contains
        & TsA, T1A, T2A, SurfMeltEn,                        & ! (out)
        & BtmMeltEn,                                        & ! (inout)
        & hsN, hiN, TsN, T1N, T2N,                          & ! (in)
-       & SurfHFlxAIN, PenSWRFlxSIN, DelTime                & ! (in)
+       & SurfHFlxAIN, DSurfHFlxDTs, PenSWRFlxSIN,          & ! (in)
+       & DelTime                & ! (in)
        & )
 
     ! モジュール引用; Use statements
@@ -317,7 +325,7 @@ contains
     real(DP), intent(out) :: TsA, T1A, T2A
     real(DP), intent(out) :: SurfMeltEn, BtmMeltEn
     real(DP), intent(in) :: hsN, hiN, TsN, T1N, T2N
-    real(DP), intent(in) :: SurfHFlxAIN, PenSWRFlxSIN
+    real(DP), intent(in) :: SurfHFlxAIN, DSurfHFlxDTs, PenSWRFlxSIN
     real(DP), intent(in) :: DelTime
     
     ! 局所変数
@@ -333,7 +341,7 @@ contains
     call update_effConductiveCoupling(K_12, K_23, & ! (out)
          & hsN, hiN )                               ! (in)
 
-    B = 4d0*SBConst*degC2K(TsN)**3
+    B = DSurfHFlxDTs
     A = SurfHFlxAIN - TsN*B
 
     !

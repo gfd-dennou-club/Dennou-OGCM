@@ -261,7 +261,7 @@ use at_module_omp
     end if
 
 !!$    !
-    xyz_fCoef = CoriTermCoef*dt*(2d0*Omega*sin(xyz_Lat))!spread(sin(xyz_Lat(:,:,0)),3,kMax+1))
+    xyz_fCoef = CoriTermCoef*dt*(2d0*Omega*spread(sin(xyz_Lat(:,:,0)),3,kMax+1))
     
     call wz_VorDiv2VectorCosLat( wz_VorRHS, wz_DivRHS, &
          & xyz_UrfRHS, xyz_VrfRHS )

@@ -362,27 +362,33 @@ contains
   !!
   !! @return 
   !!
-  function eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth) result(PEAvg)
+  function eval_potentialEnergyAvg(xyz_DensEdd, xy_totDepth, GeneralEOSFlag) result(PEAvg)
     
     ! 宣言文; Declaration statement
     !
     real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    logical, intent(in) :: GeneralEOSFlag
     real(DP) :: PEAvg
     
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: temp(0:iMax-1,jMax,0:kMax)
-    
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: &
+         & xyz_BuO, xyz_PI
+
     ! 実行文; Executable statement
     !
 
-    PEAvg = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
-                      xyz_DensEdd*Grav*Diagnose_GeoPot(xy_totDepth) &
-                      & ) )
-                    
-
+    xyz_Buo = - xyz_DensEdd/RefDens * Grav
+    if(GeneralEOSFlag) then
+       xyz_PI = - xyz_IntSig_SigToTop_xyz( xyz_Buo*spread(xy_totDepth,3,kMax+1) )
+       PEAvg = RefDens * AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyz_PI) )
+    else        
+       PEAvg = RefDens * AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( &
+               xyz_Buo*Diagnose_GeoPot(-xy_totDepth) &
+            & ) )
+    end if
   end function eval_potentialEnergyAvg
 
 

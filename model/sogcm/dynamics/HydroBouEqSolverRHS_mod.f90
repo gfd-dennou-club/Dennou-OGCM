@@ -52,11 +52,11 @@ module HydroBouEqSolverRHS_mod
   ! Driver routines
   public :: HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final
   public :: calc_HydroBouEqInvisRHS
-  public :: calc_HydroBouEqHViscRHS, calc_HydroBouEqVViscRHS
+  public :: calc_HydroBouEqHViscRHS, calc_HydroBouEqVViscRHS_xyz
 
   ! Calculation routines
   public :: calc_VorEqDivEqInvisRHS, calc_TracerEqInvisRHS
-  public :: calc_HDiffRHS, calc_VDiffRHS
+  public :: calc_HDiffRHS, calc_VDiffRHS_xyz
   public :: calc_SurfHeightRHS
 
   public :: correct_DivEqRHSUnderRigidLid, correct_DivEqRHSUnderRigidLid2
@@ -212,8 +212,8 @@ contains
   !> @brief 
   !!
   !!
-  subroutine calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, &
-       & wz_Vor, wz_Div, wz_PTemp, wz_Salt, &
+  subroutine calc_HydroBouEqVViscRHS_xyz( xyz_URHS, xyz_VRHS, wz_PTempRHS, wz_SaltRHS, &
+       & xyz_U, xyz_V, xyz_PTemp, xyz_Salt, &
        & xyz_VViscTermCoef, vHyperViscTermCoef, xyz_VDiffTermCoef, vHyperDiffTermCoef, &
        & isRHSReplace )
     
@@ -224,8 +224,8 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS
-    real(DP), intent(in), dimension(lMax,0:kMax) :: wz_Vor, wz_Div, wz_PTemp, wz_Salt
+    real(DP), intent(inout), dimension(0:iMax-1,jMax,0:kMax) :: xyz_URHS, xyz_VRHS, xyz_PTempRHS, xyz_SaltRHS
+    real(DP), intent(in), dimension(0:iMax-1,jMax,,0:kMax) :: xyz_U, xyz_V, xyz_PTemp, xyz_Salt
     real(DP), intent(in) :: xyz_VViscTermCoef(0:iMax-1,jMax,0:kMax), vHyperViscTermCoef
     real(DP), intent(in) :: xyz_VDiffTermCoef(0:iMax-1,jMax,0:kMax), vHyperDiffTermCoef
     logical, intent(in) :: isRHSReplace
@@ -241,23 +241,23 @@ contains
 
     xyz_totDepth(:,:,:) = spread(xy_totDepthBasic, 3, kMax+1)
 
-    call calc_VDiffRHS(wz_VorRHS,                                        &  !(inout)
-         & wz_Vor, xyz_vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
+    call calc_VDiffRHS_xyz(xyz_URHS,                                        &  !(inout)
+         & xyz_U, xyz_vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
          & isRHSReplace=isRHSReplace )
 
-    call calc_VDiffRHS(wz_DivRHS,                                        &  !(inout)
-         & wz_Div, xyz_vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
+    call calc_VDiffRHS_xyz(xyz_VRHS,                                        &  !(inout)
+         & xyz_V, xyz_vViscTermCoef, vHyperViscTermCoef, xyz_totDepth,  &  !(in)
          & isRHSReplace=isRHSReplace )
 
-    call calc_VDiffRHS(wz_PTempRHS,                               &  !(inout)
-         & wz_PTemp, xyz_vDiffTermCoef, vHyperDiffTermCoef, xyz_totDepth,   &  !(in)
+    call calc_VDiffRHS_xyz(xyz_PTempRHS,                               &  !(inout)
+         & xyz_PTemp, xyz_vDiffTermCoef, vHyperDiffTermCoef, xyz_totDepth,   &  !(in)
          & isRHSReplace=isRHSReplace )
 
-    call calc_VDiffRHS(wz_SaltRHS,                               &  !(inout)
-         & wz_Salt, xyz_vDiffTermCoef, vHyperDiffTermCoef, xyz_totDepth,     &  !(in)
+    call calc_VDiffRHS_xyz(xyz_SaltRHS,                               &  !(inout)
+         & xyz_Salt, xyz_vDiffTermCoef, vHyperDiffTermCoef, xyz_totDepth,     &  !(in)
          & isRHSReplace=isRHSReplace )
 
-  end subroutine calc_HydroBouEqVViscRHS
+  end subroutine calc_HydroBouEqVViscRHS_xyz
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -389,9 +389,9 @@ contains
   !> @brief 
   !!
   !!
-  subroutine calc_VDiffRHS(wz_RHSQuant,           & !(inout)
-       & wz_Quant, xyz_vDiffCoef, vHyperDiffCoef, & !(in)
-       & xyz_totDepth, isRHSReplace           & !(in)
+  subroutine calc_VDiffRHS_xyz(xyz_RHSQuant,           & !(inout)
+       & xyz_Quant, xyz_vDiffCoef, vHyperDiffCoef, & !(in)
+       & xyz_totDepth, isRHSReplace                & !(in)
        & )
     
 
@@ -399,10 +399,11 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: wz_RHSQuant(lMax, 0:kMax)
-    real(DP), intent(in) :: wz_Quant(lMax,0:kMax)
+    real(DP), intent(inout) :: xyz_RHSQuant(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_Quant(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_totDepth(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_vDiffCoef(0:iMax-1,jMax,0:kMax), vHyperDiffCoef
+    real(DP), intent(in) :: xyz_vDiffCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: vHyperDiffCoef
     logical, optional, intent(in) :: isRHSReplace
     
     ! 局所変数
@@ -411,27 +412,31 @@ contains
 !!$    real(DP) :: t_QuantDIVDep2(0:tMax)
 !!$    real(DP) :: t_QuantDIVDep4(0:tMax)
 !!$    real(DP) :: xyz_Quant(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_VDiffTerm(0:iMax-1,jMax,0:kMax)
-    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_QuantDSig2, xyz_QuantDSig4
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: &
+         & xyz_Quant, xyz_VDiffTmp, xyz_QuantDSig4
     integer :: i, j, k
 
     ! 実行文; Executable statement
     !
     
     if( present(isRHSReplace) .and. isRHSReplace ) then
-       wz_RHSQuant = 0d0
+       xyz_RHSQuant(:,:,:) = 0d0
     end if
 
-    xyz_QuantDSig2(:,:,:) = xyz_DSigDSig_xyz(xyz_wz(wz_Quant))
-    xyz_QuantDSig4(:,:,:) = xyz_DSigDSig_xyz(xyz_QuantDSig2)
+    xyz_VDiffTmp(:,:,:) = xyz_DSig_xyz( xyz_vDiffCoef*xyz_DSig_xyz(xyz_Quant) )
 
+    if(vHyperDiffCoef > 0d0) then
+       xyz_QuantDSig4(:,:,:) = xyz_DSigDSig_xyz(xyz_DSigDSig_xyz(xyz_Quant))
+    else
+       xyz_QuantDSig4(:,:,:) = 0d0
+    end if
+    
     !$omp parallel do
     do k=0, kMax
-       wz_RHSQuant(:,k) = w_xy( &
-            &   (   xyz_vDiffCoef(:,:,k)*xyz_QuantDSig2(:,:,k) &
+       xyz_RHSQuant(:,:,k) = &
+            &   (   xyz_VDiffTmp(:,:,k)                                         &
             &     - vHyperDiffCoef*xyz_QuantDSig4(:,:,k)/xyz_totDepth(:,:,k)**2 &
-            &   )/xyz_totDepth(:,:,k)**2 &
-            & )
+            &   )/xyz_totDepth(:,:,k)**2
     end do
 
 !!$    xyz_Quant = xyz_wz(wz_Quant)
@@ -456,7 +461,7 @@ contains
 !!$    end do
 
 
-  end subroutine calc_VDiffRHS
+  end subroutine calc_VDiffRHS_xyz
 
 
   subroutine calc_TracerEqInvisRHS( wz_RHSTracer, xyz_Tracer, xyz_Urf, xyz_Vrf, xyz_Div, xyz_SigDot )

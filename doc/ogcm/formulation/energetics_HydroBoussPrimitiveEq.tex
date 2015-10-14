@@ -1,0 +1,229 @@
+\section{静力学プリミティブ方程式系のエネルギー論}
+ここでは, 静力学プリミティブ方程式系\eqref{eq:HydroBoussinesqPrimitive}に対するエネルギー保存則を記述する.
+非線形の海水の状態方程式を用いる場合に適切な有効位置エネルギーの方程式の導出は,  
+例えば\cite{vallis2006atmospheric,young2010dynamic,roquet2013dynamical,tailleux2013available}等で議論されているが,  
+ここでは\cite{tailleux2013available}に従う. 
+
+\subsection{エネルギー方程式}
+最初に, 参照密度$\rho_r(z,t)$と相対的に定義される, 浮力
+%%
+\begin{align}
+  b_R(\Theta,S,z,t) = - g\dfrac{\rho(\Theta,S,z) - \rho_r(z,t)}{\rho_0}
+\end{align}
+%%
+を導入しておく.
+
+運動エネルギーに対する方程式を導く.
+\eqref{eq:HydroBoussinesqPrimitive_MomUV}と$\rho \Dvect{u}$の内積をとった結果と,
+\eqref{eq:HydroBoussinesqPrimitive_MomW}と$\rho w$の積を加え,
+さらに連続の式を使って整理すれば, 
+%%
+\begin{align}
+    \DP{E_K}{t}
+ =
+  &-  \nabla_h \cdot \left[\left( E_K + g\eta + \dfrac{p}{\rho_0}  \right) \Dvect{u} - A_h \nabla_h E_K \right] \nonumber \\
+  &-  \DP{}{z} \left[\left( E_K + \dfrac{p}{\rho_0} \right) w - A_v \DP{E_K}{z} \right]                         \nonumber \\
+  &+  b_R w
+   - \varepsilon
+\label{eq:BoussinesqEnergetics_KE}
+\end{align}
+%%
+を得る.
+ここで, $E_K=\Dvect{u}^2/2$は(水平速度の)運動エネルギーである.
+また, $\varepsilon$は粘性散逸を表す項であり, 今の系では$\varepsilon$は, 
+%%
+\begin{align}
+ \varepsilon
+ =   A_h \nabla_h \Dvect{u} : \nabla_h \Dvect{u}
+   + A_v \left(\DP{w}{z}\right)^2
+\end{align}
+%%
+と書かれる.
+
+次に, 有効位置エネルギーに対する方程式を導く.
+\cite{tailleux2013available}は, 浮力$b_R$に対する仕事として有効位置エネルギー密度を
+%%
+\begin{align}
+ E_{APE} = - \int_{z_r}^z b_R(\Theta,S,z',t) \Dd{z'}
+\label{eq:APEDensity_def}
+\end{align}
+%%
+と定義した.
+ここで, $z_r$は現場密度が参照密度と等しくなる高度であり, 
+数学的には, 
+%%
+\begin{align}
+  \rho(\Theta,S,z_r) = \rho_r(z_r,t)
+\end{align}
+%%
+を満たす$z_r$である.
+\eqref{eq:APEDensity_def}の物質微分をとり整理すれば,
+$E_{APE}$の時間発展式
+%%
+\begin{align}
+ \DP{E_{APE}}{t}
+ =
+ &- \nabla_h \cdot (E_{APE} \; \Dvect{u}) - \DP{}{z} (E_{APE} \; w) \\
+ &- b_R w
+ + \left[G_\Theta \DD{\Theta}{t} + G_S \DD{S}{t} + G_t\right]
+\label{eq:BoussinesqEnergetics_APEDensity}
+\end{align}
+%%
+を得る.
+ただし, 定義により$b_R(\Theta,S,z_r,t)=0$であることを用いた.
+また, $G_\Theta, G_S$は,
+%%
+\begin{align}
+ G_\Theta &= - \int_{z_r}^z \DP{b_R}{\Theta}(\Theta,S,z',t) \Dd{z'}
+           = \dfrac{g_0}{\rho_0} \int_{z_r}^z \DP{\rho}{\Theta}(\Theta,S,z') \Dd{z'}, \\
+  G_S &= - \int_{z_r}^z \DP{b_R}{S}(\Theta,S,z',t) \Dd{z'}
+       = \dfrac{g_0}{\rho_0} \int_{z_r}^z \DP{\rho}{S}(\Theta,S,z') \Dd{z'}, \\
+\end{align}
+であり, 熱や塩分のソース・シンクに対する熱力学的効率を定義する.
+$G_t$は,
+%%
+\begin{align}
+ G_t = - \int_{z_r}^z \DP{b_R}{t}(\Theta,S,z',t)\Dd{z'}
+     = - \dfrac{g}{\rho_0} \int_{z_r}^z \DP{\rho_r}{t}(z',t) \Dd{z'}
+\end{align}
+%%
+と書かれ,
+参照密度分布が時間に依存しなければゼロである.
+予期されたように, 浮力フラックス$b_R w$が\eqref{eq:BoussinesqEnergetics_KE}, \eqref{eq:BoussinesqEnergetics_APEDensity}の両方に
+反符号として現れることに注意されたい. 
+
+\eqref{eq:BoussinesqEnergetics_KE},\eqref{eq:BoussinesqEnergetics_APEDensity}を加えて整理すれば,
+(非線形の海水の状態方程式を伴う)ブジネスクプリミティブ方程式系のエネルギー保存則
+%%
+\begin{align}
+ \DP{}{t} \left(E_K + E_{APE}\right)
+ =
+ &- \nabla_h \cdot \left[
+        \left( E_K + E_{APE} + \dfrac{p}{\rho_0} + g\eta \right) \Dvect{u}
+      - A_h \nabla_h E_K
+    \right]               \nonumber \\
+ &- \DP{}{z} \left[
+        \left(E_K + E_{APE} + \dfrac{p}{\rho_0} \right)w
+      - A_v \DP{E_K}{z}
+    \right]              \nonumber \\
+ &+ \underbrace{ \left[
+      G_\Theta \DD{\Theta}{t}
+    + G_S \DD{S}{t}
+    + G_t
+    \right] }_{G_a}
+  - \varepsilon
+\end{align}
+%%
+を得る.
+したがって, 非粘性かつ$G_a$がゼロである場合(熱や塩分のソース・シンクがなく, また参照密度が時間に依存しない場合)には,
+$E_K,E_{APE}$の和は保存する.
+
+\subsection{鉛直積分したエネルギー方程式}
+以下では, 前節で求めたエネルギー方程式を鉛直積分し, さらに海面・海底の境界条件を考慮たし形式を導く.
+ここで得られた方程式は, 南北エネルギー収支や全球エネルギー収支を議論する際に必要となる.
+以下では, 簡潔に記述するために, rigid-lid 近似を適用した場合のみを扱うことにする. 
+
+始めに運動エネルギーに対する方程式\eqref{eq:BoussinesqEnergetics_APEDensity}の鉛直積分を考えよう.
+\eqref{eq:BoussinesqEnergetics_APEDensity}を$z=-H(\Dvect{x}_h)$から$z=0$まで積分すれば,
+%%
+\begin{align}
+ \DP{\overline{E_K}^{(z)}}{t}
+ =
+ & - \overline{ \nabla_h \cdot \Dvect{F}_{h,E_K} }^{(z)}   \nonumber \\
+ & - \left(F_{z,E_K}|_{z=0} - F_{z,E_K}|_{z=-H} \right)    \nonumber \\
+ & + \overline{b_R w}^{(z)} - \overline{\varepsilon}^{(z)}
+\label{eq:BoussinesqEnergetics_KE_VIntegral}
+\end{align}
+%%
+を得る.
+ここで, $f(\Dvect{x}_h,z)の$鉛直積分に関して, 
+%%
+\begin{align}
+ \overline{f}^{(z)} = \int_{-H}^0 f \Dd{z}
+\end{align}
+%%
+なる記号を導入した.
+また, $(\Dvect{F}_{h,E_K},F_{z,E_K})$は運動エネルギー・圧力・粘性フラックスの和であり,
+%%
+\begin{align}
+ \Dvect{F}_{h,E_K} &= \left( E_K + \dfrac{p_s + p}{\rho_0} \right) \Dvect{u} - A_h \nabla_h E_K, \\
+ F_{z,E_K} &= (E_K + \dfrac{p}{\rho_0}) w - A_v \DP{E_K}{z}
+\end{align}
+%%
+と書かれる.
+今, 海面において$w=0$かつ風応力$\Dvect{\tau}_s$が課されるとし,
+また海底において滑りなし条件が課されるとすれば, \eqref{eq:BoussinesqEnergetics_KE_VIntegral}は,
+%%
+\begin{align}
+ \DP{\overline{E_K}^{(z)}}{t}
+ =
+ & - \overline{ \nabla_h \cdot \Dvect{F}_{h,E_K} }^{(z)} \nonumber \\
+ & + \Dvect{u}|_{z=0} \cdot\Dvect{\tau}_s                \nonumber \\
+ & + \overline{b_R w}^{(z)} - \overline{\varepsilon}^{(z)}
+\label{eq:BoussinesqEnergetics_KE_VIntegral_applyBC}
+\end{align}
+%%
+となる.
+
+次に, 有効位置エネルギーに対する方程式\eqref{eq:BoussinesqEnergetics_APEDensity}の鉛直積分を考える.
+今, 温位や塩分の保存則は,
+%%
+\begin{align}
+  \DD{\Theta}{t} &= \nabla_h \cdot (K_h \nabla_h \Theta) + \DP{}{z}\left(K_z \DP{\Theta}{z} \right), \\
+  \DD{S}{t} &= \nabla_h \cdot (K_h \nabla_h S) + \DP{}{z}\left(K_z \DP{S}{z} \right)
+\end{align}
+%%
+の形式で記述されるとする. 
+運動エネルギーのときと同様に\eqref{eq:BoussinesqEnergetics_APEDensity}の鉛直積分をとれば,
+%%
+\begin{align}
+ \DP{\overline{E_{APE}}^{(z)}}{t} 
+ =
+ & - \overline{ \nabla_h \cdot \Dvect{F}_{h,E_{APE}} }^{(z)}                   \nonumber \\
+ & - \left(F_{z,E_{APE}}|_{z=0} - F_{z,E_{APE}}|_{z=-H}  \right)                \nonumber \\
+ & - \overline{b_R w}^{(z)}
+   - \overline{d}^{(z)}
+\label{eq:BoussinesqEnergetics_APEDensity_VIntegral} 
+\end{align}
+%%
+を得る.
+ただし, $(\Dvect{F}_{h,E_{APE}},F_{z,E_{APE}})$は, 有効位置エネルギーと拡散フラックスの和
+%%
+\begin{align}
+  \Dvect{F}_{h,E_{APE}} &= E_{APE} \Dvect{u} - K_h (G_\Theta\nabla_h\Theta + G_S\nabla_h S), \\
+  F_{z,E_{APE}} &= E_{APE} w - K_v (G_\Theta\DP{\Theta}{z} + G_S\DP{S}{z})
+\end{align}
+%%
+である.
+$d$は拡散過程による散逸項であり,
+%%
+\begin{align}
+ d =
+     &\left(K_h \nabla_h \Theta \cdot \nabla_h G_\Theta  + K_v \DP{\Theta}{z}\DP{G_\Theta}{z} \right) \\
+   + &\left(K_h \nabla_h S \cdot \nabla_h G_S  + K_v \DP{S}{z}\DP{G_S}{z} \right)
+\end{align}
+%%
+と書かれる.
+今, 海面において熱フラックスと淡水フラックスが,
+%%
+\begin{align*}
+ K_v \DP{\Theta}{z} = \dfrac{Q}{\rho_0 c_p}, \;\;
+ K_v \DP{S}{z} = S_0 (E - P)
+\end{align*}
+%%
+と与えられ, また海底において断熱条件が課されるならば(海面で$w=0$, 海底で滑りなし条件を同時に課せば),
+\eqref{eq:BoussinesqEnergetics_APEDensity_VIntegral}は, 
+%%
+\begin{align}
+ \DP{\overline{E_{APE}}^{(z)}}{t} 
+ =
+ & - \overline{ \nabla_h \cdot \Dvect{F}_{h,E_{APE}} }^{(z)}                   \nonumber \\
+ & + G_\Theta|_{z=0} \cdot \dfrac{Q}{\rho_0 c_p} + G_S|_{z=0} \cdot S_0(E - P)                     \nonumber \\
+ & - \overline{b_R w}^{(z)}
+   - \overline{d}^{(z)}
+\label{eq:BoussinesqEnergetics_APEDensity_VIntegral_applyBC} 
+\end{align}
+%%
+となる. 
+
+

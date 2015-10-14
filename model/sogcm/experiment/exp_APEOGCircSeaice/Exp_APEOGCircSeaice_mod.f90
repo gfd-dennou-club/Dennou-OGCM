@@ -137,7 +137,7 @@ contains
        xy_SeaSurfTemp = SeaWaterFreezeTemp
     end where
     
-    xy_SeaSurfSalt = RefSalt
+    xy_SeaSurfSalt = eval_SSSalref(xyz_Lat(:,:,0))! RefSalt
 
     xy_SWDWRFlx = read_SurfField(trim(SurfBC_DATA_DIR)//"RadSDWFLXA.nc", "RadSDWFLXA")
     
@@ -145,7 +145,7 @@ contains
     xy_LatentDWHFlx = - read_SurfField(trim(SurfBC_DATA_DIR)//"Latent.nc", "Latent")
     xy_SensDWHFlx = - read_SurfField(trim(SurfBC_DATA_DIR)//"Sens.nc", "Sens")
     
-    xy_SurfFwFlxO = read_SurfField(trim(SurfBC_DATA_DIR)//"Fw.nc", "Fw")
+!    xy_SurfFwFlxO = read_SurfField(trim(SurfBC_DATA_DIR)//"Fw.nc", "Fw")
     xy_Wevap = read_SurfField(trim(SurfBC_DATA_DIR)//"Evap.nc", "Evap")
     xy_Wrain = read_SurfField(trim(SurfBC_DATA_DIR)//"Rain.nc", "Rain")
     xy_Wsnow = read_SurfField(trim(SurfBC_DATA_DIR)//"Snow.nc", "Snow")
@@ -155,11 +155,11 @@ contains
        xyz_SaltN(:,:,k) = z_Salt(k)
     end do
 
-    xy_SeaSurfTemp = 280d0
-    xy_SeaSurfSalt = 35d0
-    z_PTempBasic(:) = 280d0
-    xyz_SaltN(:,:,:) = 35d0
-!    xyz_SaltN(:,:,0) = xy_SeaSurfSalt
+!    xy_SeaSurfTemp = 280d0
+!    xy_SeaSurfSalt = 35d0
+!    z_PTempBasic(:) = 280d0
+!    xyz_SaltN(:,:,:) = 35d0
+    xyz_SaltN(:,:,0) = xy_SeaSurfSalt
     xyz_PTempEddN(:,:,0) = 0d0
 
     ! Consider the insulation effect due to sea ice.
@@ -233,6 +233,41 @@ contains
 
   end function eval_SaltBasic
   
+    function eval_SSSalref(xy_lat) result(xy_SSSalref)
+      
+      real(DP), intent(in) :: xy_lat(0:iMax-1,jMax)
+      real(DP) :: xy_SSSalref(0:iMax-1,jMax)
+
+!!$      real(DP), parameter :: coef(0:16) = &
+!!$         & (/   34.6759879091764,     1.10532298396405,  0.0763166880123448,   -0.582942261643657, &
+!!$         &     -0.288887879152796,   0.162029019072606,   0.196975818352802,  0.00908477735848993, &
+!!$         &     -0.0844736709221092, -0.0375313739082941,  0.0231237387527393,  0.0178066954031123, &
+!!$         &     -0.0130241816472578, -0.0209568343944606, -0.00517963837567204, 0.0078795138270612, 0.00428900513312646 /)
+
+
+      real(DP), parameter :: coef(0:16) = &
+           & (/34.7637464489794,1.051234697145,0.14236961978175,-0.619301930415567,-0.269350521029104, &
+           & 0.173395861002524,0.203604009069993,0.0695294147072904,-0.0180873718247458,-0.0330484535144368, &
+           & -0.00905946324146973,-0.0162817975967151,-0.00750710204111945,0.00760675898215889,0.00916853734527952, &
+           & -0.00346164327996474,-0.0100834132695167 /)
+
+!!$           (/34.7825375509604,1.03842433663076,0.0883273377454709,-0.520140557430786,-0.315009600760316, &
+!!$           & 0.127365359039471,0.250630657680549,0.0877657409636654,-0.0466327816722313,-0.04174176874417,-&
+!!$           & 0.00177200676103769,-0.000567452261260674,-0.0115915645347134,-0.00438358376247672,0.00866997545821757, &
+!!$           & 0.00332368662059798,-0.0064656444960895 /)
+      
+!!$      
+
+      
+      
+      integer :: m
+
+      xy_SSSalref = 0d0
+      do m=0, 16
+         xy_SSSalref = xy_SSSalref + coef(m)*cos(2d0*m*xy_lat)
+      end do
+
+    end function eval_SSSalref
 
   !> @brief 
   !!

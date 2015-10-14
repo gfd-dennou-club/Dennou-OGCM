@@ -1,0 +1,172 @@
+\section{基礎方程式系}
+海洋大循環を支配する方程式はブジネスクプリミティブ方程式であり,
+以下のように書かれる.
+%%
+\begin{subequations}
+\begin{align}
+ &   \DD{\Dvect{u}}{t}  +  f\Dvect{k} \times \Dvect{u}
+ =
+   -  \dfrac{1}{\rho_0} \nabla p
+   + \nabla_h \cdot  (A_h \nabla_h \Dvect{u})
+   + \DP{}{z} \left(A_v \DP{\Dvect{u}}{z}\right)
+   + \Dvect{\mathscr{F}}_{\Dvect{u}},
+ \label{eq:HydroBoussinesqPrimitive_MomUV}  
+\\%%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& 
+ &   \DP{p}{z}
+ = - g \dfrac{\rho}{\rho_0},
+ \label{eq:HydroBoussinesqPrimitive_MomW} 
+\\%%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& 
+ & \nabla \cdot \Dvect{u} + \DP{w}{z}                 
+ = 0,
+ \label{eq:HydroBoussinesqPrimitive_Continu} 
+\\%%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+ &   \DD{\Theta}{t}
+ =   \nabla_h \cdot (K_h \nabla_h \Theta)
+   + \DP{}{z} \left(K_v\DP{\Theta}{z}\right)
+   + {\mathscr{F}}_{\Theta},
+ \label{eq:HydroBoussinesqPrimitive_PotTemp} 
+\\%%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+ &   \DD{S}{t}
+ =   \nabla_h \cdot (K_h \nabla_h S)
+   + \DP{}{z} \left(K_v\DP{S}{z}\right)
+   + {\mathscr{F}}_{S},
+ \label{eq:HydroBoussinesqPrimitive_Salinity} 
+\\%%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+ &   \rho = \tilde{\rho}(\Theta,S,z).
+ \label{eq:HydroBoussinesqPrimitive_EOS}
+\end{align}
+\label{eq:HydroBoussinesqPrimitive}
+\end{subequations}
+%%
+ここで,
+$\Dvect{u}$ は水平速度ベクトル,
+$w$ は鉛直速度, 
+$f$ はコリオリパラメータ,
+$\Dvect{k}$ は鉛直方向の単位ベクトル,
+$g$ は重力加速度,
+$\rho_0$ は基準密度(定数),
+$\rho$ は密度,
+$p$ は圧力,
+$\Theta$ は温位,
+$S$ は塩分である.
+$A_h, A_v$ はそれぞれ水平粘性係数, 鉛直粘性係数,
+$K_h, K_v$ はそれぞれ水平拡散係数, 鉛直拡散係数である.
+また, $\Dvect{\mathscr{F}}_{\Dvect{u}}, \mathscr{F}_\Theta, \mathscr{F}_S$ は強制項を表す. 
+最後に,
+$\nabla_h$ は水平勾配演算子, 
+$d/dt$ は物質微分
+%%
+\begin{align}
+   \DD{}{t}
+ = \DP{}{t} + \Dvect{u}\cdot\nabla_h + w\DP{}{z}
+\end{align}
+%%
+である.
+状態方程式\eqref{eq:HydroBoussinesqPrimitive_EOS}の左辺の飾り無しの$\rho$は
+時間・空間上の一点での密度$\rho(\Dvect{x},t)$を表す.
+一方, 右辺の$\tilde{\rho}$は$(\Theta,S,p)$を従属変数とする熱力学関数であることを表す.
+なお, 状態方程式の圧力依存性は, 海水のブジネスク近似の一貫性のために$z$依存性に置き換える
+(すなわち, 状態方程式から密度を求めるとき, 圧力は$-\rho_0 gz$とする). 
+
+
+\section{境界条件}
+\subsection*{速度に対する境界条件}
+海洋の上端(海面)$z=\eta$と下端$z=-H(\Dvect{x}_h)$における速度の境界条件は,
+運動学的境界条件(境界を横切る流れは無い)
+%%
+\begin{subequations} %17:12の式群
+\begin{align}
+ &    \DP{\eta}{t}  +  \Dvect{u} \cdot \nabla \eta
+    + E - P
+ =  w
+ \;\;\; {\rm on} \;\; z = \eta,
+ \label{eq:KinematicBCTop}
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ &  \Dvect{u} \cdot \nabla H
+ = - w
+ \;\;\; {\rm on} \;\; z = - H,
+ \label{eq:KinematicBCBtm} 
+\end{align}
+\end{subequations}
+%%
+および力学的境界条件
+%%
+\begin{subequations} %17:11の式群
+\begin{align}
+ {\rm (応力指定の場合)}&
+ \nonumber
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ &  \left(A_h \nabla \Dvect{u}^T + A_v \DP{\Dvect{u}^T}{z} \right) \cdot \Dvect{n}
+ =  \dfrac{\Dvect{\tau}_s}{\rho_0}
+ \;\; {\rm on} \;\; z = \eta, 
+\label{eq:DynamicBCTop}
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ &  \left(A_h \nabla \Dvect{u}^T + A_v \DP{\Dvect{u}^T}{z} \right) \cdot \Dvect{n}
+ =  \dfrac{\Dvect{\tau}_b}{\rho_0}
+ \;\;\; {\rm on} \;\; z = - H 
+\label{eq:DynaimcBCBtm}
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  {\rm (値指定の場合)}&
+  \nonumber
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  & \Dvect{u} = \Dvect{u}_s
+\;\; {\rm on} \;\; z = \eta, 
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  & \Dvect{u} = \Dvect{u}_b
+  \;\;\; {\rm on} \;\; z = - H 
+\end{align}
+\end{subequations}
+%%
+である.
+ここで,
+$E$ は海面における蒸発量,
+$P$ は海面における降水量, 
+$\Dvect{\tau}_s, \Dvect{\tau}_b$ はそれぞれ上端・下端で指定する(風)応力,
+$\Dvect{u}_s, \Dvect{u}_b$ はそれぞれ上端・下端で指定する流速, 
+$\Dvect{n}$ は境界の法線ベクトル,
+$h(\Dvect{x})$ は海洋が静止しているときの深さである. 
+$\Dvect{u}^T$ は$\Dvect{u}$の転置を表す.
+また, 水平境界における速度の境界条件は,
+%%
+\begin{subequations} %17:33の式群
+ \begin{align}
+  {\rm (応力なし条件の場合)}&
+  \nonumber
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  &\Dvect{u} \cdot \Dvect{n} = 0 \;\; {\rm かつ} \;\;
+   \nabla (\Dvect{u} \cdot \Dvect{t}) \cdot \Dvect{n} = 0, 
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+  {\rm (滑りなし条件の場合)}&
+  \nonumber
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  &\Dvect{u} = 0
+ \end{align}
+\end{subequations}
+%%
+を課す. 
+ここで, $\Dvect{t}$ は境界の水平方向の接ベクトルである.
+今, 水平境界面における$w$は連続の式から診断的に求められるので,
+そこで$w$の境界条件は必要でない. 
+
+一方, トレーサー$T_r$(温位や塩分)に対する境界条件は, 
+海洋の境界において, 
+%%
+\begin{subequations} %17:11の式群
+\begin{align}
+ {\rm (フラックス指定の場合)}&
+ \nonumber
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ &  \left(K_h \nabla T_r + K_v \DP{T_r}{z} \Dvect{k} \right) \cdot \Dvect{n}
+ =  F_{T_r}
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  {\rm (値指定の場合)}&
+  \nonumber
+\\%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  & T_r  = T_{r, {\rm boundary}}
+\end{align}
+\end{subequations}
+%%
+を課す.
+ここで, $F_{T_r}$は境界で指定するトレーサーのフラックス,
+$T_{r, {\rm boundary}}$は境界で指定するトレーサーの値である.
+

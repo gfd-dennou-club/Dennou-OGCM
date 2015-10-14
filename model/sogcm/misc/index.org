@@ -99,6 +99,10 @@
 
 
 * 発表資料
+
+- 海洋モデルミーティング
+
+
 - 水惑星実験の先行研究の調査
     - [[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][Smith, et al.(2006)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131031_epasemi_ykawai/pub/][発表資料]])
     - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131219_epasemi_ykawai/pub/][発表資料]])
@@ -113,7 +117,7 @@
 
 * 海洋モデルミーティングログ
 
-#+CALL: create_MeetingLogTable("2015", "{2015-{09-09,07-27,06-17,05-20}}") :results value raw :exports results
+#+CALL: create_MeetingLogTable("2015", "{2015-{10-05,09-09,07-27,06-17,05-20}}") :results value raw :exports results
 
 #+CALL: create_MeetingLogTable("2014", "{2015-{03-17,02-18},01-21,2014-{12-17,11-17,07-16,06-26,05-28,04-23}}") :results value raw :exports results
 

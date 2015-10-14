@@ -80,7 +80,8 @@ contains
     ! Local variable
     !
     character(12) :: intUnit
-
+    character(TOKEN) :: dims_YZT(3), dims_XYT(3), dims_XYZT(4)
+    
     ! 実行文; Executable statements
     !
 
@@ -88,12 +89,16 @@ contains
     !
     !
     intUnit = diagVar_gthsInfo%intUnit
-
+    dims_YZT(1) = 'lat'; dims_YZT(2) = 'sig'; dims_YZT(3) = 'time'
+    dims_XYT(1) = 'lon'; dims_XYT(2) = 'lat'; dims_XYT(3) = 'time'
+    dims_XYZT(1) = 'lon'; dims_XYZT(2) = 'lat'; dims_XYZT(3) = 'sig'; dims_XYZT(4) = 'time'
+    
+    
     call HistoryAutoCreate( &                            ! ヒストリー作成
          & title='OGCM Diagnose Variables Output',             &
          & source='OGCM Output',    &
          & institution='GFD_Dennou Club OGCM project',    &
-         & dims=(/'lon','lat','sig','t  '/), dimsizes=(/iMax,jMax,kMax+1,0/),       &
+         & dims=(/'lon ','lat ','sig ','time'/), dimsizes=(/iMax,jMax,kMax+1,0/),       &
          & longnames=(/'longitude','latitude ','sigma    ', 'time     '/),      &
          & units=(/'degree_east ','degree_north','(1)         ', intUnit /), &
          & origin=real(diagVar_gthsInfo%origin), &
@@ -106,48 +111,48 @@ contains
     call HistoryAutoPutAxis('sig', g_Sig)
 
     call HistoryAutoAddVariable( &
-         varname='Chi', dims=(/'lon','lat','sig','t  '/), & 
+         varname='Chi', dims=dims_XYZT, & 
          longname='velocity potential ', units='m2/s')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_DIV, dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_DIV, dims=dims_XYZT, &
          longname='divergence ', units='s-1')
 
     call HistoryAutoAddVariable( &
-         varname='Psi', dims=(/'lon','lat','sig','t  '/), & 
+         varname='Psi', dims=dims_XYZT, &
          longname='stream function', units='m2/s')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_VOR, dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_VOR, dims=dims_XYZT, &
          longname='vorcity', units='s-1')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_DENSEDD, dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_DENSEDD, dims=dims_XYZT, &
          longname='density deviation from refrence density(RefDens)', units='kg.m-3')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_DENSPOT, dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_DENSPOT, dims=dims_XYZT, &
          longname='potential density deviation from refrence density(RefDens). Refrence pressure sets zero.', &
          units='kg.m-3')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_PRESSEDD, dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_PRESSEDD, dims=dims_XYZT, &
          longname='pressure deviation from static pressure(RefDens*Grav*z)', units='Pa')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_MASSSTREAMFUNC, dims=(/'lat','sig','t  '/), & 
+         varname=DVARKEY_MASSSTREAMFUNC, dims=dims_YZT, &
          longname='mass stream function on meriodinal plane', units='Sv')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_STATICSTABILITY, dims=(/ 'lon', 'lat','sig','t  '/), & 
+         varname=DVARKEY_STATICSTABILITY, dims=dims_XYZT, &
          longname='static stability(N^2)', units='s-2')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_PTEMP, dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_PTEMP, dims=dims_XYZT, &
          longname='potential temperature', units='K')
 
     call HistoryAutoAddVariable( &
-         varname=DVARKEY_TEMP, dims=(/'lon','lat','sig','t  '/), & 
+         varname=DVARKEY_TEMP, dims=dims_XYZT, & 
          longname='temperature', units='K')
 
 

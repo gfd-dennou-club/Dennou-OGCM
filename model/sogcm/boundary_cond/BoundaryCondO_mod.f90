@@ -59,6 +59,9 @@ module BoundaryCondO_mod
 
   character(*), parameter :: VARSET_KEY_SURFHFLXO   = 'SurfHFlxO'
   character(*), parameter :: VARSET_KEY_SURFFWFLXO  = 'SurfFwFlxO' 
+
+  character(*), public, parameter :: VARSET_KEY_WINDSTRESSLAT = 'WindStressLat'
+  character(*), public, parameter :: VARSET_KEY_WINDSTRESSLON = 'WindStressLon'
   
   !
   real(DP), public, save, allocatable :: xy_WindStressU(:,:)
@@ -91,6 +94,8 @@ module BoundaryCondO_mod
   real(DP), public, save, allocatable :: xy_SWDWRFlx(:,:)
   real(DP), public, save, allocatable :: xy_LWDWRFlx(:,:)
 
+  real(DP), public, save, allocatable :: xy_DSurfHFlxDTs(:,:)
+  
   !
   real(DP), parameter, public :: RefSalt_VBC = 35d0
   
@@ -133,9 +138,11 @@ contains
     call malloc2DVar(xy_SWDWRFlx); call malloc2DVar(xy_LWDWRFlx)
 
     call malloc2DVar(xy_SurfHFlxIO); call malloc2DVar(xy_SurfFwFlxIO)
+    call malloc2DVar(xy_DSurfHFlxDTs)
 
     xy_SurfHFlxIO = 0d0; xy_SurfFwFlxO = 0d0
-
+    xy_DSurfHFlxDTs = 0d0
+    
     ! Preparation of output surface fluxes
     !
     
@@ -167,6 +174,7 @@ contains
     deallocate( xy_LatentDWHFlx, xy_SensDWHFlx, xy_SWDWRFlx, xy_LWDWRFlx )
 
     deallocate( xy_SurfHFlxIO, xy_SurfFwFlxIO )
+    deallocate( xy_DSurfHFlxDTs )
     
   end subroutine BoundaryCondO_Final
 
@@ -205,6 +213,8 @@ contains
             & z_PTempBasic(0) + xyz_PTempEddN(:,:,0),   & ! (in)
             & xy_SIceCon                                & ! (in)
             & )
+
+    case(ThermBCTYPE_PrescTemp)
     case default
        call MessageNotify('E', module_name, &
             & 'Specified TermBC_Surface ID(=%a) is invalid.', i=(/ThermBC_Surface/))
@@ -214,6 +224,7 @@ contains
     case(SaltBCTYPE_PrescFlux)
        call calc_SurfaceFreshWaterFluxO( xy_SurfFwFlxO,   & ! (out)
             & xy_SIceCon, xy_Wice )
+    case(SaltBCTYPE_PrescSalt)
     case default
        call MessageNotify('E', module_name, &
             & 'Specified SaltBC_Surface ID(=%a) is invalid.', i=(/SaltBC_Surface/))       
@@ -532,7 +543,7 @@ contains
 
     character(TOKEN) :: dims_XYT(3)
 
-    dims_XYT = (/ 'lon', 'lat', 't  ' /)
+    dims_XYT = (/ 'lon ', 'lat ', 'time' /)
     
     call HistoryAutoAddVariable( varName=VARSET_KEY_SURFHFLXO, &
          & dims=dims_XYT, longname='net heat flux at sea surface', units='W/m2')

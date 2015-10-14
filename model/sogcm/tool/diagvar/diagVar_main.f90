@@ -24,12 +24,23 @@ program diagVar_main
   use SpmlUtil_mod
 
   use BoundCondSet_mod
-  use BoundaryCondO_mod
+
+  use VariableSet_mod, only: &
+       & xyz_UN, xyz_VN, xy_SurfPressN, xy_SurfHeightN, xyz_PTempEddN, xyz_SaltN, &
+       & xyz_UB, xyz_VB, xyz_PTempEddB, xyz_SaltB, &
+       & xyz_SigDot, z_PTempBasic, xy_totDepthBasic
+  
+  use BoundaryCondO_mod, only: &
+       & BoundaryCondO_Init, BoundaryCondO_Final, &
+       & xy_WindStressU, xy_WindStressV, &
+       & xy_SWDWRFlx, xy_LWDWRFlx, xy_SensDWHFlx, xy_LatentDWHFlx
+
   use GovernEqSet_mod, only: &
        & GovernEqSet_Init, GovernEqSet_Final, &
        & EOSType
 
-  use EOSDriver_mod
+  use EOSDriver_mod, only: &
+       & EOSDriver_Init, EOSDriver_Final
 
   use Exp_WindDrivenCirculation_mod, only: &
        & Exp_Init => Exp_WindDrivenCirculation_Init, &
@@ -66,7 +77,7 @@ program diagVar_main
   type(gtool_historyauto_info) :: diagVar_gthsInfo
   type(gtool_historyauto_info) :: ogcm_gthsInfo
 
-
+  character(*), parameter :: TIME_AXISNAME = 'time'
   
   ! 実行文; Executable statement
   !
@@ -469,7 +480,7 @@ contains
     if(CurrentTimeSec < 0d0 .and. EndTimeSec < 0d0 ) then
        call HistoryGetPointer( &
             & trim(ogcm_gthsInfo%FilePrefix) // trim(ogcmOutputVarsName(1)) // '.nc', &
-            & 't', ogcm_outputTime)
+            & TIME_AXISNAME, ogcm_outputTime)
        write(*,*) 'outputTime', size(ogcm_outputTime), ogcm_outputTime
 
        diagVar_gthsInfo%origin = DCCalConvertByUnit(ogcm_outputTime(1), ogcm_gthsInfo%intUnit, diagVar_gthsInfo%intUnit)
@@ -484,7 +495,7 @@ contains
 
   end subroutine readOgcmNml
 
-
+    
   !> @brief 
   !!
   !!
@@ -494,15 +505,6 @@ contains
     !
     use dc_string, only: CPrintf
     
-    use VariableSet_mod, only: &
-         & VARSET_KEY_U, VARSET_KEY_V, VARSET_KEY_SURFHEIGHT, VARSET_KEY_PTEMPEDD, VARSET_KEY_SALT, &
-         & VARSET_KEY_UB, VARSET_KEY_VB, VARSET_KEY_PTEMPEDDB, VARSET_KEY_SALTB, &
-         & VARSET_KEY_SURFPRESS, VARSET_KEY_HYDROPRESSEDD, &
-         & VARSET_KEY_SIGDOT, VARSET_KEY_PTEMPBASIC, VARSET_KEY_TOTDEPTHBASIC, &
-         & xyz_UN, xyz_VN, xy_SurfPressN, xy_SurfHeightN, xyz_PTempEddN, xyz_SaltN, &
-         & xyz_UB, xyz_VB, xyz_PTempEddB, xyz_SaltB, &
-         & xyz_SigDot, z_PTempBasic, xy_totDepthBasic
-
     use DiagnoseUtil_mod, only: &
          & Diagnose_HydroPressEdd
 
@@ -525,50 +527,17 @@ contains
 
     ! 実行文; Executable statement
     !
+
+    ! Get variables form NetCDF output by dsogcm. 
+    !
     
     CurrentTime = DCCalConvertByUnit(CurrentTimeSec, 'sec', ogcm_gthsInfo%intUnit)
-    rangeStr = CPrintf('t=%f', d=(/ currentTime /))
+    rangeStr = CPrintf('%a=%f', ca=(/ trim(TIME_AXISNAME) /), d=(/ currentTime /))
 
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_U) // NCEXT, &
-         & VARSET_KEY_U, xyz_UN, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_V) // NCEXT, &
-         & VARSET_KEY_V, xyz_VN, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPEDD) // NCEXT, &
-         & VARSET_KEY_PTEMPEDD, xyz_PTempEddN, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SALT) // NCEXT, &
-         & VARSET_KEY_SALT, xyz_SaltN, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_UB) // NCEXT, &
-         & VARSET_KEY_UB, xyz_UB, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_VB) // NCEXT, &
-         & VARSET_KEY_VB, xyz_VB, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPEDDB) // NCEXT, &
-         & VARSET_KEY_PTEMPEDDB, xyz_PTempEddB, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SALTB) // NCEXT, &
-         & VARSET_KEY_SALTB, xyz_SaltB, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SIGDOT) // NCEXT, &
-         & VARSET_KEY_SIGDOT, xyz_SigDot, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_SURFPRESS) // NCEXT, &
-         & VARSET_KEY_SURFPRESS, xy_SurfPressN, range=rangeStr )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_PTEMPBASIC) // NCEXT, &
-         & VARSET_KEY_PTEMPBASIC, z_PTempBasic )
-
-    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // trim(VARSET_KEY_TOTDEPTHBASIC) // NCEXT, &
-         & VARSET_KEY_TOTDEPTHBASIC, xy_totDepthBasic )
-
-!!$    call HistoryGet( trim(ogcm_gthsInfo%FilePrefix) // "SurfHeight.nc", &
-!!$         & 'SurfHeight', xy_SurfHeightN, range=rangeStr )
-    xy_SurfHeightN = 0d0
-
+    !
+    call Set_VarSetManagedVars(rangeStr)
+    call Set_BoundaryCondOManagedVars(rangeStr)
+    
     !
     !
     
@@ -622,4 +591,84 @@ contains
 
   end subroutine diagnose_outputVariables
 
+  subroutine getOGCMOutputVar(varName, rangeStr, xyz, xy, z)
+    character(*), intent(in) :: varName
+    character(*), intent(in), optional :: rangeStr
+    real(DP), intent(out), optional :: xyz(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(out), optional :: xy(0:iMax-1,jMax)
+    real(DP), intent(out), optional :: z(0:kMax)
+    
+    character(*), parameter :: NCEXT = ".nc"
+    character(STRING) :: ncFileName
+
+    ncFileName = trim(ogcm_gthsInfo%FilePrefix) // trim(varName) // NCEXT
+    if(present(xyz)) then
+       call HistoryGet(ncFileName, varName, xyz, range=rangeStr)
+    end if
+    if(present(xy)) then
+       call HistoryGet(ncFileName, varName, xy, range=rangeStr)
+    end if
+    if(present(z)) then
+       call HistoryGet(ncFileName, varName, z, range=rangeStr)
+    end if
+    
+  end subroutine getOGCMOutputVar
+
+  subroutine Set_VarSetManagedVars(rangeStr)
+
+    use VariableSet_mod, only: &
+         & VARSET_KEY_U, VARSET_KEY_V, VARSET_KEY_SURFHEIGHT, VARSET_KEY_PTEMPEDD, VARSET_KEY_SALT, &
+         & VARSET_KEY_UB, VARSET_KEY_VB, VARSET_KEY_PTEMPEDDB, VARSET_KEY_SALTB, &
+         & VARSET_KEY_SURFPRESS, VARSET_KEY_HYDROPRESSEDD, &
+         & VARSET_KEY_SIGDOT, VARSET_KEY_PTEMPBASIC, VARSET_KEY_TOTDEPTHBASIC
+    
+    character(*), intent(in) :: rangeStr
+
+    ! 実行文; Executable statement
+    !
+
+    call getOGCMOutputVar(VARSET_KEY_U,  rangeStr, xyz=xyz_UN)
+    call getOGCMOutputVar(VARSET_KEY_UB, rangeStr, xyz=xyz_UB)
+    call getOGCMOutputVar(VARSET_KEY_V,  rangeStr, xyz=xyz_VN)
+    call getOGCMOutputVar(VARSET_KEY_VB, rangeStr, xyz=xyz_VB)
+    call getOGCMOutputVar(VARSET_KEY_PTEMPEDD,  rangeStr, xyz=xyz_PTempEddN)
+    call getOGCMOutputVar(VARSET_KEY_PTEMPEDDB, rangeStr, xyz=xyz_PTempEddB)
+    call getOGCMOutputVar(VARSET_KEY_Salt,  rangeStr, xyz=xyz_SaltN)
+    call getOGCMOutputVar(VARSET_KEY_SaltB, rangeStr, xyz=xyz_SaltB)
+    xy_SurfHeightN = 0d0 !call getOGCMOutputVar(VARSET_KEY_SURFHEIGHT, rangeStr, xy=xy_SurfHeightN)
+    
+    call getOGCMOutputVar(VARSET_KEY_SIGDOT, rangeStr, xyz=xyz_SigDot)
+    call getOGCMOutputVar(VARSET_KEY_SURFPRESS, rangeStr, xy=xy_SurfPressN)
+
+    call getOGCMOutputVar(VARSET_KEY_PTEMPBASIC, z=z_PTempBasic)
+    call getOGCMOutputVar(VARSET_KEY_TOTDEPTHBASIC, xy=xy_totDepthBasic)
+    
+  end subroutine Set_VarSetManagedVars
+
+  subroutine Set_BoundaryCondOManagedVars(rangeStr)
+
+    use BoundaryCondO_mod, only: &
+         & VARSET_KEY_WINDSTRESSLON, VARSET_KEY_WINDSTRESSLAT
+    
+    character(*), intent(in) :: rangeStr
+
+!!$    call getOGCMOutputVar("TauXAtm", rangeStr, xy=xy_WindStressU)
+!!$    call getOGCMOutputVar("TauYAtm", rangeStr, xy=xy_WindStressV)
+!!$    call getOGCMOutputVar("LWDWRFlxAtm", rangeStr, xy=xy_LWDWRFlx)
+!!$    call getOGCMOutputVar("SWDWRFlxAtm", rangeStr, xy=xy_SWDWRFlx)
+!!$    call getOGCMOutputVar("SensFlxAtm", rangeStr, xy=xy_SensDWHFlx)
+!!$    call getOGCMOutputVar("LatentFlxAtm", rangeStr, xy=xy_LatentDWHFlx)
+
+!!$    call getOGCMOutputVar("TauXAtm", xy=xy_WindStressU)
+!!$    call getOGCMOutputVar("TauYAtm", xy=xy_WindStressV)
+!!$    call getOGCMOutputVar("LWDWRFlxAtm", xy=xy_LWDWRFlx)
+!!$    call getOGCMOutputVar("SWDWRFlxAtm", xy=xy_SWDWRFlx)
+!!$    call getOGCMOutputVar("SensFlxAtm", xy=xy_SensDWHFlx)
+!!$    call getOGCMOutputVar("LatentFlxAtm", xy=xy_LatentDWHFlx)
+    
+!!$    call getOGCMOutputVar(VARSET_KEY_WINDSTRESSLON, rangeStr, xy=xy_WindStressU)
+!!$    call getOGCMOutputVar(VARSET_KEY_WINDSTRESSLAT, rangeStr, xy=xy_WindStressV)
+    
+  end subroutine Set_BoundaryCondOManagedVars
+  
 end program diagVar_main
