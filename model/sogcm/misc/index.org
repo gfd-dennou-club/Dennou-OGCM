@@ -9,7 +9,7 @@
     require 'pathname'
 
     str = "- #{fy}年度: ["
-    logPathes = Dir.glob("#{parentDirPath}fy#{fy}/#{dates}.txt")
+    logPathes = Dir.glob("#{parentDirPath}fy#{fy}/#{dates.delete("-")}/#{dates}.txt")
 
     logPathes.each{|path|
       date = File.basename(path, ".txt").delete("-")
@@ -19,6 +19,7 @@
     str << "]\n"
     return str
 #+END_SRC
+
 
 
 * 海洋力学・海洋モデリング
@@ -100,20 +101,26 @@
 
 * 発表資料
 
-- 海洋モデルミーティング
-
-
 - 水惑星実験の先行研究の調査
     - [[./../../../../note_OModeling/review/APE/Smith_et_al_2006.html][Smith, et al.(2006)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131031_epasemi_ykawai/pub/][発表資料]])
     - [[./../../../../note_OModeling/review/APE/Marshall_et_al_2007.html][Marshall, et al.(2007)]] ([[http://www.gfd-dennou.org/arch/prepri/2013/kobe-u/131219_epasemi_ykawai/pub/][発表資料]])
     - Enderton, et al.(2009) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/140619_epasemi_ykawai/pub/][発表資料]])
     - Ferreira, et al.(2011) ([[http://www.gfd-dennou.org/arch/prepri/2014/kobe-u/141106_epasemi_ykawai/pub/][発表資料]])
-    - Hu and Yang(2014) (発表資料)
+    - Hu and Yang(2014) ([[file:./../../../omeeting/fy2014/20150317/presen/pub/index.html][発表資料]])
     - Rose(2015) ([[http://www.gfd-dennou.org/arch/prepri/2015/kobe-u/150604_epasemi_ykawai/pub/][発表資料]])
 
 - 海氷モデリング
     - 海氷モデリングの基礎([[http://www.gfd-dennou.org/arch/prepri/2015/kobe-u/150115_epasemi_ykawai/pub/][発表資料]])
-    - Winton(2000) の 3 層海氷熱力学モデルの定式化について(発表資料)
+    - Winton(2000) の 3 層海氷熱力学モデルの定式化について([[file:./../../../omeeting/fy2015/20150520/presen/pub/index.html][発表資料]])
+
+- 海洋モデルミーティング
+    - 2015/11/10 ([[file:./../../../omeeting/fy2015/20151110/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20151005/presen/src/omeeting_20151110.pptx][pptx ファイル]])
+    - 2015/10/05 ([[file:./../../../omeeting/fy2015/20151005/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20151005/presen/src/omeeting_20151005.pptx][pptx ファイル]])
+    - 2015/07/27 ([[file:./../../../omeeting/fy2015/20150727/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20150727/presen/src/omeeting_20150727.pptx][pptx ファイル]])
+    - 2015/05/20 ([[file:./../../../omeeting/fy2015/20150520/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20150520/presen/src/omeeting_20150520.pptx][pptx ファイル]])
+    - 2015/04/15 ([[file:./../../../omeeting/fy2015/20150415/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20150415/presen/src/omeeting_20150415.pptx][pptx ファイル]])
+    - 2014/03/17 ([[file:./../../../omeeting/fy2014/20150317/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2014/20150317/presen/src/omeeting_20150317.pptx][pptx ファイル]])
+
 
 * 海洋モデルミーティングログ
 
