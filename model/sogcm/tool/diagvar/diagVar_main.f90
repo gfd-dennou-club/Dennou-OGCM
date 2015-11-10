@@ -156,7 +156,7 @@ contains
     call TemporalIntegSet_Init(ogcmConfigNmlFile)
     call BoundCondSet_Init(ogcmConfigNmlFile)
     call GridSet_Init(ogcmConfigNmlFile)
-    call BoundaryCondO_Init()
+    call BoundaryCondO_Init(isSurfFlxOutput=.false.)
     call GovernEqSet_Init(ogcmConfigNmlFile)
     call EOSDriver_Init(EOSType)
 

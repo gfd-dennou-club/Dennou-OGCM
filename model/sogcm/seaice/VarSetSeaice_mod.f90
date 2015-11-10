@@ -140,7 +140,8 @@ contains
 
     xy_SIceConN = 0d0
     xy_SIceSurfTempN = 0d0
-    xyz_SIceTempN = - Mu*SaltSeaIce
+    xyz_SIceTempN = 0d0!- Mu*SaltSeaIce
+    xyz_SIceTempA = 0d0!- Mu*SaltSeaIce    
     xy_SnowThickN = 0d0
     xy_IceThickN = 0d0
 

@@ -64,7 +64,8 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xy_SurfPressA(:,:), xy_SurfPressN(:,:), xy_SurfPressB(:,:)
 
   real(DP), public, save, allocatable :: xyz_ConvIndex(:,:,:)
-  real(DP), public, save, allocatable :: xyz_VViscCoef(:,:,:), xyz_VDiffCoef(:,:,:)
+  real(DP), public, save, allocatable :: xyz_VViscCoefA(:,:,:), xyz_VViscCoefN(:,:,:), xyz_VViscCoefB(:,:,:)
+  real(DP), public, save, allocatable :: xyz_VDiffCoefA(:,:,:), xyz_VDiffCoefN(:,:,:), xyz_VDiffCoefB(:,:,:)
 
   character(TOKEN), public, parameter :: VARSET_KEY_U  = 'U'
   character(TOKEN), public, parameter :: VARSET_KEY_UB = 'UB'
@@ -129,7 +130,8 @@ contains
     call malloc1DVar(z_PTempBasic)
     call malloc2DVar(xy_SurfPressA);  call malloc2DVar(xy_SurfPressN); call malloc2DVar(xy_SurfPressB);
 
-    call malloc3DVar(xyz_VViscCoef); call malloc3DVar(xyz_VDiffCoef)
+    call malloc3DVar(xyz_VViscCoefA); call malloc3DVar(xyz_VViscCoefN); call malloc3DVar(xyz_VViscCoefB);
+    call malloc3DVar(xyz_VDiffCoefA); call malloc3DVar(xyz_VDiffCoefN); call malloc3DVar(xyz_VDiffCoefB);
     
     call malloc3DVar(xyz_ConvIndex)
     
@@ -182,7 +184,8 @@ contains
        deallocate( xy_totDepthBasic )
        deallocate( xy_SurfPressA, xy_SurfPressN, xy_SurfPressB )
        deallocate( xyz_ConvIndex )
-       deallocate( xyz_VViscCoef, xyz_VDiffCoef )
+       deallocate( xyz_VViscCoefA, xyz_VViscCoefN, xyz_VViscCoefB )
+       deallocate( xyz_VDiffCoefA, xyz_VDiffCoefN, xyz_VDiffCoefB )
     end if
 
   end subroutine VariableSet_Final
@@ -210,6 +213,9 @@ contains
     xyz_VB(:,:,:) = xyz_VN; xyz_VN(:,:,:) = xyz_VA; xyz_VA(:,:,:) = 0d0
     xyz_PTempEddB(:,:,:) = xyz_PTempEddN; xyz_PTempEddN(:,:,:) = xyz_PTempEddA; xyz_PTempEddA(:,:,:) = 0d0
     xyz_SaltB(:,:,:) = xyz_SaltN; xyz_SaltN(:,:,:) = xyz_SaltA; xyz_SaltA(:,:,:) = 0d0
+
+    xyz_VViscCoefB(:,:,:) = xyz_VViscCoefN; !xyz_VViscCoefN(:,:,:) = xyz_VViscCoefA; xyz_VViscCoefA(:,:,:) = 0d0 
+    xyz_VDiffCoefB(:,:,:) = xyz_VDiffCoefN; !xyz_VDiffCoefN(:,:,:) = xyz_VDiffCoefA; xyz_VDiffCoefA(:,:,:) = 0d0 
     !$omp end parallel workshare
 
     !$omp parallel workshare

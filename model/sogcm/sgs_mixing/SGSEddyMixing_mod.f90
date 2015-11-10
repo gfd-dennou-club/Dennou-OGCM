@@ -1,7 +1,7 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2014 Yuta Kawai. All rights reserved.
+! Copyright (c) 2013-2015 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
-!> @brief a template module
+!> @brief This module to calculate tendecies of potential temperature and salinity due to isopycnal diffusion and GM advection.  
 !! 
 !! @author Yuta Kawai
 !!
@@ -56,8 +56,10 @@ module SGSEddyMixing_mod
   public :: SGSEddyMixing_Init, SGSEddyMixing_Final
   public :: SGSEddyMixing_GetParameters
   public :: SGSEddyMixing_Output, SGSEddyMixing_PrepareOutput
-  public :: SGSEddyMixing_AddMixingTerm
-  public :: calc_IsoNeutralSlope, calc_BolusVelocity
+  public :: SGSEddyMixing_AddMixingTerm, SGSEddyMixing_AddMixingTerm_wz
+  public :: calc_IsoNeutralSlope
+  public :: calc_IsopycDiffFlux
+  public :: calc_BolusVelocity
   
   ! 公開変数
   ! Public variable
@@ -161,7 +163,7 @@ contains
   !> @brief 
   !!
   !!
-  subroutine SGSEddyMixing_AddMixingTerm( wz_PTempRHS, wz_SaltRHS, &  ! (inout)
+  subroutine SGSEddyMixing_AddMixingTerm_wz( wz_PTempRHS, wz_SaltRHS, &  ! (inout)
        & wz_PTemp, wz_Salt, xy_totDepth                            &  ! (in)
        & )
 
@@ -174,6 +176,33 @@ contains
     ! 局所変数
     ! Local variables
     !
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_PTempRHS, xyz_SaltRHS    
+
+    xyz_PTempRHS = 0d0; xyz_SaltRHS = 0d0
+    call SGSEddyMixing_AddMixingTerm(xyz_PTempRHS, xyz_SaltRHS, &
+         & xyz_wz(wz_PTemp), xyz_wz(wz_Salt), xy_totDepth)
+
+    wz_PTempRHS(:,:) = wz_PTempRHS + wz_xyz(xyz_PTempRHS)
+    wz_SaltRHS(:,:) = wz_SaltRHS + wz_xyz(xyz_SaltRHS)
+    
+  end subroutine SGSEddyMixing_AddMixingTerm_wz
+
+  !> @brief 
+  !!
+  !!
+  subroutine SGSEddyMixing_AddMixingTerm( xyz_PTempRHS, xyz_SaltRHS,   &  ! (inout)
+       & xyz_PTemp, xyz_Salt, xy_totDepth                              &  ! (in)
+       & )
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: xyz_PTempRHS, xyz_SaltRHS
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in)  :: xyz_PTemp, xyz_Salt
+    real(DP), dimension(0:iMax-1,jMax), intent(in) :: xy_totDepth
+
+    ! 局所変数
+    ! Local variables
+    !
     real(DP), dimension(0:iMax-1,jMax,0:kMax) :: &
          & xyz_DensPot, xyz_RefPress, xyz_CosLat, xyz_totDepth
 
@@ -181,7 +210,8 @@ contains
          & xyz_SLon, &  !< The longitude componet of th slope of isopycnal surface
          & xyz_SLat     !< The latitude componet of th slope of isopycnal surface
 
-    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_PTemp, xyz_Salt, xyz_KappRho, xyz_Depth
+    real(DP), dimension(lMax,0:kMax) :: wz_PTemp, wz_Salt
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_KappRho, xyz_Depth
     real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_T    
     integer :: k
 
@@ -194,8 +224,8 @@ contains
     do k=0, kMax
        xyz_totDepth(:,:,k) = xy_totDepth
        xyz_Depth(:,:,k) = xy_totDepth*g_Sig(k)
-       xyz_PTemp(:,:,k) = xy_w(wz_PTemp(:,k))
-       xyz_Salt(:,:,k) = xy_w(wz_Salt(:,k))
+       wz_PTemp(:,k) = w_xy(xyz_PTemp(:,:,k))
+       wz_Salt(:,k) = w_xy(xyz_Salt(:,:,k))
     end do
     
     ! Calculate the potential density. 
@@ -216,22 +246,22 @@ contains
 !    call check_StaticStability(xyz_T, xyz_DensPot)
 
     !
-    wz_PTempRHS(:,:) = wz_PTempRHS + calc_IsopycDiffTerm(wz_PTemp, xyz_PTemp)
-    wz_SaltRHS(:,:)  = wz_SaltRHS + calc_IsopycDiffTerm(wz_Salt, xyz_Salt)
+    xyz_PTempRHS(:,:,:) = xyz_PTempRHS + calc_IsopycDiffTerm(wz_PTemp, xyz_PTemp)
+    xyz_SaltRHS(:,:,:)  = xyz_SaltRHS  + calc_IsopycDiffTerm(wz_Salt, xyz_Salt)
 
     if(SGSEddyMixType == SGSEddyMixing_GM90) then
-       wz_PTempRHS(:,:) = wz_PTempRHS + calc_EddyInducedVelAdvTerm(wz_PTemp, xyz_PTemp)
-       wz_SaltRHS(:,:)  = wz_SaltRHS + calc_EddyInducedVelAdvTerm(wz_Salt, xyz_Salt)
+       xyz_PTempRHS(:,:,:) = xyz_PTempRHS + calc_EddyInducedVelAdvTerm(wz_PTemp, xyz_PTemp)
+       xyz_SaltRHS(:,:,:)  = xyz_SaltRHS + calc_EddyInducedVelAdvTerm(wz_Salt, xyz_Salt)
     end if
 
   contains
-    function calc_IsopycDiffTerm(wz_Tracer, xyz_Tracer) result(wz_DiffTerm)
+    function calc_IsopycDiffTerm(wz_Tracer, xyz_Tracer) result(xyz_DiffTerm)
 
       ! 宣言文; Declaration statement
       !
       real(DP), intent(in) :: wz_Tracer(lMax,0:kMax)
       real(DP), intent(in) :: xyz_Tracer(0:iMax-1,jMax,0:kMax)
-      real(DP) :: wz_DiffTerm(lMax,0:kMax)
+      real(DP) :: xyz_DiffTerm(0:iMax-1,jMax,0:kMax)
 
       ! 局所変数
       ! Local variables
@@ -245,19 +275,19 @@ contains
            & xyz_Tracer, wz_Tracer, xyz_SLon, xyz_SLat, xyz_T, xyz_Depth &  !(in)
            & )
 
-      wz_DiffTerm(:,:) = &
-           &    wz_AlphaOptr_xyz(xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat) &
-           & +  wz_xyz(xyz_Dz_xyz(xyz_FSig))
+      xyz_DiffTerm(:,:,:) = &
+           &    xyz_wz(wz_AlphaOptr_xyz(xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat)) &
+           & +  xyz_Dz_xyz(xyz_FSig)
 
     end function calc_IsopycDiffTerm
 
-    function calc_EddyInducedVelAdvTerm(wz_Tracer, xyz_Tracer) result(wz_AdvTerm)
+    function calc_EddyInducedVelAdvTerm(wz_Tracer, xyz_Tracer) result(xyz_AdvTerm)
 
       ! 宣言文; Declaration statement
       !
       real(DP), intent(in) :: wz_Tracer(lMax,0:kMax)
       real(DP), intent(in) :: xyz_Tracer(0:iMax-1,jMax,0:kMax)
-      real(DP) :: wz_AdvTerm(lMax,0:kMax)
+      real(DP) :: xyz_AdvTerm(0:iMax-1,jMax,0:kMax)
 
       ! 局所変数
       ! Local variables
@@ -292,16 +322,16 @@ contains
 !!$           &    xyz_Tracer*xyz_wz(wz_AlphaOptr_xyz(xyz_EddInducedU*xyz_CosLat, xyz_EddInducedV*xyz_CosLat)) &
 !!$           &  - xyz_EddInducedW*xyz_Dz_xyz(xyz_Tracer) &
 !!$           &   )
-      wz_AdvTerm(:,:) = &
-           &   wz_AlphaOptr_xyz( xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat ) &
-           & + wz_xyz( xyz_Dz_xyz(xyz_FSig) )
+      xyz_AdvTerm(:,:,:) = &
+           &   xyz_wz(wz_AlphaOptr_xyz( xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat )) &
+           & + xyz_Dz_xyz(xyz_FSig)
 
     end function calc_EddyInducedVelAdvTerm
 
   end subroutine SGSEddyMixing_AddMixingTerm
 
   subroutine calc_IsopycDiffFlux(xyz_FLon, xyz_FLat, xyz_FSig,          &  ! (out)
-       & xyz_Tracer, wz_Tracer, xyz_SLon, xyz_SLat, xyz_T, xyz_Depth &  ! (in)
+       & xyz_Tracer, wz_Tracer, xyz_SLon, xyz_SLat, xyz_T, xyz_Depth    &  ! (in)
        & )
 
     ! 宣言文; Declaration statement
@@ -350,7 +380,7 @@ contains
   end subroutine calc_IsopycDiffFlux
 
   subroutine calc_SkewFlux(xyz_FLon, xyz_FLat, xyz_FSig,                  &  ! (out)
-       & xyz_Tracer, wz_Tracer, xyz_SLon, xyz_SLat, xyz_T, xyz_Depth   &  ! (in)
+       & xyz_Tracer, wz_Tracer, xyz_SLon, xyz_SLat, xyz_T, xyz_Depth      &  ! (in)
        & )
 
     ! 宣言文; Declaration statement
@@ -687,24 +717,24 @@ contains
     call calc_IsopycDiffFlux(xyz_FLon, xyz_FLat, xyz_FSig,                &  !(out)      
          & xyz_Tracer, wz_xyz(xyz_Tracer), xyz_SLon, xyz_SLat, xyz_T, xyz_Depth &  !(in)
          & )
-    call HistoryPut('Etc1', xyz_FLat, hst_SGSEddyMix)
-    call HistoryPut('Etc2', xyz_FSig, hst_SGSEddyMix)
-    call HistoryPut('Etc3', &
-         & +   xyz_wz( wz_AlphaOptr_xyz(xyz_FLon*cos(xyz_Lat), xyz_FLat*cos(xyz_Lat)) ) & 
-         & +   xyz_Dz_xyz(xyz_FSig)  &
-         &    , hst_SGSEddyMix )
+!!$    call HistoryPut('Etc1', xyz_FLat, hst_SGSEddyMix)
+!!$    call HistoryPut('Etc2', xyz_FSig, hst_SGSEddyMix)
+!!$    call HistoryPut('Etc3', &
+!!$         & +   xyz_wz( wz_AlphaOptr_xyz(xyz_FLon*cos(xyz_Lat), xyz_FLat*cos(xyz_Lat)) ) & 
+!!$         & +   xyz_Dz_xyz(xyz_FSig)  &
+!!$         &    , hst_SGSEddyMix )
     
     call calc_SkewFlux( &
          & xyz_FLon, xyz_FLat, xyz_FSig, &
          & xyz_Tracer, wz_xyz(xyz_Tracer), xyz_SLon, xyz_SLat, xyz_T, xyz_Depth )
-    call HistoryPut('Etc4', xyz_FLat, hst_SGSEddyMix)
-    call HistoryPut('Etc5', xyz_FSig, hst_SGSEddyMix)
-    call HistoryPut('Etc6', &
-         & +   xyz_wz( wz_AlphaOptr_xyz(xyz_FLon*cos(xyz_Lat), xyz_FLat*cos(xyz_Lat)) ) & 
-         & +   xyz_Dz_xyz(xyz_FSig)  &
-         &    , hst_SGSEddyMix )
+!!$    call HistoryPut('Etc4', xyz_FLat, hst_SGSEddyMix)
+!!$    call HistoryPut('Etc5', xyz_FSig, hst_SGSEddyMix)
+!!$    call HistoryPut('Etc6', &
+!!$         & +   xyz_wz( wz_AlphaOptr_xyz(xyz_FLon*cos(xyz_Lat), xyz_FLat*cos(xyz_Lat)) ) & 
+!!$         & +   xyz_Dz_xyz(xyz_FSig)  &
+!!$         &    , hst_SGSEddyMix )
 
-    call HistoryPut('DensPot', xyz_DensPot, hst_SGSEddyMix)
+!!$    call HistoryPut('DensPot', xyz_DensPot, hst_SGSEddyMix)
     call HistoryPut('SlopeLon', xyz_T*xyz_SLon, hst_SGSEddyMix)
     call HistoryPut('SlopeLat', xyz_T*xyz_SLat, hst_SGSEddyMix)
     call HistoryPut('diffCoefEff', xyz_T, hst_SGSEddyMix)
@@ -730,7 +760,6 @@ contains
     real(DP), intent(in) :: OriginTime, EndTime, Intrv
     character(*), intent(in) :: FilePrefix
 
-    !
     ! 局所変数
     ! Local variables
     !
@@ -762,14 +791,14 @@ contains
     call HistoryPut(latName, xyz_Lat(0,:,0)*180d0/PI, hst_SGSEddyMix)
     call HistoryPut(sigName, g_Sig, hst_SGSEddyMix)
 
-    call regist_XYZTVariable('Etc1', 'tendency term1', 's-1')
-    call regist_XYZTVariable('Etc2', 'tendency term2', 's-1')
-    call regist_XYZTVariable('Etc3', 'tendency term3', 's-1')
-    call regist_XYZTVariable('Etc4', 'tendency term1', 's-1')
-    call regist_XYZTVariable('Etc5', 'tendency term2', 's-1')
-    call regist_XYZTVariable('Etc6', 'tendency term3', 's-1')
+!!$    call regist_XYZTVariable('Etc1', 'tendency term1', 's-1')
+!!$    call regist_XYZTVariable('Etc2', 'tendency term2', 's-1')
+!!$    call regist_XYZTVariable('Etc3', 'tendency term3', 's-1')
+!!$    call regist_XYZTVariable('Etc4', 'tendency term1', 's-1')
+!!$    call regist_XYZTVariable('Etc5', 'tendency term2', 's-1')
+!!$    call regist_XYZTVariable('Etc6', 'tendency term3', 's-1')
 
-    call regist_XYZTVariable('DensPot', 'potential density', 'kg/m3')
+!!$    call regist_XYZTVariable('DensPot', 'potential density', 'kg/m3')
     call regist_XYZTVariable('SlopeLon', 'the longitude component of slope of isoneutral', '1')
     call regist_XYZTVariable('SlopeLat', 'the latitude component of slope of isoneutral', '1')
     call regist_XYZTVariable('diffCoefEff', 'rescale factor of diffusivity', '1')
@@ -783,10 +812,18 @@ contains
 
   contains
     subroutine regist_XYZTVariable(varName, long_name, units)
+
+      ! 宣言文; Declaration statement
+      !      
       character(*), intent(in) :: varName, long_name, units
 
+      ! 局所変数
+      ! Local variables
+      !      
       character(TOKEN) :: dims_XYZT(4)
-      
+
+      ! 実行文; Executable statement
+      !
       dims_XYZT = (/ lonName, latName, sigName, timeName /)      
       call HistoryAddVariable(varName, dims_XYZT, &
            & long_name, units, xtype='float', history=hst_SGSEddyMix)
@@ -794,10 +831,18 @@ contains
     end subroutine regist_XYZTVariable
 
     subroutine regist_XYTVariable(varName, long_name, units)
+
+      ! 宣言文; Declaration statement
+      !      
       character(*), intent(in) :: varName, long_name, units
 
+      ! 局所変数
+      ! Local variables
+      !
       character(TOKEN) :: dims_XYT(3)
-      
+
+      ! 実行文; Executable statement
+      !      
       dims_XYT = (/ lonName, latName, timeName /)      
       call HistoryAddVariable(varName, dims_XYT, &
            & long_name, units, xtype='float', history=hst_SGSEddyMix)

@@ -29,7 +29,10 @@ module BudgetAnalysis_mod
 
   use SpmlUtil_mod
 
-  use HydroBouEqSolverRHS_mod
+  use HydroBouEqSolverRHS_v2_mod, only: &
+!!$  use HydroBouEqSolverRHS_old_mod, only: &
+       & HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final
+  
   use HydroBouEqSolverVImplProc_mod
 
   use DiagnoseUtil_mod

@@ -473,12 +473,14 @@ contains
        dh1 =   max(coef*DensSeaWater, 0d0)
 
        !
-       hs = hs + dhs; h1_ = h1 + dh1
-       call calc_NewTemp(T1Tmp, dummy, &
-            & T1, -Mu*SaltSeaIce, h1/h1_)
-
+       if(dh1 > 0d0) then
+          hs = hs + dhs; h1_ = h1 + dh1
+          call calc_NewTemp(T1Tmp, dummy, &
+               & T1, -Mu*SaltSeaIce, h1/h1_)
+          T1 = T1Tmp
+       end if
 !!$    write(*,*) "Adjust the snow layer below waterline dhs=", dhs, ", dh1=", dh1, ", hi=", hi
-       T1 = T1Tmp
+
     end if
 
 

@@ -107,7 +107,7 @@ contains
     integer :: k
 
     integer :: i, j, m
-    real(DP) :: z_PTemp(0:kMax),  z_Salt(0:kMax)
+    real(DP) :: z_PTemp(0:kMax),  z_Salt(0:kMax), xy_CosLat(0:iMax-1,jMax)
 
     real(DP), parameter :: RefSalt = 35d0
     real(DP), parameter :: SeaWaterFreezeTemp = -1.8d0 + 273.15d0
@@ -119,7 +119,8 @@ contains
     
     h0 = 5.2d03
     xy_totDepthBasic = h0
-
+    xy_CosLat = cos(xyz_Lat(:,:,0))
+    
     !
     do k=0, kMax
        z_PTempBasic(k) = eval_PTempBasic(g_Sig(k)) !-2d0
@@ -129,16 +130,19 @@ contains
     !
     !
     
-    xy_WindStressU = - read_SurfField(trim(SurfBC_DATA_DIR)//"TauX.nc", "TauX")
+    xy_WindStressU = construct_WindStressU_Marshall07_2(xyz_Lat(:,:,0))!- read_SurfField(trim(SurfBC_DATA_DIR)//"TauX.nc", "TauX")
     xy_WindStressV = 0d0
-
+    xy_WindStressU = xy_w(w_xy(xy_WindStressU))
+    
     xy_SeaSurfTemp = read_SurfField(trim(SurfBC_DATA_DIR)//"SurfTemp.nc", "SurfTemp")
     where(xy_SeaSurfTemp < SeaWaterFreezeTemp)
        xy_SeaSurfTemp = SeaWaterFreezeTemp
     end where
+    xy_SeaSurfTemp = xy_w(w_xy(xy_SeaSurfTemp))
     
-    xy_SeaSurfSalt = eval_SSSalref(xyz_Lat(:,:,0))! RefSalt
-
+    xy_SeaSurfSalt = eval_SSSalref(xyz_Lat(:,:,0)) ! RefSalt
+    xy_SeaSurfSalt = xy_w(w_xy(xy_SeaSurfSalt))
+    
     xy_SWDWRFlx = read_SurfField(trim(SurfBC_DATA_DIR)//"RadSDWFLXA.nc", "RadSDWFLXA")
     
     xy_LWDWRFlx = read_SurfField(trim(SurfBC_DATA_DIR)//"RadLDWFLXA.nc", "RadLDWFLXA")
@@ -269,6 +273,25 @@ contains
 
     end function eval_SSSalref
 
+    function construct_WindStressU_Marshall07_2(xy_lat) result(windStressU)
+      real(DP), intent(in) :: xy_lat(:,:)
+      real(DP) :: windStressU(size(xy_lat,1), size(xy_lat,2))
+
+      real(DP), parameter :: coef(0:16) = &
+           & (/ 0.0306391950853468,-0.053818490401627,-0.0545487529629642,0.0308100670974264,0.0253979991710819, &
+           &    0.0133005673008549,-0.00338827649597324,0.00184347119932358,-0.000396782059666333,0.00222160982930569, &
+           &    -0.00181121235994517,-0.000693437465271213,-0.00138827649597365,0.000747066068848734,-0.00047153083167714, &
+           &    -0.000366847438814569,0.00050062006733265 /)
+
+      integer :: m
+
+      windStressU = 0d0
+      do m=0, 16
+         windStressU = windStressU + coef(m)*cos(2d0*m*xy_lat)
+      end do
+
+    end function construct_WindStressU_Marshall07_2
+    
   !> @brief 
   !!
   !!

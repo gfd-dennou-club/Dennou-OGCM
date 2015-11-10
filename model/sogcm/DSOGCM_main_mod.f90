@@ -94,7 +94,8 @@ module DSOGCM_main_mod
   !
 
   type(DataFileSet) :: datFile
-
+  logical :: CoupledRunFlag
+  
   character(*), parameter:: module_name = 'DSOGCM_main_mod' !< Module Name
 
 contains
@@ -102,11 +103,16 @@ contains
   !>
   !!
   !!
-  subroutine DSOGCM_main_Init()
+  subroutine DSOGCM_main_Init(isCoupledRun)
 
+    logical, intent(in), optional :: isCoupledRun
+    
     ! 実行文; Executable statements
     !
 
+    CoupledRunFlag = .false.
+    if(present(isCoupledRun)) CoupledRunFlag = .true.
+    
   end subroutine DSOGCM_main_Init
 
   !>

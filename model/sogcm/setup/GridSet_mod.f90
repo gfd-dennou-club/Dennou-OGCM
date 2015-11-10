@@ -51,6 +51,8 @@ module GridSet_mod
   real(DP), public, allocatable :: xyz_Lat(:,:,:)
   real(DP), public, allocatable :: z_LyrThickSig(:)
 
+ 
+  character(*), public, parameter :: GRIDSET_KEY_LYRTHICKSIG = 'LyrThickSig'
   
   ! 非公開変数
   ! Private variables

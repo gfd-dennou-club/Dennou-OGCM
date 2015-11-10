@@ -24,7 +24,8 @@ CLEANFILES = *$(MODEXT)
 
 noinst_LTLIBRARIES= libDSOGCMGovernEqDriver.la 
 nodist_libDSOGCMGovernEqDriver_la_SOURCES= \
-	HydroBouEq_TimeInteg_mod.f90 \
-	SeaiceEq_TimeInteg_mod.f90 \
+	HydroBouEq_TimeInteg_old_mod.f90    \
+	HydroBouEq_TimeInteg_v2_mod.f90 \
+	SeaiceEq_TimeInteg_mod.f90      \
 	GovernEqSolverDriver_mod.f90
 

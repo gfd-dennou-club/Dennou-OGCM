@@ -238,6 +238,9 @@ contains
     call MessageNotify( 'M', module_name, 'AlbedoMeltSnow   = %f [(1)]  ',     d=(/ AlbedoMeltSnow   /))
     call MessageNotify( 'M', module_name, 'AlbedoIce        = %f [(1)]  ',     d=(/ AlbedoIce   /))
     call MessageNotify( 'M', module_name, 'AlbedoOcean      = %f [(1)]  ',     d=(/ AlbedoOcean   /))
+    call MessageNotify( 'M', module_name, 'EmissivIce       = %f [(1)]  ',     d=(/ EmissivIce   /))
+    call MessageNotify( 'M', module_name, 'EmissivSnow      = %f [(1)]  ',     d=(/ EmissivSnow   /))
+    call MessageNotify( 'M', module_name, 'EmissivOcean     = %f [(1)]  ',     d=(/ EmissivOcean   /))
     
   end subroutine read_namelist
 end module SeaIceConstants_mod

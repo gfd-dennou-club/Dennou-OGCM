@@ -52,15 +52,19 @@ module BoundCondSet_mod
   integer, public, parameter :: KinBCTYPE_FreeSurf = 201
   integer, public, parameter :: KinBCTYPE_RigidLid = 202
 
-  integer, public, parameter :: ThermBCTYPE_Adiabat     = 301
-  integer, public, parameter :: ThermBCTYPE_PrescFlux   = 302
-  integer, public, parameter :: ThermBCTYPE_PrescTemp   = 303
-  integer, public, parameter :: ThermBCTYPE_TempRelaxed = 304
+  integer, public, parameter :: ThermBCTYPE_Adiabat          = 301
+  integer, public, parameter :: ThermBCTYPE_PrescFixedFlux   = 302
+  integer, public, parameter :: ThermBCTYPE_PrescFlux        = 303
+  integer, public, parameter :: ThermBCTYPE_PrescTemp        = 304
+  integer, public, parameter :: ThermBCTYPE_TempRelaxed      = 305
+  integer, public, parameter :: ThermBCTYPE_PresFlux_Han1984Method  = 306
 
-  integer, public, parameter :: SaltBCTYPE_Adiabat     = 401
-  integer, public, parameter :: SaltBCTYPE_PrescFlux   = 402
-  integer, public, parameter :: SaltBCTYPE_PrescSalt   = 403
-  integer, public, parameter :: SaltBCTYPE_SaltRelaxed = 404
+  integer, public, parameter :: SaltBCTYPE_Adiabat          = 401
+  integer, public, parameter :: SaltBCTYPE_PrescFixedFlux   = 402
+  integer, public, parameter :: SaltBCTYPE_PrescFlux        = 403
+  integer, public, parameter :: SaltBCTYPE_PrescSalt        = 404
+  integer, public, parameter :: SaltBCTYPE_SaltRelaxed      = 405
+  integer, public, parameter :: SaltBCTYPE_PresFlux_Han1984Method  = 406
 
   ! Labels to identify the type of boundary condition
   !
@@ -71,15 +75,19 @@ module BoundCondSet_mod
   character(*), public, parameter :: KinBCTYPELBL_FreeSurf = 'Free'
   character(*), public, parameter :: KinBCTYPELBL_RigidLid = 'Rigid'
 
-  character(*), public, parameter :: ThermBCTYPELBL_Adiabat = 'Adiabat'
-  character(*), public, parameter :: ThermBCTYPELBL_PrescFlux = 'PrescFlux'
-  character(*), public, parameter :: ThermBCTYPELBL_PrescTemp = 'PrescTemp'
-  character(*), public, parameter :: ThermBCTYPELBL_TempRelaxed = 'TempRelaxed'
+  character(*), public, parameter :: ThermBCTYPELBL_Adiabat        = 'Adiabat'
+  character(*), public, parameter :: ThermBCTYPELBL_PrescFlux      = 'PrescFlux'
+  character(*), public, parameter :: ThermBCTYPELBL_PrescFixedFlux = 'PrescFixedFlux'
+  character(*), public, parameter :: ThermBCTYPELBL_PrescTemp      = 'PrescTemp'
+  character(*), public, parameter :: ThermBCTYPELBL_TempRelaxed    = 'TempRelaxed'
+  character(*), public, parameter :: ThermBCTYPELBL_PrescFlux_Han1984Method = 'PrescFlux_Han1984'
 
-  character(*), public, parameter :: SaltBCTYPELBL_Adiabat = 'Adiabat'
-  character(*), public, parameter :: SaltBCTYPELBL_PrescFlux = 'PrescFlux'
-  character(*), public, parameter :: SaltBCTYPELBL_PrescSalt = 'PrescSalt'
-  character(*), public, parameter :: SaltBCTYPELBL_SaltRelaxed = 'SaltRelaxed'
+  character(*), public, parameter :: SaltBCTYPELBL_Adiabat         = 'Adiabat'
+  character(*), public, parameter :: SaltBCTYPELBL_PrescFlux       = 'PrescFlux'
+  character(*), public, parameter :: SaltBCTYPELBL_PrescFixedFlux  = 'PrescFixedFlux'  
+  character(*), public, parameter :: SaltBCTYPELBL_PrescSalt       = 'PrescSalt'
+  character(*), public, parameter :: SaltBCTYPELBL_SaltRelaxed     = 'SaltRelaxed'
+  character(*), public, parameter :: SaltBCTYPELBL_PrescFlux_Han1984Method = 'PrescFlux_Han1984'
 
   !
   !
@@ -156,21 +164,15 @@ contains
           VBCSpecType = 'D'
        case(DynBCTYPE_SpecStress)
           VBCSpecType = 'N'
-       case(ThermBCTYPE_Adiabat)     !-- thermal boundary condition ------------ 
+       case(ThermBCTYPE_PrescTemp, ThermBCTYPE_TempRelaxed) !-- thermal boundary condition ------------ 
+          VBCSpecType = 'D'
+       case(ThermBCTYPE_PrescFixedFlux, ThermBCTYPE_PrescFlux, ThermBCTYPE_Adiabat, &
+          & ThermBCTYPE_PresFlux_Han1984Method)
           VBCSpecType = 'N'
-       case(ThermBCTYPE_PrescTemp)
+       case(SaltBCTYPE_PrescSalt, SaltBCTYPE_SaltRelaxed)     !-- Salinity boundary condition ------------ 
           VBCSpecType = 'D'
-       case(ThermBCTYPE_TempRelaxed)
-          VBCSpecType = 'D'
-       case(ThermBCTYPE_PrescFlux)
-          VBCSpecType = 'N'
-       case(SaltBCTYPE_Adiabat)     !-- Salinity boundary condition ------------ 
-          VBCSpecType = 'N'
-       case(SaltBCTYPE_PrescSalt)
-          VBCSpecType = 'D'
-       case(SaltBCTYPE_SaltRelaxed)
-          VBCSpecType = 'D'
-       case(SaltBCTYPE_PrescFlux)
+       case(SaltBCTYPE_PrescFixedFlux, SaltBCTYPE_PrescFlux, SaltBCTYPE_Adiabat, &
+            & SaltBCTYPE_PresFlux_Han1984Method)
           VBCSpecType = 'N'
        case Default
           call MessageNotify("E", module_name, &
@@ -363,8 +365,12 @@ contains
           ThermBCID = ThermBCTYPE_Adiabat
        case(ThermBCTYPELBL_PrescTemp)
           ThermBCID = ThermBCTYPE_PrescTemp
+       case(ThermBCTYPELBL_PrescFixedFlux)
+          ThermBCID = ThermBCTYPE_PrescFixedFlux
        case(ThermBCTYPELBL_PrescFlux)
           ThermBCID = ThermBCTYPE_PrescFlux
+       case(ThermBCTYPELBL_PrescFlux_Han1984Method)
+          ThermBCID = ThermBCTYPE_PresFlux_Han1984Method
        case(ThermBCTYPELBL_TempRelaxed)
           ThermBCID = ThermBCTYPE_TempRelaxed
        case default
@@ -377,8 +383,12 @@ contains
           SaltBCID = SaltBCTYPE_Adiabat
        case(SaltBCTYPELBL_PrescSalt)
           SaltBCID = SaltBCTYPE_PrescSalt
+       case(SaltBCTYPELBL_PrescFixedFlux)
+          SaltBCID = SaltBCTYPE_PrescFixedFlux
        case(SaltBCTYPELBL_PrescFlux)
           SaltBCID = SaltBCTYPE_PrescFlux
+       case(SaltBCTYPELBL_PrescFlux_Han1984Method)
+          SaltBCID = SaltBCTYPE_PresFlux_Han1984Method
        case(SaltBCTYPELBL_SaltRelaxed)
           SaltBCID = SaltBCTYPE_SaltRelaxed
        case default

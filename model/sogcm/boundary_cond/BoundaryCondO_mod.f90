@@ -24,11 +24,18 @@ module BoundaryCondO_mod
   !* Dennou-OGCM
 
   use SpmlUtil_mod
+
+  use Constants_mod, only: &
+       & LatentHeat
   
   use BoundCondSet_mod, only: &
        & inquire_VBCSpecType, &
-       & ThermBCTYPE_PrescFlux, ThermBCTYPE_Adiabat, ThermBCTYPE_PrescTemp, ThermBCTYPE_TempRelaxed, & 
-       & SaltBCTYPE_PrescFlux, SaltBCTYPE_Adiabat, SaltBCTYPE_PrescSalt, SaltBCTYPE_SaltRelaxed, & 
+       & ThermBCTYPE_PrescFixedFlux, ThermBCTYPE_PrescFlux, ThermBCTYPE_Adiabat, &
+       & ThermBCTYPE_PresFlux_Han1984Method, &
+       & ThermBCTYPE_PrescTemp, ThermBCTYPE_TempRelaxed,                         & 
+       & SaltBCTYPE_PrescFixedFlux, SaltBCTYPE_PrescFlux, SaltBCTYPE_Adiabat, &
+       & SaltBCTYPE_PrescSalt, SaltBCTYPE_SaltRelaxed, &
+       & SaltBCTYPE_PresFlux_Han1984Method, &
        & KinBC_Surface, DynBC_Surface, ThermBC_Surface, SaltBC_Surface, &
        & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, SaltBC_Bottom 
 
@@ -70,7 +77,8 @@ module BoundaryCondO_mod
   real(DP), public, save, allocatable :: xy_WindStressV(:,:)
 
   !
-  real(DP), public, save, allocatable :: xy_SeaSurfAirTemp(:,:), xy_SeaSurfTemp(:,:)
+  real(DP), public, save, allocatable :: xy_SurfAirTemp(:,:)
+  real(DP), public, save, allocatable :: xy_SeaSurfTemp(:,:)
 
   !
   real(DP), public, save, allocatable :: xy_SeaSurfSalt(:,:)
@@ -95,7 +103,8 @@ module BoundaryCondO_mod
   real(DP), public, save, allocatable :: xy_LWDWRFlx(:,:)
 
   real(DP), public, save, allocatable :: xy_DSurfHFlxDTs(:,:)
-  
+  real(DP), public, save, allocatable :: xy_DSurfLatentFlxDTs(:,:)
+
   !
   real(DP), parameter, public :: RefSalt_VBC = 35d0
   
@@ -108,6 +117,7 @@ module BoundaryCondO_mod
   !
   character(*), parameter:: module_name = 'BoundaryCondO_mod' !< Module Name
   logical :: outputSurfFlxFlag
+  logical :: initSurfFlxSetFlag
   
 contains
 
@@ -125,12 +135,11 @@ contains
 
     ! Initialization
     !
-
-    outputSurfFlxFlag = .false.
     
     ! Initialize arrays to store variables associated with  surface fluxes/
     call malloc2DVar(xy_WindStressU); call malloc2DVar(xy_WindStressV)
-    call malloc2DVar(xy_SeaSurfTemp); call malloc2DVar(xy_SeaSurfAirTemp); call malloc2DVar(xy_SeaSurfSalt)
+    call malloc2DVar(xy_SeaSurfTemp); call malloc2DVar(xy_SurfAirTemp)
+    call malloc2DVar(xy_SeaSurfSalt)
     call malloc2DVar(xy_SurfHFlxO); call malloc2DVar(xy_SurfFwFlxO)
 
     call malloc2DVar(xy_Wrain); call malloc2DVar(xy_Wsnow); call malloc2DVar(xy_Wevap)
@@ -139,14 +148,19 @@ contains
 
     call malloc2DVar(xy_SurfHFlxIO); call malloc2DVar(xy_SurfFwFlxIO)
     call malloc2DVar(xy_DSurfHFlxDTs)
+    call malloc2DVar(xy_DSurfLatentFlxDTs)
 
     xy_SurfHFlxIO = 0d0; xy_SurfFwFlxO = 0d0
     xy_DSurfHFlxDTs = 0d0
+
+    initSurfFlxSetFlag = .false.
     
     ! Preparation of output surface fluxes
     !
-    
-    if(present(isSurfFlxOutput)) outputSurfFlxFlag = .true.
+
+    outputSurfFlxFlag = .true.
+    if(present(isSurfFlxOutput)) outputSurfFlxFlag = isSurfFlxOutput
+
     if(outputSurfFlxFlag) then
        call prepare_output()
     end if
@@ -167,7 +181,7 @@ contains
     !
 
     deallocate( xy_WindStressU, xy_WindStressV )
-    deallocate( xy_SeaSurfTemp, xy_SeaSurfAirTemp, xy_SeaSurfSalt )
+    deallocate( xy_SeaSurfTemp, xy_SurfAirTemp, xy_SeaSurfSalt )
     deallocate( xy_SurfHFlxO, xy_SurfFwFlxO )
 
     deallocate( xy_Wrain, xy_Wsnow, xy_Wevap )
@@ -175,6 +189,7 @@ contains
 
     deallocate( xy_SurfHFlxIO, xy_SurfFwFlxIO )
     deallocate( xy_DSurfHFlxDTs )
+    deallocate( xy_DSurfLatentFlxDTs )
     
   end subroutine BoundaryCondO_Final
 
@@ -199,37 +214,60 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_DzT(0:iMax-1,jMax,0:kMax)
+
+    logical :: calcSurfHeatFlxFlag, calcFreshWaterFlxFlag
     
     ! 実行文; Executable statement
     !
 
     ! Update boundary conditions at sea surface and bottom.
     !
+
+    calcSurfHeatFlxFlag = .false.
+    calcFreshWaterFlxFlag = .false.
     
     select case(ThermBC_Surface)
-    case(ThermBCTYPE_PrescFlux)
-       call calc_SurfaceHeatFluxO( xy_SurfHFlxO,        & ! (out)
-            & z_PTempBasic(0) + xyz_PTempEddN(:,:,0),   & ! (in)
-            & xy_SIceCon                                & ! (in)
-            & )
-
-    case(ThermBCTYPE_PrescTemp)
+    case(ThermBCTYPE_PrescFixedFlux)
+       if(.not. initSurfFlxSetFlag) calcSurfHeatFlxFlag = .true.
+    case(ThermBCTYPE_PrescFlux, ThermBCTYPE_PresFlux_Han1984Method)
+       calcSurfHeatFlxFlag = .true.
+    case(ThermBCTYPE_Adiabat, ThermBCTYPE_PrescTemp)
     case default
        call MessageNotify('E', module_name, &
             & 'Specified TermBC_Surface ID(=%a) is invalid.', i=(/ThermBC_Surface/))
     end select
 
     select case(SaltBC_Surface)
-    case(SaltBCTYPE_PrescFlux)
-       call calc_SurfaceFreshWaterFluxO( xy_SurfFwFlxO,   & ! (out)
-            & xy_SIceCon, xy_Wice )
+    case(SaltBCTYPE_PrescFixedFlux)
+       if(.not. initSurfFlxSetFlag) calcFreshWaterFlxFlag = .true.
+    case(SaltBCTYPE_PrescFlux, SaltBCTYPE_PresFlux_Han1984Method)
+       calcFreshWaterFlxFlag = .true.
     case(SaltBCTYPE_PrescSalt)
     case default
        call MessageNotify('E', module_name, &
             & 'Specified SaltBC_Surface ID(=%a) is invalid.', i=(/SaltBC_Surface/))       
     end select
 
+    !
+    !    
+    if(calcSurfHeatFlxFlag) then
+       if(.not. initSurfFlxSetFlag) then
+          xy_SeaSurfTemp(:,:) = z_PTempBasic(0) + xyz_PTempEddN(:,:,0)
+          write(*,*) "******: ", xy_SeaSurfTemp(:,:)       
+       end if
+       
+       call calc_SurfaceHeatFluxO( xy_SurfHFlxO,      & ! (out)
+            & z_PTempBasic(0) + xyz_PTempEddN(:,:,0), & ! (in)
+            & xy_SIceCon                              & ! (in)
+            & )
+    end if
+    if(calcFreshWaterFlxFlag) then
+       call calc_SurfaceFreshWaterFluxO( xy_SurfFwFlxO,   & ! (out)
+            & z_PTempBasic(0) + xyz_PTempEddN(:,:,0),     & ! (in)
+            & xy_SIceCon, xy_Wice )                         ! (in)
+    end if
+    initSurfFlxSetFlag = .true.
+    
     ! Output surface fluxes
     !
     if(outputSurfFlxFlag) then
@@ -264,6 +302,51 @@ contains
 
     ! 実行文; Executable statement
     !
+
+    if(ThermBC_Surface == ThermBCTYPE_PresFlux_Han1984Method) then
+       call calc_SurfaceHeatFluxO_Han1984Method(xy_SurfHFlxO, &
+            & xy_SurfTemp, xy_SIceCon)
+    else
+       !$omp parallel workshare
+       xy_SurfDWHFlx_AO(:,:) = &
+            &   xy_LatentDWHFlx                        &
+            & + xy_SensDWHFlx                          &
+            & + emissivOcean*xy_LWDWRFlx               &
+            & + (1d0 - albedoOcean)*xy_SWDWRFlx        &
+            & - emissivOcean*(StB*xy_SurfTemp**4)
+
+       xy_SurfHFlxO(:,:) = -(1d0 - xy_SIceCon)*xy_SurfDWHFlx_AO + xy_SIceCon*xy_SurfHFlxIO
+       !$omp end  parallel workshare
+    end if
+    
+  end subroutine calc_SurfaceHeatFluxO
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_SurfaceHeatFluxO_Han1984Method( xy_SurfHFlxO,  & ! (out) 
+    & xy_SurfTemp, xy_SIceCon                                    & ! (in)
+    & )
+
+    ! モジュール引用; use statements
+    !
+    use Constants_mod, only: &
+         & StB, &
+         & AlbedoOcean, EmissivOcean
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(out), dimension(0:iMax-1,jMax) :: xy_SurfHFlxO
+    real(DP), intent(in), dimension(0:iMax-1,jMax) :: &
+         & xy_SurfTemp, xy_SIceCon
+    
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP), dimension(0:iMax-1,jMax) :: xy_SurfDWHFlx_AO
+
+    ! 実行文; Executable statement
+    !
     
     !$omp parallel workshare
     xy_SurfDWHFlx_AO(:,:) = &
@@ -273,22 +356,27 @@ contains
          & + (1d0 - albedoOcean)*xy_SWDWRFlx        &
          & - emissivOcean*(StB*xy_SurfTemp**4)
 
+    xy_SurfDWHFlx_AO(:,:) = xy_SurfDWHFlx_AO &
+!!$         & + xy_DSurfHFlxDTs*(xy_SurfAirTemp - xy_SurfTemp)
+         & + xy_DSurfHFlxDTs*(xy_SeaSurfTemp - xy_SurfTemp)
+   
     xy_SurfHFlxO(:,:) = -(1d0 - xy_SIceCon)*xy_SurfDWHFlx_AO + xy_SIceCon*xy_SurfHFlxIO
     !$omp end  parallel workshare
     
-  end subroutine calc_SurfaceHeatFluxO
-
+  end subroutine calc_SurfaceHeatFluxO_Han1984Method
+  
+  
   !> @brief 
   !!
   !!
   subroutine calc_SurfaceFreshWaterFluxO( xy_SurfFwFlxO,   & ! (out)
-    & xy_SIceCon, xy_Wice )
+    & xy_SurfTemp, xy_SIceCon, xy_Wice )
     
     ! 宣言文; Declaration statement
     !
     real(DP), dimension(0:iMax-1,jMax), intent(out) :: xy_SurfFwFlxO
     real(DP), dimension(0:iMax-1,jMax), intent(in) :: &
-         & xy_SIceCon, xy_Wice
+         & xy_SurfTemp, xy_SIceCon, xy_Wice
     
     ! 局所変数
     ! Local variables
@@ -297,20 +385,63 @@ contains
     
     ! 実行文; Executable statement
     !
+    if(ThermBC_Surface == ThermBCTYPE_PresFlux_Han1984Method) then
+       call calc_SurfaceFreshWaterFluxO_Han1984Method( xy_SurfFwFlxO, &
+            & xy_SurfTemp, xy_SIceCon, xy_Wice )
+       
+    else
+       !$omp parallel workshare
+       xy_SurfFwFlxO = &
+            &   (1d0 - xy_SIceCon)*((xy_Wrain + xy_Wsnow) - xy_Wevap) &
+            & + xy_SIceCon*(xy_Wrain - xy_Wice)
+       !$omp end parallel workshare
+    end if
+  end subroutine calc_SurfaceFreshWaterFluxO
+
+  !> @brief 
+  !!
+  !!
+  subroutine calc_SurfaceFreshWaterFluxO_Han1984Method( xy_SurfFwFlxO,    & ! (out) 
+    & xy_SurfTemp, xy_SIceCon, xy_Wice                                    & ! (in)
+    & )
+
+    ! モジュール引用; use statements
+    !
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), dimension(0:iMax-1,jMax), intent(out) :: xy_SurfFwFlxO
+    real(DP), dimension(0:iMax-1,jMax), intent(in) :: &
+         & xy_SurfTemp, xy_SIceCon, xy_Wice
+    
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP), dimension(0:iMax-1,jMax) :: xy_Wevap_
+    real(DP), parameter :: DensFreshWater = 1d3
+
+    ! 実行文; Executable statement
+    !
+
+    xy_Wevap_(:,:) = xy_Wevap &
+!!$         & + xy_DSurfLatentFlxDTs/LatentHeat*(xy_SurfAirTemp - xy_SurfTemp)/DensFreshWater
+         & - 0d0*xy_DSurfLatentFlxDTs/LatentHeat*(xy_SeaSurfTemp - xy_SurfTemp)/DensFreshWater
 
     !$omp parallel workshare
     xy_SurfFwFlxO = &
-         &   (1d0 - xy_SIceCon)*((xy_Wrain + xy_Wsnow) - xy_Wevap) &
+         &   (1d0 - xy_SIceCon)*((xy_Wrain + xy_Wsnow) - xy_Wevap_) &
          & + xy_SIceCon*(xy_Wrain - xy_Wice)
     !$omp end parallel workshare
     
-  end subroutine calc_SurfaceFreshWaterFluxO
-
+    
+  end subroutine calc_SurfaceFreshWaterFluxO_Han1984Method
+  
   !> @brief
   !!
   !!
   subroutine apply_VBoundaryCondO( &
-       & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt &
+       & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt,  &  ! (inout)
+       & xyz_VViscCoef, xyz_VDiffCoef           &  ! (in)
        & )
 
     ! モジュール引用; Use statements
@@ -324,6 +455,9 @@ contains
     real(DP), intent(inout), dimension(0:iMax-1,jMax,0:kMax) :: &
          & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt
 
+    real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: &
+         & xyz_VViscCoef, xyz_VDiffCoef
+    
     ! 局所変数
     ! Local variables
     !
@@ -335,8 +469,8 @@ contains
 
     !
     call calc_VBCRHS( &
-       & xya_UVelVBCRHS, xya_VVelVBCRHS, xya_PTempEddVBCRHS, xya_SaltVBCRHS, &
-       & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt &
+       & xya_UVelVBCRHS, xya_VVelVBCRHS, xya_PTempEddVBCRHS, xya_SaltVBCRHS, & ! (out)
+       & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt, xyz_VViscCoef, xyz_VDiffCoef  & ! (in)
        & )
 
     !
@@ -355,17 +489,15 @@ contains
   end subroutine apply_VBoundaryCondO
 
   subroutine calc_VBCRHS( &
-       & xya_UVelVBCRHS, xya_VVelVBCRHS, xya_PTempEddVBCRHS, xya_SaltVBCRHS, &
-       & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt &
+       & xya_UVelVBCRHS, xya_VVelVBCRHS, xya_PTempEddVBCRHS, xya_SaltVBCRHS, & ! (out)
+       & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt,                               & ! (in)
+       & xyz_VViscCoef, xyz_VDiffCoef                                        & ! (in)
        & )
 
     ! モジュール引用; Use statements
     !
     use Constants_mod, only: &
          & RefDens, Cp0
-
-    use VariableSet_mod, only: &
-         & xyz_VViscCoef, xyz_VDiffCoef
     
     use BoundCondSet_mod, only: &
          & inquire_VBCSpecType, &
@@ -381,7 +513,8 @@ contains
          & xya_UVelVBCRHS, xya_VVelVBCRHS, xya_PTempEddVBCRHS, xya_SaltVBCRHS
 
     real(DP), intent(in), dimension(0:iMax-1,jMax,0:kMax) :: &
-         & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt
+         & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt, &
+         & xyz_VViscCoef, xyz_VDiffCoef
 
     ! 局所変数
     ! Local variables
@@ -428,7 +561,8 @@ contains
     select case(ThermBC_Surface)
     case(ThermBCTYPE_PrescTemp)
        xya_PTempEddVBCRHS(:,:,1) = xy_SeaSurfTemp - z_PTempBasic(0)
-    case(ThermBCTYPE_PrescFlux)
+    case(ThermBCTYPE_PrescFixedFlux, ThermBCTYPE_PrescFlux, &
+         & ThermBCTYPE_PresFlux_Han1984Method               )
        xya_PTempEddVBCRHS(:,:,1) = xy_Coef*( &
             & - xy_SurfHFlxO &
             & ) - xyz_PTempBasicDSig(:,:,0)
@@ -453,7 +587,8 @@ contains
     select case(SaltBC_Surface)
     case(SaltBCTYPE_PrescSalt)
        xya_SaltVBCRHS(:,:,1) = xy_SeaSurfSalt
-    case(SaltBCTYPE_PrescFlux)
+    case(SaltBCTYPE_PrescFixedFlux, SaltBCTYPE_PrescFlux, &
+         & SaltBCTYPE_PresFlux_Han1984Method)
        xya_SaltVBCRHS(:,:,1) = xy_Coef*( &
             & -xy_SurfFwFlxO*RefSalt_VBC &
             & )

@@ -6,7 +6,7 @@
 !! @author Kawai Yuta
 !!
 !!
-module HydroBoudEq_TimeInteg_mod 
+module HydroBoudEq_TimeInteg_old_mod 
 
   ! モジュール引用; Use statements
   !
@@ -65,7 +65,7 @@ module HydroBoudEq_TimeInteg_mod
        & nShortTimeLevel, &
        & CoriolisTermACoef, VDiffTermACoef
 
-  use HydroBouEqSolverRHS_mod, only: &
+  use HydroBouEqSolverRHS_old_mod, only: &
        & HydroBouEqSolverRHS_Init, HydroBouEqSolverRHS_Final, &
        & calc_HydroBouEqInvisRHS, calc_HydroBouEqHViscRHS, calc_HydroBouEqVViscRHS, &
        & correct_DivEqRHSUnderRigidLid, correct_DivEqRHSUnderRigidLid2, correct_DivVorEqRHSUnderRigidLid
@@ -168,7 +168,8 @@ contains
          & xy_SurfPressB, xy_SurfPressN, xy_SurfPressA, &
          & xy_totDepthBasic, &
          & xyz_SigDot, z_PTempBasic, &
-         & xyz_VViscCoef, xyz_VDiffCoef
+         & xyz_VViscCoefB, xyz_VViscCoefN, &
+         & xyz_VDiffCoefB, xyz_vDiffCoefN
 
     use BoundaryCondO_mod, only: &
          & apply_VBoundaryCondO
@@ -360,7 +361,10 @@ contains
        
        xyz_UA = xyz_Urf/xyz_CosLat; xyz_VA =  xyz_Vrf/xyz_CosLat
        xyz_PTempEddA = xyz_wz(wz_PTempEdd); xyz_SaltA = xyz_wz(wz_Salt)       
-       call apply_VBoundaryCondO(xyz_UA, xyz_VA, xyz_PTempEddA, xyz_SaltA)
+       call apply_VBoundaryCondO( &
+            & xyz_UA, xyz_VA, xyz_PTempEddA, xyz_SaltA,    & ! (inout) 
+            & xyz_VViscCoefN, xyz_VDiffCoefN               & ! (in)
+            & )
        
        if(Stage < nStage_BarocTimeInt) then
           xyz_Urf = xyz_UA*xyz_CosLat; xyz_Vrf = xyz_VA*xyz_CosLat
@@ -368,7 +372,7 @@ contains
           call wz_VectorCosLat2VorDiv(xyz_Urf, xyz_Vrf, & !(in) 
                & wz_Vor, wz_Div                       )   !(out)
        end if
-       
+
     end do  ! End of do loop for a multi-stage temporal scheme.
 
 
@@ -543,17 +547,17 @@ contains
         case('B')
            call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,              & ! (inout)  
                 & wz_VorB, wz_DivB, wz_xyz(xyz_PTempBasic/theta + xyz_PTempEddB), wz_SaltB,          & ! (in)
-                & theta*xyz_VViscCoef, theta*vHyperViscCoef, theta*xyz_VDiffCoef, theta*vHyperDiffCoef,      & ! (in)
+                & theta*xyz_VViscCoefN, theta*vHyperViscCoef, theta*xyz_VDiffCoefN, theta*vHyperDiffCoef,      & ! (in)
                 & isRHSReplace=isRHSReplace )     
         case('N')
            call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,          & ! (inout)  
                 & wz_VorN, wz_DivN, wz_xyz(xyz_PTempBasic/theta + xyz_PTempEddN), wz_SaltN,      & ! (in)
-                & theta*xyz_VViscCoef, theta*vHyperViscCoef, theta*xyz_VDiffCoef, theta*vHyperDiffCoef,  & ! (in)
+                & theta*xyz_VViscCoefN, theta*vHyperViscCoef, theta*xyz_VDiffCoefN, theta*vHyperDiffCoef,  & ! (in)
                 & isRHSReplace=isRHSReplace )     
         case default 
            call calc_HydroBouEqVViscRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS,          & ! (inout)  
                 & wz_Vor, wz_Div, wz_xyz(xyz_PTempBasic/theta) + wz_PTempEdd, wz_Salt,           & ! (in)
-                & theta*xyz_VViscCoef, theta*vHyperViscCoef, theta*xyz_VDiffCoef, theta*vHyperDiffCoef,  & ! (in)
+                & theta*xyz_VViscCoefN, theta*vHyperViscCoef, theta*xyz_VDiffCoefN, theta*vHyperDiffCoef,  & ! (in)
                 & isRHSReplace=isRHSReplace )
         end select
 
@@ -564,7 +568,7 @@ contains
            & wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS, & 
            & tLevel, isRHSAppend)
 
-        use SGSEddyMixing_mod, only: SGSEddyMixing_AddMixingTerm
+        use SGSEddyMixing_mod, only: SGSEddyMixing_AddMixingTerm_wz
 
         ! 宣言文; Declaration statement
         !
@@ -586,7 +590,7 @@ contains
         if (present(tLevel)) tLvl = tLevel
 
         if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_EDDYMIX_NAME)) then
-           call SGSEddyMixing_AddMixingTerm(wz_PTempRHS, wz_SaltRHS, &
+           call SGSEddyMixing_AddMixingTerm_wz(wz_PTempRHS, wz_SaltRHS, &
                 & wz_PTempEdd + wz_xyz(xyz_PTempBasic), wz_Salt, xy_totDepthBasic+xy_SurfHeight)
         end if
 
@@ -718,8 +722,8 @@ contains
         !
 
         call Advance_VImplicitProc_DeltaForm(wz_DVor, wz_DDiv, wz_DPTempEdd, wz_DSalt, xy_SurfPressA, &
-             & wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS, &
-             & xyz_VViscCoef, xyz_VDiffCoef, xy_totDepthBasic+xy_SurfHeight,  &
+             & wz_VorExplRHS, wz_DivExplRHS, wz_PTempExplRHS, wz_SaltExplRHS,   &
+             & xyz_VViscCoefN, xyz_VDiffCoefN, xy_totDepthBasic+xy_SurfHeight,  &
              & DynBC_Surface, DynBC_Bottom, ThermBC_Surface, ThermBC_Bottom, SaltBC_Surface, SaltBC_Bottom &  !(in)
              & )
     
@@ -927,7 +931,7 @@ contains
 
          real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_DensPot, xyz_RefPress
     
-         xyz_VViscCoef(:,:,:) = vViscCoef; xyz_VDiffCoef(:,:,:) = vDiffCoef
+         xyz_VViscCoefN(:,:,:) = vViscCoef; xyz_VDiffCoefN(:,:,:) = vDiffCoef
          return
 
          xyz_RefPress = 0d0
@@ -935,7 +939,7 @@ contains
               & theta=xyz_PTemp, S=xyz_Salt, p=xyz_RefPress )     ! (in)
 
          call calc_vViscDiffCoef_PP81( &
-              & xyz_VViscCoef, xyz_VDiffCoef,                    & !(out)
+              & xyz_VViscCoefN, xyz_VDiffCoefN,                            & !(out)
               & xyz_U, xyz_V, xyz_DensPot, xy_totDepthBasic+xy_SurfHeight, & !(in)
               & vViscCoef, vDiffCoef                                       & !(in)
               & )
@@ -963,18 +967,18 @@ contains
     real(DP), dimension(0:iMax-1,jMax, 0:kMax) :: xyz_Ri
     integer :: i, j, k
 
-    xyz_VViscCoef = vViscCoef
-    xyz_VDiffCoef = vDiffCoef
-    
-!!$    xyz_Ri(:,:,:) = diagnose_RicardsonNumber(xyz_U, xyz_V, xyz_DensPot, xy_totDepth)
-!!$    where(xyz_Ri < 0d0)
-!!$       xyz_Ri = 0d0
-!!$    end where
+!!$    xyz_VViscCoef = vViscCoef
+!!$    xyz_VDiffCoef = vDiffCoef
 !!$    
-!!$    !$omp parallel workshare
-!!$    xyz_VViscCoef(:,:,:) = 0d0*AvRic/(1d0 + a*xyz_Ri)**n + vViscCoefBG
-!!$    xyz_VDiffCoef(:,:,:) = 0d0*AvRic/(1d0 + a*xyz_Ri) + vDiffCoefBG
-!!$    !$omp end parallel workshare
+    xyz_Ri(:,:,:) = diagnose_RicardsonNumber(xyz_U, xyz_V, xyz_DensPot, xy_totDepth)
+    where(xyz_Ri < 0d0)
+       xyz_Ri = 0d0
+    end where
+    
+    !$omp parallel workshare
+    xyz_VViscCoef(:,:,:) = AvRic/(1d0 + a*xyz_Ri)**n + 1d-4!vViscCoefBG
+    xyz_VDiffCoef(:,:,:) = xyz_VViscCoef(:,:,:)/(1d0 + a*xyz_Ri) + vDiffCoefBG
+    !$omp end parallel workshare
 
 
 !!$    write(*,*) "=-------------"
@@ -1238,5 +1242,5 @@ contains
 !!$
 !!$  end subroutine apply_boundaryConditions2
 
-end module HydroBoudEq_TimeInteg_mod
+end module HydroBoudEq_TimeInteg_old_mod
 

@@ -41,6 +41,7 @@ module HydroBouEqSolverVImplProc_mod
   public :: HydroBouEqSolverVImplProc_Prepare
 !!$  public :: Advance_VImplicitProc
   public :: Advance_VImplicitProc_DeltaForm
+  public :: Advance_VImplicitProc_DeltaForm_xyz
 
   ! 非公開手続き
   ! Private procedure
@@ -119,8 +120,9 @@ contains
     do t=0, tMax
        tt_I(t,t) = 1d0
     end do
+    gt_Mat = tt_I
+    
     tt_I = at_ag(tt_I)
-    gt_Mat = ag_at(tt_I)
     gt_DSig1Mat = ag_at( at_Dx_at(tt_I) )
     gt_DSig2Mat = ag_at( at_Dx_at(at_Dx_at(tt_I)) )
     gt_DSig4Mat = ag_at( at_Dx_at(at_Dx_at(at_Dx_at(at_Dx_at(tt_I)))) )
@@ -317,6 +319,137 @@ use at_module_omp
 
   end subroutine Advance_VImplicitProc_DeltaForm
 
+  !> @brief 
+  !!
+  !!
+  subroutine Advance_VImplicitProc_DeltaForm_xyz( &
+       & xyz_DU, xyz_DV, xyz_DPTempEdd, xyz_DSalt, xy_SurfPress,                      &  ! (out)
+       & xyz_URHS, xyz_VRHS, xyz_PTempRHS, xyz_SaltRHS,                               &  ! (inout)
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_totDepth,                                   &  ! (in)
+       & DynBCSurf, DynBCBottom, ThermBCSurf, ThermBCBottom, SaltBCSurf, SaltBCBottom &  ! (in)
+       & )
+    
+    !
+    !
+    use Constants_mod, only: Cp0, RefDens
+
+    use BoundaryCondO_mod, only: &
+         & xy_SurfFwFlxO
+    
+use at_module_omp
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(out)  :: &
+         & xyz_DU, xyz_DV, xyz_DPTempEdd, xyz_DSalt
+    real(dp), intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: &
+         & xyz_URHS, xyz_VRHS, xyz_PTempRHS, xyz_SaltRHS
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: &
+         & xyz_VViscCoef, xyz_VDiffCoef
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    integer, intent(in) :: DynBCSurf, DynBCBottom
+    integer, intent(in) :: ThermBCSurf, ThermBCBottom
+    integer, intent(in) :: SaltBCSurf, SaltBCBottom
+
+    ! 局所変数
+    ! Local variables
+    !
+
+    real(DP), dimension(0:iMax-1,jMax) :: xy_fCoef
+    real(DP) :: xyz_RHSWork(0:iMax-1,jMax,0:kMax+1), xy_URHSTmp(0:iMax-1,jMax)
+    real(DP), dimension(2,0:iMax-1,jMax) :: axy_RobinBCUpCoef, axy_RobinBCBtmCoef
+    integer :: k
+
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_CosLat
+    real(DP), dimension(lMax,0:kMax) :: wz_VorRHS, wz_DivRHS, wz_DVor, wz_DDiv
+    ! 実行文; Executable statement
+    !
+
+    if(.not. isDifferentialMatInit) then
+       call MessageNotify('E', module_name, "HydroBouEqSolverVImplProc_Prepare has not been called.")
+    end if
+
+    !
+    !
+    
+    !
+    call set_RobinBCCoef(axy_RobinBCUpCoef, inquire_VBCSpecType(DynBCSurf))
+    call set_RobinBCCoef(axy_RobinBCBtmCoef, inquire_VBCSpecType(DynBCBottom))
+
+!!$    xyz_CosLat = cos(xyz_Lat)
+!!$    call wz_VectorCosLat2VorDiv(xyz_URHS*xyz_CosLat, xyz_VRHS*xyz_CosLat, &
+!!$         & wz_VorRHS ,wz_DivRHS)
+!!$    
+!!$    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_VorRHS*dt)
+!!$    xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
+!!$    wz_DVor(:,:) = wz_xyz(solve_xyz( xyz_RHSWork(:,:,0:kMax), &
+!!$         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, &
+!!$         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef ))
+!!$
+!!$    !
+!!$    xyz_RHSWork(:,:,0:kMax) = xyz_wz(wz_DivRHS*dt)
+!!$    xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax:kMax+1) = 0d0;
+!!$    wz_DDiv(:,:) = wz_xyz(solve_xyz( xyz_RHSWork(:,:,0:kMax), &
+!!$         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, &
+!!$         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef ))
+!!$
+!!$    call wz_VorDiv2VectorCosLat(wz_DVor, wz_DDiv, &
+!!$         & xyz_DU, xyz_DV)
+!!$    xyz_DU = xyz_DU/xyz_CosLat; xyz_DV = xyz_DV/xyz_CosLat
+    
+!!$    
+    xyz_RHSWork(:,:,0:kMax) = xyz_URHS*dt
+    xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
+    xyz_DU(:,:,:) = solve_xyz( xyz_RHSWork(:,:,0:kMax), &
+         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, &
+         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef )
+
+    !
+    xyz_RHSWork(:,:,0:kMax) = xyz_VRHS*dt
+    xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax:kMax+1) = 0d0;
+    xyz_DV(:,:,:) = solve_xyz( xyz_RHSWork(:,:,0:kMax), &
+         & vViscDiffTermCoef*xyz_VViscCoef, vViscDiffTermCoef*vHyperViscCoef, xy_totDepth, &
+         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef )
+
+    
+!!$    if( CoriTermCoef > 0d0) then
+!!$       
+!!$       xy_fCoef(:,:) = CoriTermCoef*dt*( 2d0*Omega*sin(xyz_Lat(:,:,0)) )
+!!$       !$omp parallel do private(xy_URHSTmp)
+!!$       do k=0, kMax
+!!$          xy_URHSTmp(:,:) = xyz_URHS(:,:,k)
+!!$          xyz_URHS(:,:,k) = ( xyz_URHS(:,:,k) + xy_fCoef(:,:)*xyz_VRHS(:,:,k)  )/( 1d0 + xy_fCoef(:,:)**2 )
+!!$          xyz_VRHS(:,:,k) = ( xyz_VRHS(:,:,k) - xy_fCoef(:,:)*xy_URHSTmp(:,:)  )/( 1d0 + xy_fCoef(:,:)**2 )       
+!!$       end do
+!!$    end if
+    
+    
+    !
+    !
+!!$    axy_RobinBCUpCoef(1,:,:) = 0d0!vDiffCoef/xy_totDepth
+!!$    axy_RobinBCUpCoef(2,:,:) = 1d0!40d0/(RefDens*Cp0)
+    call set_RobinBCCoef(axy_RobinBCUpCoef, inquire_VBCSpecType(ThermBCSurf))        
+    call set_RobinBCCoef(axy_RobinBCBtmCoef, inquire_VBCSpecType(ThermBCBottom))    
+    xyz_RHSWork(:,:,0:kMax) = xyz_PTempRHS*dt
+    xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
+    xyz_DPTempEdd(:,:,:) = solve_xyz( xyz_RHSWork(:,:,0:kMax), & 
+         & vViscDiffTermCoef*xyz_VDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, &
+         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef  )
+
+    !
+!!$    axy_RobinBCUpCoef(1,:,:) = vDiffCoef/xy_totDepth
+!!$    axy_RobinBCUpCoef(2,:,:) = 0d0!(27.7d0*1d-3/86400d0)*35d0
+    call set_RobinBCCoef(axy_RobinBCUpCoef, inquire_VBCSpecType(SaltBCSurf))            
+    call set_RobinBCCoef(axy_RobinBCBtmCoef, inquire_VBCSpecType(SaltBCBottom))        
+    xyz_RHSWork(:,:,0:kMax) = xyz_SaltRHS*dt
+    xyz_RHSWork(:,:,0) = 0d0; xyz_RHSWork(:,:,kMax) = 0d0;
+    xyz_DSalt(:,:,:) = solve_xyz( xyz_RHSWork(:,:,0:kMax), &
+         & vViscDiffTermCoef*xyz_VDiffCoef, vViscDiffTermCoef*vHyperDiffCoef, xy_totDepth, &
+         & .false., axy_RobinBCUpCoef, axy_RobinBCBtmCoef )
+
+  end subroutine Advance_VImplicitProc_DeltaForm_xyz
+  
   subroutine set_RobinBCCoef(axy_RobinBCCoef, BCType)
     real(DP), intent(inout) :: axy_RobinBCCoef(2,0:iMax-1,jMax)
     character :: BCType
@@ -348,30 +481,68 @@ use at_module_omp
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: gt_VImplMat(0:kMax+1,0:tMax+1)
-    real(DP) :: xyt_Tmp(0:iMax-1,jMax,0:size(xyz_RHS,3)-1)
+    real(DP) :: gz_VImplMat(0:kMax+1,0:kMax+1)
+    real(DP) :: xyz_Tmp(0:iMax-1,jMax,0:size(xyz_RHS,3)-1)
     integer :: i, j
 
     ! 実行文; Executable statement
     !
 
-    !$omp parallel do private(i, gt_VImplMat)
+    !$omp parallel do private(i, gz_VImplMat)
     do j=1,jMax
        do i=0,iMax-1
-          call constrct_VImplMat(gt_VImplMat,                                &  ! (out)
+          call constrct_VImplMat(gz_VImplMat,                                &  ! (out)
                & dt, xy_totDepth(i,j), xyz_vDiffTermCoef(i,j,:), vHyperDiffCoef, & ! (in)
                & isDivEq, axy_RobinBCUpCoef(:,i,j), axy_RobinBCBtmCoef(:,i,j)    & ! (in)
                & )
 
-          xyt_Tmp(i,j,:) = solve_LinearEq(gt_VImplMat(0:size(xyz_RHS,3)-1,0:size(xyz_RHS,3)-1), xyz_RHS(i,j,:))
+          xyz_Tmp(i,j,:) = solve_LinearEq(gz_VImplMat(0:size(xyz_RHS,3)-1,0:size(xyz_RHS,3)-1), xyz_RHS(i,j,:))
        end do
     end do
 
-!    wz_ret(:,:) = wz_wt(wt_xyt(xyt_Tmp(:,:,0:tMax)))
-    wz_ret(:,:) = wz_xyz(xyt_Tmp(:,:,0:tMax))
+    wz_ret(:,:) = wz_xyz(xyz_Tmp(:,:,0:tMax))
 
   end function solve
 
+  function solve_xyz( &
+       & xyz_RHS, xyz_vDiffTermCoef, vHyperDiffTermCoef, xy_totDepth, isDivEq, &
+       & axy_RobinBCUpCoef, axy_RobinBCBtmCoef, xy_SurfPress) result(xyz_ret)
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(in) :: xyz_RHS(0:,:,0:)
+    real(DP), intent(in) :: xyz_vDiffTermCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: vHyperDiffTermCoef
+    logical, intent(in) :: isDivEq
+    real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
+    real(DP), intent(in), dimension(2,0:iMax-1,jMax) :: axy_RobinBCUpCoef, axy_RobinBCBtmCoef
+    real(DP), optional, intent(inout) :: xy_SurfPress(0:iMax-1,jMax)
+    real(DP) :: xyz_ret(0:iMax-1,jMax,0:kMax)
+
+
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: gz_VImplMat(0:kMax+1,0:kMax+1)
+    integer :: i, j
+
+    ! 実行文; Executable statement
+    !
+
+    !$omp parallel do private(i, gz_VImplMat)
+    do j=1,jMax
+       do i=0,iMax-1
+          call constrct_VImplMat(gz_VImplMat,                                    &  ! (out)
+               & dt, xy_totDepth(i,j), xyz_vDiffTermCoef(i,j,:), vHyperDiffCoef, &  ! (in)
+               & isDivEq, axy_RobinBCUpCoef(:,i,j), axy_RobinBCBtmCoef(:,i,j)    &  ! (in)
+               & )
+
+          xyz_ret(i,j,:) = solve_LinearEq(gz_VImplMat(0:size(xyz_RHS,3)-1,0:size(xyz_RHS,3)-1), xyz_RHS(i,j,:))
+       end do
+    end do
+
+  end function solve_xyz
+  
   function solve_LinearEq(A, b) result(x)
 
     use lumatrix
@@ -433,10 +604,10 @@ use at_module_omp
        end do
     end do
 
-    gt_VImplMat(0,0:tMax) = &
+    gt_VImplMat(0,0:kMax) = &
          & RobinBCUpCoef(1)*gt_DSig1Mat(:,0) + RobinBCUpCoef(2)*gt_Mat(:,0)
 
-    gt_VImplMat(kMax,0:tMax) = &
+    gt_VImplMat(kMax,0:kMax) = &
          & RobinBCBtmCoef(1)*gt_DSig1Mat(:,kMax) + RobinBCBtmCoef(2)*gt_Mat(:,kMax)
     
     if(isDivEq) then

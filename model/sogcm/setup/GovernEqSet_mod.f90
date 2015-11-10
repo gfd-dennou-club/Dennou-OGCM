@@ -78,7 +78,8 @@ module GovernEqSet_mod
 
   logical :: SGSConvAdjust_Flag
   logical :: SGSEddyMixing_Flag
-
+  logical :: SGSVMixing
+  
 contains
 
   !>

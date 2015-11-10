@@ -62,7 +62,7 @@ module SeaIceEq_TimeInteg_mod
   !
   character(*), parameter:: module_name = 'SeaIceEq_TimeInteg_mod' !< Module Name
 
-  integer, parameter :: DEBUG_j = 1!-1
+  integer, parameter :: DEBUG_j = -1
 
 contains
 
@@ -197,6 +197,8 @@ contains
                   & xy_SurfHFlxAIN(i,j),   xy_DSurfHFlxDTsAIN(i,j), xy_PenSWRFlxSIN(i,j),     &  ! (in)
                   & DelTime                                                                   &  ! (in)
                   & )
+          else
+             xy_SIceSurfTempA(i,j) = 0d0; xyz_SIceTempA(i,j,:) = 0d0
           end if
 
           !
@@ -413,7 +415,7 @@ contains
 
     !
     hsA = hsN + dhs
-    if(hiN > 0d0) hsA = hsA + SnowFall*DelTime
+    if(0.5d0*hiN + dh1> 0d0) hsA = hsA + SnowFall*DelTime
     call adjust_IceLyrInternal( &
          & hsA, hiA, T1A, T2A,                & !(inout)
          & 0.5d0*hiN+dh1, 0.5d0*hiN+dh2       & !(in)

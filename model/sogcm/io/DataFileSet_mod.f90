@@ -238,8 +238,8 @@ contains
 
     call HistoryAutoPut(CurrentTime, VARSET_KEY_CONVINDEX, xyz_ConvIndex)
 
-    call HistoryAutoPut(CurrentTime, VARSET_KEY_VVISCCOEF, xyz_VViscCoef)
-    call HistoryAutoPut(CurrentTime, VARSET_KEY_VDIFFCOEF, xyz_VDiffCoef)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_VVISCCOEF, xyz_VViscCoefN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_VDIFFCOEF, xyz_VDiffCoefN)
     
    
     ! Output variables in sea-ice model
@@ -259,6 +259,10 @@ contains
 
     ! モジュール引用; Use statement
     !
+    use GridSet_mod, only: &
+         & GRIDSET_KEY_LYRTHICKSIG, &
+         z_LyrThickSig
+    
     use TemporalIntegSet_mod, only: &
          & CurrentTime
     
@@ -273,7 +277,8 @@ contains
     
     ! 実行文; Executable statement
     !
-    
+
+    call HistoryAutoPut(CurrentTime, GRIDSET_KEY_LYRTHICKSIG, z_LyrThickSig )
     call HistoryAutoPut(CurrentTime, VARSET_KEY_TOTDEPTHBASIC, xy_totDepthBasic )
     call HistoryAutoPut(CurrentTime, VARSET_KEY_PTEMPBASIC, z_PTempBasic )
 
@@ -293,13 +298,14 @@ contains
 
     use GridSet_mod, only: &
          & iMax, jMax, kMax, &
-         & xyz_Lon, xyz_Lat
+         & xyz_Lon, xyz_Lat, &
+         & GRIDSET_KEY_LYRTHICKSIG
 
     use SpmlUtil_mod, only: g_Sig
     
     ! 宣言文; Declaration statement
     !
-    
+
     
     ! 局所変数
     ! Local variables
@@ -317,7 +323,7 @@ contains
     ! Regist coordinates
     !
     lonName = 'lon'; latName='lat'; sigName='sig'; timeName='time'
-    sig2Name = 'sig2'
+    sig2Name = 'sig2'; 
 
     call HistoryAutoPutAxis(lonName, xyz_Lon(:,1,0)*180/PI)
     call HistoryAutoAddAttr(lonName, 'topology', 'circular')
@@ -325,7 +331,6 @@ contains
     call HistoryAutoPutAxis(latName, xyz_Lat(0,:,0)*180/PI)
     call HistoryAutoPutAxis(sigName, g_Sig)
     call HistoryAutoPutAxis(sig2Name, (/ -0.25d0, -0.75d0 /))
-
 
     !
     !
@@ -425,6 +430,8 @@ contains
     
     ! Regist accessory variables
     !
+    call HistoryAutoAddVariable( varname=GRIDSET_KEY_LYRTHICKSIG, &
+         & dims=dims_Z, longname='nomdimensional layer thickness coressponding to each vertiocal grid point.', units='1')
 
     call HistoryAutoAddVariable( varname=VARSET_KEY_TOTDEPTHBASIC, &
          & dims=dims_XY, longname='basic state of total depth', units='m')

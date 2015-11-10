@@ -265,6 +265,7 @@ contains
     real(DP) :: r, xy_BarocEddyDispZ(0:iMax-1,jMax), tmpBarocEddyDispZ, SlopeABS, SlopeABSMax
     real(DP) :: xy_BarocEddDispH(0:iMax-1,jMax)
     real(DP), parameter :: c = 2d0
+    real(DP), parameter :: EPS = 1d-13
     real(DP) :: xyz_r(0:iMax-1,jMax,0:kMax)
     integer :: i, j, k, kStart(1)
     
@@ -313,12 +314,12 @@ contains
           end do
           tmpBarocEddyDispZ = SlopeABSMax*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
           do k=0, kMax
-             xyz_r(i,j,k) = (0d0 - xyz_Depth(i,j,k))/tmpBarocEddyDispZ
+             xyz_r(i,j,k) = (0d0 - xyz_Depth(i,j,k))/(tmpBarocEddyDispZ + EPS)
              if(xyz_r(i,j,k) > 1d0) then
                 xyz_r(i,j,k) = 1d0; exit
              end if
           end do
-
+          
           SlopeABSMax = 0d0          
           kStart = minloc(abs(xy_BarocEddyDispZ(i,j)-(xyz_Depth(i,j,:)-xyz_Depth(i,j,kMax))))
           do k=kStart(1), 0, -1
@@ -327,7 +328,7 @@ contains
           end do
           tmpBarocEddyDispZ = SlopeABSMax*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
           do k=kMax, 0, -1
-             xyz_r(i,j,k) = (xyz_Depth(i,j,k) - xyz_Depth(i,j,kMax))/tmpBarocEddyDispZ
+             xyz_r(i,j,k) = (xyz_Depth(i,j,k) - xyz_Depth(i,j,kMax))/(tmpBarocEddyDispZ + EPS)
              if(xyz_r(i,j,k) > 1d0) then
                 xyz_r(i,j,k) = 1d0; exit
              end if
@@ -579,7 +580,8 @@ contains
 
   function xyz_Dz_xyz(xyz, isUSedDF) 
 
-    use VariableSet_mod
+    use VariableSet_mod, only: &
+         & xy_totDepthBasic
 
     ! 宣言文; Declaration statement
     !    
