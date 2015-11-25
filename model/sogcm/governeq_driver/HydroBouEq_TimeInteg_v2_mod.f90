@@ -22,7 +22,7 @@ module HydroBoudEq_TimeInteg_v2_mod
   !* Dennou-OGCM
 
   use Constants_mod, only: &
-       & Omega, Grav, RPlanet, Cp0, &
+       & PI, Omega, Grav, RPlanet, Cp0, &
        & hViscCoef, vViscCoef, &
        & hHyperViscCoef, vHyperViscCoef, &
        & hDiffCoef, vDiffCoef, &
@@ -266,7 +266,7 @@ contains
     !
     call apply_VBoundaryCondO( &
          & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_SaltN,     & ! (inout)
-         & xyz_VViscCoefN, xyz_VDiffCoefN            & ! (in)
+         & xyz_VViscCoefN, xyz_VDiffCoefN                & ! (in)
          & )
     
 
@@ -387,32 +387,28 @@ contains
        end select              !=====================================================================================
 
        !
-       
+       call apply_VBoundaryCondO( &
+            & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt,     & ! (inout)
+            & xyz_VViscCoefN, xyz_VDiffCoefN            & ! (in)
+            & )
+
+       !
+       call DealiasingStep()
        
     end do  ! End of do loop for a multi-stage temporal scheme.
 
+    
     ! ** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     !
     !
-    call wz_VectorCosLat2VorDiv(xyz_U*xyz_CosLat, xyz_V*xyz_CosLat, &
-         & wz_Vor, wz_Div)
-    call wz_VorDiv2VectorCosLat(wz_Vor, wz_Div, &
-         & xyz_U, xyz_V)
 
-    xyz_UA(:,:,:) = xyz_U/xyz_CosLat;
-    xyz_VA(:,:,:) = xyz_V/xyz_CosLat
-    xyz_PTempEddA(:,:,:) = xyz_PTempEdd !xyz_wz(wz_xyz(xyz_PTempEdd))
-    xyz_SaltA(:,:,:) = xyz_Salt !xyz_wz(wz_xyz(xyz_Salt))
+    xyz_UA(:,:,:) = xyz_U
+    xyz_VA(:,:,:) = xyz_V
+    xyz_PTempEddA(:,:,:) = xyz_PTempEdd
+    xyz_SaltA(:,:,:) = xyz_Salt
     xy_SurfHeightA(:,:) = xy_SurfHeight
     
-
-!!$    call calc_VViscDiffCoef( &
-!!$         & xyz_VViscCoef, xyz_VDiffCoef,                           & ! (out)
-!!$         !            & xyz_U, xyz_V, xyz_PTempBasic + xyz_PTempEdd,  xyz_Salt  & ! (in)
-!!$         & xyz_UA, xyz_VA, xyz_PTempBasic + xyz_PTempEddA,  xyz_SaltA  & ! (in)
-!!$         & )
-
 !    xyz_VViscCoefA(:,:,:) = xyz_VViscCoef
 !    xyz_VDiffCoefA(:,:,:) = xyz_VDiffCoef
 
@@ -783,7 +779,7 @@ contains
 
          !
          call ImplicitProc(xyz_DU, xyz_DV, xyz_DPTempEdd, xyz_DSalt)
-
+         
          !$omp parallel sections
          !$omp section
          xyz_U(:,:,:)        = timeIntLFAM3_IMEX(xyz_UN, xyz_UB, xyz_DU, Stage, AM3=.false.)
@@ -798,11 +794,11 @@ contains
          !$omp end parallel sections
          
          call BarotEqStep(xyz_U, xyz_V)
-   
          
          call perform_adjustmentProcess(xyz_PTempEdd, xyz_Salt, &   ! (inout)
               & xy_SurfHeight)                                      ! (in)
 
+         
          !
          !
          if(Stage == 1) then
@@ -851,6 +847,22 @@ contains
          !$omp end parallel sections
 
        end subroutine timeInt_LF
+
+
+       subroutine DealiasingStep
+
+         call wz_VectorCosLat2VorDiv(xyz_U*xyz_CosLat, xyz_V*xyz_CosLat, &
+              & wz_Vor, wz_Div)
+         call wz_VorDiv2VectorCosLat(wz_Vor, wz_Div, &
+              & xyz_U, xyz_V)
+
+         xyz_U(:,:,:) = xyz_U/xyz_CosLat
+         xyz_V(:,:,:) = xyz_V/xyz_CosLat
+         xyz_PTempEdd(:,:,:) = xyz_wz(wz_xyz(xyz_PTempEdd))
+         xyz_Salt(:,:,:) = xyz_wz(wz_xyz(xyz_Salt))         
+
+       end subroutine DealiasingStep
+
 !!$
 !!$       subroutine replace_RHS_with_VBCTIntRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS )
 !!$
@@ -915,14 +927,35 @@ contains
 
          use EOSDriver_mod, only: EOSDriver_Eval
 
+         ! 宣言文; Declaration statement
+         !    
          real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: &
               & xyz_VViscCoef, xyz_VDiffCoef
          real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) ::  &
               & xyz_U, xyz_V, xyz_PTemp, xyz_Salt
 
-         real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_DensPot, xyz_RefPress
-    
-         xyz_VViscCoef(:,:,:) = vViscCoef; xyz_VDiffCoef(:,:,:) = vDiffCoef
+         ! 局所変数
+         ! Local variables
+         !         
+         real(DP), dimension(0:iMax-1,jMax,0:kMax) :: &
+              & xyz_Depth, xyz_DensPot, xyz_RefPress, &
+              & xyz_VViscCoefMixLyr, xyz_VDiffCoefMixLyr
+         
+         integer :: k
+
+         ! 実行文; Executable statement
+         !
+         
+         do k=0, kMax
+            xyz_Depth(:,:,k) = (xy_totDepthBasic + xy_SurfHeight)*g_Sig(k)
+         end do
+         
+         call calc_vViscDiffCoef_MixLyrSimple( xyz_VViscCoefMixLyr, xyz_VDiffCoefMixLyr, &
+              & xyz_Depth )
+
+!!$         xyz_VViscCoef(:,:,:) = vViscCoef; xyz_VDiffCoef(:,:,:) = vDiffCoef
+         xyz_VViscCoef(:,:,:) = xyz_VViscCoefMixLyr + 1d-3!vViscCoef
+         xyz_VDiffCoef(:,:,:) = xyz_VDiffCoefMixLyr + vDiffCoef
          return
 
          xyz_RefPress = 0d0
@@ -940,12 +973,35 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  subroutine calc_vViscDiffCoef_MixLyrSimple( &
+       & xyz_VViscCoef, xyz_VDiffCoef, &
+       & xyz_Depth &
+       & )
 
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(out) :: xyz_VViscCoef, xyz_VDiffCoef
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: xyz_Depth
+
+    real(DP), parameter :: MixLyrDepth = 40d0
+    real(DP), parameter :: LInv = 1d0/(0.1d0*MixLyrDepth)
+    real(DP), parameter :: ViscfCoefMax = 2d-3
+    real(DP), parameter :: DiffCoefMax = 2d-4
+
+    real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Func
+
+    !$omp parallel workshare
+    xyz_Func(:,:,:) = 0.5d0 - atan((abs(xyz_Depth) - MixLyrDepth)*LInv)/PI
+    xyz_VViscCoef(:,:,:) = ViscfCoefMax*xyz_Func
+    xyz_VDiffCoef(:,:,:) = DiffCoefMax*xyz_Func
+    !$omp end parallel workshare
+
+  end subroutine calc_vViscDiffCoef_MixLyrSimple
+       
+    
   subroutine calc_vViscDiffCoef_PP81( &
        & xyz_VViscCoef, xyz_VDiffCoef, &
        & xyz_U, xyz_V, xyz_DensPot, xy_totDepth, vViscCoefBG, vDiffCoefBG )
 
-    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: xyz_VViscCoef, xyz_VDiffCoef
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(out) :: xyz_VViscCoef, xyz_VDiffCoef
     real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: xyz_U, xyz_V, xyz_DensPot
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
     real(DP), intent(in) :: vViscCoefBG, vDiffCoefBG

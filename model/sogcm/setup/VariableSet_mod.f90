@@ -19,8 +19,7 @@ module VariableSet_mod
   !* Dennou-OGCM
 
   use GridSet_mod, only: &
-       & iMax, jMax, kMax
-
+       & iMax, jMax, kMax, lMax
 
   use TemporalIntegSet_mod, only: &
        & nLongTimeLevel
@@ -67,6 +66,11 @@ module VariableSet_mod
   real(DP), public, save, allocatable :: xyz_VViscCoefA(:,:,:), xyz_VViscCoefN(:,:,:), xyz_VViscCoefB(:,:,:)
   real(DP), public, save, allocatable :: xyz_VDiffCoefA(:,:,:), xyz_VDiffCoefN(:,:,:), xyz_VDiffCoefB(:,:,:)
 
+!!$  real(DP), public, save, allocatable :: wz_VorA(:,:), wz_VorN(:,:), wz_VorB(:,:)
+!!$  real(DP), public, save, allocatable :: wz_DivA(:,:), wz_DivN(:,:), wz_DivB(:,:)
+!!$  real(DP), public, save, allocatable :: wz_SaltA(:,:), wz_SaltN(:,:), wz_SaltB(:,:)
+!!$  real(DP), public, save, allocatable :: wz_PTempEddA(:,:), wz_PTempEddN(:,:), wz_PTempEddB(:,:)
+  
   character(TOKEN), public, parameter :: VARSET_KEY_U  = 'U'
   character(TOKEN), public, parameter :: VARSET_KEY_UB = 'UB'
   character(TOKEN), public, parameter :: VARSET_KEY_V  = 'V'
@@ -134,6 +138,11 @@ contains
     call malloc3DVar(xyz_VDiffCoefA); call malloc3DVar(xyz_VDiffCoefN); call malloc3DVar(xyz_VDiffCoefB);
     
     call malloc3DVar(xyz_ConvIndex)
+
+!!$    call malloc2DVar_wz(wz_VorA); call malloc2DVar_wz(wz_VorN); call malloc2DVar_wz(wz_VorB)
+!!$    call malloc2DVar_wz(wz_DivA); call malloc2DVar_wz(wz_DivN); call malloc2DVar_wz(wz_DivB)
+!!$    call malloc2DVar_wz(wz_PTempEddA); call malloc2DVar_wz(wz_PTempEddN); call malloc2DVar_wz(wz_PTempEddB)
+!!$    call malloc2DVar_wz(wz_SaltA); call malloc2DVar_wz(wz_SaltN); call malloc2DVar_wz(wz_SaltB)
     
     !
     TracerNum = 2
@@ -149,6 +158,10 @@ contains
       real(DP), intent(inout), allocatable :: var(:,:)
       allocate( var(0:iMax-1, 1:jMax) )
     end subroutine malloc2DVar
+    subroutine malloc2DVar_wz( var )
+      real(DP), intent(inout), allocatable :: var(:,:)
+      allocate( var(lMax, 0:kMax) )
+    end subroutine malloc2DVar_wz    
     subroutine malloc1DVar( var )
       real(DP), intent(inout), allocatable :: var(:)
       allocate( var(0:kMax) )
@@ -186,6 +199,11 @@ contains
        deallocate( xyz_ConvIndex )
        deallocate( xyz_VViscCoefA, xyz_VViscCoefN, xyz_VViscCoefB )
        deallocate( xyz_VDiffCoefA, xyz_VDiffCoefN, xyz_VDiffCoefB )
+
+!!$       deallocate( wz_VorA, wz_VorN, wz_VorB )
+!!$       deallocate( wz_DivA, wz_DivN, wz_DivB )
+!!$       deallocate( wz_PTempEddA, wz_PTempEddN, wz_PTempEddB )
+!!$       deallocate( wz_SaltA, wz_SaltN, wz_SaltB )
     end if
 
   end subroutine VariableSet_Final
@@ -223,6 +241,13 @@ contains
     xy_SurfPressB(:,:) = xy_SurfPressN; xy_SurfPressN(:,:) = xy_SurfPressA; xy_SurfPressA(:,:) = 0d0
     !$omp end parallel workshare
 
+!!$    !$omp parallel workshare
+!!$    wz_VorB(:,:) = wz_VorN; wz_VorN(:,:) = wz_VorA; wz_VorA(:,:) = 0d0
+!!$    wz_DivB(:,:) = wz_VorN; wz_DivN(:,:) = wz_DivA; wz_DivA(:,:) = 0d0
+!!$    wz_PTempEddB(:,:) = wz_PTempEddN; wz_PTempEddN(:,:) = wz_PTempEddA; wz_PTempEddA(:,:) = 0d0
+!!$    wz_SaltB(:,:) = wz_SaltN; wz_SaltN(:,:) = wz_SaltA; wz_SaltA(:,:) = 0d0
+!!$    !$omp end parallel workshare
+    
   end subroutine VariableSet_AdvanceTStep
 
 end module VariableSet_mod

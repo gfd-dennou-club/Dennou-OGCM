@@ -101,6 +101,8 @@ module BoundaryCondO_mod
   real(DP), public, save, allocatable :: xy_SensDWHFlx(:,:)
   real(DP), public, save, allocatable :: xy_SWDWRFlx(:,:)
   real(DP), public, save, allocatable :: xy_LWDWRFlx(:,:)
+  real(DP), public, save, allocatable :: xy_SWUWRFlx(:,:)
+  real(DP), public, save, allocatable :: xy_LWUWRFlx(:,:)
 
   real(DP), public, save, allocatable :: xy_DSurfHFlxDTs(:,:)
   real(DP), public, save, allocatable :: xy_DSurfLatentFlxDTs(:,:)
@@ -145,6 +147,7 @@ contains
     call malloc2DVar(xy_Wrain); call malloc2DVar(xy_Wsnow); call malloc2DVar(xy_Wevap)
     call malloc2DVar(xy_LatentDWHFlx); call malloc2DVar(xy_SensDWHFlx);
     call malloc2DVar(xy_SWDWRFlx); call malloc2DVar(xy_LWDWRFlx)
+    call malloc2DVar(xy_SWUWRFlx); call malloc2DVar(xy_LWUWRFlx)
 
     call malloc2DVar(xy_SurfHFlxIO); call malloc2DVar(xy_SurfFwFlxIO)
     call malloc2DVar(xy_DSurfHFlxDTs)
@@ -253,7 +256,6 @@ contains
     if(calcSurfHeatFlxFlag) then
        if(.not. initSurfFlxSetFlag) then
           xy_SeaSurfTemp(:,:) = z_PTempBasic(0) + xyz_PTempEddN(:,:,0)
-          write(*,*) "******: ", xy_SeaSurfTemp(:,:)       
        end if
        
        call calc_SurfaceHeatFluxO( xy_SurfHFlxO,      & ! (out)
@@ -308,17 +310,23 @@ contains
             & xy_SurfTemp, xy_SIceCon)
     else
        !$omp parallel workshare
+!!$       xy_SurfDWHFlx_AO(:,:) = &
+!!$            &   xy_LatentDWHFlx                        &
+!!$            & + xy_SensDWHFlx                          &
+!!$            & + emissivOcean*xy_LWDWRFlx               &
+!!$            & + (1d0 - albedoOcean)*xy_SWDWRFlx        &
+!!$            & - emissivOcean*(StB*xy_SurfTemp**4)
+
        xy_SurfDWHFlx_AO(:,:) = &
-            &   xy_LatentDWHFlx                        &
-            & + xy_SensDWHFlx                          &
-            & + emissivOcean*xy_LWDWRFlx               &
-            & + (1d0 - albedoOcean)*xy_SWDWRFlx        &
-            & - emissivOcean*(StB*xy_SurfTemp**4)
+            &   xy_LatentDWHFlx                            &
+            & + xy_SensDWHFlx                              &
+            & + (xy_LWDWRFlx - xy_LWUWRFlx)                &
+            & + (xy_SWDWRFlx - xy_SWUWRFlx)            
+
 
        xy_SurfHFlxO(:,:) = -(1d0 - xy_SIceCon)*xy_SurfDWHFlx_AO + xy_SIceCon*xy_SurfHFlxIO
        !$omp end  parallel workshare
     end if
-    
   end subroutine calc_SurfaceHeatFluxO
 
   !> @brief 
@@ -343,26 +351,34 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP), dimension(0:iMax-1,jMax) :: xy_SurfDWHFlx_AO
+    real(DP), dimension(0:iMax-1,jMax) :: xy_SurfDWHFlx_AO, xy_Lambda
 
     ! 実行文; Executable statement
     !
     
     !$omp parallel workshare
+!!$    xy_SurfDWHFlx_AO(:,:) = &
+!!$         &   xy_LatentDWHFlx                        &
+!!$         & + xy_SensDWHFlx                          &
+!!$         & + emissivOcean*xy_LWDWRFlx               &
+!!$         & + (1d0 - albedoOcean)*xy_SWDWRFlx        &
+!!$         & - emissivOcean*(StB*xy_SurfTemp**4)
+!!$    xy_SurfDWHFlx_AO(:,:) = xy_SurfDWHFlx_AO &
+!!$         & + xy_DSurfHFlxDTs*(xy_SeaSurfTemp - xy_SurfTemp)
+
     xy_SurfDWHFlx_AO(:,:) = &
          &   xy_LatentDWHFlx                        &
          & + xy_SensDWHFlx                          &
-         & + emissivOcean*xy_LWDWRFlx               &
-         & + (1d0 - albedoOcean)*xy_SWDWRFlx        &
-         & - emissivOcean*(StB*xy_SurfTemp**4)
+         & + (xy_LWDWRFlx - xy_LWUWRFlx)            &
+         & + (xy_SWDWRFlx - xy_SWUWRFlx)
 
-    xy_SurfDWHFlx_AO(:,:) = xy_SurfDWHFlx_AO &
-!!$         & + xy_DSurfHFlxDTs*(xy_SurfAirTemp - xy_SurfTemp)
-         & + xy_DSurfHFlxDTs*(xy_SeaSurfTemp - xy_SurfTemp)
+    xy_Lambda(:,:) = xy_DSurfHFlxDTs + 4d0*StB*xy_SeaSurfTemp**3
+    xy_SurfDWHFlx_AO(:,:) = &
+         & + xy_Lambda*((xy_SeaSurfTemp + xy_SurfDWHFlx_AO/xy_Lambda) - xy_SurfTemp)
    
     xy_SurfHFlxO(:,:) = -(1d0 - xy_SIceCon)*xy_SurfDWHFlx_AO + xy_SIceCon*xy_SurfHFlxIO
     !$omp end  parallel workshare
-    
+!write(*,*) "modify check3:"        
   end subroutine calc_SurfaceHeatFluxO_Han1984Method
   
   

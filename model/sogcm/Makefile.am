@@ -1,6 +1,6 @@
 SUBDIRS = \
-	util setup seaice boundary_cond  io            \
-	dynamics physics_driver governeq_driver        \
+	util setup seaice boundary_cond  io                      \
+	dynamics sgs_param physics_driver governeq_driver        \
 	experiment                                     \
 	unit_test tool
 

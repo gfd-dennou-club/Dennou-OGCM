@@ -14,7 +14,8 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../seaice \
         $(MODPATHFLAG)$(srcdir)/../physics_driver \
         $(MODPATHFLAG)$(srcdir)/../dynamics \
-        $(MODPATHFLAG)$(srcdir)/../boundary_cond \
+        $(MODPATHFLAG)$(srcdir)/../sgs_param \
+	$(MODPATHFLAG)$(srcdir)/../boundary_cond \
         $(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../util \
 	$(FCFLAGS) $(SYSFFLAGS)

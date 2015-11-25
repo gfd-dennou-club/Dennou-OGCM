@@ -284,6 +284,7 @@ AC_CONFIG_FILES([
 		 model/sogcm/governeq_driver/Makefile		 
 		 model/sogcm/boundary_cond/Makefile		 
 		 model/sogcm/dynamics/Makefile
+		 model/sogcm/sgs_param/Makefile
 		 model/sogcm/physics_driver/Makefile
 		 model/sogcm/seaice/Makefile
 		 model/sogcm/io/Makefile		 

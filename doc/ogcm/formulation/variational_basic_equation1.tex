@@ -1,0 +1,182 @@
+\section{基礎方程式系の変形 1}
+上で挙げた方程式系を, 本海洋モデルにおいて解かれる式の形式に変形する.
+本章では, 水平座標は陽に指定せず水平方向の微分演算子はベクトル形式で記述し, 
+鉛直座標に関しては$z$座標系で方程式系を記述する.   
+
+
+密度$\rho$は,
+%%
+\begin{align}
+ \rho(\Dvect{x},t) = \rho_r(z,t)    +  \delta \rho(\Dvect{x},t), \;\;
+\end{align}
+のように参照密度$\rho_r$とそれからのずれに分解する.
+また, 圧力も同様に,  
+\begin{align}
+ p(\Dvect{x},t)    = p_r(z,t) + p_s(\Dvect{x}_h,t)  + \delta p(\Dvect{x},t)  
+\end{align}
+%%
+のように, 参照圧力$p_r$, 海面水位の寄与$p_s$, そしてそれらからのずれに分解する. 
+ただし, 参照圧力と参照密度は, 静水圧平衡
+%%
+\begin{align}
+  \DP{p_r}{z} = - \rho_r g
+\end{align}
+%%
+を満たす. 
+以下では, 簡潔に記述するために, 
+$\delta \rho, \delta p$をそれぞれ$\rho, p$と書くことにし,  
+密度・圧力の全体はそれぞれ$\rho_{\rm tot}, p_{\rm tot}$と書く. 
+
+水平方向の運動量方程式\eqref{eq:HydroBoussinesqPrimitive_MomUV}は,
+ベクトル不変形
+%%
+\begin{align}
+ \DP{\Dvect{u}}{t}
+ =&  - (f + \zeta) \Dvect{k} \times \Dvect{u}
+     - g \nabla_h \eta
+     -  \dfrac{1}{\rho_0} \nabla_h \; p
+     -  \nabla_h \left(\dfrac{\Dvect{u}^2}{2} \right)
+  \nonumber \\
+  &  +   \nabla_h \cdot  (A_h \nabla_h \Dvect{u})
+     +   \DP{}{z} \left(A_v \DP{\Dvect{u}}{z}\right). 
+ \label{eq:HydroBoussinesqPrimitive_MomUV_invariantForm}   
+\end{align}
+%%
+に書き直す.
+ここで, $\zeta=\Dvect{k}\cdot\nabla_h\times\Dvect{u}$であり,
+渦度の鉛直成分である. 
+特に, 岸がない場合(水惑星設定の場合)には, 水平方向の運動量の時間発展は,
+スペクトル変換法に基づく大気大循環モデルに習って, 
+渦度方程式と発散方程式から求める%
+\footnote{
+(memo) 引用
+}.
+これらの方程式は以下のように導かれる. 
+\eqref{eq:HydroBoussinesqPrimitive_MomUV_invariantForm}の両辺に$\Dvect{k}\times\nabla_h$を
+作用させれば, 渦度方程式
+%%
+\begin{align}
+ \DP{\zeta}{t}
+ =
+ & - \nabla_h \cdot \left[ (\zeta + f) \Dvect{u} \right] \\
+ & + \Dvect{k} \cdot \nabla_h \times \left[
+       -  w \DP{\Dvect{u}}{z}
+       + \Dvect{\mathscr{D}}_{\Dvect{u}} + \Dvect{\mathscr{F}}_{\Dvect{u}}
+    \right]
+\label{eq:HydroBoussinesqPrimitive_Vor}
+\end{align}
+%%
+を得る.
+また, \eqref{eq:HydroBoussinesqPrimitive_MomUV_invariantForm}の両辺に$\nabla_h \cdot \;$を作用させれば, 発散方程式
+%%
+\begin{align}
+    \DP{D}{t}
+ =
+ &   \Dvect{k} \cdot \nabla_h \times \left[ (\zeta + f) \Dvect{u} \right] \\
+ & - \Delta_h \left( g\eta + \dfrac{p}{\rho_0} + \dfrac{\Dvect{u}^2}{2}  \right) \\
+ & + \nabla_h \cdot \left[
+       -  w \DP{\Dvect{u}}{z}
+       + \Dvect{\mathscr{D}}_{\Dvect{u}} + \Dvect{\mathscr{F}}_{\Dvect{u}}
+    \right]
+\label{eq:HydroBoussinesqPrimitive_Div}
+\end{align}
+%%
+を得る.
+ここで, $D=\nabla_h \cdot \Dvect{u}$は水平発散である. 
+なお, 水平方向の運動量方程式における粘性項は, $\Dvect{\mathscr{D}}_{\Dvect{u}}$で表した. 
+
+
+鉛直速度は, 連続の式\eqref{eq:HydroBoussinesqPrimitive_Continu}から診断され,
+%%
+\begin{align}
+  w(\Dvect{x}_h,z,t) = - \nabla_h \cdot \int_{-H}^z \Dvect{u}(\Dvect{x}_h,z',t) \Dd{z'} 
+\label{eq:W_dianogstic}
+\end{align}
+%%
+によって求められる%
+\footnote{
+連続の式\eqref{eq:HydroBoussinesqPrimitive_Continu}を$-H$から$z$まで積分すれば,
+$$
+    w(\Dvect{x}_h,z,t) - w(\Dvect{x}_h,-H,t)
+  = - \int_{-H}^z \nabla_h \cdot \Dvect{u} (\Dvect{x}_h,z',t) \; \Dd{z'}
+$$
+を得る.
+ここで, ライプニッツの公式を用いれば, 上の式の右辺は, 
+$$
+     - \int_{-H}^z \nabla_h \cdot \Dvect{u} \Dd{z'}
+   = - \left(
+         \nabla_h \cdot \int_{-H}^z  \Dvect{u} \Dd{z'}
+       +  \Dvect{u} \cdot \nabla_h (-H)
+     \right)
+$$
+と変形される.
+また, $w(\Dvect{x}_h,-H,t)$は海底における境界条件\eqref{eq:KinematicBCBtm}から与えられるので,
+これらを考慮すれば\eqref{eq:W_dianogstic}が得られる. 
+}. 
+静水圧平衡の式\eqref{eq:HydroBoussinesqPrimitive_MomW}は, $\rho, p$を用いて, 
+%%
+\begin{align}
+  \DP{p}{z} = - \rho g
+\end{align}
+%%
+と書け形式は変わらない.
+$p$はこの静水圧平衡の式を鉛直方向に積分することで求められる.
+すなわち,
+%%
+\begin{align}
+  p(\Dvect{x}_h,z,t) = - \int_z^0 \rho(\Dvect{x}_h,z',t) g \; \Dd{z'}. 
+\end{align}
+%%
+
+本モデルの海面水位の時間発展の求め方は, 線形化した海面の運動学的境界条件%
+\footnote{
+(Memo)Marshall(??)を引用
+}%
+に基づく.
+すなわち, 
+%%
+\begin{align}
+ \DP{\zeta}{t} =  P - E + w(\Dvect{x}_h,\zeta,t)
+\end{align}
+%%
+右辺の$w$を\eqref{eq:W_dianogstic}から求めれば, 
+線形化した海面水位の時間発展の式は, 
+%%
+\begin{align}
+ \DP{\zeta}{t}
+ = - \nabla_h \int_{-H}^\eta \Dvect{v} \Dd{z}
+   + P - E
+\label{eq:LinearizedSeaSurfElev}
+\end{align}
+%%
+と書かれる. 
+
+rigid-lid 近似を適用する場合には,
+海面$z=\eta$において$w=0$を課す. 
+このとき, 水平速度$\Dvect{u}$は, 
+%%
+\begin{align}
+ 0 = \nabla_h \cdot \int_{-H}^0 \Dvect{u} \Dd{z}
+\label{eq:RigidLidApprox_Constraint}
+\end{align}
+%%
+を満たさなければならない. 
+rigid-lid 近似を用いる場合には, 海面水位の時間発展が陽に扱われなくなる. 
+そのため, 海面水位の偏差と関係した圧力$p_s$は, \eqref{eq:RigidLidApprox_Constraint}が満たされるように決定される.
+
+最後に, トレーサー(温位や塩分)の方程式\eqref{eq:HydroBoussinesqPrimitive_PotTemp},\eqref{eq:HydroBoussinesqPrimitive_Salinity}は, 以下のように変形したものを使う.
+\begin{align}
+ \DP{\Theta}{t}
+ = &- \nabla_h \cdot (\Theta \Dvect{u}) + \Theta D + w\DP{\Theta}{z} \nonumber \\
+   &+ \mathscr{D}_{\Theta}
+    + \mathscr{F}_{\Theta}  
+\label{eq:HydroBoussinesqPrimitive_PotTemp_2}
+\end{align}
+\begin{align}
+ \DP{S}{t}
+ = &- \nabla_h \cdot (S \Dvect{u}) + \Theta D + w\DP{S}{z} \nonumber \\
+   &+ \mathscr{D}_{S}
+    + \mathscr{F}_{S}  
+\label{eq:HydroBoussinesqPrimitive_Salt_2}
+\end{align}
+ただし, トレーサーの方程式における拡散項は, $\mathscr{D}_\Theta, \mathscr{D}_S$によって表した. 
