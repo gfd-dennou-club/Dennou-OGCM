@@ -355,9 +355,10 @@ contains
     xyz_GradLonT(:,:,:) = xyz_GradLon_wz(wz_Tracer)
     xyz_GradLatT(:,:,:) = xyz_GradLat_wz(wz_Tracer)
     xyz_DzT(:,:,:) = xyz_Dz_xyz(xyz_Tracer)
-    
+
+    !$omp parallel
+    !$omp workshare    
     xyz_AI(:,:,:) = Kappa_Redi*xyz_T
-    !$omp parallel workshare
     xyz_FLon(:,:,:) = Kappa_Redi*(xyz_GradLonT + xyz_T*xyz_SLon*xyz_DzT)
     xyz_FLat(:,:,:) = Kappa_Redi*(xyz_GradLatT + xyz_T*xyz_SLat*xyz_DzT)
 !!$    xyz_FLon(:,:,:) = xyz_AI*(xyz_GradLonT + xyz_SLon*xyz_DzT)
@@ -366,7 +367,8 @@ contains
          &             xyz_SLon*xyz_GradLonT + xyz_SLat*xyz_GradLatT &
          &          + (xyz_SLon**2 + xyz_SLat**2)*xyz_DzT            &
          &         ) 
-    !$omp end parallel workshare
+    !$omp end workshare
+    !$omp end parallel
 
     if(DFM08Flag) then
        call TaperingDFM08_IDIFF(xyz_C, &

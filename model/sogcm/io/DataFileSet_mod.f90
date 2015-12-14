@@ -97,14 +97,14 @@ contains
     !
     call HistoryAutoCreate( &                            ! ヒストリー作成
          & title='OGCM Output',             &
-         & source='OGCM Output',    &
-         & institution='GFD_Dennou Club OGCM project',    &
-         & dims=(/'lon ', 'lat ', 'sig ', 'sig2', 'time'/),   &
-         & dimsizes=(/iMax, jMax, kMax+1, 2, 0 /),       &
-         & longnames=(/'longitude   ', 'latitude    ', 'sigma       ', &
+         & source='OGCM Output',                                        &
+         & institution='GFD_Dennou Club OGCM project',                  &
+         & dims=(/'lon ', 'lat ', 'sig ', 'sig2', 'time'/),             &
+         & dimsizes=(/iMax, jMax, kMax+1, 2, 0 /),                      &
+         & longnames=(/'longitude   ', 'latitude    ', 'sigma       ',  &
          &             'sigma-seaice', 'time        '   /),             &
-         & units=(/'degree_east ', 'degree_north', '(1)         ',   &
-         &         '(1)         ', 'sec.        ' /), &
+         & units=(/'degree_east ', 'degree_north', '1              ',   &
+         &         '1           ', 'sec.        ' /),                   &
          & origin=RestartTime, interval=this%outputIntrvalSec, terminus=EndTime,          &
          & namelist_filename=configNmlFileName )    
 
@@ -298,10 +298,13 @@ contains
 
     use GridSet_mod, only: &
          & iMax, jMax, kMax, &
-         & xyz_Lon, xyz_Lat, &
+         & xyz_Lon, xyz_Lat, z_Sig,                                      &
+         & x_Lon_Weight, y_Lat_Weight, z_Sig_Weight,                     &
+         & lonName => GRIDSET_KEY_XAXIS, latName  => GRIDSET_KEY_YAXIS,  &
+         & sigName => GRIDSET_KEY_ZAXIS, sig2Name => GRIDSET_KEY_ZAXIS2, &
+         & timeName => GRIDSET_KEY_TAXIS, &
          & GRIDSET_KEY_LYRTHICKSIG
 
-    use SpmlUtil_mod, only: g_Sig
     
     ! 宣言文; Declaration statement
     !
@@ -310,29 +313,12 @@ contains
     ! 局所変数
     ! Local variables
     !
-    character(TOKEN) :: lonName
-    character(TOKEN) :: latName
-    character(TOKEN) :: sigName, sig2Name
-    character(TOKEN) :: timeName
-
     character(TOKEN) :: dims_Z(1), dims_XY(2), dims_ZT(2), dims_XYT(3), dims_XYZT(4), dims_XYZ2T(4)
     
     ! 実行文; Executable statement
     !
- 
-    ! Regist coordinates
-    !
-    lonName = 'lon'; latName='lat'; sigName='sig'; timeName='time'
-    sig2Name = 'sig2'; 
 
-    call HistoryAutoPutAxis(lonName, xyz_Lon(:,1,0)*180/PI)
-    call HistoryAutoAddAttr(lonName, 'topology', 'circular')
-    call HistoryAutoAddAttr(lonName, 'modulo', 360.0)
-    call HistoryAutoPutAxis(latName, xyz_Lat(0,:,0)*180/PI)
-    call HistoryAutoPutAxis(sigName, g_Sig)
-    call HistoryAutoPutAxis(sig2Name, (/ -0.25d0, -0.75d0 /))
-
-    !
+    ! Set arrays storing the name of axises
     !
     dims_Z = (/ sigName /)
     dims_XY = (/ lonName, latName /)
@@ -340,7 +326,25 @@ contains
     dims_XYT = (/ lonName, latName, timeName /)
     dims_XYZT = (/ lonName, latName, sigName, timeName /)
     dims_XYZ2T = (/ lonName, latName, sig2Name, timeName /)
+    
+    ! Regist coordinates
+    !
+    call HistoryAutoAddAttr(lonName, 'standard_name', 'longitude')
+    call HistoryAutoAddAttr(latName, 'standard_name', 'latitude')
+    call HistoryAutoAddAttr(sigName, 'standard_name', 'ocean_sigma_coordinate')
+    call HistoryAutoAddAttr(sig2Name, 'standard_name', 'seaice_sigma_coordinate')
 
+    call HistoryAutoPutAxis(lonName, xyz_Lon(:,1,0)*180/PI)
+    call HistoryAutoAddAttr(lonName, 'topology', 'circular')
+    call HistoryAutoAddAttr(lonName, 'modulo', 360.0)
+    call HistoryAutoPutAxis(latName, xyz_Lat(0,:,0)*180/PI)
+    call HistoryAutoPutAxis(sigName, z_Sig)
+    call HistoryAutoPutAxis(sig2Name, (/ -0.25d0, -0.75d0 /))
+
+    call HistoryAutoAddWeight(lonName, x_Lon_Weight, 'radian', xtype='double')
+    call HistoryAutoAddWeight(latName, y_Lat_Weight, 'radian', xtype='double')
+    call HistoryAutoAddWeight(sigName, z_Sig_Weight, '1',      xtype='double')
+    
     ! Regist prognostic variables
     !
 

@@ -19,7 +19,7 @@ LDADD = \
 CLEANFILES = *$(MODEXT)
 
 noinst_LTLIBRARIES= libDSOGCMDynamics.la 
-nodist_libDSOGCMDynamics_la_SOURCES= \
+dist_libDSOGCMDynamics_la_SOURCES= \
 	HydroBouEqSolverRHS_old_mod.f90 \
 	HydroBouEqSolverRHS_v2_mod.f90 \
 	HydroBouEqRHS_DynProc_mod.f90 \

@@ -4298,7 +4298,8 @@ m4_if([$1], [CXX], [
       # icc used to be incompatible with GCC.
       # ICC 10 doesn't accept -KPIC any more.
       icc* | ifort*)
-	_LT_TAGVAR(lt_prog_compiler_wl, $1)='-Wl,'
+#	_LT_TAGVAR(lt_prog_compiler_wl, $1)='-Wl,'
+	_LT_TAGVAR(lt_prog_compiler_wl, $1)='-Xlinker '
 	_LT_TAGVAR(lt_prog_compiler_pic, $1)='-fPIC'
 	_LT_TAGVAR(lt_prog_compiler_static, $1)='-static'
         ;;

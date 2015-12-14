@@ -24,7 +24,7 @@ CLEANFILES = *$(MODEXT)
 #################################################################
 
 noinst_LTLIBRARIES= libDSOGCMExp.la 
-nodist_libDSOGCMExp_la_SOURCES= \
+dist_libDSOGCMExp_la_SOURCES= \
 	InitCond_mod.f90 \
 	exp_W94_Case2/Exp_W94_Case2_mod.f90 \
 	exp_BarotRossbyWave/Exp_BarotRossbyWave_mod.f90 \

@@ -25,7 +25,7 @@ CLEANFILES = *$(MODEXT)
 	main.f90
 
 noinst_LTLIBRARIES = libDQGModelData.la
-nodist_libDQGModelData_la_SOURCES = \
+dist_libDQGModelData_la_SOURCES = \
 	List_i_mod.f90 \
 	List_d_mod.f90 \
 	List_vec3d_mod.f90 \

@@ -259,21 +259,13 @@ contains
             & xyz_UN, xyz_VN, xyz_PTempBasic + xyz_PTempEddN,  xyz_SaltN  & ! (in)
 !            & xyz_U, xyz_V, xyz_PTempBasic + xyz_PTempEdd,  xyz_Salt  & ! (in)
             & )
-       
-    
-
-    !
-    !
-    call apply_VBoundaryCondO( &
-         & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_SaltN,     & ! (inout)
-         & xyz_VViscCoefN, xyz_VDiffCoefN                & ! (in)
-         & )
-    
+           
 
     !
     !
     !
-    !$omp parallel workshare
+    !$omp parallel
+    !$OMP workshare
     xyz_U(:,:,:) = xyz_UN; xyz_V(:,:,:) = xyz_VN;
     xyz_PTempEdd(:,:,:) = xyz_PTempEddN; xyz_Salt(:,:,:) = xyz_SaltN
     xy_SurfHeight(:,:) = xy_SurfHeightN
@@ -281,7 +273,8 @@ contains
     xy_SurfPressOld(:,:) = xy_SurfPressN
 !    xyz_VViscCoef(:,:,:) = xyz_VViscCoefN
 !    xyz_VDiffCoef(:,:,:) = xyz_VDiffCoefN    
-    !$omp end parallel workshare
+    !$omp end workshare
+    !$omp end parallel
 
     
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -402,12 +395,15 @@ contains
     
     !
     !
-
+    !$omp parallel
+    !$omp workshare
     xyz_UA(:,:,:) = xyz_U
     xyz_VA(:,:,:) = xyz_V
     xyz_PTempEddA(:,:,:) = xyz_PTempEdd
     xyz_SaltA(:,:,:) = xyz_Salt
     xy_SurfHeightA(:,:) = xy_SurfHeight
+    !$omp end workshare
+    !$omp end parallel
     
 !    xyz_VViscCoefA(:,:,:) = xyz_VViscCoef
 !    xyz_VDiffCoefA(:,:,:) = xyz_VDiffCoef
@@ -780,7 +776,8 @@ contains
          !
          call ImplicitProc(xyz_DU, xyz_DV, xyz_DPTempEdd, xyz_DSalt)
          
-         !$omp parallel sections
+         !$omp parallel
+         !$omp sections
          !$omp section
          xyz_U(:,:,:)        = timeIntLFAM3_IMEX(xyz_UN, xyz_UB, xyz_DU, Stage, AM3=.false.)
          !$omp section
@@ -791,7 +788,8 @@ contains
          xyz_Salt(:,:,:)     = timeIntLFAM3_IMEX(xyz_SaltN, xyz_SaltB, xyz_DSalt, Stage, AM3=.false.)
          !$omp section
          xy_SurfHeight(:,:)  = 0d0
-         !$omp end parallel sections
+         !$omp end sections
+         !$omp end parallel
          
          call BarotEqStep(xyz_U, xyz_V)
          
@@ -802,7 +800,8 @@ contains
          !
          !
          if(Stage == 1) then
-            !$omp parallel sections
+            !$omp parallel
+            !$omp sections
             !$omp section
             xyz_U(:,:,:)        = timeIntLFAM3_IMEX(xyz_UN, xyz_UB, xyz_U, Stage, AM3=.true.)
             !$omp section
@@ -814,7 +813,8 @@ contains
             !$omp section
             xy_SurfHeight(:,:)  = 0d0
 !!$            xy_SurfPress(:,:) = timeIntLFAM3_IMEX(xy_SurfPressN, xy_SurfPressB, xy_SurfPress, Stage, AM3=.true.)            
-            !$omp end parallel sections
+            !$omp end sections
+            !$omp end parallel
          end if
        end subroutine timeInt_LFAM3
        
@@ -833,7 +833,8 @@ contains
          !
          call ImplicitProc(xyz_DU, xyz_DV, xyz_DPTempEdd, xyz_DSalt)
 
-         !$omp parallel sections
+         !$omp parallel
+         !$omp sections
          !$omp section
          xyz_U(:,:,:)        = timeIntLF_IMEX(xyz_UB, xyz_DU, Stage)
          !$omp section
@@ -844,7 +845,8 @@ contains
          xyz_Salt(:,:,:)     = timeIntLF_IMEX(xyz_SaltB, xyz_DSalt, Stage)
          !$omp section
          xy_SurfHeight(:,:)  = 0d0
-         !$omp end parallel sections
+         !$omp end sections
+         !$omp end parallel
 
        end subroutine timeInt_LF
 
@@ -984,15 +986,17 @@ contains
     real(DP), parameter :: MixLyrDepth = 40d0
     real(DP), parameter :: LInv = 1d0/(0.1d0*MixLyrDepth)
     real(DP), parameter :: ViscfCoefMax = 2d-3
-    real(DP), parameter :: DiffCoefMax = 2d-4
+    real(DP), parameter :: DiffCoefMax = 1d-3
 
     real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_Func
 
-    !$omp parallel workshare
+    !$omp parallel
+    !$omp workshare
     xyz_Func(:,:,:) = 0.5d0 - atan((abs(xyz_Depth) - MixLyrDepth)*LInv)/PI
     xyz_VViscCoef(:,:,:) = ViscfCoefMax*xyz_Func
     xyz_VDiffCoef(:,:,:) = DiffCoefMax*xyz_Func
-    !$omp end parallel workshare
+    !$omp end workshare
+    !$omp end parallel
 
   end subroutine calc_vViscDiffCoef_MixLyrSimple
        
@@ -1019,14 +1023,13 @@ contains
        xyz_Ri = 0d0
     end where
     
-    !$omp parallel workshare
+    !$omp parallel
+    !$omp workshare
     xyz_VViscCoef(:,:,:) = AvRic/(1d0 + a*xyz_Ri)**n + 1d-3!vViscCoefBG
     xyz_VDiffCoef(:,:,:) = xyz_VViscCoef(:,:,:)/(1d0 + a*xyz_Ri) + vDiffCoefBG
-    !$omp end parallel workshare
+    !$omp end workshare
+    !$omp end parallel
 
-!!$    write(*,*) "=-------------"
-!!$    write(*,*) "Av:", xyz_VViscCoef(0,1:32,0)
-!!$    write(*,*) "MaxAv;", maxval(xyz_VViscCoef), maxloc(xyz_VViscCoef) 
 
   end subroutine calc_vViscDiffCoef_PP81
 

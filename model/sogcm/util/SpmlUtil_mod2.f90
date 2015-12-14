@@ -93,12 +93,17 @@ module SpmlUtil_mod
   ! Procedures to statisfy the vertical boundary conditions.
   public :: apply_ZBoundaryCond
 
-  public :: get_HorizontalGrid
+  !
+  public :: get_SpmlGridInfo
+
 
   !* Cascade
   !
 
-
+  ! grid informatiion
+  public :: x_Lon_Weight, y_Lat_Weight
+  public :: g_Sig_WEIGHT
+  
   ! basic transformation
   public :: w_xy, xy_w
   public :: g_t, t_g
@@ -108,12 +113,14 @@ module SpmlUtil_mod
   public :: xy_GradLon_w, xy_GradLambda_w, xy_GradLat_w, xy_GradMu_w
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: l_nm, nm_l
-  public :: xya_wa, wa_xya 
+  public :: xya_wa, wa_xya
+
+  ! Integral or average operator
   public :: IntLonLat_xy, ya_IntLon_xya
   public :: AvrLonLat_xy, ya_AvrLon_xya
-  public :: a_Interpolate_wa, Interpolate_w
-
+  
   ! Interpolation
+  public :: a_Interpolate_wa, Interpolate_w  
   public :: Interpolate_t, a_Interpolate_at
   
   ! Operation for spectral analysis
@@ -140,7 +147,7 @@ module SpmlUtil_mod
   integer :: km      !< Number of vertical layers
   integer :: nm      !< Maximum truncated wave number in horizontal spectral method
   integer :: tm      !< Maximum truncated wave number in vertical spectral method
-  integer :: lm      !< 
+  integer :: lm      !< Size of array saving data in wavenumber domain
 
   real(DP), allocatable :: tr_vIntCoefMat(:,:)
   real(DP), allocatable :: tr_vDeriv1CoefMat(:,:)
@@ -269,12 +276,16 @@ contains
   !> @brief 
   !!
   !!
-  subroutine get_HorizontalGrid(x_Lon_, y_Lat_, xy_Lon_, xy_Lat_)
+  subroutine get_SpmlGridInfo( &
+       & x_Lon_, y_Lat_, z_Sig_, xy_Lon_, xy_Lat_,     &  ! (out)
+       & x_Lon_Weight_, y_Lat_Weight_, z_Sig_Weight_   &  ! (out)
+       & )
     
     ! 宣言文; Declaration statement
     !
-    real(8), dimension(0:im-1), intent(out), optional :: x_Lon_
-    real(8), dimension(jm), intent(out), optional :: y_Lat_
+    real(8), dimension(0:im-1), intent(out), optional :: x_Lon_, x_Lon_Weight_
+    real(8), dimension(jm), intent(out), optional :: y_Lat_, y_Lat_Weight_
+    real(8), dimension(0:km), intent(out), optional :: z_Sig_, z_Sig_Weight_
     real(8), dimension(0:im-1,jm), intent(out), optional :: xy_Lon_, xy_Lat_
     
     ! 実行文; Executable statement
@@ -282,10 +293,14 @@ contains
 
     if(present(x_Lon_))  x_Lon_ = x_Lon
     if(present(y_Lat_))  y_Lat_ = y_Lat
+    if(present(z_Sig_))  z_Sig_ = g_Sig
+    if(present(x_Lon_Weight_))  x_Lon_Weight_ = x_Lon_Weight
+    if(present(y_Lat_Weight_))  y_Lat_Weight_ = y_Lat_Weight
+    if(present(z_Sig_Weight_))  z_Sig_Weight_ = g_Sig_WEIGHT
     if(present(xy_Lon_))  xy_Lon_ = xy_Lon
     if(present(xy_Lat_))  xy_Lat_ = xy_Lat
     
-  end subroutine get_HorizontalGrid
+  end subroutine get_SpmlGridInfo
 
 
   !--------------- 基本変換 -----------------

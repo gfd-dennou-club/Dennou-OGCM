@@ -226,7 +226,8 @@ contains
     ! 実行文; Executable statement
     !
 
-    !$omp parallel workshare
+    !$omp parallel
+    !$omp workshare
     xyz_UB(:,:,:) = xyz_UN; xyz_UN(:,:,:) = xyz_UA; xyz_UA(:,:,:) = 0d0
     xyz_VB(:,:,:) = xyz_VN; xyz_VN(:,:,:) = xyz_VA; xyz_VA(:,:,:) = 0d0
     xyz_PTempEddB(:,:,:) = xyz_PTempEddN; xyz_PTempEddN(:,:,:) = xyz_PTempEddA; xyz_PTempEddA(:,:,:) = 0d0
@@ -234,12 +235,13 @@ contains
 
     xyz_VViscCoefB(:,:,:) = xyz_VViscCoefN; !xyz_VViscCoefN(:,:,:) = xyz_VViscCoefA; xyz_VViscCoefA(:,:,:) = 0d0 
     xyz_VDiffCoefB(:,:,:) = xyz_VDiffCoefN; !xyz_VDiffCoefN(:,:,:) = xyz_VDiffCoefA; xyz_VDiffCoefA(:,:,:) = 0d0 
-    !$omp end parallel workshare
+    !$omp end workshare
 
-    !$omp parallel workshare
+    !$omp workshare
     xy_SurfHeightB(:,:) = xy_SurfHeightN; xy_SurfHeightN(:,:) = xy_SurfHeightA; xy_SurfHeightA(:,:) = 0d0
     xy_SurfPressB(:,:) = xy_SurfPressN; xy_SurfPressN(:,:) = xy_SurfPressA; xy_SurfPressA(:,:) = 0d0
-    !$omp end parallel workshare
+    !$omp end workshare
+    !$omp end parallel
 
 !!$    !$omp parallel workshare
 !!$    wz_VorB(:,:) = wz_VorN; wz_VorN(:,:) = wz_VorA; wz_VorA(:,:) = 0d0

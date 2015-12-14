@@ -160,20 +160,24 @@ contains
       real(DP), dimension(0:iMax-1,jMax), intent(in), optional :: xy_DSurfHFlxDTsTmp
       real(DP), dimension(0:iMax-1,jMax), intent(out), optional :: xy_DSurfHFlxDTs
 
-      !$omp parallel workshare
+      !$omp parallel
+      !$omp workshare
       xy_SurfHFlux(:,:) = &
            & - xy_LatentDWHFlx - xy_SensDWHFlx        &
            & - xy_Emissivity*xy_LWDWRFlx              &
            & - (1d0 - xy_Albedo)*xy_SWDWRFlx          &
            & + xy_Emissivity*(SBConst*xy_SurfTemp**4)
-      !$omp end parallel workshare
+      !$omp end workshare
+      !$omp end parallel
 
       if(present(xy_DSurfHFlxDTs)) then
-         !$omp parallel workshare
+         !$omp parallel
+         !$omp workshare
          xy_DSurfHFlxDTs(:,:) = &
               &   4d0*xy_Emissivity*(SBConst*xy_SurfTemp**3) &
               & + xy_DSurfHFlxDTsTmp
-         !$omp end parallel workshare
+         !$omp end workshare
+         !$omp end parallel
       end if
     end subroutine calcSurfHFlux
     
@@ -229,7 +233,8 @@ contains
     ! 実行文; Executable statement
     !
 
-    !$omp parallel workshare
+    !$omp parallel
+    !$omp workshare
     
     xy_BtmHFlxIO(:,:) = 0d0
     where(xy_FreezePot > 0d0)
@@ -251,7 +256,8 @@ contains
        xy_BtmHFlxIO = min(xy_BtmHFlxIO, -xy_FreezePot)
     end where
 
-    !$omp end parallel workshare
+    !$omp end workshare
+    !$omp end parallel
     
 !!$    xyz_Tmp(0,DEBUG_j,:) = z_DSig_z(z_PTempBasic(:) + xyz_PTempEddN(0,DEBUG_j,:))/xy_totDepthBasic(0,DEBUG_j)    
 !!$    write(*,*) "* BtmHFlxSIce=", xy_BtmHFlxIO(:,DEBUG_j), ", BtmHFlxO", -vDiffCoef*xyz_Tmp(0,DEBUG_j,0)*refDens*Cp0, &

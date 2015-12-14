@@ -21,7 +21,7 @@ CLEANFILES = *$(MODEXT)
 bin_PROGRAMS = 
 
 noinst_LTLIBRARIES= libDSOGCMBC.la 
-nodist_libDSOGCMBC_la_SOURCES= \
+dist_libDSOGCMBC_la_SOURCES= \
 	BoundaryCondO_mod.f90
 
 BoundaryCondO_mod.f90: \

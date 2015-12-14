@@ -22,7 +22,7 @@ CLEANFILES = *$(MODEXT)
 bin_PROGRAMS = 
 
 noinst_LTLIBRARIES= libDSOGCMIO.la 
-nodist_libDSOGCMIO_la_SOURCES= \
+dist_libDSOGCMIO_la_SOURCES= \
 	DataFileSet_mod.f90 \
 	RestartDataFileSet_mod.f90
 

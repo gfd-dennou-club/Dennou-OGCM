@@ -185,7 +185,8 @@ contains
     ! 実行文; Executable statement
     !
 
-    !$omp parallel workshare
+    !$omp parallel
+    !$omp workshare
     xy_SIceConB = xy_SIceConN; xy_SIceConN = xy_SIceConA; xy_SIceConA = 0d0
 
     xy_IceThickB = xy_IceThickN; xy_IceThickN = xy_IceThickA; xy_IceThickA = 0d0
@@ -193,7 +194,8 @@ contains
 
     xy_SIceSurfTempB = xy_SIceSurfTempN; xy_SIceSurfTempN = xy_SIceSurfTempA; xy_SIceSurfTempA = 0d0
     xyz_SIceTempB = xyz_SIceTempN; xyz_SIceTempN = xyz_SIceTempA; xyz_SIceTempA = 0d0
-    !$omp end parallel workshare
+    !$omp end workshare
+    !$omp end parallel
     
   end subroutine VarSetSeaice_AdvanceTStep
 

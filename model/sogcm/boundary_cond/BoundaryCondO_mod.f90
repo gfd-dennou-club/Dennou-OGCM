@@ -309,7 +309,8 @@ contains
        call calc_SurfaceHeatFluxO_Han1984Method(xy_SurfHFlxO, &
             & xy_SurfTemp, xy_SIceCon)
     else
-       !$omp parallel workshare
+       !$omp parallel
+       !$omp workshare
 !!$       xy_SurfDWHFlx_AO(:,:) = &
 !!$            &   xy_LatentDWHFlx                        &
 !!$            & + xy_SensDWHFlx                          &
@@ -325,7 +326,8 @@ contains
 
 
        xy_SurfHFlxO(:,:) = -(1d0 - xy_SIceCon)*xy_SurfDWHFlx_AO + xy_SIceCon*xy_SurfHFlxIO
-       !$omp end  parallel workshare
+       !$omp end workshare
+       !$omp end parallel
     end if
   end subroutine calc_SurfaceHeatFluxO
 
@@ -356,7 +358,8 @@ contains
     ! 実行文; Executable statement
     !
     
-    !$omp parallel workshare
+    !$omp parallel
+    !$omp workshare
 !!$    xy_SurfDWHFlx_AO(:,:) = &
 !!$         &   xy_LatentDWHFlx                        &
 !!$         & + xy_SensDWHFlx                          &
@@ -377,7 +380,8 @@ contains
          & + xy_Lambda*((xy_SeaSurfTemp + xy_SurfDWHFlx_AO/xy_Lambda) - xy_SurfTemp)
    
     xy_SurfHFlxO(:,:) = -(1d0 - xy_SIceCon)*xy_SurfDWHFlx_AO + xy_SIceCon*xy_SurfHFlxIO
-    !$omp end  parallel workshare
+    !$omp end workshare
+    !$omp end parallel
 !write(*,*) "modify check3:"        
   end subroutine calc_SurfaceHeatFluxO_Han1984Method
   
@@ -406,11 +410,13 @@ contains
             & xy_SurfTemp, xy_SIceCon, xy_Wice )
        
     else
-       !$omp parallel workshare
-       xy_SurfFwFlxO = &
+       !$omp parallel
+       !$omp workshare
+       xy_SurfFwFlxO(:,:) = &
             &   (1d0 - xy_SIceCon)*((xy_Wrain + xy_Wsnow) - xy_Wevap) &
             & + xy_SIceCon*(xy_Wrain - xy_Wice)
-       !$omp end parallel workshare
+       !$omp end  workshare
+       !$omp end parallel
     end if
   end subroutine calc_SurfaceFreshWaterFluxO
 
@@ -443,11 +449,13 @@ contains
 !!$         & + xy_DSurfLatentFlxDTs/LatentHeat*(xy_SurfAirTemp - xy_SurfTemp)/DensFreshWater
          & - 0d0*xy_DSurfLatentFlxDTs/LatentHeat*(xy_SeaSurfTemp - xy_SurfTemp)/DensFreshWater
 
-    !$omp parallel workshare
-    xy_SurfFwFlxO = &
+    !$omp parallel
+    !$omp workshare
+    xy_SurfFwFlxO(:,:) = &
          &   (1d0 - xy_SIceCon)*((xy_Wrain + xy_Wsnow) - xy_Wevap_) &
          & + xy_SIceCon*(xy_Wrain - xy_Wice)
-    !$omp end parallel workshare
+    !$omp end workshare
+    !$omp end parallel
     
     
   end subroutine calc_SurfaceFreshWaterFluxO_Han1984Method

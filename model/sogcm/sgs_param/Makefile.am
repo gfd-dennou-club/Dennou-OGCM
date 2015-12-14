@@ -25,15 +25,15 @@ noinst_LTLIBRARIES= \
 	libDSOGCMSGSParamConvection.la \
 	libDSOGCMSGSParamVMixing.la
 
-nodist_libDSOGCMSGSParamMesoEddy_la_SOURCES= \
+dist_libDSOGCMSGSParamMesoEddy_la_SOURCES= \
 	mesoeddy/SGSEddyMixingHelper_mod.f90 \
 	mesoeddy/SGSEddyMixing_mod.f90
 
-nodist_libDSOGCMSGSParamConvection_la_SOURCES= \
+dist_libDSOGCMSGSParamConvection_la_SOURCES= \
 	convection/SGSConvAdjust_mod.f90 \
 	convection/SGSSlowConvAdjust_mod.f90
 
-nodist_libDSOGCMSGSParamVMixing_la_SOURCES= \
+dist_libDSOGCMSGSParamVMixing_la_SOURCES= \
 	vmixing/SGSVMixingConst_mod.f90
 
 

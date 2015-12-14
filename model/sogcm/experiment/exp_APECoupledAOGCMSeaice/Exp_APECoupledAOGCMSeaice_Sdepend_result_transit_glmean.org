@@ -1,0 +1,48 @@
+#+TITLE: 大気海洋海氷結合モデルによる水惑星実験(太陽定数依存性): 時間遷移の様子
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{}
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_link
+#+BEGIN_SRC ruby :: result value raw :exports none :var labels="hoge1,hoge2,hoge3" :var fileName="exp_Ah1e{3,4,5}Pl341L60/config.nml" :var fileDirPath="./expdata_inhomoFluid/"
+  require 'pathname'
+  labelStrs = labels.split(",")
+
+  str = "| "
+
+  fileNameStr = Dir.glob("#{fileDirPath}#{fileName}")
+  labelStrs.each_with_index{|label,i|
+     str << " [[file:#{fileNameStr[i]}][#{label}]] |"
+  }
+
+  return str
+#+END_SRC
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/common/" :var figName="hoge"
+    require 'pathname'
+
+    str =  "#+CAPTION: #{caption}.\n" 
+    str << "#+NAME: fig:#{figName} \n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+    
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |" 
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 全球平均値の時間遷移
+
+   #+CALL: create_FigsTable(" S=1200 [W/m^{2}]: 表面温度[K], 外向き長波放射[W/m^{2}], 内向き短波放射[W/m^{2}]の全球平均値の時間遷移", "t_{SurfTemp,OLR,mOSR}_trans.jpg", "./expdata_atm/exp_S1200/") :results value raw :exports results
+
+   #+CALL: create_FigsTable(" S=1366 [W/m^{2}]: 表面温度[K], 外向き長波放射[W/m^{2}], 内向き短波放射[W/m^{2}]の全球平均値の時間遷移", "t_{SurfTemp,OLR,mOSR}_trans.jpg", "./expdata_atm/exp_S1366/") :results value raw :exports results
+
+   #+CALL: create_FigsTable(" S=1500 [W/m^{2}]: 表面温度[K], 外向き長波放射[W/m^{2}], 内向き短波放射[W/m^{2}]の全球平均値の時間遷移", "t_{SurfTemp,OLR,mOSR}_trans.jpg", "./expdata_atm/exp_S1500/") :results value raw :exports results

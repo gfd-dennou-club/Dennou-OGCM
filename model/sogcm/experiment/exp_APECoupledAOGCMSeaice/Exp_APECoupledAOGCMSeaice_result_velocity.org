@@ -1,0 +1,54 @@
+#+TITLE: 大気海洋海氷結合モデルによる水惑星実験(標準実験): 結果 ~ 風速・流速の様子
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{}
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_link
+#+BEGIN_SRC ruby :: result value raw :exports none :var labels="hoge1,hoge2,hoge3" :var fileName="exp_Ah1e{3,4,5}Pl341L60/config.nml" :var fileDirPath="./expdata_inhomoFluid/"
+  require 'pathname'
+  labelStrs = labels.split(",")
+
+  str = "| "
+
+  fileNameStr = Dir.glob("#{fileDirPath}#{fileName}")
+  labelStrs.each_with_index{|label,i|
+     str << " [[file:#{fileNameStr[i]}][#{label}]] |"
+  }
+
+  return str
+#+END_SRC
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/common/" :var figName="hoge"
+    require 'pathname'
+
+    str =  "#+CAPTION: #{caption}.\n" 
+    str << "#+NAME: fig:#{figName} \n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+    
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |" 
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+[[./Exp_APECoupledAOGCMSeaice.html][<Top ページに戻る>]]
+
+* 風速・流速分布
+
+- 子午面分布(大気)
+
+   #+CALL: create_FigsTable("東西風速[m/s], 質量流線関数[Sv=10^{9} kg/s]の子午面分布", "yz_{U,MSF}_mplane.jpg", "./expdata_atm/exp_S1366/") :results value raw :exports results
+
+- 子午面分布(海洋)
+
+   #+CALL: create_FigsTable("東西流速[m/s], 質量流線関数[Sv=10^{9} kg/s]の子午面分布", "yz_{U,MassStreamFunc}_mplane.jpg", "./expdata_ocn/exp_S1366/") :results value raw :exports results
+
+

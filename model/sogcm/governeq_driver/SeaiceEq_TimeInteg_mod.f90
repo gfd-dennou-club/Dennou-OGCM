@@ -246,7 +246,7 @@ contains
     
     
     !
-    !write(*,*) "Recalculate BtmHFlxSIce.."
+!!$    write(*,*) "Recalculate BtmHFlxSIce.."
     call calculate_FreezeOcnInfo( &
          & xy_FreezePot, xy_FreezeTempO,    &  ! (out)
          & xyz_PTempO, xyz_SaltON, DelTime  &  ! (in)
@@ -256,7 +256,7 @@ contains
          & xy_FreezePot, xy_FreezeTempO, & !(in)
          & xy_SIceConA, xyz_UON(:,:,0), xyz_VON(:,:,0), xyz_PTempO(:,:,0), xyz_SaltON(:,:,0), & ! (in)
          & DelTime )
-    !write(*,*) "***************************************"
+!!$    write(*,*) "***************************************"
     
   end subroutine SeaIceEqSolver_AdvanceTStep
 

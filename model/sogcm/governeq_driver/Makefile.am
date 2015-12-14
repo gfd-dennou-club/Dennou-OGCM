@@ -30,7 +30,7 @@ noinst_LTLIBRARIES= libDSOGCMGovernEqDriver.la
 	SeaiceEq_TimeInteg_mod.f90      \
 	GovernEqSolverDriver_mod.f90
 
-nodist_libDSOGCMGovernEqDriver_la_SOURCES= \
+dist_libDSOGCMGovernEqDriver_la_SOURCES= \
 	HydroBouEq_TimeInteg_v2_mod.f90 \
 	HydroBouEqVorDivForm_TimeInteg_mod.f90 \
 	SeaiceEq_TimeInteg_mod.f90      \

@@ -20,7 +20,7 @@ CLEANFILES = *$(MODEXT)
 bin_PROGRAMS = 
 
 noinst_LTLIBRARIES= libDSOGCMSetup.la 
-nodist_libDSOGCMSetup_la_SOURCES= \
+dist_libDSOGCMSetup_la_SOURCES= \
 	OptionParser_mod.f90 \
 	Constants_mod.f90 \
 	GridSet_mod.f90 \

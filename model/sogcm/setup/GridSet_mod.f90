@@ -45,14 +45,23 @@ module GridSet_mod
   integer, public, save :: nMax, lMax
   integer, public, save :: iMax, jMax
   integer, public, save :: jMaxGlobe
-  integer, public, save :: nLon
 
+  
   real(DP), public, allocatable :: xyz_Lon(:,:,:)
   real(DP), public, allocatable :: xyz_Lat(:,:,:)
+  real(DP), public, allocatable :: z_Sig(:)  
   real(DP), public, allocatable :: z_LyrThickSig(:)
 
- 
-  character(*), public, parameter :: GRIDSET_KEY_LYRTHICKSIG = 'LyrThickSig'
+  real(DP), public, allocatable :: x_Lon_Weight(:)
+  real(DP), public, allocatable :: y_Lat_Weight(:)
+  real(DP), public, allocatable :: z_Sig_Weight(:)
+  
+  character(TOKEN), public, parameter :: GRIDSET_KEY_XAXIS = 'lon'
+  character(TOKEN), public, parameter :: GRIDSET_KEY_YAXIS = 'lat'
+  character(TOKEN), public, parameter :: GRIDSET_KEY_ZAXIS = 'sig'
+  character(TOKEN), public, parameter :: GRIDSET_KEY_ZAXIS2 = 'sig2'
+  character(TOKEN), public, parameter :: GRIDSET_KEY_TAXIS = 'time'  
+  character(TOKEN), public, parameter :: GRIDSET_KEY_LYRTHICKSIG = 'LyrThickSig'
   
   ! 非公開変数
   ! Private variables
@@ -60,6 +69,8 @@ module GridSet_mod
 
   character(*), parameter:: module_name = 'GridSet_mod' !< Module Name
 
+  logical :: isInitialzed = .false.
+  
 contains
   subroutine GridSet_Init(configNmlFileName)
 
@@ -81,7 +92,8 @@ contains
     ! Read the path to grid data file from namelist.
     call read_nmlData(configNmlFileName)
 
-
+    isInitialzed = .true.
+    
   end subroutine GridSet_Init
 
   subroutine GridSet_Final()
@@ -89,9 +101,11 @@ contains
     ! 実行文; Executable statement
     !
 
-    if(allocated(xyz_Lat)) &
-         & deallocate(xyz_Lat, xyz_Lon, z_LyrThickSig)
-
+    if(isInitialzed) then
+       deallocate(xyz_Lon, xyz_Lat, z_Sig, z_LyrThickSig)
+       deallocate(x_Lon_Weight, y_Lat_Weight, z_Sig_Weight)
+    end if
+    
   end subroutine GridSet_Final
 
 
@@ -104,7 +118,7 @@ contains
     !
     use SpmlUtil_mod, only: &
         & isSpmlUtilInitialzed=>isInitialzed, &
-        & get_HorizontalGrid, g_Sig
+        & get_SpmlGridInfo
     
     ! 宣言文; Declaration statement
     !
@@ -127,17 +141,20 @@ contains
          &  "GridSet_construct is called before SpmlUtil_mod is initialized.")
     
 
-    ! Allocation
+    ! Allocation arrays for coordinates.
     !
     
-    allocate(xyz_Lon(0:iMax-1,1:jMax,0:kMax))
-    allocate(xyz_Lat(0:iMax-1,1:jMax,0:kMax))
-    allocate(z_LyrThickSig(0:kMax))
+    allocate(xyz_Lon(0:iMax-1,1:jMax,0:kMax), xyz_Lat(0:iMax-1,1:jMax,0:kMax), z_Sig(0:kMax))
+    allocate(x_Lon_Weight(0:iMax-1), y_Lat_Weight(jMax), z_Sig_Weight(0:kMax))
+    allocate(z_LyrThickSig(0:kMax))    
 
     ! Get the coordinates of horizontal grid from SpmlUtil_mod.
     !
     
-    call get_HorizontalGrid(xy_Lon_=xy_Lon, xy_Lat_=xy_Lat)
+    call get_SpmlGridInfo( &
+         & xy_Lon_=xy_Lon, xy_Lat_=xy_Lat, z_Sig_=z_Sig,  &
+         & x_Lon_Weight_=x_Lon_Weight, y_Lat_Weight_=y_Lat_Weight, z_Sig_Weight_=z_Sig_Weight &
+         & )
 
     xyz_Lon(:,:,:) = spread(xy_Lon,3,kMax+1)
     xyz_Lat(:,:,:) = spread(xy_Lat,3,kMax+1)
@@ -148,12 +165,14 @@ contains
     A = 0d0; B = 0d0
     do k=1,kMax
        A(k,k-1:k) = 0.5d0
-       B(k) = g_Sig(k-1) - g_Sig(k)
+       B(k) = z_Sig(k-1) - z_Sig(k)
     end do
     A(1,0) = 1; A(kMax,kMax) = 1
 
     call DGELS('N', kMax, kMax+1, 1, A, kMax, B, kMax+1, Work, 2*(kMax+1), info)
     z_LyrThickSig(:) = b
+
+    z_LyrThickSig = z_Sig_Weight
 
   end subroutine GridSet_construct
 

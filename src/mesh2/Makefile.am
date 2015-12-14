@@ -29,7 +29,7 @@ CLEANFILES = *$(MODEXT)
 	main.f90
 
 noinst_LTLIBRARIES = libDQGModelMesh2.la
-nodist_libDQGModelMesh2_la_SOURCES = \
+dist_libDQGModelMesh2_la_SOURCES = \
 	MeshUsageMask_mod.f90 \
 	MeshUsageHelper_mod.f90 \
 	HexTriIcMesh_mod.f90

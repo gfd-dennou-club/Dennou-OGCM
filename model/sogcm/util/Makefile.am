@@ -27,14 +27,14 @@ noinst_LTLIBRARIES=
 
 noinst_LTLIBRARIES += libSpmlUtil.la
 
-nodist_libSpmlUtil_la_SOURCES= \
+dist_libSpmlUtil_la_SOURCES= \
 	at_module_omp.f90 \
 	SpmlUtil_mod2.f90
 
 ##########
 
 noinst_LTLIBRARIES += libDSOGCMUtil.la 
-nodist_libDSOGCMUtil_la_SOURCES= \
+dist_libDSOGCMUtil_la_SOURCES= \
 	UnitConversion_mod.f90 \
 	EOS_Linear_mod.f90 \
 	EOS_SimpleNonLinear_mod.f90 \

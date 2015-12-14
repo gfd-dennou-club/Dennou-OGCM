@@ -24,7 +24,7 @@ CLEANFILES = *$(MODEXT)
 noinst_LTLIBRARIES= \
 	libDSOGCMPhysicsDriver.la
 
-nodist_libDSOGCMPhysicsDriver_la_SOURCES= \
+dist_libDSOGCMPhysicsDriver_la_SOURCES= \
 	PhysicsDriver_mod.f90
 
 libDSOGCMPhysicsDriver_la_LIBADD= \

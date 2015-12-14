@@ -1,0 +1,79 @@
+#+TITLE: 大気海洋海氷結合モデルによる水惑星実験
+#+AUTOHR: 河合 佑太
+#+LANGUAGE: ja
+#+OPTIONS: H:2 ^:{}
+#+HTML_MATHJAX: align:"left" mathml:t path:"http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></SCRIPT>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./../org.css" />
+#+LaTeX_HEADER: \usepackage{natbib}
+
+#+NAME: create_link
+#+BEGIN_SRC ruby :: result value raw :exports none :var labels="hoge1,hoge2,hoge3" :var fileName="exp_Ah1e{3,4,5}Pl341L60/config.nml" :var fileDirPath="./expdata_inhomoFluid/"
+  require 'pathname'
+  labelStrs = labels.split(",")
+
+  str = "| "
+
+  fileNameStr = Dir.glob("#{fileDirPath}#{fileName}")
+  labelStrs.each_with_index{|label,i|
+     str << " [[file:#{fileNameStr[i]}][#{label}]] |"
+  }
+
+  return str
+#+END_SRC
+
+#+NAME: create_FigsTable
+#+BEGIN_SRC ruby ::results value raw :exports none :var caption="ほほげほげ" :var figPicsPath="hoge{1,2}.png" :var dirPath="./expdata_inhomoFluid/common/" :var figName="hoge"
+    require 'pathname'
+
+    str =  "#+CAPTION: #{caption}.\n" 
+    str << "#+NAME: fig:#{figName} \n" << "|"
+
+    figPicPathStrs = Dir.glob("#{dirPath}#{figPicsPath}")
+    
+
+    figPicPathStrs.each{|figPath|
+      figThumbPath = Pathname(figPath).sub(/\.[^.]+$/,  "_thumb.png")
+      str << "[[file:#{figPath}][file:#{figThumbPath}]] |" 
+    }
+    str << "\n"
+    return str
+#+END_SRC
+
+* 概要
+
+# 水惑星設定の大気海洋海氷結合系において実現される気候状態の探索に向けて, ここでは現在地球に対応するパラメータを
+# 用いて結合系による水惑星実験を実施する. 本数値実験は, 水惑星の気候の太陽定数依存性を調べる際の標準実験である. 
+
+* モデルと設定
+
+- 系の設定
+- モデル
+- 実験設定
+
+* 結果
+
+** 標準実験
+
+- 平衡状態に至るまでの系の時間遷移
+ - [[./Exp_APECoupledAOGCMSeaice_result_transit_glmean.html][全球平均値]]
+ - 海洋・海氷表面
+ 
+- 系の平均的な様子
+ - [[./Exp_APECoupledAOGCMSeaice_result_velocity.html][風速, 流速の様子]]
+ - [[./Exp_APECoupledAOGCMSeaice_result_tempEtc.html][温度, 水蒸気, 塩分, 海氷の様子]]
+ - [[./Exp_APECoupledAOGCMSeaice_result_surfFlux.html][地表面フラックス]] (準備中)
+ - [[./Exp_APECoupledAOGCMSeaice_result_energyTrans.html][南北エネルギー輸送]] (準備中)
+
+** 太陽定数依存性
+
+- 平衡状態に至るまでの系の時間遷移の比較
+ - [[./Exp_APECoupledAOGCMSeaice_Sdepend_result_transit_glmean.html][全球積分値]]
+ - 海洋・海氷表面
+
+- 系の平均的な様子の比較
+ - [[./Exp_APECoupledAOGCMSeaice_Sdepend_result_velocity.html][風速, 流速の様子]]
+ - [[./Exp_APECoupledAOGCMSeaice_Sdepend_result_tempEtc.html][温度, 水蒸気, 塩分, 海氷の様子]]
+ - 地表面フラックス (準備中)
+ - 南北エネルギー輸送 (準備中)
+
+* まとめ

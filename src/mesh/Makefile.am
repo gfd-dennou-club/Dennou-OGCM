@@ -24,7 +24,7 @@ CLEANFILES = *$(MODEXT)
 	main.f90
 
 noinst_LTLIBRARIES = libDQGModelMesh.la
-nodist_libDQGModelMesh_la_SOURCES = \
+dist_libDQGModelMesh_la_SOURCES = \
 	PolyMesh_mod.f90 \
 	VoronoiGen2_mod.f90 \
 	SVoronoiGen2_mod.f90 \

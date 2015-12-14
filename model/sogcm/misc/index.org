@@ -91,11 +91,14 @@
 
 - テスト計算
 
-
+  
 ** 大気海洋海氷結合モデル
 
+- モデルの記述
+
 - テスト計算
-  
+  - 大気海洋海氷結合モデルによる水惑星実験 
+    - [[../experiment/exp_APECoupledAOGCMSeaice/Exp_APECoupledAOGCMSeaice.html][標準実験, 太陽定数依存性]]
 
 
 
@@ -114,6 +117,7 @@
     - Winton(2000) の 3 層海氷熱力学モデルの定式化について([[file:./../../../omeeting/fy2015/20150520/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20150520/presen/src/omeeting_20150520.pptx][pptx ファイル]])
 
 - 海洋モデルミーティング
+    - 2015/12/08 ([[file:./../../../omeeting/fy2015/20151208/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20151110/presen/src/omeeting_20151208.pptx][pptx ファイル]])
     - 2015/11/10 ([[file:./../../../omeeting/fy2015/20151110/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20151110/presen/src/omeeting_20151110.pptx][pptx ファイル]])
     - 2015/10/05 ([[file:./../../../omeeting/fy2015/20151005/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20151005/presen/src/omeeting_20151005.pptx][pptx ファイル]])
     - 2015/09/09 ([[file:./../../../omeeting/fy2015/20150909/presen/pub/index.html][発表資料]], [[file:./../../../omeeting/fy2015/20150909/presen/src/omeeting_20150909.pptx][pptx ファイル]])
@@ -124,7 +128,7 @@
 
 * 海洋モデルミーティングログ
 
-#+CALL: create_MeetingLogTable("2015", "{2015-{11-10,10-05,09-09,07-27,06-17,05-20}}") :results value raw :exports results
+#+CALL: create_MeetingLogTable("2015", "{2015-{12-08,11-10,10-05,09-09,07-27,06-17,05-20}}") :results value raw :exports results
 
 #+CALL: create_MeetingLogTable("2014", "{2015-{03-17,02-18},01-21,2014-{12-17,11-17,07-16,06-26,05-28,04-23}}") :results value raw :exports results
 

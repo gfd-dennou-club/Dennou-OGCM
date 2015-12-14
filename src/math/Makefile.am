@@ -23,7 +23,7 @@ CLEANFILES = *$(MODEXT)
 	main.f90
 
 noinst_LTLIBRARIES = libDQGModelMath.la
-nodist_libDQGModelMath_la_SOURCES = \
+dist_libDQGModelMath_la_SOURCES = \
 	vector2d_mod.f90 \
 	vector3d_mod.f90 \
 	dotProd_vector2d_mod.f90 \
