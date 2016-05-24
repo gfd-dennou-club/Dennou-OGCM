@@ -31,7 +31,7 @@ module HydroBoudEq_TimeInteg_v2_mod
 
   use GridSet_mod, only: &
        & iMax, jMax, kMax, lMax, nMax, tMax, &
-       & xyz_Lat, xyz_Lon
+       & xyz_Lat, xyz_Lon, z_LyrThickSig
 
   use SpmlUtil_mod
 
@@ -173,6 +173,9 @@ contains
 
     use BoundaryCondO_mod, only: &
          & apply_VBoundaryCondO
+
+    use TemporalIntegSet_mod, only: &
+         & CurrentTime
     
     ! 宣言文; Declaration statement
     !
@@ -261,6 +264,11 @@ contains
             & )
            
 
+    call apply_VBoundaryCondO( &
+         & xyz_UN, xyz_VN, xyz_PTempEddN, xyz_SaltN,     & ! (inout)
+         & xyz_VViscCoefN, xyz_VDiffCoefN                & ! (in)
+         & )
+    
     !
     !
     !
@@ -284,7 +292,6 @@ contains
 
     call TemporalIntegUtil_SetDelTime(DelTime)
     
-    !
     
     !
     do Stage=1, nStage_BarocTimeInt
@@ -294,13 +301,17 @@ contains
             & DelTauBaroc, CoriolisTermACoef, VDiffTermACoef, VDiffTermACoef &  ! (in)
             & )
 
-       !$omp parallel workshare
+       !$omp parallel
+       !$omp workshare
        xyz_U_RHSEx = 0d0; xyz_V_RHSEx = 0d0; xyz_PTemp_RHSEx = 0d0; xyz_Salt_RHSEx = 0d0
        xyz_U_RHSIm = 0d0; xyz_V_RHSIm = 0d0; xyz_PTemp_RHSIm = 0d0; xyz_Salt_RHSIm = 0d0
-       !$omp end parallel workshare
+       !$omp end workshare
+       !$omp end parallel 
        xy_ForceUBaroc(:,:) = 0d0; xy_ForceVBaroc(:,:) = 0d0
-       xy_UBarot(:,:) = xy_IntSig_BtmToTop_xyz(xyz_U)
-       xy_VBarot(:,:) = xy_IntSig_BtmToTop_xyz(xyz_V)
+
+
+       call calc_IntSig_BtmToTop(xy_UBarot, xyz_U)
+       call calc_IntSig_BtmToTop(xy_VBarot, xyz_V)
        
        select case(timeIntMode) !======================================================================      
        case(timeIntMode_Euler)  !***** Using Euler scheme *******************
@@ -356,8 +367,9 @@ contains
           
           select case(Stage)
           case(1)
-             xy_UBarotOld(:,:) = xy_IntSig_BtmToTop_xyz(xyz_UB)
-             xy_VBarotOld(:,:) = xy_IntSig_BtmToTop_xyz(xyz_VB)
+             call calc_IntSig_BtmToTop(xy_UBarotOld, xyz_UB)
+             call calc_IntSig_BtmToTop(xy_VBarotOld, xyz_VB)
+
              xy_SurfPressOld(:,:) = xy_SurfPressB
 !             xy_SurfPress = 1.5d0*xy_SurfPressN - 0.5d0*xy_SurfPressB !1d0/3d0*xy_SurfPressN + 1d0/3d0*xy_SurfPressB
              
@@ -365,28 +377,62 @@ contains
              call calc_ExplTermWithPhysicsRHS(xyz_U_RHSEx, xyz_V_RHSEx, xyz_PTemp_RHSEx, xyz_Salt_RHSEx, 'D', .true. )
              call calc_VViscRHS(xyz_U_RHSIm, xyz_V_RHSIm, xyz_PTemp_RHSIm, xyz_Salt_RHSIm, 'B', 1d0, .false.);
           case(2)
-             xy_UBarotOld(:,:) = xy_IntSig_BtmToTop_xyz(xyz_UN)
-             xy_VBarotOld(:,:) = xy_IntSig_BtmToTop_xyz(xyz_VN)             
+             call calc_IntSig_BtmToTop(xy_UBarotOld, xyz_UN)
+             call calc_IntSig_BtmToTop(xy_VBarotOld, xyz_VN)
              xy_SurfPressOld(:,:) = xy_SurfPressN
 !             xy_SurfPress = 0.5d0*(xy_SurfPressA + xy_SurfPressN)!2d0*xy_SurfPressN - xy_SurfPressB
              
              call calc_ExplRHS(xyz_U_RHSEx, xyz_V_RHSEx, xyz_PTemp_RHSEx, xyz_Salt_RHSEx, xy_SurfHeight_RHSEx, 'D', 'N'); 
+!!$          if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$             write(*,*) "RHSEx=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTemp_RHSEx)*xy_totDepthBasic), &
+!!$                  AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt_RHSEx)*xy_totDepthBasic)
+!!$          end if
              call calc_ExplTermWithPhysicsRHS(xyz_U_RHSEx, xyz_V_RHSEx, xyz_PTemp_RHSEx, xyz_Salt_RHSEx, 'D', .true. )
+!!$          if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$             write(*,*) "RHSEx=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTemp_RHSEx)*xy_totDepthBasic), &
+!!$                  AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt_RHSEx)*xy_totDepthBasic)
+!!$          end if
              call calc_VViscRHS(xyz_U_RHSIm, xyz_V_RHSIm, xyz_PTemp_RHSIm, xyz_Salt_RHSIm, 'N', 1d0, .false.);
           end select          
+!!$          if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$             write(*,*) "--> RHSEx=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTemp_RHSEx)*xy_totDepthBasic), &
+!!$                                    AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt_RHSEx)*xy_totDepthBasic)
+!!$             write(*,*) "--> RHSIm=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTemp_RHSIm)*xy_totDepthBasic), &
+!!$                                    AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt_RHSIm)*xy_totDepthBasic)
+!!$          end if
+
           call add_ImplRHS_into_RHS();
-          
           call timeInt_LFAM3(Stage)
        end select              !=====================================================================================
 
        !
+
+!!$    if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$       write(*,*) "Before VBC -----------------------"
+!!$       write(*,*) "PTempEdd=", &
+!!$            RefDens*Cp0*AvrLonLat_xy( (xyz_PTempEdd(:,:,0)-xyz_PTempEddN(:,:,0))*z_LyrThickSig(0)*xy_totDepthBasic(:,:))/DelTime, &
+!!$            RefDens*Cp0*AvrLonLat_xy( (xyz_PTempEdd(:,:,kMax)-xyz_PTempEddN(:,:,kMax))*z_LyrThickSig(kMax)*xy_totDepthBasic(:,:))/DelTime
+!!$       call check_CpT()
+!!$    end if
+
+       call DealiasingStep()
+
        call apply_VBoundaryCondO( &
             & xyz_U, xyz_V, xyz_PTempEdd, xyz_Salt,     & ! (inout)
             & xyz_VViscCoefN, xyz_VDiffCoefN            & ! (in)
             & )
 
+
+!!$    if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$       write(*,*) "After VBC -----------------------"
+!!$       write(*,*) "PTempEdd=", &
+!!$            RefDens*Cp0*AvrLonLat_xy( (xyz_PTempEdd(:,:,0)-xyz_PTempEddN(:,:,0))*z_LyrThickSig(0)*xy_totDepthBasic(:,:))/DelTime, &
+!!$            RefDens*Cp0*AvrLonLat_xy( (xyz_PTempEdd(:,:,kMax)-xyz_PTempEddN(:,:,kMax))*z_LyrThickSig(kMax)*xy_totDepthBasic(:,:))/DelTime
+!!$       call check_surfflx(xyz_PTempEdd)
+!!$       call check_CpT()
+!!$    end if
+
        !
-       call DealiasingStep()
        
     end do  ! End of do loop for a multi-stage temporal scheme.
 
@@ -406,9 +452,52 @@ contains
     !$omp end parallel
     
 !    xyz_VViscCoefA(:,:,:) = xyz_VViscCoef
-!    xyz_VDiffCoefA(:,:,:) = xyz_VDiffCoef
+    !    xyz_VDiffCoefA(:,:,:) = xyz_VDiffCoef
 
+    if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+       write(*,*) "After -----------------------"
+!       call check_surfflx(xyz_PTempEdd)
+       call check_CpT()
+       call check_Salt()
+!       write(*,*) "************************************"
+    end if
+    
     contains
+      subroutine check_CpT()
+        use BoundaryCondO_mod, only: xy_SurfHFlxO
+
+        !        real(DP), intent(in) :: xyz_PTempEdd(0:iMax-1,jMax,0:kMax)
+        real(DP) :: heatbudget
+
+        heatbudget = RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTempEdd - xyz_PTempEddN)*xy_totDepthBasic)
+        write(*,*) "check CpT=", heatbudget/DelTime, -AvrLonLat_xy(xy_SurfHFlxO)
+      end subroutine check_CpT
+      subroutine check_Salt()
+        use BoundaryCondO_mod, only: xy_SurfFwFlxO
+
+        !        real(DP), intent(in) :: xyz_PTempEdd(0:iMax-1,jMax,0:kMax)
+        real(DP) :: saltbudget
+        real(DP), parameter :: RefSalt = 35d0
+
+        saltbudget = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt - xyz_SaltN)*xy_totDepthBasic)
+        write(*,*) "check Salt=", saltbudget/DelTime, -AvrLonLat_xy(xy_SurfFwFlxO)*RefSalt
+      end subroutine check_Salt
+
+      subroutine check_surfflx(xyz_PTempEdd)
+
+
+        use BoundaryCondO_mod, only: xy_SurfHFlxO
+        
+        real(DP), intent(in) :: xyz_PTempEdd(0:iMax-1,jMax,0:kMax)
+         
+        real(DP) :: xyz_DSigPTemp(0:iMax-1,jMax,0:kMax)
+        
+        xyz_DSigPTemp = xyz_DSig_xyz(xyz_PTempEdd)
+         write(*,*) "--", &
+              & AvrLonLat_xy(RefDens*Cp0*xyz_VDiffCoefN(:,:,0)*xyz_DSigPTemp(:,:,0)/xy_totDepthBasic), &
+              & "glmean given surfHFlx:", AvrLonLat_xy(xy_SurfHFlxO)
+
+      end subroutine check_surfflx
       
       subroutine calc_ExplRHS( &
            & xyz_URHS, xyz_VRHS, xyz_PTempRHS, xyz_SaltRHS, xy_SurfHeightRHS, & 
@@ -439,22 +528,22 @@ contains
         if (isCoriTermSemiImplicit .and. present(SemiImplicit_tLevel)) then
            select case(SemiImplicit_tLevel)
            case('B')
-              xy_UBarotCori(:,:) = xy_IntSig_BtmToTop_xyz(xyz_UB);
-              xy_VBarotCori(:,:) = xy_IntSig_BtmToTop_xyz(xyz_VB);
+             call calc_IntSig_BtmToTop( xy_UBarotCori, xyz_UB)
+             call calc_IntSig_BtmToTop( xy_VBarotCori, xyz_VB)
               xyz_UrfCori(:,:,:) = xyz_UB; xyz_VrfCori(:,:,:) = xyz_VB
            case('N')
-              xy_UBarotCori(:,:) = xy_IntSig_BtmToTop_xyz(xyz_UN);
-              xy_VBarotCori(:,:) = xy_IntSig_BtmToTop_xyz(xyz_VN);
+             call calc_IntSig_BtmToTop( xy_UBarotCori, xyz_UN)
+             call calc_IntSig_BtmToTop( xy_VBarotCori, xyz_VN)
               xyz_UrfCori(:,:,:) = xyz_UN; xyz_VrfCori(:,:,:) = xyz_VN
            case default
               stop
            end select
         else
-           xy_UBarotCori(:,:) = xy_IntSig_BtmToTop_xyz(xyz_U)
-           xy_VBarotCori(:,:) = xy_IntSig_BtmToTop_xyz(xyz_V)
+           call calc_IntSig_BtmToTop( xy_UBarotCori, xyz_U)
+           call calc_IntSig_BtmToTop( xy_VBarotCori, xyz_V)
            xyz_UrfCori(:,:,:) = xyz_U; xyz_VrfCori(:,:,:) = xyz_V
         end if
-
+        
         xyz_UrfCori = (xyz_UrfCori - spread(xy_UBarotCori,3,kMax+1))*xyz_CosLat
         xyz_VrfCori = (xyz_VrfCori - spread(xy_VBarotCori,3,kMax+1))*xyz_CosLat
         xy_ForceUBaroc = 0d0!- 2d0*Omega*sin(xyz_Lat(:,:,0))*xy_VBarotCori
@@ -475,7 +564,7 @@ contains
                    & hViscCoef, hHyperViscCoef, hDiffCoef, hHyperDiffCoef,            &  ! (in)
                    & xyz_UrfCori, xyz_VrfCori                                         &  ! (in)
                    & )
-        end select
+       end select
 
       end subroutine calc_ExplRHS
 
@@ -551,6 +640,10 @@ contains
            & )
 
         use SGSEddyMixing_mod, only: SGSEddyMixing_AddMixingTerm
+        use TemporalIntegSet_mod, only: DelTime, CurrentTime
+        use VariableSet_mod, only: xyz_ConvIndex
+        use SGSConvAdjust_mod, only: &
+             & SGSConvAdjust_perform
 
         ! 宣言文; Declaration statement
         !
@@ -565,6 +658,9 @@ contains
         character :: tLvl
         logical :: isRHSReplace
         integer :: k
+        real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_PTempTmp, xyz_SaltTmp
+        logical, dimension(0:iMax-1,jMax, 0:kMax) :: xyz_adjustedFlag
+        integer :: nTStep
 
         ! 実行文; Executable statement
         !
@@ -575,6 +671,24 @@ contains
         if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_EDDYMIX_NAME)) then
            call SGSEddyMixing_AddMixingTerm(xyz_PTempRHS, xyz_SaltRHS, &
                 & xyz_PTempBasic + xyz_PTempEdd, xyz_Salt, xy_totDepthBasic + xy_SurfHeight)
+        end if
+
+!!$
+        if(isPhysicsCompActivated(GOVERNEQSET_PHYSICS_CONVADJUST_NAME)) then
+
+           xyz_PTempTmp = xyz_PTempEdd + xyz_PTempBasic
+           xyz_SaltTmp = xyz_Salt
+           call SGSConvAdjust_perform( xyz_PTempTmp, xyz_SaltTmp, &
+                & xy_totDepthBasic+xy_SurfHeight, xyz_adjustedFlag )
+
+           !$omp parallel
+           !$omp workshare
+           xyz_PTempRHS = xyz_PTempRHS + &
+                (xyz_PTempTmp - xyz_PTempEdd - xyz_PTempBasic)/DelTauBaroc
+           xyz_SaltRHS = xyz_SaltRHS + &
+                (xyz_SaltTmp - xyz_Salt)/DelTauBaroc
+           !$omp end workshare
+           !$omp end parallel
         end if
 
       end subroutine calc_ExplTermWithPhysicsRHS
@@ -623,13 +737,17 @@ contains
 !!$
            !
            nTStep = CurrentTime/DelTime
+           !$omp parallel
+           !$omp workshare
            where(xyz_adjustedFlag)
               xyz_ConvIndex = (xyz_ConvIndex*nTStep + 1d0)/(nTStep + 1d0)
            elsewhere
               xyz_ConvIndex = xyz_ConvIndex*nTStep/(nTStep + 1d0)              
            end where
 
-           xyz_PTempEdd(:,:,:) = xyz_PTemp - xyz_PTempBasic
+           xyz_PTempEdd = xyz_PTemp - xyz_PTempBasic
+           !$omp end workshare
+           !$omp end parallel
         end if
 
       end subroutine perform_adjustmentProcess
@@ -639,12 +757,14 @@ contains
         ! 実行文; Executable statement
         !
 
-        !$omp parallel workshare
+        !$omp parallel
+        !$omp workshare
         xyz_U_RHSEx(:,:,:) = xyz_U_RHSEx + xyz_U_RHSIm
         xyz_V_RHSEx(:,:,:) = xyz_V_RHSEx + xyz_V_RHSIm
         xyz_PTemp_RHSEx(:,:,:) = xyz_PTemp_RHSEx + xyz_PTemp_RHSIm
         xyz_Salt_RHSEx(:,:,:)  = xyz_Salt_RHSEx + xyz_Salt_RHSIm
-        !$omp end parallel workshare
+        !$omp end workshare
+        !$omp end parallel
 
 !        if( .not. isVImplicitProc ) then
            xy_ForceUBaroc(:,:) = xy_ForceUBaroc + xy_IntSig_BtmToTop_xyz(xyz_U_RHSEx)
@@ -680,9 +800,18 @@ contains
              & DelTauBaroc, CoriolisTermACoef                             &  ! (in)
              & )
 
-
-        xyz_U(:,:,:) = xyz_U + spread(-xy_IntSig_BtmToTop_xyz(xyz_U) + xy_UBarotA, 3, kMax+1)
-        xyz_V(:,:,:) = xyz_V + spread(-xy_IntSig_BtmToTop_xyz(xyz_V) + xy_VBarotA, 3, kMax+1)
+        xy_UBarotA = xy_UBarotA - xy_IntSig_BtmToTop_xyz(xyz_U)
+        xy_VBarotA = xy_VBarotA - xy_IntSig_BtmToTop_xyz(xyz_V)
+        !$omp parallel
+        !$omp do
+        do k=0, kMax
+           xyz_U(:,:,k) = xyz_U(:,:,k) + xy_UBarotA
+        end do
+        !$omp do
+        do k=0, kMax
+           xyz_V(:,:,k) = xyz_V(:,:,k) + xy_VBarotA
+        end do
+        !$omp end parallel
 
 !!$        call Advance_BarotEqStep2( &
 !!$             & xyz_U, xyz_V, xy_SurfPressA, xy_SurfPress, DelTauBaroc)
@@ -703,10 +832,11 @@ contains
 
         !
         !
-        real(DP), dimension(0:iMax-1,jMax) :: xy_DUTmp, xy_CoriImpFac
+        real(DP), dimension(0:iMax-1,jMax) :: xy_DUBarot, xy_DVBarot, xy_DUTmp, xy_CoriImpFac
         real(DP), dimension(0:iMax-1,jMax,0:kMax) :: xyz_U_RHSEx_, xyz_V_RHSEx_
         integer :: k
-        
+        real(DP) :: xyz_Tmp(0:iMax-1,jMax,0:kMax) 
+
         ! 実行文; Executable statement
         !
         if( .not. isVImplicitProc ) then
@@ -714,6 +844,12 @@ contains
                 & 'VImplicitProcFlag is set to .false., but ImplicitProc has been called.')
         end if
 
+!!$          if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$             write(*,*) "BEFORE Impl."
+!!$             write(*,*) "--> RHS=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTemp_RHSEx)*xy_totDepthBasic),  &
+!!$                  AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt_RHSEx)*xy_totDepthBasic)
+!!$             
+!!$          end if
 
         call Advance_VImplicitProc_DeltaForm_xyz( &
              & xyz_DU, xyz_DV, xyz_DPTempEdd, xyz_DSalt, xy_SurfPressA,             & ! (out)
@@ -722,15 +858,18 @@ contains
              & DynBC_Surface, DynBC_Bottom, ThermBC_Surface, ThermBC_Bottom, SaltBC_Surface, SaltBC_Bottom &  !(in)
              & )
 
-        xy_ForceUBaroc(:,:) = xy_IntSig_BtmToTop_xyz(xyz_DU)/DelTauBaroc
-        xy_ForceVBaroc(:,:) = xy_IntSig_BtmToTop_xyz(xyz_DV)/DelTauBaroc
+        call calc_IntSig_BtmToTop( xy_DUBarot, xyz_DU )
+        call calc_IntSig_BtmToTop( xy_DVBarot, xyz_DV )
 
-        xyz_DU = xyz_DU - spread(xy_IntSig_BtmToTop_xyz(xyz_DU), 3, kMax+1)
-        xyz_DV = xyz_DV - spread(xy_IntSig_BtmToTop_xyz(xyz_DV), 3, kMax+1)
-
+        xy_ForceUBaroc(:,:) = xy_DUBarot / DelTauBaroc 
+        xy_ForceVBaroc(:,:) = xy_DVBarot / DelTauBaroc 
         xy_CoriImpFac(:,:) = CoriolisTermACoef*DelTauBaroc*2d0*Omega*sin(xyz_Lat(:,:,0))        
+
         !$omp parallel do private(xy_DUTmp)
         do k=0, kMax
+           xyz_DU(:,:,k) = xyz_DU(:,:,k) - xy_DUBarot
+           xyz_DV(:,:,k) = xyz_DV(:,:,k) - xy_DVBarot
+           
            xy_DUTmp = xyz_DU(:,:,k)
            xyz_DU(:,:,k) = (xyz_DU(:,:,k) + xy_CoriImpFac*xyz_DV(:,:,k))/(1d0 + xy_CoriImpFac**2)
            xyz_DV(:,:,k) = (xyz_DV(:,:,k) - xy_CoriImpFac*xy_DUTmp(:,:))/(1d0 + xy_CoriImpFac**2)
@@ -772,49 +911,72 @@ contains
          !
          real(DP), dimension(0:iMax-1,jMax,0:kMax) :: &
               & xyz_DU, xyz_DV, xyz_DPTempEdd, xyz_DSalt
+         integer :: k
 
          !
          call ImplicitProc(xyz_DU, xyz_DV, xyz_DPTempEdd, xyz_DSalt)
          
-         !$omp parallel
-         !$omp sections
-         !$omp section
-         xyz_U(:,:,:)        = timeIntLFAM3_IMEX(xyz_UN, xyz_UB, xyz_DU, Stage, AM3=.false.)
-         !$omp section
-         xyz_V(:,:,:)        = timeIntLFAM3_IMEX(xyz_VN, xyz_VB, xyz_DV, Stage, AM3=.false.)
-         !$omp section
-         xyz_PTempEdd(:,:,:) = timeIntLFAM3_IMEX(xyz_PTempEddN, xyz_PTempEddB, xyz_DPTempEdd, Stage, AM3=.false.)
-         !$omp section
-         xyz_Salt(:,:,:)     = timeIntLFAM3_IMEX(xyz_SaltN, xyz_SaltB, xyz_DSalt, Stage, AM3=.false.)
-         !$omp section
-         xy_SurfHeight(:,:)  = 0d0
-         !$omp end sections
-         !$omp end parallel
+         select case (Stage)
+         case (1)
+            !$omp parallel 
+            !$omp workshare
+            xyz_U = xyz_UB + xyz_DU
+            xyz_V = xyz_VB + xyz_DV
+            xyz_PTempEdd = xyz_PTempEddB + xyz_DPTempEdd
+            xyz_Salt = xyz_SaltB + xyz_DSalt
+            !$omp end workshare
+            !$omp end parallel
+            xy_SurfHeight = 0d0
+         case(2)
+            !$omp parallel 
+            !$omp workshare
+            xyz_U = xyz_UN + xyz_DU
+            xyz_V = xyz_VN + xyz_DV
+            xyz_PTempEdd = xyz_PTempEddN + xyz_DPTempEdd
+            xyz_Salt = xyz_SaltN + xyz_DSalt
+            !$omp end workshare
+            !$omp end parallel
+            xy_SurfHeight = 0d0
+         end select
          
          call BarotEqStep(xyz_U, xyz_V)
-         
-         call perform_adjustmentProcess(xyz_PTempEdd, xyz_Salt, &   ! (inout)
-              & xy_SurfHeight)                                      ! (in)
+
+!!$        if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$           write(*,*) "After Implicit -----------------------"
+!!$           write(*,*) "CpT==",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_DPTempEdd/DelTauBaroc)*xy_totDepthBasic), &
+!!$                AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_DSalt/DelTauBaroc)*xy_totDepthBasic)
+!!$           write(*,*) "CpT check2==",  &
+!!$                RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyz_PTemp_RHSex )*xy_totDepthBasic ),  &
+!!$                AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt_RHSex/DelTauBaroc)*xy_totDepthBasic)
+!!$        end if
+!!$
+!!$
+!!$        if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$           write(*,*) "Before Conv -----------------------"
+!!$           call check_CpT()
+!!$        end if
+!!$         write(*,*) "Skip conv adjustment.."
+!!$         call perform_adjustmentProcess(xyz_PTempEdd, xyz_Salt, &   ! (inout)
+!!$              & xy_SurfHeight)                                      ! (in)
+
+!!$        if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$           write(*,*) "After Conv -----------------------"
+!!$           call check_CpT()
+!!$        end if
 
          
          !
          !
          if(Stage == 1) then
             !$omp parallel
-            !$omp sections
-            !$omp section
-            xyz_U(:,:,:)        = timeIntLFAM3_IMEX(xyz_UN, xyz_UB, xyz_U, Stage, AM3=.true.)
-            !$omp section
-            xyz_V(:,:,:)        = timeIntLFAM3_IMEX(xyz_VN, xyz_VB, xyz_V, Stage, AM3=.true.)
-            !$omp section
-            xyz_PTempEdd(:,:,:) = timeIntLFAM3_IMEX(xyz_PTempEddN, xyz_PTempEddB, xyz_PTempEdd, Stage, AM3=.true.)
-            !$omp section
-            xyz_Salt(:,:,:)     = timeIntLFAM3_IMEX(xyz_SaltN, xyz_SaltB, xyz_Salt, Stage, AM3=.true.)
-            !$omp section
-            xy_SurfHeight(:,:)  = 0d0
-!!$            xy_SurfPress(:,:) = timeIntLFAM3_IMEX(xy_SurfPressN, xy_SurfPressB, xy_SurfPress, Stage, AM3=.true.)            
-            !$omp end sections
+            !$omp workshare
+            xyz_U = (5d0*xyz_U + 8d0*xyz_UN - xyz_UB)/12d0
+            xyz_V = (5d0*xyz_V + 8d0*xyz_VN - xyz_VB)/12d0
+            xyz_PTempEdd = (5d0*xyz_PTempEdd + 8d0*xyz_PTempEddN - xyz_PTempEddB)/12d0
+            xyz_Salt = (5d0*xyz_Salt + 8d0*xyz_SaltN - xyz_SaltB)/12d0
+            !$omp end workshare
             !$omp end parallel
+            xy_SurfHeight(:,:)  = 0d0
          end if
        end subroutine timeInt_LFAM3
        
@@ -852,18 +1014,55 @@ contains
 
 
        subroutine DealiasingStep
+         
+         use GridSet_mod, only: nMax
 
-         call wz_VectorCosLat2VorDiv(xyz_U*xyz_CosLat, xyz_V*xyz_CosLat, &
-              & wz_Vor, wz_Div)
-         call wz_VorDiv2VectorCosLat(wz_Vor, wz_Div, &
-              & xyz_U, xyz_V)
+         use w_zonal_module_sjpack
 
-         xyz_U(:,:,:) = xyz_U/xyz_CosLat
-         xyz_V(:,:,:) = xyz_V/xyz_CosLat
-         xyz_PTempEdd(:,:,:) = xyz_wz(wz_xyz(xyz_PTempEdd))
-         xyz_Salt(:,:,:) = xyz_wz(wz_xyz(xyz_Salt))         
+         integer :: k
+         real(DP) :: wz_PTempEdd(lMax,0:kMax)
+         real(DP) :: wz_Salt(lMax,0:kMax)
+         real(DP) :: w_LaplaEigVal(lMax)
+         real(DP) :: w_HDifCoefH(lMax)
+         real(DP) :: w_HDifCoefM(lMax)
+         integer, parameter :: HDOrder = 8
+         real(DP), parameter :: HDEFoldTimeSec = 5*86400d0
+         real(DP) :: VisCoef
+         
+
+         w_LaplaEigVal = rn(:,1) / RPlanet**2
+         VisCoef = ( nMax*(NMax + 1) / RPlanet**2 )**(-HDOrder/2) / HDEFoldTimeSec
+         w_HDifCoefH = - VisCoef * ( ( - W_LaplaEigVal )**(HDOrder/2) )
+         w_HDifCoefM = w_HDifCoefH - VisCoef * ( - (2d0/RPlanet**2)**(HDOrder/2) )
+
+         call wz_VectorCosLat2VorDiv( xyz_U*xyz_CosLat, xyz_V*xyz_CosLat, &
+              wz_Vor, wz_Div )
+         !$omp parallel do
+         do k=0, kMax
+            wz_Vor(:,k) = (1d0 / (1d0 - DelTauBaroc * w_HDifCoefM))*wz_Vor(:,k)
+            wz_Div(:,k) = (1d0 / (1d0 - DelTauBaroc * w_HDifCoefM))*wz_Div(:,k)
+         end do
+         call wz_VorDiv2VectorCosLat( wz_Vor, wz_Div, &
+              xyz_U, xyz_V )
+
+         !$omp parallel do
+         do k=0 ,kMax
+            xyz_U(:,:,k) = xyz_U(:,:,k)/xyz_CosLat(:,:,k)
+            xyz_V(:,:,k) = xyz_V(:,:,k)/xyz_CosLat(:,:,k)
+         end do
+
+         wz_PTempEdd = wz_xyz(xyz_PTempEdd)
+         wz_Salt = wz_xyz(xyz_Salt)
+         !$omp parallel do
+         do k=0, kMax
+            wz_PTempEdd(:,k) = (1d0 / (1d0 - DelTauBaroc * w_HDifCoefH))*wz_PTempEdd(:,k)
+            wz_Salt(:,k) = (1d0 / (1d0 - DelTauBaroc * w_HDifCoefH))*wz_Salt(:,k)
+         end do
+         xyz_PTempEdd = xyz_wz(wz_PTempEdd)
+         xyz_Salt = xyz_wz(wz_Salt)
 
        end subroutine DealiasingStep
+
 
 !!$
 !!$       subroutine replace_RHS_with_VBCTIntRHS( wz_VorRHS, wz_DivRHS, wz_PTempRHS, wz_SaltRHS )
@@ -955,9 +1154,11 @@ contains
          call calc_vViscDiffCoef_MixLyrSimple( xyz_VViscCoefMixLyr, xyz_VDiffCoefMixLyr, &
               & xyz_Depth )
 
-!!$         xyz_VViscCoef(:,:,:) = vViscCoef; xyz_VDiffCoef(:,:,:) = vDiffCoef
          xyz_VViscCoef(:,:,:) = xyz_VViscCoefMixLyr + 1d-3!vViscCoef
          xyz_VDiffCoef(:,:,:) = xyz_VDiffCoefMixLyr + vDiffCoef
+
+!!$         xyz_VViscCoef(:,:,:) = vViscCoef;
+!!$         xyz_VDiffCoef(:,:,:) = vDiffCoef
          return
 
          xyz_RefPress = 0d0
@@ -976,8 +1177,8 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine calc_vViscDiffCoef_MixLyrSimple( &
-       & xyz_VViscCoef, xyz_VDiffCoef, &
-       & xyz_Depth &
+       & xyz_VViscCoef, xyz_VDiffCoef,           &
+       & xyz_Depth      &
        & )
 
     real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(out) :: xyz_VViscCoef, xyz_VDiffCoef
@@ -1083,16 +1284,21 @@ contains
     t(1:kMax-1) = g_Sig(0:kMax-2) - g_Sig(1:kMax-1)
     s(1:kMax-1) = g_Sig(1:kMax-1) - g_Sig(2:kMax)
 
-    !$omp parallel do
+    !$omp parallel
+    !$omp do
     do k=1,kMax-1
        xyz_Dz_xyz(:,:,k) = &
             & (s(k)**2*xyz(:,:,k-1) - (s(k)**2-t(k)**2)*xyz(:,:,k) - t(k)**2*xyz(:,:,k+1)) &
             & /(s(k)*t(k)*(s(k) + t(k)))/xy_totDepthBasic
     end do
+    
+    !$omp workshare
     xyz_Dz_xyz(:,:,0) = &
          & (xyz(:,:,0) - xyz(:,:,1))/(g_Sig(0) - g_Sig(1))/xy_totDepthBasic
     xyz_Dz_xyz(:,:,kMax) = &
          & (xyz(:,:,kMax-1) - xyz(:,:,kMax))/(g_Sig(kMax-1) - g_Sig(kMax))/xy_totDepthBasic
+    !$omp end workshare
+    !$omp end parallel
 
   end function xyz_Dz_xyz
 

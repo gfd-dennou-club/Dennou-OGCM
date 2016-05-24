@@ -75,6 +75,10 @@ contains
     use GridSet_mod, only: &
          & iMax, jMax, kMax
 
+!!$    use Constants_mod
+!!$    use gtool_history
+!!$    use gtool_historyauto_internal
+
     ! 宣言文; Declaration statement
     !
     type(DataFileSet), intent(inout) :: this
@@ -84,6 +88,7 @@ contains
     ! Local variable
     !
     character(STRING) :: outputFileName
+!!$    type(gt_history), pointer :: hst
 
     ! 実行文; Executable statements
     !
@@ -103,13 +108,20 @@ contains
          & dimsizes=(/iMax, jMax, kMax+1, 2, 0 /),                      &
          & longnames=(/'longitude   ', 'latitude    ', 'sigma       ',  &
          &             'sigma-seaice', 'time        '   /),             &
-         & units=(/'degree_east ', 'degree_north', '1              ',   &
+         & units=(/'degree_east ', 'degree_north', '1           ',      &
          &         '1           ', 'sec.        ' /),                   &
          & origin=RestartTime, interval=this%outputIntrvalSec, terminus=EndTime,          &
          & namelist_filename=configNmlFileName )    
 
     ! Regist the axises and variables which will be output. 
     call regist_OutputAxisAndVar()
+
+!!$    call HstNmlInfoEndDefine(gthstnml)
+!!$    hst => null()
+!!$    call HstNmlInfoAssocGtHist(gthstnml, "SurfHFlxAI", hst)
+!!$    call HistoryAddAttr( "SurfHFlxAI", &
+!!$         "missing_value", UNDEFVAL, hst )
+!!$    if( .not. associated(hst)) write(*,*) "NULL!!"
  
   end subroutine DataFileSet_Init
 
@@ -249,6 +261,7 @@ contains
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SNOWTHICK, xy_SnowThickN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SICETEMP, xyz_SIceTempN)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SICESURFTEMP, xy_SIceSurfTempN)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SICEEN, xya_SIceEnN)
     
   end subroutine DataFileSet_OutputData
 
@@ -294,18 +307,19 @@ contains
 
     ! モジュール引用;
     ! Use statements
-    use Constants_mod, only: PI
+    use Constants_mod, only: &
+         PI, UNDEFVAL
 
     use GridSet_mod, only: &
-         & iMax, jMax, kMax, &
-         & xyz_Lon, xyz_Lat, z_Sig,                                      &
-         & x_Lon_Weight, y_Lat_Weight, z_Sig_Weight,                     &
-         & lonName => GRIDSET_KEY_XAXIS, latName  => GRIDSET_KEY_YAXIS,  &
-         & sigName => GRIDSET_KEY_ZAXIS, sig2Name => GRIDSET_KEY_ZAXIS2, &
-         & timeName => GRIDSET_KEY_TAXIS, &
-         & GRIDSET_KEY_LYRTHICKSIG
+         iMax, jMax, kMax, &
+         xyz_Lon, xyz_Lat, z_Sig,                                      &
+         x_Lon_Weight, y_Lat_Weight, z_Sig_Weight,                     &
+         lonName => GRIDSET_KEY_XAXIS, latName  => GRIDSET_KEY_YAXIS,  &
+         sigName => GRIDSET_KEY_ZAXIS, sig2Name => GRIDSET_KEY_ZAXIS2, &
+         timeName => GRIDSET_KEY_TAXIS, &
+         GRIDSET_KEY_LYRTHICKSIG
 
-    
+
     ! 宣言文; Declaration statement
     !
 
@@ -407,7 +421,7 @@ contains
 
     call HistoryAutoAddVariable( varname=VARSET_KEY_SICETEMP, &
          & dims=dims_XYZ2T, longname='sea-ice temperature ', units='K')  
-
+    
     call HistoryAutoAddVariable( varname=VARSET_KEY_SICETEMPB, &
          & dims=dims_XYZ2T, longname='sea-ice temperature ', units='K')  
     
@@ -431,7 +445,10 @@ contains
     !
     call HistoryAutoAddVariable( varName=VARSET_KEY_SICESURFTEMP, &
          & dims=dims_XYT, longname='Surface temperature of snow or ice layer', units='degC')
-    
+
+    call HistoryAutoAddVariable( varName=VARSET_KEY_SICEEN, &
+         & dims=dims_XYZ2T, longname='Enthalpy  of each ice layer', units='J.m-2')
+
     ! Regist accessory variables
     !
     call HistoryAutoAddVariable( varname=GRIDSET_KEY_LYRTHICKSIG, &

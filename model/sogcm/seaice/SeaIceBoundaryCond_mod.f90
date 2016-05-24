@@ -39,7 +39,19 @@ module SeaIceBoundaryCond_mod
        & AlbedoOcean, AlbedoSnow, AlbedoMeltSnow, AlbedoIce, &
        & EmissivOcean, EmissivSnow, EmissivIce, &
        & I0, &
-       & BaseMeltHeatTransCoef
+       & BaseMeltHeatTransCoef, &
+       & IceMaskMin
+
+  use BoundCondSet_mod, only: &
+       & inquire_VBCSpecType, &
+       & ThermBCTYPE_PrescFixedFlux, ThermBCTYPE_PrescFlux, ThermBCTYPE_Adiabat, &
+       & ThermBCTYPE_PresFlux_Han1984Method, &
+       & ThermBCTYPE_PrescTemp, ThermBCTYPE_TempRelaxed,                         & 
+       & SaltBCTYPE_PrescFixedFlux, SaltBCTYPE_PrescFlux, SaltBCTYPE_Adiabat, &
+       & SaltBCTYPE_PrescSalt, SaltBCTYPE_SaltRelaxed, &
+       & SaltBCTYPE_PresFlux_Han1984Method, &
+       & KinBC_Surface, DynBC_Surface, ThermBC_Surface, SaltBC_Surface, &
+       & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, SaltBC_Bottom 
   
   ! 宣言文; Declareration statements
   !
@@ -62,7 +74,12 @@ module SeaIceBoundaryCond_mod
   character(*), parameter:: module_name = 'SeaIceBoundaryCond_mod' !< Module Name
 
   integer, parameter :: DEBUG_j = -1
-  
+
+  logical :: init_SurfTempAIOSetFlag
+  logical :: init_SurfTempOSetFlag
+  real(DP), allocatable :: xy_SurfTempAIOIni(:,:)
+  real(DP), allocatable :: xy_SurfTempOIni(:,:)
+
 contains
 
   !>
@@ -72,6 +89,9 @@ contains
 
     ! 実行文; Executable statements
     !
+
+    init_SurfTempAIOSetFlag = .false.
+    init_SurfTempOSetFlag = .false.
 
   end subroutine SeaIceBoundaryCond_Init
 
@@ -98,7 +118,10 @@ contains
 
     ! モジュール引用; use statements
     !
-    
+    use BoundaryCondO_mod, only: xy_SWUWRFLX, xy_LWUWRFlx
+
+    use Constants_mod, only: UNDEFVAL
+
     ! 宣言文; Declaration statement
     !
     real(DP), intent(out), dimension(0:iMax-1,jMax) :: &
@@ -113,16 +136,28 @@ contains
     ! Local variables
     !
     real(DP), dimension(0:iMax-1,jMax) :: xy_Emissivity, xy_Albedo
-    
+    integer :: i, j
+
     ! 実行文; Executable statement
     !
     
-    where(xy_SIceCon < 1d0)
-       xy_Albedo = AlbedoOcean; xy_Emissivity = EmissivOcean
-    end where
-    call calcSurfHFlux( xy_SurfHFlxAO, xy_Albedo, xy_Emissivity, xy_SurfTempO)
 
-    where( xy_SIceCon <= 0d0)
+    xy_Albedo = AlbedoOcean; xy_Emissivity = EmissivOcean
+    call calcSurfHFlux( xy_SurfHFlxAO, xy_Albedo, xy_Emissivity, xy_SurfTempO, xy_DSurfHFlxDTsTmp, &
+         & xy_DSurfHFlxDTsAI )
+    select case(ThermBC_Surface)
+    case(ThermBCTYPE_PresFlux_Han1984Method)
+       if (.not. init_SurfTempOSetFlag) then
+          allocate(xy_SurfTempOIni(0:iMax-1,jMax))
+          xy_SurfTempOIni = xy_SurfTempO
+          init_SurfTempOSetFlag = .true.
+       end if
+       xy_SurfHFlxAO(:,:) = xy_SurfHFlxAO(:,:)                   &
+            + ( 4d0*xy_Emissivity*(SBConst*xy_SurfTempOIni**3) + xy_DSurfHFlxDTsTmp ) &
+               *( xy_SurfTempO - xy_SurfTempOIni )
+    end select
+
+    where( xy_SIceCon <= IceMaskMin)
     elsewhere( xy_SnowThick <= 0d0)
        xy_Albedo = AlbedoIce; xy_Emissivity = EmissivIce
        xy_PenSWRFlxSI = - I0*(1d0 - xy_Albedo)*xy_SWDWRFlx       
@@ -133,10 +168,43 @@ contains
        xy_Albedo = AlbedoSnow; xy_Emissivity = EmissivSnow
        xy_PenSWRFlxSI = 0d0
     end where
+    
+!!$    !$omp parallel do private(i)
+!!$    do j=1, jMax
+!!$       do i=0, iMax-1
+!!$          if (xy_SIceCon(i,j) <= IceMaskMin) then
+!!$             xy___
+!!$          else
+!!$          end if
+!!$       end do
+!!$    end do
     call calcSurfHFlux( xy_SurfHFlxAI, &
          & xy_Albedo, xy_Emissivity, xy_SurfTemp, xy_DSurfHFlxDTsTmp, &
          & xy_DSurfHFlxDTsAI)
-    
+
+!!$    write(*,*) "Albedo=", xy_Albedo(0,:)
+!!$    write(*,*) "SWDWRFlx=", xy_SWDWRFlx(0,:)
+!!$    write(*,*) "Pen=", xy_PenSWRFlxSI(0,:)
+!!$    write(*,*) "SIceCon=", xy_SIceCon(0,:)
+!!$    write(*,*) "SurfTemp=", xy_SurfTemp(0,:)
+
+!!$    select case(ThermBC_Surface)
+!!$    case(ThermBCTYPE_PresFlux_Han1984Method)
+!!$       if (.not. init_SurfTempAIOSetFlag) then
+!!$          allocate(xy_SurfTempAIOIni(0:iMax-1,jMax))
+!!$          xy_SurfTempAIOIni = xy_SurfTemp
+!!$          init_SurfTempAIOSetFlag = .true.
+!!$       end if
+!!$       xy_SurfHFlxAI(:,:) = xy_SurfHFlxAI(:,:)                   &
+!!$            + ( 4d0*xy_Emissivity*(SBConst*xy_SurfTempAIOIni**3) + xy_DSurfHFlxDTsTmp ) &
+!!$               *( xy_SurfTemp - xy_SurfTempAIOIni )
+!!$    end select
+
+    where( xy_SIceCon <= IceMaskMin ) 
+       xy_SurfHFlxAI = 0d0
+       xy_PenSWRFlxSI = 0d0
+    end where
+
 !    write(*,*) xy_SurfHFlxAO
 !!$    write(*,*) "* SIceSurfFlx:", "albedo=", xy_Albedo(0,DEBUG_j), "Emissivty=", xy_Emissivity(0,DEBUG_j), &
 !!$         & "LI=", - xy_LatentDWHFlx(0,DEBUG_j), "SI=", - xy_SensDWHFlx(0,DEBUG_j), &
@@ -170,6 +238,20 @@ contains
       !$omp end workshare
       !$omp end parallel
 
+!!$      !$omp parallel
+!!$      !$omp workshare
+!!$      xy_SurfHFlux(:,:) = &
+!!$           & - xy_LatentDWHFlx - xy_SensDWHFlx        &
+!!$           & - (xy_LWDWRFlx - xy_LWUWRFlx)            &
+!!$           & - (1d0 - xy_Albedo)*xy_SWDWRFlx          
+!!$      !$omp end workshare
+!!$      !$omp end parallel
+
+
+!      write(*,*) xy_LWUWRFlx(0,:)
+!      write(*,*) SBConst*xy_SurfTemp(0,:)**4
+!      stop
+
       if(present(xy_DSurfHFlxDTs)) then
          !$omp parallel
          !$omp workshare
@@ -189,8 +271,8 @@ contains
   !! @param xy_BtmHFlx bottom heat flux from ocean (oceanic heat flux)  (positive upward) [W/m2]  
   !! @param xy_SurfTempO Temperature of ocea surface [Units: K]  
   !!
-  subroutine calc_BottomHeatFluxSIce( xy_BtmHFlxIO, &
-       & xy_FreezePot, xy_FreezeTempO, &
+  subroutine calc_BottomHeatFluxSIce( xy_BtmHFlxIO,                    &
+       & xy_FreezePot, xy_FreezeTempO,                                 &
        & xy_SIceCon, xy_SurfUO, xy_SurfVO, xy_SurfTempO, xy_SurfSaltO, &
        & DelTime )
 
@@ -216,6 +298,7 @@ contains
     real(DP), dimension(0:iMax-1,jMax), intent(in) :: &
          & xy_FreezePot, xy_FreezeTempO, xy_SIceCon, &
          & xy_SurfUO, xy_SurfVO, xy_SurfTempO, xy_SurfSaltO
+    
     real(DP), intent(in) :: DelTime
     
     ! 局所変数

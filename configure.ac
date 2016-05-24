@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 # Package name, version, email address for bug report
-AC_INIT([Dennou-OGCM],[1.0.0],[ykawai@gfd-dennou.org])
+AC_INIT([Dennou-OGCM],[1.0.1],[ykawai@gfd-dennou.org])
 
 # Set macro directory
 AC_CONFIG_MACRO_DIR([m4])
@@ -165,6 +165,24 @@ DC_ARG_WITH([spml],
 DC_SET_LIBDIR_LIBNAME($ac_cv_lib_spml, spml_libdir, spml_libname)
 DC_SET_MODDIR($ac_cv_lib_spml, spml_moddir)
 
+
+#
+# * LAPACK
+#
+DC_ARG_WITH([lapack],
+            [lapack library],
+            [ac_cv_lib_lapack])
+if test x"$ac_cv_lib_lapack" !=  x"no" ; then
+  DC_SET_LIBDIR_LIBNAME($ac_cv_lib_lapack, lapack_libdir, lapack_libname)
+  SYSLDFLAGS="-L${lapack_libdir} ${SYSLDFLAGS}"
+  SYSLIBS="-l${lapack_libname} ${SYSLDLIBS}"
+elif test $ac_cv_lib_lapack = "no" ; then
+  AC_MSG_NOTICE([Dennou-OGCM is configued without LAPACK library...])
+else
+  AC_MSG_ERROR([Specified library file $ac_cv_lib_lapack does not exist])
+fi
+
+
 #
 # * dsogcm run mode
 #
@@ -243,8 +261,8 @@ esac
 #
 # * set flags
 #
-SYSLDFLAGS="-L$spml_libdir -L$ispack_libdir -L$gtool5_libdir $SYSLDFLAGS -L$netcdff_libdir -L$netcdf_libdir -L/usr/lib/ -L/usr/lib/"
-SYSLDLIBS="-l$spml_libname -l$ispack_libname -l$gtool5_libname $SYSLDLIBS -l$netcdff_libname -l$netcdf_libname -llapack -lblas"
+SYSLDFLAGS="-L$spml_libdir -L$ispack_libdir -L$gtool5_libdir  -L$netcdff_libdir -L$netcdf_libdir $SYSLDFLAGS"
+SYSLDLIBS="-l$spml_libname -l$ispack_libname -l$gtool5_libname -l$netcdff_libname -l$netcdf_libname $SYSLDLIBS"
 SYSFFLAGS="$ax_cv_fortran_modflag$netcdf_incdir $ax_cv_fortran_modflag$gtool5_moddir $ax_cv_fortran_modflag$spml_moddir $SYSFFLAGS"
 
 AC_SUBST(SYSLDLIBS)

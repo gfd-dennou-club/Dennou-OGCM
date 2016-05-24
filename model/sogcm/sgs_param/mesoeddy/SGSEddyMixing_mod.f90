@@ -194,6 +194,10 @@ contains
        & xyz_PTemp, xyz_Salt, xy_totDepth                              &  ! (in)
        & )
 
+    use Constants_mod
+    use TemporalIntegSet_mod, only: &
+         & CurrentTime
+
     ! 宣言文; Declaration statement
     !
     real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: xyz_PTempRHS, xyz_SaltRHS
@@ -246,22 +250,33 @@ contains
 !    call check_StaticStability(xyz_T, xyz_DensPot)
 
     !
-    xyz_PTempRHS(:,:,:) = xyz_PTempRHS + calc_IsopycDiffTerm(wz_PTemp, xyz_PTemp)
-    xyz_SaltRHS(:,:,:)  = xyz_SaltRHS  + calc_IsopycDiffTerm(wz_Salt, xyz_Salt)
+    call calc_IsopycDiffTerm(xyz_PTempRHS, wz_PTemp, xyz_PTemp)
+    call calc_IsopycDiffTerm(xyz_SaltRHS, wz_Salt, xyz_Salt)
+
+!!$    if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$       write(*,*) "RHSEx+IsoDiff=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTempRHS)*xy_totDepthBasic), &
+!!$            AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_SaltRHS)*xy_totDepthBasic)
+!!$    end if
 
     if(SGSEddyMixType == SGSEddyMixing_GM90) then
-       xyz_PTempRHS(:,:,:) = xyz_PTempRHS + calc_EddyInducedVelAdvTerm(wz_PTemp, xyz_PTemp)
-       xyz_SaltRHS(:,:,:)  = xyz_SaltRHS + calc_EddyInducedVelAdvTerm(wz_Salt, xyz_Salt)
+       call calc_EddyInducedVelAdvTerm(xyz_PTempRHS, wz_PTemp, xyz_PTemp)
+       call calc_EddyInducedVelAdvTerm(xyz_SaltRHS, wz_Salt, xyz_Salt)
     end if
 
+!!$    if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$       write(*,*) "RHSEx+GM=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTempRHS)*xy_totDepthBasic), &
+!!$            AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_SaltRHS)*xy_totDepthBasic)
+!!$    end if
+
   contains
-    function calc_IsopycDiffTerm(wz_Tracer, xyz_Tracer) result(xyz_DiffTerm)
+    subroutine calc_IsopycDiffTerm(xyz_RHS, wz_Tracer, xyz_Tracer)
 
       ! 宣言文; Declaration statement
       !
+      real(DP), intent(inout) :: xyz_RHS(0:iMax-1,jMax,0:kMax)
       real(DP), intent(in) :: wz_Tracer(lMax,0:kMax)
       real(DP), intent(in) :: xyz_Tracer(0:iMax-1,jMax,0:kMax)
-      real(DP) :: xyz_DiffTerm(0:iMax-1,jMax,0:kMax)
+
 
       ! 局所変数
       ! Local variables
@@ -275,19 +290,20 @@ contains
            & xyz_Tracer, wz_Tracer, xyz_SLon, xyz_SLat, xyz_T, xyz_Depth &  !(in)
            & )
 
-      xyz_DiffTerm(:,:,:) = &
-           &    xyz_wz(wz_AlphaOptr_xyz(xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat)) &
-           & +  xyz_Dz_xyz(xyz_FSig)
+      xyz_RHS = xyz_RHS &
+           & +  xyz_wz(wz_AlphaOptr_xyz(xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat)) &
+           &  +xyz_Dz_xyz(xyz_FSig)
+!           & + xyz_DSig_xyz(xyz_FSig)/spread(xy_totDepthBasic,3,kMax+1) 
 
-    end function calc_IsopycDiffTerm
+    end subroutine calc_IsopycDiffTerm
 
-    function calc_EddyInducedVelAdvTerm(wz_Tracer, xyz_Tracer) result(xyz_AdvTerm)
+    subroutine calc_EddyInducedVelAdvTerm(xyz_RHS, wz_Tracer, xyz_Tracer)
 
       ! 宣言文; Declaration statement
       !
+      real(DP), intent(inout) :: xyz_RHS(0:iMax-1,jMax,0:kMax)
       real(DP), intent(in) :: wz_Tracer(lMax,0:kMax)
       real(DP), intent(in) :: xyz_Tracer(0:iMax-1,jMax,0:kMax)
-      real(DP) :: xyz_AdvTerm(0:iMax-1,jMax,0:kMax)
 
       ! 局所変数
       ! Local variables
@@ -322,11 +338,19 @@ contains
 !!$           &    xyz_Tracer*xyz_wz(wz_AlphaOptr_xyz(xyz_EddInducedU*xyz_CosLat, xyz_EddInducedV*xyz_CosLat)) &
 !!$           &  - xyz_EddInducedW*xyz_Dz_xyz(xyz_Tracer) &
 !!$           &   )
-      xyz_AdvTerm(:,:,:) = &
-           &   xyz_wz(wz_AlphaOptr_xyz( xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat )) &
-           & + xyz_Dz_xyz(xyz_FSig)
+      xyz_RHS = xyz_RHS &
+           & + xyz_wz(wz_AlphaOptr_xyz( xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat )) &
+           &  +xyz_Dz_xyz(xyz_FSig)
+!           & + xyz_DSig_xyz(xyz_FSig)/spread(xy_totDepthBasic,3,kMax+1) !xyz_Dz_xyz(xyz_FSig)
 
-    end function calc_EddyInducedVelAdvTerm
+!!$    if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+!!$       write(*,*) "RHSEx+GMhori=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
+!!$            xyz_wz(wz_AlphaOptr_xyz( xyz_FLon*xyz_CosLat, xyz_FLat*xyz_CosLat )) )*xy_totDepthBasic)
+!!$       write(*,*) "RHSEx+GMVert=",  RefDens*Cp0*AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
+!!$            xyz_DSig_xyz(xyz_FSig))/xy_totDepthBasic * xy_totDepthBasic)
+!!$    end if
+
+    end subroutine  calc_EddyInducedVelAdvTerm
 
   end subroutine SGSEddyMixing_AddMixingTerm
 
@@ -405,15 +429,19 @@ contains
 
     xyz_DzT(:,:,:) = xyz_Dz_xyz(xyz_Tracer)
 
-    !$omp parallel do
+    !$omp parallel 
+    !$omp do
     do k=1, kMax-1
        xyz_PsiLon(:,:,k) = - Kappa_GM*xyz_T(:,:,k)*xyz_SLat(:,:,k)
        xyz_PsiLat(:,:,k) =   Kappa_GM*xyz_T(:,:,k)*xyz_SLon(:,:,k)       
     end do
 
+    !$omp workshare
     xyz_PsiLat(:,:,0) = 0d0; xyz_PsiLon(:,:,0) = 0d0
     xyz_PsiLat(:,:,kMax) = 0d0; xyz_PsiLon(:,:,kMax) = 0d0
-    
+    !$omp end workshare
+    !$omp end parallel
+
     if(DFM08Flag) then
        call TaperingDFM08_GM(xyz_PsiLon, xyz_PsiLat, &
             & DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb, xyz_Depth )

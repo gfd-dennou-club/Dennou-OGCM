@@ -95,19 +95,23 @@ contains
     real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: &
          & xyz_PTemp, xyz_Salt
     real(DP), intent(in) :: xy_totDepth(0:iMax-1,jMax)
-    logical, intent(inout) :: xyz_isAdjustOccur(0:iMax-1,jMax, 0:kMax)
-
+    logical, intent(out) :: xyz_isAdjustOccur(0:iMax-1,jMax, 0:kMax)
+    
     ! 局所変数
     ! Local variables
     !
     integer :: i, j
     real(DP), dimension(0:kMax) ::  z_PTemp, z_Salt
+    logical, dimension(0:kMax) :: z_isAdjustOccur
+    real(DP) :: TotPTemp, TotSalt
     
     ! 実行文; Executable statement
     !
 
+!!$    TotPTemp = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTemp))
+!!$    TotSalt = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt))
 
-    !$omp parallel do private(i, z_PTemp, z_Salt)
+    !$omp parallel do private(i, z_PTemp, z_Salt, z_isAdjustOccur) schedule(guided)
     do j=1,jMax
        do i=0,iMax-1
           z_PTemp(:) = xyz_PTemp(i,j,:)
@@ -115,12 +119,18 @@ contains
 
           call SGSConvAdjust_perform(z_PTemp, z_Salt,      & !(inout)
                & xy_totDepth(i,j)*z_LyrThickSig(:),        & !(in)
-               & xyz_isAdjustOccur(i,j,:) )
+               & z_isAdjustOccur(:) )
 
           xyz_PTemp(i,j,:) = z_PTemp(:)
           xyz_Salt(i,j,:) = z_Salt(:)
+          xyz_isAdjustOccur(i,j,:) = z_isAdjustOccur(:)
        end do
     end do
+
+!!$    TotPTemp = TotPTemp - AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_PTemp))
+!!$    TotSalt = TotSalt - AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyz_Salt))
+!!$
+!!$    write(*,*) "ConvAdjust Chk=", TotPTemp, TotSalt
     
   end subroutine SGSConvAdjust_perform_GCMDriver
 
@@ -133,7 +143,7 @@ contains
     ! 
     real(DP), dimension(0:kMax), intent(inout) :: z_PTemp, z_Salt
     real(DP), dimension(0:kMax), intent(in) :: z_LyrThick
-    logical, dimension(0:kMax), intent(inout) :: isAdjustOccur
+    logical, dimension(0:kMax), intent(out) :: isAdjustOccur
 
     ! 局所変数
     ! Local variables

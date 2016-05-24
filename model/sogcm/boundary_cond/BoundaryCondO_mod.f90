@@ -26,7 +26,7 @@ module BoundaryCondO_mod
   use SpmlUtil_mod
 
   use Constants_mod, only: &
-       & LatentHeat
+       & LatentHeat, AlbedoOcean
   
   use BoundCondSet_mod, only: &
        & inquire_VBCSpecType, &
@@ -66,6 +66,8 @@ module BoundaryCondO_mod
 
   character(*), parameter :: VARSET_KEY_SURFHFLXO   = 'SurfHFlxO'
   character(*), parameter :: VARSET_KEY_SURFFWFLXO  = 'SurfFwFlxO' 
+  character(*), parameter :: VARSET_KEY_SURFHFLXAI   = 'SurfHFlxAI'
+  character(*), parameter :: VARSET_KEY_SURFHFLXAO   = 'SurfHFlxAO'
 
   character(*), public, parameter :: VARSET_KEY_WINDSTRESSLAT = 'WindStressLat'
   character(*), public, parameter :: VARSET_KEY_WINDSTRESSLON = 'WindStressLon'
@@ -87,6 +89,10 @@ module BoundaryCondO_mod
   real(DP), public, save, allocatable :: xy_SurfHFlxO(:,:)
 
   real(DP), public, save, allocatable :: xy_SurfHFlxIO(:,:)
+
+  real(DP), public, save, allocatable :: xy_SurfHFlxAI(:,:)
+
+  real(DP), public, save, allocatable :: xy_SurfHFlxAO(:,:)
   
   !< Freshwater flux at ocean surface (*upward positive*) [W/m2]   
   real(DP), public, save, allocatable :: xy_SurfFwFlxO(:,:)
@@ -106,6 +112,7 @@ module BoundaryCondO_mod
 
   real(DP), public, save, allocatable :: xy_DSurfHFlxDTs(:,:)
   real(DP), public, save, allocatable :: xy_DSurfLatentFlxDTs(:,:)
+  real(DP), public, save, allocatable :: xy_DLWRFlxDTs(:,:)
 
   !
   real(DP), parameter, public :: RefSalt_VBC = 35d0
@@ -149,12 +156,15 @@ contains
     call malloc2DVar(xy_SWDWRFlx); call malloc2DVar(xy_LWDWRFlx)
     call malloc2DVar(xy_SWUWRFlx); call malloc2DVar(xy_LWUWRFlx)
 
-    call malloc2DVar(xy_SurfHFlxIO); call malloc2DVar(xy_SurfFwFlxIO)
+    call malloc2DVar(xy_SurfHFlxIO); call malloc2DVar(xy_SurfHFlxAI); call malloc2DVar(xy_SurfHFlxAO)
+    call malloc2DVar(xy_SurfFwFlxIO)
     call malloc2DVar(xy_DSurfHFlxDTs)
     call malloc2DVar(xy_DSurfLatentFlxDTs)
-
-    xy_SurfHFlxIO = 0d0; xy_SurfFwFlxO = 0d0
-    xy_DSurfHFlxDTs = 0d0
+    call malloc2DVar(xy_DLWRFlxDTs)
+    
+    xy_SurfHFlxIO = 0d0; xy_SurfHFlxAI = 0d0; xy_SurfHFlxAO = 0d0
+    xy_SurfFwFlxO = 0d0
+    xy_DSurfHFlxDTs = 0d0; xy_DLWRFlxDTs = 0d0
 
     initSurfFlxSetFlag = .false.
     
@@ -190,9 +200,10 @@ contains
     deallocate( xy_Wrain, xy_Wsnow, xy_Wevap )
     deallocate( xy_LatentDWHFlx, xy_SensDWHFlx, xy_SWDWRFlx, xy_LWDWRFlx )
 
-    deallocate( xy_SurfHFlxIO, xy_SurfFwFlxIO )
+    deallocate( xy_SurfHFlxIO, xy_SurfFwFlxIO, xy_SurfHFlxAI, xy_SurfHFlxAO )
     deallocate( xy_DSurfHFlxDTs )
     deallocate( xy_DSurfLatentFlxDTs )
+    deallocate( xy_DLWRFlxDTs )
     
   end subroutine BoundaryCondO_Final
 
@@ -289,7 +300,11 @@ contains
     !
     use Constants_mod, only: &
          & StB, &
-         & AlbedoOcean, EmissivOcean
+         & AlbedoOcean, EmissivOcean, Cp0, RefDens
+
+    use TemporalIntegSet_mod, only: &
+         & CurrentTime
+    use SpmlUtil_mod, only: AvrLonLat_xy
     
     ! 宣言文; Declaration statement
     !
@@ -300,7 +315,6 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP), dimension(0:iMax-1,jMax) :: xy_SurfDWHFlx_AO
 
     ! 実行文; Executable statement
     !
@@ -309,6 +323,7 @@ contains
        call calc_SurfaceHeatFluxO_Han1984Method(xy_SurfHFlxO, &
             & xy_SurfTemp, xy_SIceCon)
     else
+
        !$omp parallel
        !$omp workshare
 !!$       xy_SurfDWHFlx_AO(:,:) = &
@@ -318,17 +333,26 @@ contains
 !!$            & + (1d0 - albedoOcean)*xy_SWDWRFlx        &
 !!$            & - emissivOcean*(StB*xy_SurfTemp**4)
 
-       xy_SurfDWHFlx_AO(:,:) = &
-            &   xy_LatentDWHFlx                            &
-            & + xy_SensDWHFlx                              &
-            & + (xy_LWDWRFlx - xy_LWUWRFlx)                &
-            & + (xy_SWDWRFlx - xy_SWUWRFlx)            
-
-
-       xy_SurfHFlxO(:,:) = -(1d0 - xy_SIceCon)*xy_SurfDWHFlx_AO + xy_SIceCon*xy_SurfHFlxIO
+       where (xy_SIceCon <= 0d0)
+          xy_SurfHFlxO = &
+               & - xy_LatentDWHFlx                            &
+               & - xy_SensDWHFlx                              &
+               & - (xy_LWDWRFlx - xy_LWUWRFlx)                &
+               & - (xy_SWDWRFlx - xy_SWUWRFlx)                &
+               & + xy_SurfHFlxIO
+               
+!            & + RefDens*Cp0*xy_SurfTemp*((xy_Wrain + xy_Wsnow) - xy_Wevap)
+       elsewhere
+          xy_SurfHFlxO = xy_SurfHFlxIO
+       end where
        !$omp end workshare
        !$omp end parallel
+       
     end if
+
+!!$    write(*,*) "DSOGCM: t=", CurrentTime, &
+!!$         & AvrLonLat_xy(xy_SurfHFlxO), &
+!!$         & AvrLonLat_xy(RefDens*Cp0*xy_SurfTemp*((xy_Wrain + xy_Wsnow) - xy_Wevap))
   end subroutine calc_SurfaceHeatFluxO
 
   !> @brief 
@@ -353,7 +377,7 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP), dimension(0:iMax-1,jMax) :: xy_SurfDWHFlx_AO, xy_Lambda
+    real(DP), dimension(0:iMax-1,jMax) :: xy_Lambda
 
     ! 実行文; Executable statement
     !
@@ -369,20 +393,26 @@ contains
 !!$    xy_SurfDWHFlx_AO(:,:) = xy_SurfDWHFlx_AO &
 !!$         & + xy_DSurfHFlxDTs*(xy_SeaSurfTemp - xy_SurfTemp)
 
-    xy_SurfDWHFlx_AO(:,:) = &
-         &   xy_LatentDWHFlx                        &
-         & + xy_SensDWHFlx                          &
-         & + (xy_LWDWRFlx - xy_LWUWRFlx)            &
-         & + (xy_SWDWRFlx - xy_SWUWRFlx)
+       where (xy_SIceCon <= 0d0)
+          xy_SurfHFlxO = &
+               & - xy_LatentDWHFlx                            &
+               & - xy_SensDWHFlx                              &
+               & - (xy_LWDWRFlx - xy_LWUWRFlx)                &
+               & - (1d0 - AlbedoOcean)*xy_SWDWRFlx                 !&
+!            & + RefDens*Cp0*xy_SurfTemp*((xy_Wrain + xy_Wsnow) - xy_Wevap)
 
-    xy_Lambda(:,:) = xy_DSurfHFlxDTs + 4d0*StB*xy_SeaSurfTemp**3
-    xy_SurfDWHFlx_AO(:,:) = &
-         & + xy_Lambda*((xy_SeaSurfTemp + xy_SurfDWHFlx_AO/xy_Lambda) - xy_SurfTemp)
-   
-    xy_SurfHFlxO(:,:) = -(1d0 - xy_SIceCon)*xy_SurfDWHFlx_AO + xy_SIceCon*xy_SurfHFlxIO
-    !$omp end workshare
-    !$omp end parallel
-!write(*,*) "modify check3:"        
+          xy_Lambda = xy_DSurfHFlxDTs + 4d0*StB*xy_SeaSurfTemp**3
+          xy_SurfHFlxO = &
+               & - xy_Lambda*((xy_SeaSurfTemp - xy_SurfHFlxO/xy_Lambda) - xy_SurfTemp) &
+               & + xy_SurfHFlxIO
+       elsewhere
+          xy_SurfHFlxO = xy_SurfHFlxIO
+       end where
+       !$omp end workshare
+       !$omp end parallel
+
+
+
   end subroutine calc_SurfaceHeatFluxO_Han1984Method
   
   
@@ -405,16 +435,23 @@ contains
     
     ! 実行文; Executable statement
     !
-    if(ThermBC_Surface == ThermBCTYPE_PresFlux_Han1984Method) then
+    if(SaltBC_Surface == SaltBCTYPE_PresFlux_Han1984Method) then
        call calc_SurfaceFreshWaterFluxO_Han1984Method( xy_SurfFwFlxO, &
             & xy_SurfTemp, xy_SIceCon, xy_Wice )
        
     else
+
+!!$       xy_SurfFwFlxO =    (xy_Wrain + xy_Wsnow) - xy_Wevap &
+!!$            &           + 0d0*xy_SurfFwFlxIO
+!!$return
        !$omp parallel
        !$omp workshare
-       xy_SurfFwFlxO(:,:) = &
-            &   (1d0 - xy_SIceCon)*((xy_Wrain + xy_Wsnow) - xy_Wevap) &
-            & + xy_SIceCon*(xy_Wrain - xy_Wice)
+       where (xy_SIceCon <= 0d0)
+          xy_SurfFwFlxO =    (xy_Wrain + xy_Wsnow) - xy_Wevap &
+               &           + xy_SurfFwFlxIO
+       elsewhere
+          xy_SurfFwFlxO = xy_SurfFwFlxIO
+       end where
        !$omp end  workshare
        !$omp end parallel
     end if
@@ -707,15 +744,31 @@ contains
     call HistoryAutoAddVariable( varName=VARSET_KEY_SURFHFLXO, &
          & dims=dims_XYT, longname='net heat flux at sea surface', units='W/m2')
 
+    call HistoryAutoAddVariable( varName=VARSET_KEY_SURFHFLXAI, &
+         & dims=dims_XYT, longname='net heat flux at sea surface (AI)', units='W/m2')
+
+    call HistoryAutoAddVariable( varName=VARSET_KEY_SURFHFLXAO, &
+         & dims=dims_XYT, longname='net heat flux at sea surface (AO)', units='W/m2')
+
     call HistoryAutoAddVariable( varName=VARSET_KEY_SURFFWFLXO, &
          & dims=dims_XYT, longname='freshwater flux at sea surface', units='m/s')
+
     
   end subroutine prepare_output
 
   subroutine output_surfaceFlux(CurrentTime)
+    use Constants_mod, only: UNDEFVAL
+
     real(DP), intent(in) :: CurrentTime
 
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHFLXO, xy_SurfHFlxO)
+    
+!!$    where ( xy_SurfHFlxAI == UNDEFVAL ) 
+!!$       xy_SurfHFlxAI = 0d0
+!!$    end where
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHFLXAI, xy_SurfHFlxAI)
+    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHFLXAO, xy_SurfHFlxAO)
+
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFFWFLXO, xy_SurfFwFlxO)
     
   end subroutine output_surfaceFlux

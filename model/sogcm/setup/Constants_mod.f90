@@ -26,8 +26,10 @@ module Constants_mod
   ! 公開変数
   ! Public variables
   !
+  real(DP), parameter, public :: UNDEFVAL = -9.9999D30
 
-  real(DP), parameter, public:: PI = 3.1415926535897932_DP
+  
+  real(DP), parameter, public :: PI = 3.1415926535897932_DP
                               ! $ \pi $ .
                               ! 円周率.  Circular constant
   real(DP), parameter, public:: GasRUniv = 8.314_DP

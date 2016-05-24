@@ -26,7 +26,8 @@ module SeaIceThermDyn_Winton2000_mod
        & KIce, KSnow, &
        & Mu, SaltSeaIce, FreezeTempSW, &
        & AlbedoSnow, AlbedoMeltSnow, AlbedoIce, &
-       & I0
+       & I0, &
+       & IceThickMin
        
   ! 宣言文; Declareration statements
   !
@@ -47,7 +48,7 @@ module SeaIceThermDyn_Winton2000_mod
 
   ! Service routines
   !
-  public :: calc_E_IceLyr1, calc_E_IceLyr2
+  public :: calc_E_IceLyr1, calc_E_IceLyr2, calc_Temp_IceLyr1, calc_Temp_IceLyr2
   
   ! 非公開手続き
   ! Private procedure
@@ -376,12 +377,12 @@ contains
     !
     
     dh2Freeze = 0d0
-    if(BtmMeltEn <= 0d0) then
+    if(BtmMeltEn < 0d0) then
        dh2Freeze = BtmMeltEn*dt/(DensIce*calc_E_IceLyr2(FreezeTempSW, SaltSeaIce))
        T2 = (dh2Freeze*FreezeTempSW + h2Old*T2)/(h2Old + dh2Freeze)
 
        if(hiOld_ == 0d0) then
-          if(dh2Freeze > 1d-4) then
+          if(dh2Freeze > IceThickMin) then
              ! The first layer temperature for intialized sea ice is calculated by adjust_IceLyrInternal.
              ! Before calculating the temperature, T1 need to be set *non* zero. 
              T1 = - Mu*SaltSeaIce
@@ -421,7 +422,7 @@ contains
     
     if(BtmMeltEn > 0d0) then
        E2 = calc_E_IceLyr2(T2, SaltSeaIce)
-       Work =BtmMeltEn*dt
+       Work = BtmMeltEn*dt
        dh2Melt = dh2Melt - min(-Work/(DensIce*E2), h2Old)
        
        E1 = calc_E_IceLyr1(T1, SaltSeaIce)
@@ -474,7 +475,9 @@ contains
 
        !
        if(dh1 > 0d0) then
-          hs = hs + dhs; h1_ = h1 + dh1
+          hs  = hs + dhs; 
+          h1_ = h1 + dh1
+          hi  = h1_ + h2
           call calc_NewTemp(T1Tmp, dummy, &
                & T1, -Mu*SaltSeaIce, h1/h1_)
           T1 = T1Tmp
@@ -501,13 +504,13 @@ contains
        T2 = T2Tmp
        
        if(T2 > - Mu*SaltSeaIce) then
-
-          T2 = - Mu*SaltSeaIce
           extraSE = 0.5d0*hi*( &
                & calc_E_IceLyr2(T2, SaltSeaIce) - calc_E_IceLyr2(-Mu*SaltSeaIce,SaltSeaIce) &
                & )
           dh = 2d0*extraSE/(calc_E_IceLyr1(T1,SaltSeaIce) + calc_E_IceLyr2(-Mu*SaltSeaIce,SaltSeaIce))
           hi = hi + dh
+          
+          T2 = - Mu*SaltSeaIce          
        end if
     end if
 
@@ -535,8 +538,29 @@ contains
   end subroutine adjust_IceLyrInternal
 
 !!!!!!!!!!!!!
+  elemental function calc_Temp_IceLyr1( &
+       & E1, S ) result(T1)
+
+    real(DP), intent(in) :: E1, S
+    real(DP) :: T1
+    real(DP) :: a, b, c
+    
+    a = CIce; b = CIce*Mu*s - LFreeze - E1; c = - LFreeze*Mu*S
+    T1 = 0.5d0*(- b - sqrt(b**2 - 4d0*a*c))/a
+    
+  end function calc_Temp_IceLyr1
+
+  elemental function calc_Temp_IceLyr2( &
+       & E2, S ) result(T2)
+
+    real(DP), intent(in) :: E2, S
+    real(DP) :: T2
+    
+    T2 = (E2 + LFreeze)/CIce - Mu*S
+    
+  end function calc_Temp_IceLyr2
   
-  function calc_E_IceLyr1(T, S) result(E)
+  elemental function calc_E_IceLyr1(T, S) result(E)
     ! 宣言文; Declaration statement
     !    
     real(DP), intent(in) :: T, S
@@ -547,10 +571,10 @@ contains
     
     E =     CIce*(T + Mu*S) &
          & - LFreeze*(1d0 + Mu*S/T)
-    
+
   end function calc_E_IceLyr1
   
-  function calc_E_IceLyr2(T, S) result(E2)
+  elemental function calc_E_IceLyr2(T, S) result(E2)
     ! 宣言文; Declaration statement
     !
     real(DP), intent(in) :: T, S

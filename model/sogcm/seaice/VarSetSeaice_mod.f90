@@ -54,6 +54,10 @@ module VarSetSeaice_mod
   real(DP), allocatable, public :: xyz_SIceTempN(:,:,:)
   real(DP), allocatable, public :: xyz_SIceTempB(:,:,:)
 
+  real(DP), allocatable, public :: xya_SIceEnA(:,:,:)
+  real(DP), allocatable, public :: xya_SIceEnN(:,:,:)
+  real(DP), allocatable, public :: xya_SIceEnB(:,:,:)
+
   real(DP), allocatable, public :: xy_IceThickA(:,:)
   real(DP), allocatable, public :: xy_IceThickN(:,:)
   real(DP), allocatable, public :: xy_IceThickB(:,:)
@@ -74,6 +78,8 @@ module VarSetSeaice_mod
   character(*), parameter, public :: VARSET_KEY_SICETEMPB = 'SIceTempB'
   character(*), parameter, public :: VARSET_KEY_SICESURFTEMPB = 'SIceSurfTempB'  
   
+  character(*), parameter, public :: VARSET_KEY_SICEEN = 'SIceEn'
+  character(*), parameter, public :: VARSET_KEY_SICEENB = 'SIceEnB'
 
   real(DP), allocatable, public :: xy_Wice(:,:)
   
@@ -105,6 +111,7 @@ contains
     call allocXY(xy_IceThickA, xy_IceThickN, xy_IceThickB)
     call allocXY(xy_SnowThickA, xy_SnowThickN, xy_SnowThickB)
     call allocXYZ(xyz_SIceTempA, xyz_SIceTempN, xyz_SIceTempB, nIceLyr)
+    call allocXYZ(xya_SIceEnA, xya_SIceEnN, xya_SIceEnB, nIceLyr)
 
     allocate( xy_Wice(0:iMax-1,jMax) )
     
@@ -162,6 +169,7 @@ contains
     deallocate( xyz_SIceTempA, xyz_SIceTempN, xyz_SIceTempB )
     deallocate( xy_SnowThickA, xy_SnowThickN, xy_SnowThickB )
     deallocate( xy_IceThickA, xy_IceThickN, xy_IceThickB )
+    deallocate( xya_SIceEnA, xya_SIceEnN, xya_SIceEnB )
 
     deallocate( xy_Wice )
     
@@ -194,6 +202,7 @@ contains
 
     xy_SIceSurfTempB = xy_SIceSurfTempN; xy_SIceSurfTempN = xy_SIceSurfTempA; xy_SIceSurfTempA = 0d0
     xyz_SIceTempB = xyz_SIceTempN; xyz_SIceTempN = xyz_SIceTempA; xyz_SIceTempA = 0d0
+    xya_SIceEnB = xya_SIceEnN; xya_SIceEnN = xya_SIceEnA; xya_SIceEnA = 0d0
     !$omp end workshare
     !$omp end parallel
     

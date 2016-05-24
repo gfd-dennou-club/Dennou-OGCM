@@ -249,7 +249,7 @@ contains
 !!$    wz_PTempEddB(:,:) = wz_PTempEddN; wz_PTempEddN(:,:) = wz_PTempEddA; wz_PTempEddA(:,:) = 0d0
 !!$    wz_SaltB(:,:) = wz_SaltN; wz_SaltN(:,:) = wz_SaltA; wz_SaltA(:,:) = 0d0
 !!$    !$omp end parallel workshare
-    
+
   end subroutine VariableSet_AdvanceTStep
 
 end module VariableSet_mod

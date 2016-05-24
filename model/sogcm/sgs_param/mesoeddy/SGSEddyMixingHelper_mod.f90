@@ -186,7 +186,9 @@ contains
     ! 局所変数
     ! Local variables
     !    
-    real(DP), dimension(0:iMax-1, jMax, 0:kMax) :: xyz_T1, xyz_T2
+    real(DP) :: xyz_T1(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_T2(0:iMax-1,jMax,0:kMax)
+
     
     ! 実行文; Executable statement
     !
@@ -199,19 +201,23 @@ contains
     
     select case(InteriorTaperingType)
     case(TAPERINGTYPE_GKW91_ID)
-       !$omp parallel workshare
+       !$omp parallel
+       !$omp workshare
        xyz_T1 = TaperingFunc_GKW91(xyz_SLon, xyz_SLat)
-       !$omp end parallel workshare       
+       !$omp end workshare
+       !$omp end parallel
     case(TAPERINGTYPE_DM95_ID)
-       !$omp parallel workshare       
+       !$omp parallel
+       !$omp workshare
        xyz_T1 = TaperingFunc_DM95(xyz_SLon, xyz_SLat)
-       !$omp end parallel workshare
-
+       !$omp end workshare
+       !$omp end parallel
     end select
 
     select case(PBLTaperingType)
     case(TAPERINGTYPE_LDD95_ID)
-       xyz_T2 = TaperingFunc_LDD95(xyz_SLon, xyz_SLat, xyz_Depth, xyz_T1)
+       call TaperingFunc_LDD95(xyz_T2, &
+            xyz_SLon, xyz_SLat, xyz_Depth, xyz_T1 )
     end select
     
 !!$    if(DFM08Flag) then
@@ -219,7 +225,8 @@ contains
 !!$            & xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth )
 !!$    end if
 
-    xyz_T = xyz_T1*xyz_T2
+    xyz_T = xyz_T1 * xyz_T2
+
   end subroutine prepare_SlopeTapering
   
   elemental function TaperingFunc_GKW91(SLon, SLat) result(f)
@@ -249,14 +256,14 @@ contains
 
   end function TaperingFunc_DM95
 
-  function TaperingFunc_LDD95(xyz_SLon, xyz_SLat, xyz_Depth, xyz_fDM95) result(xyz_f)
+  subroutine TaperingFunc_LDD95(xyz_f, xyz_SLon, xyz_SLat, xyz_Depth, xyz_fDM95)
 
     ! 宣言文; Declaration statement
     !
+    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(out) :: xyz_f
     real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: &
          & xyz_SLon, xyz_SLat, xyz_Depth
     real(DP), intent(inout) :: xyz_fDM95(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_f(0:iMax-1, jMax, 0:kMax)
 
 
     ! 局所変数
@@ -272,13 +279,14 @@ contains
     ! 実行文; Executable statement
     !
 
-    xy_BarocEddDispH = c/(2d0*Omega*abs(sin(xyz_Lat(:,:,0))))
+    !$omp parallel do private(i)
+    do j=1,jMax
+       do i=0, iMax-1
+          xy_BarocEddDispH(i,j) = c/(2d0*Omega*abs(sin(xyz_Lat(i,j,0))))
+          xy_BarocEddyDispZ(i,j) = SlopeMaxVal*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
+       end do
+    end do
     
-!!$    xyz_f = 1d0
-!!$    xyz_f(:,:,0) = 0d0; xyz_f(:,:,kMax) = 0d0
-!!$    return
-
-
 !!$    do k=0,kMax
 !!$       do j=1,jMax
 !!$          do i=0, iMax-1
@@ -295,13 +303,11 @@ contains
 !!$    end do
 !!$    return
 !!$    
-    do j=1,jMax
-       do i=0, iMax-1
-          xy_BarocEddyDispZ(i,j) = SlopeMaxVal*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
-       end do
-    end do
 
-    xyz_r(:,:,:) = 1d0
+    xyz_r = 1d0
+
+    !$omp parallel private(i, k, kStart, SlopeABSMax,tmpBarocEddyDispZ)
+    !$omp do 
     do j=1,jMax
        do i=0, iMax-1
 
@@ -336,13 +342,17 @@ contains
        end do
     end do
 
-    !
+    !$omp workshare
     xyz_f = 0.5d0*(1d0 + sin(PI*(xyz_r - 0.5d0)))
+    !$omp end workshare
+
+    !$omp end parallel
+
     !where(xyz_f /= 1d0)
     !   xyz_fDM95 = 1d0
     !end where
     
-  end function TaperingFunc_LDD95
+  end subroutine TaperingFunc_LDD95
 
   Subroutine LinearSlopeTapering(xyz_SLon, xyz_SLat, xyz_DensPot, xyz_Depth, &
     & xy_BLD )
@@ -604,20 +614,25 @@ contains
     t(1:kMax-1) = g_Sig(0:kMax-2) - g_Sig(1:kMax-1)
     s(1:kMax-1) = g_Sig(1:kMax-1) - g_Sig(2:kMax)
 
-    !$omp parallel do
+    !$omp parallel 
+    !$omp do
     do k=1,kMax-1
        xyz_Dz_xyz(:,:,k) = &
             & (s(k)**2*xyz(:,:,k-1) - (s(k)**2-t(k)**2)*xyz(:,:,k) - t(k)**2*xyz(:,:,k+1)) &
             & /(s(k)*t(k)*(s(k) + t(k)))/xy_totDepthBasic
     end do
+    
+    !$omp workshare
     xyz_Dz_xyz(:,:,0) = &
          & (xyz(:,:,0) - xyz(:,:,1))/(g_Sig(0) - g_Sig(1))/xy_totDepthBasic
     xyz_Dz_xyz(:,:,kMax) = &
          & (xyz(:,:,kMax-1) - xyz(:,:,kMax))/(g_Sig(kMax-1) - g_Sig(kMax))/xy_totDepthBasic
+    !$omp end workshare
 
-!!$ else
+    !$omp end parallel
+
 !!$        xyz_Dz_xyz = xyz_DSig_xyz(xyz)/spread(xy_totDepthBasic,3,kMax+1)
-!!$     end if
+
   end function xyz_Dz_xyz
   
 end module SGSEddyMixingHelper_mod

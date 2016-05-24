@@ -650,14 +650,15 @@ contains
     !
     !
     
+
     xy_SinLat(:,:) = sin(xyz_Lat(:,:,0))
     xy_CosLat(:,:) = cos(xyz_Lat(:,:,0))
     xy_CoriParam(:,:) = 2d0*Omega*xy_SinLat
 
+    w_SurfPress(:) = w_xy( UVPAvgCoefN*xy_SurfPress + (1d0 - UVPAvgCoefN)*xy_SurfPressOld )
     
     !
     !    
-    w_SurfPress(:) = w_xy( UVPAvgCoefN*xy_SurfPress + (1d0 - UVPAvgCoefN)*xy_SurfPressOld )
     xy_UBarot_RHSEx(:,:) = &
 !         &   xy_CoriParam*xy_VBarot                             &
          &   xy_CoriParam*( UVPAvgCoefN*xy_VBarot  + (1d0 - UVPAvgCoefN)*xy_VBarotOld ) &
@@ -676,7 +677,6 @@ contains
     xy_VBarotA(:,:) = xy_VBarotOld + dt_*( &
          & (xy_VBarot_RHSEx - xy_CoriImpFac*xy_UBarot_RHSEx)/(1d0 + xy_CoriImpFac**2) &
          & )
-    
 
     !* = Projection step ==
     !  In addition to Prresure gradient term, coriolis term is also considered in this

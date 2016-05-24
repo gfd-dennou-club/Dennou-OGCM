@@ -102,6 +102,14 @@ module SeaIceConstants_mod
   !!
   real(DP), public :: BaseMeltHeatTransCoef
 
+  !
+  real(DP), public :: IceThickMin
+  real(DP), public :: IceThickMax
+  real(DP), public :: IceMaskMin
+  real(DP), public :: SnowThickMax
+
+  !
+  real(DP), public :: SIceHDiffCoef
   
 contains
 
@@ -177,7 +185,10 @@ contains
          & Mu, SaltSeaIce, FreezeTempWater, FreezeTempSW, &
          & AlbedoOcean, AlbedoSnow, AlbedoMeltSnow, AlbedoIce, &
          & EmissivOcean, EmissivSnow, EmissivIce, &
-         & I0
+         & I0, &
+         & IceThickMin, IceThickMax, &
+         & IceMaskMin, &
+         & SIceHDiffCoef
 
     ! 実行文; Executable statements
     !
@@ -208,6 +219,13 @@ contains
     I0 = 0.34d0!*2d0
 
     baseMeltHeatTransCoef = 6d-3
+
+    IceThickMin  = 1d-3
+    IceThickMax  = 1d3
+    IceMaskMin   = 0.05d0
+    SnowThickMax = 1d3
+
+    SIceHDiffCoef = 1d3
     
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -241,7 +259,13 @@ contains
     call MessageNotify( 'M', module_name, 'EmissivIce       = %f [(1)]  ',     d=(/ EmissivIce   /))
     call MessageNotify( 'M', module_name, 'EmissivSnow      = %f [(1)]  ',     d=(/ EmissivSnow   /))
     call MessageNotify( 'M', module_name, 'EmissivOcean     = %f [(1)]  ',     d=(/ EmissivOcean   /))
+    call MessageNotify( 'M', module_name, 'IceThickMin    = %f [m]    ',     d=(/ IceThickMin   /))
+    call MessageNotify( 'M', module_name, 'IceThickMax    = %f [m]    ',     d=(/ IceThickMax   /))
+    call MessageNotify( 'M', module_name, 'SnowThickMax   = %f [m]    ',     d=(/ SnowThickMax   /))
+    call MessageNotify( 'M', module_name, 'IceMaskMin     = %f [(1)]    ',     d=(/ IceMaskMin   /))
+    call MessageNotify( 'M', module_name, 'SIceHDiffCoef  = %f [m2/s] ',     d=(/ SIceHDiffCoef   /))
     
   end subroutine read_namelist
+  
 end module SeaIceConstants_mod
 

@@ -84,6 +84,7 @@ module SpmlUtil_mod
   public :: xyt_DSig_xyt, wt_DSig_wt, t_DSig_t, xyt_DSigDSig_xyt, wt_DSigDSig_wt
   public :: z_DSig_z, xyz_DSig_xyz, xyz_DSigDSig_xyz
   public :: IntSig_BtmToTop, xy_IntSig_BtmToTop_xyz, xyz_IntSig_SigToTop_xyz, w_IntSig_BtmToTop_wz
+  public :: calc_IntSig_BtmToTop
 
   ! Procedures for the data conversion between real and spectral space with the spectral methods.
   public :: xyz_wt, wt_xyz, wt_xyt, xyz_wz, wz_xyz, wz_wt, wt_wz, xyt_xyz, xyz_xyt
@@ -484,8 +485,8 @@ contains
       & xy_UCosLat, xy_VCosLat                       & ! (out)
       & )
 
-      real(8), dimension(lm) :: w_Vor, w_Div
-      real(8), dimension(0:im-1,jm) :: xy_UCosLat, xy_VCosLat
+      real(8), dimension(lm), intent(in) :: w_Vor, w_Div
+      real(8), dimension(0:im-1,jm), intent(out) :: xy_UCosLat, xy_VCosLat
       
       real(8), dimension(lm) :: w_Psi, w_Chi
 
@@ -1044,6 +1045,25 @@ contains
       !$omp end parallel do
 
     end function xy_IntSig_BtmToTop_xyz
+
+    subroutine calc_IntSig_BtmToTop(xy_Int, xyz)
+
+      ! 宣言文; Declaration statement
+      !            
+      real(8), dimension(0:im-1,1:jm), intent(out)   :: xy_Int
+      real(8), dimension(0:im-1,1:jm,0:km), intent(in)   :: xyz
+
+      integer :: i,j,k 
+
+      !$omp parallel do private(i)
+      do j=1, jm
+         do i=0, im-1
+            xy_Int(i,j) = sum(xyz(i,j,:)*g_Sig_WEIGHT(:))
+         end do
+      end do
+
+
+    end subroutine calc_IntSig_BtmToTop
 
     function w_IntSig_BtmToTop_wz(wz) result(w_Int)
 
