@@ -1,13 +1,7 @@
 SUBDIRS =
 
 AM_FCFLAGS = \
-        $(MODPATHFLAG)$(srcdir)/../../../src/ \
-        $(MODPATHFLAG)$(srcdir)/../../../src/math \
-        $(MODPATHFLAG)$(srcdir)/../../../src/mesh \
-        $(MODPATHFLAG)$(srcdir)/../../../src/data \
-        $(MODPATHFLAG)$(srcdir)/../../../src/fvm \
-        $(MODPATHFLAG)$(srcdir)/../../../src/mesh2 \
-        $(MODPATHFLAG)$(srcdir)/../../../src/io \
+        $(MODPATHFLAG)$(srcdir)/../../../include/ \
         $(MODPATHFLAG)$(srcdir)/../util \
 	$(MODPATHFLAG)$(srcdir)/../setup \
         $(MODPATHFLAG)$(srcdir)/../boudary_cond \

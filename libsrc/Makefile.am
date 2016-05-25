@@ -1,6 +1,13 @@
 SUBDIRS = math mesh data fvm mesh2 io
 
-AM_FCFLAGS = \
+all: copy_header
+
+copy_header:
+		@echo "Copy generated header files into $(srcdir)/include"
+		@$(MKDIR_P) $(srcdir)/../include
+		@find . -name "*@MODEXT@" -exec $(install_sh_DATA) {} $(srcdir)/../include \;
+
+#AM_FCFLAGS = \
 	$(MODPATHFLAG)$(srcdir)/ \
 	$(MODPATHFLAG)$(srcdir)/../math \
 	$(MODPATHFLAG)$(srcdir)/../mesh \

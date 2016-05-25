@@ -118,7 +118,7 @@ contains
 
     ! モジュール引用; use statements
     !
-    use BoundaryCondO_mod, only: xy_SWUWRFLX, xy_LWUWRFlx
+!    use BoundaryCondO_mod, only: xy_SWUWRFLX, xy_LWUWRFlx
 
     use Constants_mod, only: UNDEFVAL
 

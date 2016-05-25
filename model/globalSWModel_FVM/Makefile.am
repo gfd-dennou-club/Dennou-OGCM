@@ -1,19 +1,20 @@
 SUBDIRS =
 
+all: copy_header
+
+copy_header:
+		@echo "Copy generated header files into $(srcdir)/include"
+		@$(MKDIR_P) $(srcdir)/include
+		@find . -name "*@MODEXT@" -exec $(install_sh_DATA) {} $(srcdir)/include \;
+
 AM_FCFLAGS = \
-        $(MODPATHFLAG)$(srcdir)/../../src/ \
-        $(MODPATHFLAG)$(srcdir)/../../src/math \
-        $(MODPATHFLAG)$(srcdir)/../../src/mesh \
-        $(MODPATHFLAG)$(srcdir)/../../src/data \
-        $(MODPATHFLAG)$(srcdir)/../../src/fvm \
-        $(MODPATHFLAG)$(srcdir)/../../src/mesh2 \
-        $(MODPATHFLAG)$(srcdir)/../../src/io \
+        $(MODPATHFLAG)$(srcdir)/../../include/ \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \
-	$(srcdir)/../../src/io/libDQGModelIO.la \
-	$(srcdir)/../../src/fvm/libDQGModelFVM_HexCGrid.la \
-	$(srcdir)/../../src/libDQGModelCore.la \
+	$(srcdir)/../../libsrc/io/libDQGModelIO.la \
+	$(srcdir)/../../libsrc/fvm/libDQGModelFVM_HexCGrid.la \
+	$(srcdir)/../../libsrc/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 
 CLEANFILES = *$(MODEXT)

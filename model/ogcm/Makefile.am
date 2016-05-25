@@ -1,13 +1,14 @@
 SUBDIRS = setup util dynamics
 
+all: copy_header
+
+copy_header:
+		@echo "Copy generated header files into $(srcdir)/include"
+		@$(MKDIR_P) $(srcdir)/include
+		@find . -name "*@MODEXT@" -exec $(install_sh_DATA) {} $(srcdir)/include \;
+
 AM_FCFLAGS = \
-        $(MODPATHFLAG)$(srcdir)/../../src/ \
-        $(MODPATHFLAG)$(srcdir)/../../src/math \
-        $(MODPATHFLAG)$(srcdir)/../../src/mesh \
-        $(MODPATHFLAG)$(srcdir)/../../src/data \
-        $(MODPATHFLAG)$(srcdir)/../../src/fvm \
-        $(MODPATHFLAG)$(srcdir)/../../src/mesh2 \
-        $(MODPATHFLAG)$(srcdir)/../../src/io \
+        $(MODPATHFLAG)$(srcdir)/../../include/ \
         $(MODPATHFLAG)$(srcdir)/setup \
         $(MODPATHFLAG)$(srcdir)/util \
         $(MODPATHFLAG)$(srcdir)/dynamics \
@@ -17,9 +18,9 @@ LDADD = \
 	$(srcdir)/dynamics/libDOGCMDynamics.la \
 	$(srcdir)/util/libDOGCMUtil.la \
 	$(srcdir)/setup/libDOGCMSetup.la \
-	$(srcdir)/../../src/io/libDQGModelIO.la \
-	$(srcdir)/../../src/fvm/libDQGModelFVM_HexCGrid.la \
-	$(srcdir)/../../src/libDQGModelCore.la \
+	$(srcdir)/../../libsrc/io/libDQGModelIO.la \
+	$(srcdir)/../../libsrc/fvm/libDQGModelFVM_HexCGrid.la \
+	$(srcdir)/../../libsrc/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 
 CLEANFILES = *$(MODEXT)

@@ -7,13 +7,7 @@ SUBDIRS = \
 ################
 
 AM_FCFLAGS = \
-        $(MODPATHFLAG)$(srcdir)/../../src/ \
-        $(MODPATHFLAG)$(srcdir)/../../src/math \
-        $(MODPATHFLAG)$(srcdir)/../../src/mesh \
-        $(MODPATHFLAG)$(srcdir)/../../src/data \
-        $(MODPATHFLAG)$(srcdir)/../../src/fvm \
-        $(MODPATHFLAG)$(srcdir)/../../src/mesh2 \
-        $(MODPATHFLAG)$(srcdir)/../../src/io \
+        $(MODPATHFLAG)$(srcdir)/../../include/ \
         $(MODPATHFLAG)$(srcdir)/setup \
         $(MODPATHFLAG)$(srcdir)/util \
         $(MODPATHFLAG)$(srcdir)/boundary_cond \
@@ -27,8 +21,8 @@ AM_FCFLAGS = \
 
 
 LDADD = \
-	$(srcdir)/../../src/fvm/libDQGModelFVM_HexCGrid.la \
-	$(srcdir)/../../src/libDQGModelCore.la \
+	$(srcdir)/../../libsrc/fvm/libDQGModelFVM_HexCGrid.la \
+	$(srcdir)/../../libsrc/libDQGModelCore.la \
 	$(SYSLDFLAGS) $(SYSLDLIBS)
 
 ######################
@@ -38,8 +32,8 @@ all: all-am copy_header
 
 copy_header:
 		@echo "Copy generated header files into $(srcdir)/include"
-		@$(MKDIR_P) $(srcdir)/../../include
-		@find . -name "*@MODEXT@" -exec $(install_sh_DATA) {} $(srcdir)/../../include \;
+		@$(MKDIR_P) $(srcdir)/include
+		@find . -name "*@MODEXT@" -exec $(install_sh_DATA) {} $(srcdir)/include \;
 
 bin_PROGRAMS = 
 

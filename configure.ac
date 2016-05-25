@@ -279,13 +279,13 @@ AM_PROG_AR
 LT_INIT
 AC_CONFIG_FILES([
                  Makefile
-                 src/Makefile
-		 src/math/Makefile
-                 src/data/Makefile
-		 src/mesh/Makefile
-		 src/fvm/Makefile
-		 src/mesh2/Makefile
-		 src/io/Makefile
+                 libsrc/Makefile
+		 libsrc/math/Makefile
+                 libsrc/data/Makefile
+		 libsrc/mesh/Makefile
+		 libsrc/fvm/Makefile
+		 libsrc/mesh2/Makefile
+		 libsrc/io/Makefile
 		 test/Makefile
 		 test/unitTests/Makefile
 		 tool/Makefile
