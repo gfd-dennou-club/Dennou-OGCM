@@ -1,0 +1,150 @@
+&Grid_nml
+ nLat = 64,
+ nLon = 1,
+! nLon = 128,
+ nZ = 60,
+/
+&SeaIce_Grid_nml
+ IM = 1,
+ JM = 64
+/
+&TemporalInteg_nml
+  barocTimeIntModeName = 'TimeIntMode_LFAM3',
+                                           ! Select either LF or LFAM3 or Euler. 
+					   !
+  DelTimeVal = 12.0,
+  DelTimeUnit = 'hour',
+  ReStartTimeVal = 500.0, 
+  ReStartTimeUnit = 'day', 
+  InitYear=2000, InitMonth=1, InitDay=1, InitHour=0, InitMin=0,
+  EndYear =2101, EndMonth =1,
+  EndDay =1, EndHour=0, EndMin=0,
+!  IntegTimeVal  = 1.0,
+!  IntegTimeUnit  = 'day'
+  ProgMessageIntVal = 90.0,
+  ProgMessageIntUnit = 'day',
+/
+&BoundaryCondition_nml
+  KinBCSurface   = 'Rigid',
+  DynBCSurface   = 'SpecStress', 
+  DynBCBottom    = 'NoSlip',
+  ThermBCSurface = 'TempRelaxed',
+  SeaSfcTempRelaxedTime = 3456000.0, ! 60 days
+  ThermBCBottom  = 'Adiabat', 
+  SaltBCSurface  = 'SaltRelaxed',
+  SeaSfcSaltRelaxedTime = 3456000.0, ! 60 days
+  SaltBCBottom   = 'Adiabat', 
+/
+&gtool_historyauto_nml
+  IntValue = 100.0,                  ! 出力間隔の数値
+  IntUnit = 'day',                  ! 出力間隔の単位 
+  FilePrefix = '',
+/
+&OGCM_IO_Restart_nml
+ OutputFileName = 'Restart2_Ocn.nc', 
+ InputFileName  = 'Restart_Ocn.nc', !InitData.nc', 
+ IntValue = 1000.0, 
+ IntUnit = 'day'
+/
+&SeaIce_IO_History_nml
+  IntValue = 100.0,                  ! 出力間隔の数値
+  IntUnit = 'day',                  ! 出力間隔の単位 
+  FilePrefix = '',
+/
+&SeaIce_IO_Restart_nml
+ OutputFileName = 'Restart2_SIce.nc', 
+ InputFileName  = 'Restart_SIce.nc', !InitData.nc', 
+ IntValue = 1000, 
+ IntUnit = 'day'
+/
+&GovernEq_nml
+  DynEqTypeName    = 'HydroBoussinesq', 
+  EOSTypeName      = 'EOS_JM95',
+  LPhysNames       = 'LMixMOM, LMixTRC, RediGM', 
+                                         ! In lateral oceanic physics, 
+					 ! 'LMixMOM, LMixTRC, and RediGM' 
+					 ! are available.
+					 !
+  VPhysNames        = 'VMixMOM, VMixTRC, Convect', 
+                                         ! In vertical oceanic physics,
+					 ! 'VMixMOM, VMixTRC, and Convection' are available
+					 ! 
+/
+&SGSPhys_VMixing_nml
+  VMixCoef_scheme_name = 'Simple'        !
+					 ! 'Const or Simple' 
+					 ! are available.
+/
+&RediGM_nml
+  DiffCoefRedi    = 800.0,
+  DiffCoefGM      = 800.0,
+  InteriorTaperingName = 'DM95'
+  SlopeMax        = 4d-3,
+  Sd              = 1d-3, 
+  PBLTaperingName      = 'LDD95'
+  isUsedDFM08 = F, 
+  DiagOutputFlag  = .false., 
+/
+&SemiImplicitScheme_nml
+  VDiffTermACoef    = 0.50d0,
+  CoriolisTermACoef = 0.51d0, 
+/
+&Constants_nml
+  RPlanet    = 6.371e06,
+                              ! $ a $ [m].
+                              ! 惑星半径.
+                              ! Radius of planet
+  Omega      = 7.292115e-5,
+                              ! $ \Omega $ [s-1].
+                              ! 回転角速度.
+                              ! Angular velocity
+  Grav       = 9.79764e0,
+                              ! $ g $ [m s-2].
+                              ! 重力加速度.
+                              ! Gravitational acceleration
+ hViscCoef   = 3d5,
+ vViscCoef   = 1d-3,
+ hHyperViscCoef = 1d11, 
+ vHyperViscCoef = 0d0, 
+ hDiffCoef   = 0d3,
+ vDiffCoef   = 3d-5, 
+ hHyperDiffCoef = 1d12, 
+ vHyperDiffCoef = 0d0, 
+/
+!* For OGCM
+&gtool_historyauto_nml
+  Name = 'U, V, OMG, PTemp, Salt, H', 
+  Precision = 'float'
+/
+&gtool_historyauto_nml
+  Name = 'SrfPres, HydPres, ConvIndex, SfcHFlxO, FreshWtFlxS', ! Output variables
+  Precision='float'
+/
+&gtool_historyauto_nml
+  Name = 'VViscCoef, VDiffCoef', ! Output variables
+  Precision='float'
+/
+&gtool_historyauto_nml
+  Name = 'WindStressU, WindStressV, OcnSfcCellMask', ! Output variables
+  Precision = 'float'
+/
+!--------------------------------------------------------------------------------
+!* For Sea-ice model 
+&SeaIce_IO_History_nml
+   Name = 'SIceEn, SIceCon, SnowThick, IceThick, SIceTemp, SIceSfcTemp', ! Output variables
+/
+&SeaIce_IO_History_nml
+   Name = 'SfcHFlxAI', ! Output variables
+/
+!* For debug of coupler
+!&gtool_historyauto_nml
+! Name = 'TauXAtm, TauYAtm, SensFlxAtm, LatentFlxAtm, SWDWRFlxAtm, SWUWRFlxAtm, LWDWRFlxAtm, LWUWRFlxAtm, RainAtm, SnowAtm, SurfAirTempAtm, DSurfHFlxDTsAtm, DSurfLatentFlxDTsAtm',
+! Precision = 'float', 
+! TimeAverage = .true.
+!/
+!&gtool_historyauto_nml
+! Name = 'SurfHFlxO, SurfFwFlxO, SurfHFlxAI, SurfHFlxAO, SurfHFlxAIO',
+! Precision='float',
+! TimeAverage = .true.
+!/
+

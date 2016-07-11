@@ -21,7 +21,9 @@ module SeaIceBoundaryCond_mod
        & z_LyrThickSig
 
   !* Dennou-OGCM
-
+  use Constants_mod, only: &
+       UNDEFVAL
+  
   use UnitConversion_mod, only: &
        & degC2K, K2degC
 
@@ -143,8 +145,6 @@ contains
     
 
     xy_Albedo = AlbedoOcean; xy_Emissivity = EmissivOcean
-    call calcSurfHFlux( xy_SurfHFlxAO, xy_Albedo, xy_Emissivity, xy_SurfTempO, xy_DSurfHFlxDTsTmp, &
-         & xy_DSurfHFlxDTsAI )
     select case(ThermBC_Surface)
     case(ThermBCTYPE_PresFlux_Han1984Method)
        if (.not. init_SurfTempOSetFlag) then
@@ -152,11 +152,15 @@ contains
           xy_SurfTempOIni = xy_SurfTempO
           init_SurfTempOSetFlag = .true.
        end if
+    call calcSurfHFlux( xy_SurfHFlxAO, xy_Albedo, xy_Emissivity, xy_SurfTempOIni )
        xy_SurfHFlxAO(:,:) = xy_SurfHFlxAO(:,:)                   &
-            + ( 4d0*xy_Emissivity*(SBConst*xy_SurfTempOIni**3) + xy_DSurfHFlxDTsTmp ) &
-               *( xy_SurfTempO - xy_SurfTempOIni )
+            + (xy_DSurfHFlxDTsTmp + 4d0*SBConst*xy_SurfTempOIni**3)*(  xy_SurfTempO - xy_SurfTempOIni )
+    case default
+       call calcSurfHFlux( xy_SurfHFlxAO, xy_Albedo, xy_Emissivity, xy_SurfTempO )
     end select
 
+    !$omp parallel
+    !$omp workshare
     where( xy_SIceCon <= IceMaskMin)
     elsewhere( xy_SnowThick <= 0d0)
        xy_Albedo = AlbedoIce; xy_Emissivity = EmissivIce
@@ -168,20 +172,13 @@ contains
        xy_Albedo = AlbedoSnow; xy_Emissivity = EmissivSnow
        xy_PenSWRFlxSI = 0d0
     end where
+    !$omp end workshare
+    !$omp end parallel
     
-!!$    !$omp parallel do private(i)
-!!$    do j=1, jMax
-!!$       do i=0, iMax-1
-!!$          if (xy_SIceCon(i,j) <= IceMaskMin) then
-!!$             xy___
-!!$          else
-!!$          end if
-!!$       end do
-!!$    end do
     call calcSurfHFlux( xy_SurfHFlxAI, &
          & xy_Albedo, xy_Emissivity, xy_SurfTemp, xy_DSurfHFlxDTsTmp, &
          & xy_DSurfHFlxDTsAI)
-
+    
 !!$    write(*,*) "Albedo=", xy_Albedo(0,:)
 !!$    write(*,*) "SWDWRFlx=", xy_SWDWRFlx(0,:)
 !!$    write(*,*) "Pen=", xy_PenSWRFlxSI(0,:)
@@ -200,11 +197,16 @@ contains
 !!$               *( xy_SurfTemp - xy_SurfTempAIOIni )
 !!$    end select
 
+    !$omp parallel
+    !$omp workshare
     where( xy_SIceCon <= IceMaskMin ) 
-       xy_SurfHFlxAI = 0d0
-       xy_PenSWRFlxSI = 0d0
+       xy_SurfHFlxAI = 0d0!UNDEFVAL
+       xy_DSurfHFlxDTsAI = 0d0!UNDEFVAL
+       xy_PenSWRFlxSI = 0d0!UNDEFVAL
     end where
-
+    !$omp end workshare
+    !$omp end parallel
+    
 !    write(*,*) xy_SurfHFlxAO
 !!$    write(*,*) "* SIceSurfFlx:", "albedo=", xy_Albedo(0,DEBUG_j), "Emissivty=", xy_Emissivity(0,DEBUG_j), &
 !!$         & "LI=", - xy_LatentDWHFlx(0,DEBUG_j), "SI=", - xy_SensDWHFlx(0,DEBUG_j), &
@@ -285,7 +287,7 @@ contains
          & RefDens, Cp0, vDiffCoef
 
     use SeaIceConstants_mod, only: &
-         & FreezeTempSW
+         & FreezeTempSW, IceMaskMin
 
     use VariableSet_mod, only: &
          & xyz_PTempEddN, z_PTempBasic, &
@@ -309,39 +311,55 @@ contains
     real(DP) :: xy_FricVel(0:iMax-1,jMax)
     
     integer :: i, j
-
+    real(DP) :: FricVel
+    
     real(DP) :: xyz_Tmp(0:iMax-1,jMax,0:kMax)
     integer :: k
     
     ! 実行文; Executable statement
     !
 
-    !$omp parallel
-    !$omp workshare
+    !$omp parallel do private(FricVel, i)
+    do j=1, jMax
+       do i=0, iMax-1
+          if (xy_SIceCon(i,j) >= IceMaskMin .and. xy_FreezePot(i,j) <= 0d0) then
+             FricVel = max(sqrt(xy_SurfUO(i,j)**2 + xy_SurfVO(i,j)**2), 5d-3)
+             xy_BtmHFlxIO(i,j) = - BaseMeltHeatTransCoef*FricVel * &
+                  xy_FreezePot(i,j)*DelTime/(z_LyrThickSig(0)*xy_totDepthBasic(i,j))
+             xy_BtmHFlxIO(i,j) = min(xy_BtmHFlxIO(i,j), -xy_FreezePot(i,j))
+          else
+             xy_BtmHFlxIO(i,j) = - xy_FreezePot(i,j)
+          end if
+       end do
+    end do
     
-    xy_BtmHFlxIO(:,:) = 0d0
-    where(xy_FreezePot > 0d0)
+!!$    !$omp parallel
+!!$    !$omp workshare
+!!$    
+!!$    where(xy_FreezePot > 0d0)
+!!$
+!!$       !* Freezing condition
+!!$       !
+!!$       
+!!$       xy_BtmHFlxIO = - xy_FreezePot
+!!$       
+!!$    elsewhere(xy_SIceCon > 0d-3 .and. xy_FreezePot <= 0d0)
+!!$
+!!$       !* Melting condition
+!!$       !
+!!$       xy_FricVel = max(sqrt(xy_SurfUO**2 + xy_SurfVO**2), 5d-3)
+!!$       xy_BtmHFlxIO = - BaseMeltHeatTransCoef*xy_FricVel* &
+!!$            & xy_FreezePot*DelTime/(z_LyrThickSig(0)*xy_totDepthBasic)
+!!$
+!!$       !
+!!$       xy_BtmHFlxIO = min(xy_BtmHFlxIO, -xy_FreezePot)
+!!$    elsewhere
+!!$       xy_BtmHFlxIO = UNDEFVAL
+!!$    end where
+!!$
+!!$    !$omp end workshare
+!!$    !$omp end parallel
 
-       !* Freezing condition
-       !
-       
-       xy_BtmHFlxIO = - xy_FreezePot
-       
-    elsewhere(xy_SIceCon > 0d-3 .and. xy_FreezePot <= 0d0)
-
-       !* Melting condition
-       !
-       xy_FricVel = max(sqrt(xy_SurfUO**2 + xy_SurfVO**2), 5d-3)
-       xy_BtmHFlxIO = - BaseMeltHeatTransCoef*xy_FricVel* &
-            & xy_FreezePot*DelTime/(z_LyrThickSig(0)*xy_totDepthBasic)
-
-       !
-       xy_BtmHFlxIO = min(xy_BtmHFlxIO, -xy_FreezePot)
-    end where
-
-    !$omp end workshare
-    !$omp end parallel
-    
 !!$    xyz_Tmp(0,DEBUG_j,:) = z_DSig_z(z_PTempBasic(:) + xyz_PTempEddN(0,DEBUG_j,:))/xy_totDepthBasic(0,DEBUG_j)    
 !!$    write(*,*) "* BtmHFlxSIce=", xy_BtmHFlxIO(:,DEBUG_j), ", BtmHFlxO", -vDiffCoef*xyz_Tmp(0,DEBUG_j,0)*refDens*Cp0, &
 !!$         & "FreezePot=", xy_FreezePot(:,DEBUG_j), "SurfTempO", K2degC(xy_SurfTempO(:,DEBUG_j)), &

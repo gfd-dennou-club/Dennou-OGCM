@@ -14,13 +14,18 @@ module GovernEqSolverDriver_mod
        & DataFileSet
 
   use GovernEqSet_mod, only: &
-       & DynEqType, EOSType
+       & DynEqType, EOSType, &
+       & GOVERNEQSET_DYN_HYDROBOUSSINESQ, &
+       & GOVERNEQSET_DYN_NONDYN_MIXEDLYR
 
-!!$  use HydroBoudEq_TimeInteg_old_mod, only: &
   use HydroBoudEq_TimeInteg_v2_mod, only: &
        & HydroBouEq_TimeInteg_Init, HydroBouEq_TimeInteg_Final, &
        & HydroBouEqSolver_AdvanceTStep
 
+  use NonDynMixedLyr_TimeInteg_mod, only: &
+       & NonDynMixedLyr_TimeInteg_Init, NonDynMixedLyr_TimeInteg_Final, &
+       & NonDynMixedLyr_AdvanceTStep
+  
   use SeaiceEq_TimeInteg_mod, only: &
        & SeaiceEq_TimeInteg_Init, SeaiceEq_TimeInteg_Final, &
        & SeaiceEqSolver_AdvanceTStep
@@ -67,8 +72,13 @@ contains
     call EOSDriver_Init(EOSType)
 
 !!$    call HydroBouEqSolver_Init()
-    call HydroBouEq_TimeInteg_Init()
-
+    select case (DynEqType)
+    case (GOVERNEQSET_DYN_HYDROBOUSSINESQ)
+       call HydroBouEq_TimeInteg_Init()
+    case (GOVERNEQSET_DYN_NONDYN_MIXEDLYR)
+       call NonDynMixedLyr_TimeInteg_Init()
+    end select
+          
 
   end subroutine GovernEqSolverDriver_Init
 
@@ -80,7 +90,13 @@ contains
     ! 実行文; Executable statements
     !
 
-    call HydroBouEq_TimeInteg_Final()
+    select case (DynEqType)
+    case (GOVERNEQSET_DYN_HYDROBOUSSINESQ)
+       call HydroBouEq_TimeInteg_Final()
+    case (GOVERNEQSET_DYN_NONDYN_MIXEDLYR)
+       call NonDynMixedLyr_TimeInteg_Final()
+    end select
+
     call EOSDriver_Final()
 
   end subroutine GovernEqSolverDriver_Final
@@ -134,11 +150,17 @@ contains
          & DelTime )
 
     !
-    call BoundaryCondO_Update(xy_SIceConA, xy_Wice)
+    call BoundaryCondO_Update(xy_SIceConN, xy_Wice)
+
+    select case (DynEqType)
+    case (GOVERNEQSET_DYN_HYDROBOUSSINESQ)
+       call HydroBouEqSolver_AdvanceTStep( &
+            & DelTime, timeIntMode, nStage, is_VarB_Used )
+    case (GOVERNEQSET_DYN_NONDYN_MIXEDLYR)
+       call NonDynMixedLyr_AdvanceTStep( &
+            & DelTime, timeIntMode, nStage, is_VarB_Used )
+    end select
     
-    !
-    call HydroBouEqSolver_AdvanceTStep( &
-         & DelTime, timeIntMode, nStage, is_VarB_Used )
 
   end subroutine GovernEqSolverDriver_AdvanceTStep
 

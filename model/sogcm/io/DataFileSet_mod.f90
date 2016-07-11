@@ -162,6 +162,11 @@ contains
     use dc_calendar, only: &
          & DCCalConvertByUnit
 
+    use GovernEqSet_mod, only: &
+         & DynEqType, &
+         & GOVERNEQSET_DYN_HYDROBOUSSINESQ, &
+         & GOVERNEQSET_DYN_NONDYN_MIXEDLYR
+    
     use TemporalIntegSet_mod, only: &
          & CurrentTime, Nl
 
@@ -221,30 +226,34 @@ contains
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFHEIGHTB, xy_SurfHeightB)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_PTEMPEDDB, xyz_PTempEddB)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_SALTB, xyz_SaltB)
-    
-    xyz_CosLat = cos(xyz_Lat)
-    wz_Vor = wz_AlphaOptr_xyz(xyz_VN*xyz_CosLat, -xyz_UN*xyz_CosLat) 
-    wz_Div = wz_AlphaOptr_xyz(xyz_UN*xyz_CosLat,  xyz_VN*xyz_CosLat) 
-    xyz_Psi = xyz_wz( wz_InvLapla2D_wz( wz_Vor ) )
-    xyz_Chi = xyz_wz( wz_InvLapla2D_wz( wz_Div ) )
-    xyz_SigDot = Diagnose_SigDot( xy_totDepth, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xyz_wz(wz_Div) )
 
-    xyz_PTemp = xyz_PTempEddN + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
-    xyz_GeoPot = Diagnose_GeoPot( xy_totDepth ) 
-    call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
-         & theta=xyz_PTemp, S=xyz_SaltN, p=-RefDens*xyz_GeoPot )     ! (in)
+    select case(DynEqType)
+    case(GOVERNEQSET_DYN_HYDROBOUSSINESQ)
+       xyz_CosLat = cos(xyz_Lat)
+       wz_Vor = wz_AlphaOptr_xyz(xyz_VN*xyz_CosLat, -xyz_UN*xyz_CosLat) 
+       wz_Div = wz_AlphaOptr_xyz(xyz_UN*xyz_CosLat,  xyz_VN*xyz_CosLat) 
+       xyz_Psi = xyz_wz( wz_InvLapla2D_wz( wz_Vor ) )
+       xyz_Chi = xyz_wz( wz_InvLapla2D_wz( wz_Div ) )
+       xyz_SigDot = Diagnose_SigDot( xy_totDepth, xyz_UN*xyz_CosLat, xyz_VN*xyz_CosLat, xyz_wz(wz_Div) )
 
-    xyz_HydroPressEdd = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
+       xyz_PTemp = xyz_PTempEddN + spread(spread(z_PTempBasic,1,jMax), 1, iMax)
+       xyz_GeoPot = Diagnose_GeoPot( xy_totDepth ) 
+       call EOSDriver_Eval( rhoEdd=xyz_DensEdd,                      & ! (out)
+            & theta=xyz_PTemp, S=xyz_SaltN, p=-RefDens*xyz_GeoPot )     ! (in)
+
+       xyz_HydroPressEdd = Diagnose_HydroPressEdd(xy_totDepth, xyz_DensEdd)
+
+       call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
+       call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
+       call HistoryAutoPut(CurrentTime, "Div", xyz_wz(wz_Div))
+       call HistoryAutoPut(CurrentTime, "Vor", xyz_wz(wz_Vor))
+       call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFPRESS, xy_SurfPressN)
+       call HistoryAutoPut(CurrentTime, VARSET_KEY_SIGDOT, xyz_SigDot)
+       call HistoryAutoPut(CurrentTime, VARSET_KEY_HYDROPRESSEDD, xyz_HydroPressEdd)
+    end select
 
     !
     !
-    call HistoryAutoPut(CurrentTime, "Psi", xyz_Psi)
-    call HistoryAutoPut(CurrentTime, "Chi", xyz_Chi)
-    call HistoryAutoPut(CurrentTime, "Div", xyz_wz(wz_Div))
-    call HistoryAutoPut(CurrentTime, "Vor", xyz_wz(wz_Vor))
-    call HistoryAutoPut(CurrentTime, VARSET_KEY_SURFPRESS, xy_SurfPressN)
-    call HistoryAutoPut(CurrentTime, VARSET_KEY_SIGDOT, xyz_SigDot)
-    call HistoryAutoPut(CurrentTime, VARSET_KEY_HYDROPRESSEDD, xyz_HydroPressEdd)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLON, xy_WindStressU)
     call HistoryAutoPut(CurrentTime, VARSET_KEY_WINDSTRESSLAT, xy_WindStressV)
 

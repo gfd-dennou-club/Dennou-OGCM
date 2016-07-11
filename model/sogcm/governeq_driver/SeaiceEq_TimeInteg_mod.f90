@@ -68,7 +68,9 @@ module SeaIceEq_TimeInteg_mod
   character(*), parameter:: module_name = 'SeaIceEq_TimeInteg_mod' !< Module Name
 
   integer, parameter :: DEBUG_j = -1 !64
-  
+
+  logical :: InitStepFlag = .true.
+
 contains
 
   !>
@@ -137,7 +139,7 @@ contains
     use GridSet_mod, only: &
          & z_LyrThickSig
     use SpmlUtil_mod, only: &
-         & g_Sig
+         & AvrLonLat_xy
     
     ! 宣言文; Declaration statement
     !
@@ -171,6 +173,21 @@ contains
     ! 実行文; Executable statement
     !    
 
+    !
+    !
+    if( InitStepFlag ) then
+       where(xy_SIceConN >= 5d-2)
+          xy_IceThickN = xy_IceThickN/xy_SIceConN
+          xy_SnowThickN = xy_SnowThickN/xy_SIceConN
+          xy_SIceConN = 1d0
+       elsewhere
+          xy_SIceConN = 0d0
+          xy_IceThickN = 0d0
+          xy_SnowThickN = 0d0
+       end where
+       InitStepFlag = .false.
+    end if
+    
     !* Initialization
     !
     
@@ -252,7 +269,7 @@ contains
           else if ( xy_IceThickN(i,j) > 0d0 ) then
              write(*,*) "SIceCon <= IceMakMin, but IceThick > 0 !!", &
                   "j=", j, "hi=", xy_IceThickN(i,j), "T=", &
-                  xy_SIceSurfTempN(i,j), xyz_SIceTempN(i,j,:)
+                  xy_SIceSurfTempN(i,j), xyz_SIceTempN(i,j,:), "frac=", xy_SIceConN(i,j)
           else
              xy_SIceSurfTempA(i,j) = UNDEFVAL; xyz_SIceTempA(i,j,:) = UNDEFVAL;
              xy_SurfMeltEn(i,j) = 0d0
@@ -267,7 +284,7 @@ contains
           
        end do
     end do
-
+    
     do j=1, jMax
        do i=0, iMax-1
           if (isNan(xy_SIceSurfTempA(i,j)) .or. isNan(xyz_SIceTempA(i,j,1)) .or. isNan(xyz_SIceTempA(i,j,2)) ) then
@@ -331,18 +348,7 @@ contains
        end do
     end do
 
-!!$    do j=1, jMax
-!!$       write(*,*) "j=", j , "IceThick", xy_IceThickA(i,j), "SnowThick", xy_SnowThicka(i,j), &
-!!$            "SurfTemp=", xy_SIceSurfTempA(i,j), "IceTep=", xyz_SIceTempA(i,j,:)
-!!$    end do
-!!$    do  j=1, jMax/2
-!!$       write(*,*) "*** j=", j
-!!$       write(*,*) "SnowMassDel:", DensSnow*(xy_SnowThickA(0,j) - xy_SnowThickN(0,j))
-!!$       write(*,*) "IceMassDel:", DensIce*(xy_IceThickA(0,j) - xy_IceThickN(0,j))
-!!$       write(*,*) "Wice:", xy_Wice(0,j)*DelTime*1d3
-!!$    end do
-!!$stop
-
+    
     !* Dynamical processes 
     !
     call advance_SeaIceAdvectProc( & 
@@ -359,26 +365,37 @@ contains
     
     !* Update heat flux and freshwater flux at the bottom of sea ice
     !
-    
+
+!    write(*,*) "ExcessMeltEn=", xy_ExcessMeltEn(0,:)/DelTime
     !$omp parallel do private(i)
     do j=1, jMax
        do i=0, iMax-1
-          xy_SurfHFlxIO(i,j)  = xy_ExcessMeltEn(i,j)/DelTime
+          xy_SurfHFlxIO(i,j)  = - xy_ExcessMeltEn(i,j)/DelTime &
+                  + (1d0 - xy_SIceConN(i,j)) * ( DensSnow*LFreeze*xy_Wsnow(i,j) )
+               
           xy_SurfFwFlxIO(i,j) = - xy_Wice(i,j)
           
-          if( xy_SIceConA(i,j) >= IceMaskMin ) then
+          if( xy_SIceConN(i,j) >= IceMaskMin ) then
 
              xy_SurfHFlxIO(i,j) = xy_SurfHFlxIO(i,j) &
-                  + (1d0 - xy_SIceConA(i,j)) * (   min(xy_SurfHFlxAON(i,j), -xy_FreezePot(i,j)) &
-                                                       + DensSnow*LFreeze*xy_Wsnow(i,j) ) &
-                  + xy_SIceConA(i,j) * xy_BtmHFlxIO(i,j)
+                  + (1d0 - xy_SIceConN(i,j)) * (   min(xy_SurfHFlxAON(i,j), -xy_FreezePot(i,j)) )     &
+                  + xy_SIceConN(i,j) * xy_BtmHFlxIO(i,j)
 
              xy_SurfFwFlxIO(i,j) = xy_SurfFwFlxIO(i,j) &
-                  + (1d0 - xy_SIceConA(i,j)) * (xy_Wrain(i,j) + xy_Wsnow(i,j) - xy_Wevap(i,j))        &
-                  + xy_SIceConA(i,j) * xy_Wrain(i,j)
+                  + (1d0 - xy_SIceConN(i,j)) * (xy_Wrain(i,j) + xy_Wsnow(i,j) - xy_Wevap(i,j))        &
+                  + xy_SIceConN(i,j) * xy_Wrain(i,j)
+          else
+             ! If initial ice has been created, we add downward ocean surface heat flux necessary to
+             ! increase SST to freezing point of sea water.
+             if ( xy_SurfHFlxAON(i,j) > -xy_FreezePot(i,j) ) then
+                xy_SurfHFlxIO(i,j) = xy_SurfHFlxIO(i,j) - xy_FreezePot(i,j)
+             end if
           end if
        end do
     end do
+
+!!$    write(*,*) "SrfFlxIO=", AvrLonLat_xy(xy_SurfHFlxIO), &
+!!$         AvrLonLat_xy(xy_SurfHFlxAIN + xy_DSurfHFlxDTsAIN*(xy_SIceSurfTempA - xy_SIceSurfTempN))
     
 !!$    write(*,*) "ConN:", xy_SIceConN(0,:)
 !!$    write(*,*) "ConA:", xy_SIceConA(0,:)
@@ -585,9 +602,7 @@ contains
        call adjust_IceLyrInternal( &
             & hs, hi, T1A, T2A,                    & !(inout)
             & 0d0, hi                              & !(in)
-            & )
-       Wice = Wice &
-            + (1d0 - iceFrac) * DensIce*GiceOpnOcn/1d3
+            & )       
 
     else if ( hi + Gice*DelTime > 0d0 ) then
        call adjust_IceLyrInternal( &
@@ -623,17 +638,20 @@ contains
     GiceFrac =   (1d0 - iceFrac) * GiceOpnOcn/0.2d0 &
                + iceFrac * 0.5d0 * min(0d0, Gice) / max(hiEffA, hIceEPS)
 
+    ! Add the ice genereation at open ocean
     Wice = Wice &
          + (1d0 - iceFrac) * (DensIce*GiceOpnOcn) / 1d3 !DensSeaWater
     
-!    xy_SIceConA(i,j) = iceFrac + GiceFrac*DelTime
-    xy_SIceConA(i,j) = &
-         (iceFrac + GiceOpnOcn / 0.2d0 * DelTime) &
-         / (1d0 + DelTime*( GiceOpnOcn / 0.2d0 - 0.5d0 * min(0d0, Gice) / max(hiEffA, hIceEPS)) )
-
+    !
     hiEffA = hiEffA + GiceEff*DelTime
     hsEffA = hsEffA + GsnowEff*DelTime
 
+!!$    xy_SIceConA(i,j) = &
+!!$         (iceFrac + GiceOpnOcn / 0.2d0 * DelTime) &
+!!$         / (1d0 + DelTime*( GiceOpnOcn / 0.2d0 - 0.5d0 * min(0d0, Gice) / max(hiEffA, hIceEPS)) )
+!!$    
+    xy_SIceConA(i,j) = iceFrac
+    
     if (isNan(hiEffA) .or. isNan(TsA) .or. isNan(T1A) .or. isNan(T2A)) then
        write(*,*) "-- hiEff is Nan. j=", j
        write(*,*) " hs=", hs, "hi=", hi, "T=", TsA, T1A, T2A
@@ -702,7 +720,7 @@ contains
 !write(*,*) "SiceDiff Before:", AvrLonLat_xy( xy_IceThick) 
     call apply_diff_term( xy_IceThick  )  ! (inout)
     call apply_diff_term( xy_SnowThick )  ! (inout)
-    call apply_diff_term( xy_SIceCon   )  ! (inout)
+!!$    call apply_diff_term( xy_SIceCon   )  ! (inout)
     call apply_diff_term( xy_q1        )  ! (inout)
     call apply_diff_term( xy_q2        )  ! (inout)
 !write(*,*) "SiceDiff After:", AvrLonLat_xy( xy_IceThick) 
@@ -711,7 +729,7 @@ contains
     !$omp parallel do private(i)
     do j=1, jMax
        do i=0, iMax-1 
-          if (xy_SIceCon(i,j) > 0d0) then
+          if (xy_IceThick(i,j) > 0d0) then
              xya_SIceTemp(i,j,1) = calc_Temp_IceLyr1(xy_q1(i,j), SaltSeaIce)
              xya_SIceTemp(i,j,2) = calc_Temp_IceLyr2(xy_q2(i,j), SaltSeaIce)
              if (isNan(xya_SIceTemp(i,j,1)) .or. isNan(xya_SIceTemp(i,j,2)) ) then
@@ -808,6 +826,7 @@ contains
 !    write(*,*) "Before Adjust:", AvrLonLat_xy(xy_IceThickEff*DensIce + xy_SnowThickEff*DensSnow)
 !    xy_Wice2 = 0d0
 
+    
     !$omp parallel do private(i, iceFrac, E1, E2, hs, hi) schedule(guided)
     do j=1 , jMax
        do i=0, iMax-1
@@ -821,12 +840,11 @@ contains
              cycle
           end if
           
-          if ( xy_SIceCon(i,j) < IceMaskMin ) then
-             !xy_IceThickEff(i,j) = xy_SIceCon(i,j)/IceMaskMin * xy_IceThickEff(i,j) 
-             !xy_SnowThickEff(i,j) = xy_SIceCon(i,j)/IceMaskMin * xy_SnowThickEff(i,j) 
-             xy_SIceCon(i,j) = IceMaskMin
-          end if
-
+!!$          if ( xy_SIceCon(i,j) < IceMaskMin ) then
+!!$             xy_SIceCon(i,j) = IceMaskMin
+!!$          end if
+          xy_SIceCon(i,j) = 1d0
+          
           hi = xy_IceThickEff(i,j) / xy_SIceCon(i,j)
           E1 = calc_E_IceLyr1(xya_SIceTemp(i,j,1), SaltSeaIce)
           E2 = calc_E_IceLyr2(xya_SIceTemp(i,j,2), SaltSeaIce)
@@ -836,11 +854,15 @@ contains
 !                xy_SnowThickEff(i,j) = xy_SnowThickEff(i,j) * IceThickMin/hi
 !                xy_IceThickEff(i,j) = IceThickMin * IceMaskMin
              else                
-                xy_ExcessMeltEn(i,j) = xy_ExcessMeltEn(i,j) + (                 &
+                xy_ExcessMeltEn(i,j) = xy_ExcessMeltEn(i,j) - (                 &
                       - xy_IceThickEff(i,j) * 0.5d0 * DensIce * (E1 + E2)          &
                       + xy_SnowThickEff(i,j) * DensSnow * LFreeze                  &
-                      ) 
+                      )
 
+!!$                write(*,*) "----"
+!!$                write(*,*) E1, E2
+!!$                write(*,*) xy_IceThickEff(i,j), xy_SnowThickEff(i,j)
+!!$                write(*,*) "----"
                 xy_Wice(i,j) = xy_Wice(i,j) - (                                       &
                      DensIce * xy_IceThickEff(i,j) + DensSnow * xy_SnowThickEff(i,j)  &
                      )  / ( 1d3 * DelTime ) !DensSeaWater * DelTime )

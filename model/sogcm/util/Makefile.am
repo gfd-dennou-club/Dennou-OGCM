@@ -44,7 +44,6 @@ dist_libDSOGCMUtil_la_SOURCES= \
 # Dependency
 
 DiagnoseUtil_mod.f90: \
-	../setup/Constants_mod.o \
 	../setup/GridSet_mod.o
 
 

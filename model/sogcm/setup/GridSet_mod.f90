@@ -11,6 +11,8 @@ module GridSet_mod
   ! モジュール引用; Use statements
   !
 
+  !* gtool5
+  
   use dc_types, only: &
        & STRING, TOKEN, DP
 
@@ -116,6 +118,7 @@ contains
 
     ! モジュール引用; Use statements
     !
+
     use SpmlUtil_mod, only: &
         & isSpmlUtilInitialzed=>isInitialzed, &
         & get_SpmlGridInfo
@@ -134,12 +137,11 @@ contains
     
     ! 実行文; Executable statement
     !
-
     
-    if( .not. isSpmlUtilInitialzed() ) &
-         & call MessageNotify('E', module_name, &
-         &  "GridSet_construct is called before SpmlUtil_mod is initialized.")
-    
+    if (.not. isSpmlUtilInitialzed()) then
+       call MessageNotify('E', module_name, &
+            &  "GridSet_construct is called before SpmlUtil_mod is initialized.")
+    end if
 
     ! Allocation arrays for coordinates.
     !
@@ -148,32 +150,31 @@ contains
     allocate(x_Lon_Weight(0:iMax-1), y_Lat_Weight(jMax), z_Sig_Weight(0:kMax))
     allocate(z_LyrThickSig(0:kMax))    
 
+    
     ! Get the coordinates of horizontal grid from SpmlUtil_mod.
     !
-    
+
     call get_SpmlGridInfo( &
          & xy_Lon_=xy_Lon, xy_Lat_=xy_Lat, z_Sig_=z_Sig,  &
          & x_Lon_Weight_=x_Lon_Weight, y_Lat_Weight_=y_Lat_Weight, z_Sig_Weight_=z_Sig_Weight &
          & )
-
     xyz_Lon(:,:,:) = spread(xy_Lon,3,kMax+1)
     xyz_Lat(:,:,:) = spread(xy_Lat,3,kMax+1)
-
+    
     ! Calculate layer thickness.
     !
-    
-    A = 0d0; B = 0d0
-    do k=1,kMax
-       A(k,k-1:k) = 0.5d0
-       B(k) = z_Sig(k-1) - z_Sig(k)
-    end do
-    A(1,0) = 1; A(kMax,kMax) = 1
 
-    call DGELS('N', kMax, kMax+1, 1, A, kMax, B, kMax+1, Work, 2*(kMax+1), info)
-    z_LyrThickSig(:) = b
-
+!!$       A = 0d0; B = 0d0
+!!$       do k=1,kMax
+!!$          A(k,k-1:k) = 0.5d0
+!!$          B(k) = z_Sig(k-1) - z_Sig(k)
+!!$       end do
+!!$       A(1,0) = 1; A(kMax,kMax) = 1
+!!$
+!!$       call DGELS('N', kMax, kMax+1, 1, A, kMax, B, kMax+1, Work, 2*(kMax+1), info)
+!!$       z_LyrThickSig(:) = b
     z_LyrThickSig = z_Sig_Weight
-
+    
   end subroutine GridSet_construct
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

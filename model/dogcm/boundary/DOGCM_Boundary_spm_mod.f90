@@ -1,0 +1,399 @@
+!-------------------------------------------------------------
+! Copyright (c) 2015-2016 Yuta Kawai. All rights reserved.
+!-------------------------------------------------------------
+!> @brief a template module
+!! 
+!! @author Yuta Kawai
+!!
+!!
+module DOGCM_Boundary_spm_mod
+
+  ! モジュール引用; Use statements
+  !
+
+  !* gtool5
+  
+  use dc_types, only: &
+       & DP, TOKEN, STRING
+
+  use dc_message, only: &
+       & MessageNotify
+
+  !* Dennou-OGCM
+
+  use DOGCM_Admin_Constants_mod, only: &
+       & RefDens, Cp0
+    
+
+  use DOGCM_Admin_Grid_mod, only: &
+       & IA, IS, IE, IM, &
+       & JA, JS, JE, JM, &
+       & KA, KS, KE, KM, &
+       & iMax, jMax, kMax, lMax
+
+  use SpmlUtil_mod
+  
+  use DOGCM_Admin_Variable_mod, only: &
+       & TRC_TOT_NUM, &
+       & TRCID_PTEMP, TRCID_SALT
+
+  use DOGCM_Admin_BC_mod, only: &
+       & inquire_VBCSpecType,                                                    &
+       & DynBCTYPE_NoSlip, DynBCTYPE_Slip, DynBCTYPE_SpecStress,                 &
+       & ThermBCTYPE_PrescFixedFlux, ThermBCTYPE_PrescFlux, ThermBCTYPE_Adiabat, &
+       & ThermBCTYPE_PresFlux_Han1984Method,                                     &
+       & ThermBCTYPE_PrescTemp, ThermBCTYPE_TempRelaxed,                         & 
+       & SaltBCTYPE_PrescFixedFlux, SaltBCTYPE_PrescFlux, SaltBCTYPE_Adiabat,    &
+       & SaltBCTYPE_PrescSalt, SaltBCTYPE_SaltRelaxed,                           &
+       & SaltBCTYPE_PresFlux_Han1984Method,                                      &
+       & KinBC_Surface, DynBC_Surface, ThermBC_Surface, SaltBC_Surface,          &
+       & KinBC_Bottom, DynBC_Bottom, ThermBC_Bottom, SaltBC_Bottom,              &
+       & SeaSfcTempRelaxedTime, SeaSfcSaltRelaxedTime
+
+  use DOGCM_Boundary_vars_mod, only: &
+       & xy_SfcHFlx_ns, xy_SfcHFlx_sr,        &
+       & xy_WindStressU, xy_WindStressV,      &
+       & xy_FreshWtFlx, xy_FreshWtFlxS,       &
+       & xy_SeaSfcTemp, xy_SeaSfcSalt,        &
+       & xy_OcnSfcCellMask, xyz_OcnCellMask,  &
+       & OCNCELLMASK_SICE, OCNCELLMASK_OCEAN
+  
+  ! 宣言文; Declareration statements
+  !
+  implicit none
+  private
+
+  ! 公開手続き
+  ! Public procedure
+  !
+
+  public :: DOGCM_Boundary_spm_Init, DOGCM_Boundary_spm_Final
+
+  public :: DOGCM_Boundary_spm_ApplyBC
+  
+  public :: DOGCM_Boundary_spm_InqVBCRHS_UV
+  public :: DOGCM_Boundary_spm_InqVBCRHS_TRC
+  
+  ! 公開変数
+  ! Public variable
+  !
+
+  !< The depth of mixed layer near sea surface to specify Haney-type boundary condition.
+  real(DP), parameter :: MixLyrDepthConst = 50d0
+
+  !< Reference salinity to calculate virtual salinity flux. 
+  real(DP), public, parameter :: RefSalt_VBC = 35d0
+  
+  ! 非公開変数
+  ! Private variable
+  !
+  
+  character(*), parameter:: module_name = 'DOGCM_Boundary_spm_mod' !< Module Name
+
+  
+contains
+
+  !>
+  !!
+  !!
+  Subroutine DOGCM_Boundary_spm_Init( &
+       & configNmlName )                   ! (in)
+
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: configNmlName
+
+    ! 実行文; Executable statements
+    !
+
+!    call read_nmlData(configNmlName)
+
+    
+  end subroutine DOGCM_Boundary_spm_Init
+
+  !>
+  !!
+  !!
+  subroutine DOGCM_Boundary_spm_Final()
+
+    ! 実行文; Executable statements
+    !
+
+
+  end subroutine DOGCM_Boundary_spm_Final
+
+  !-----------------------------------------
+  
+  subroutine DOGCM_Boundary_spm_ApplyBC(    &
+       & xyz_U, xyz_V, xyza_TRC,                    & ! (inout)
+       & xyz_H, xyz_VViscCoef, xyz_VDiffCoef        & ! (in)
+       & )
+
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(inout) :: xyz_U(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xyz_V(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xyza_TRC(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)    
+    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
+
+    ! 局所変数
+    ! Local variables
+    !
+    
+    real(DP) :: xya_U_VBCRHS(0:iMax-1,jMax,2)
+    real(DP) :: xya_V_VBCRHS(0:iMax-1,jMax,2)
+    real(DP) :: xya_PTemp_VBCRHS(0:iMax-1,jMax,2)
+    real(DP) :: xya_Salt_VBCRHS(0:iMax-1,jMax,2)
+    
+    ! 実行文; Executable statements
+    !
+
+    call DOGCM_Boundary_spm_InqVBCRHS_UV( &
+         & xya_U_VBCRHS, xya_V_VBCRHS,                 & ! (out)
+         & xyz_U, xyz_V, xyz_H, xyz_VViscCoef          & ! (in)
+         & )
+    
+    call solve_VBCEq( xyz_U,                           & ! (inout)
+         & DynBC_Surface, DynBC_Bottom, xya_U_VBCRHS   & ! (in)
+         & )
+
+    call solve_VBCEq( xyz_V,                           & ! (inout)
+         & DynBC_Surface, DynBC_Bottom, xya_V_VBCRHS   & ! (in)
+         & )
+
+    call DOGCM_Boundary_spm_InqVBCRHS_TRC( &
+         & xya_PTemp_VBCRHS, xya_Salt_VBCRHS,          & ! (out)
+         & xyza_TRC(:,:,:,TRCID_PTEMP), xyza_TRC(:,:,:,TRCID_SALT),  & ! (in)
+         & xyz_H, xyz_VDiffCoef                                      & ! (in)
+         & )
+    
+    call solve_VBCEq( xyza_TRC(:,:,:,TRCID_PTEMP),            & ! (inout)
+         & ThermBC_Surface, ThermBC_Bottom, xya_PTemp_VBCRHS  & ! (in)
+         & )
+    
+    call solve_VBCEq( xyza_TRC(:,:,:,TRCID_SALT),         & ! (inout)
+         & SaltBC_Surface, SaltBC_Bottom, xya_Salt_VBCRHS     & ! (in)
+         & )
+
+  end subroutine DOGCM_Boundary_spm_ApplyBC
+       
+  !-----------------------------
+
+  subroutine DOGCM_Boundary_spm_InqVBCRHS_TRC( &
+       & xya_PTemp_VBCRHS, xya_Salt_VBCRHS,            & ! (out)
+       & xyz_PTemp, xyz_Salt, xyz_H, xyz_VDiffCoef     & ! (in)
+       & )
+
+    ! モジュール引用; Use statements
+    !
+
+    ! 宣言文; Declaration statement
+    !
+
+    real(DP), intent(out) :: xya_PTemp_VBCRHS(0:iMax-1,jMax,2)
+    real(DP), intent(out) :: xya_Salt_VBCRHS(0:iMax-1,jMax,2)
+    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
+
+
+    ! 局所変数
+    ! Local variables
+    !
+    integer :: k
+    
+    ! RHS for thermal boundary condition
+    !
+
+    select case(ThermBC_Surface)
+    case(  ThermBCTYPE_PrescTemp                              &
+         & )
+       xya_PTemp_VBCRHS(:,:,1) = xy_SeaSfcTemp(IS:IE,JS:JE)
+       
+    case(  ThermBCTYPE_PrescFixedFlux, ThermBCTYPE_PrescFlux, &
+         & ThermBCTYPE_Adiabat, ThermBCTYPE_TempRelaxed,      &
+         & ThermBCTYPE_PresFlux_Han1984Method                 &
+         & )
+       !$omp parallel
+       !$omp workshare
+       xya_PTemp_VBCRHS(:,:,1) = &
+            & - xyz_H(:,:,0)/(RefDens*Cp0*xyz_vDiffCoef(:,:,0))*( &
+            &      xy_SfcHFlx_sr(IS:IE,JS:JE) + xy_SfcHFlx_ns(IS:IE,JS:JE) &
+            & )
+       !$omp end workshare
+       !$omp end parallel
+       
+    case default 
+       call throw_UnImplementVBCError('ThermBC_Surface', ThermBC_Surface)
+    end select
+
+    select case(ThermBC_Bottom)
+    case(ThermBCTYPE_Adiabat)
+       xya_PTemp_VBCRHS(:,:,2) = 0d0
+    case default
+       call throw_UnImplementVBCError('ThermBC_Bottom', ThermBC_Bottom)
+    end select
+
+    
+    ! RHS for boundary condition of Salinity
+    !
+    
+    select case(SaltBC_Surface)
+    case(  SaltBCTYPE_PrescSalt                             &
+         & )
+       xya_Salt_VBCRHS(:,:,1) = xy_SeaSfcSalt(IS:IE,JS:JE)
+       
+    case(  SaltBCTYPE_PrescFixedFlux, SaltBCTYPE_PrescFlux, &
+         & SaltBCTYPE_Adiabat,                              &
+         & SaltBCTYPE_PresFlux_Han1984Method,               &
+         & SaltBCTYPE_SaltRelaxed                           &
+         & )
+       xya_Salt_VBCRHS(:,:,1) = - xyz_H(:,:,0)/xyz_VDiffCoef(:,:,0)*( &
+            & xy_FreshWtFlxS(IS:IE,JS:JE) * RefSalt_VBC )
+
+    case default 
+       call throw_UnImplementVBCError('SaltBC_Surface', SaltBC_Surface)       
+    end select
+
+    !
+    select case(SaltBC_Bottom)
+    case(SaltBCTYPE_Adiabat)
+       xya_Salt_VBCRHS(:,:,2) = 0d0
+    case default 
+       call throw_UnImplementVBCError('SaltBC_Bottom', SaltBC_Bottom)       
+    End select
+    
+  end subroutine DOGCM_Boundary_spm_InqVBCRHS_TRC
+  
+  subroutine DOGCM_Boundary_spm_InqVBCRHS_UV( &
+       & xya_U_VBCRHS, xya_V_VBCRHS,                   & ! (out)
+       & xyz_U, xyz_V, xyz_H, xyz_VViscCoef            & ! (in)
+       & )
+
+    ! モジュール引用; Use statements
+    !
+
+    ! 宣言文; Declaration statement
+    !
+
+    real(DP), intent(out) :: xya_U_VBCRHS(0:iMax-1,jMax,2)
+    real(DP), intent(out) :: xya_V_VBCRHS(0:iMax-1,jMax,2)
+    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
+
+    ! 局所変数
+    ! Local variables
+    !
+    integer :: k
+    real(DP) :: xy_Coef(0:iMax-1,jMax)
+    
+    ! 実行文; Executable statement
+    !
+
+    ! -- RHS for dynamical boundary condition
+
+    select case(DynBC_Surface)
+    case(  DynBCTYPE_SpecStress,               &
+         & DynBCTYPE_Slip                      &
+         & )
+       !$omp parallel
+       !$omp workshare
+       xya_U_VBCRHS(:,:,1) = xyz_H(:,:,0)/(RefDens*xyz_VViscCoef(:,:,0))*xy_WindStressU(IS:IE,JS:JE)
+       xya_V_VBCRHS(:,:,1) = xyz_H(:,:,0)/(RefDens*xyz_VViscCoef(:,:,0))*xy_WindStressV(IS:IE,JS:JE)
+       !$omp end workshare
+       !$omp end parallel
+       
+    case( DynBCTYPE_NoSlip )
+       xya_U_VBCRHS(:,:,1) = 0d0
+       xya_V_VBCRHS(:,:,1) = 0d0
+    case default
+       call throw_UnImplementVBCError('DynBC_Surface', DynBC_Surface)              
+    end select
+    
+    xy_Coef(:,:) = xyz_H(:,:,kMax)/(RefDens*xyz_VViscCoef(:,:,kMax))    
+
+    select case(DynBC_Bottom)
+    case(DynBCTYPE_NoSlip)
+       xya_U_VBCRHS(:,:,2) = 0d0
+       xya_V_VBCRHS(:,:,2) = 0d0       
+    case(DynBCTYPE_Slip)
+       xya_U_VBCRHS(:,:,2) = 0d0
+       xya_V_VBCRHS(:,:,2) = 0d0
+    case default
+       call throw_UnImplementVBCError('DynBC_Bottom', DynBC_Bottom)       
+    end select
+
+  end subroutine DOGCM_Boundary_spm_InqVBCRHS_UV
+
+  subroutine throw_UnImplementVBCError(boundaryLabel, BCTypeID)
+    character(*), intent(in) :: boundaryLabel
+    integer, intent(in) :: BCTypeID
+
+    call MessageNotify( 'E', module_name, &
+         & "'%a=%d' has not been implemeneted yet.", &
+         & ca=(/ boundaryLabel /), i=(/ BCTypeID /)  &
+         & )
+  end subroutine throw_UnImplementVBCError
+  
+  !- Private subroutines -------------------------------------------------
+
+  
+  subroutine solve_VBCEq( xyz,                       & ! (inout)
+       & SurfBoundaryID, BtmBoundaryID, xya_VBCRHS   & ! (in)
+       & )
+    real(DP), intent(inout) :: xyz(0:iMax-1,jMax,0:kMax)
+    integer, intent(in) :: &
+         & SurfBoundaryID, BtmBoundaryID
+    real(DP), intent(in) :: xya_VBCRHS(0:iMax-1,jMax,2)
+
+    character :: SurfVBCType, BtmVBCType
+    real(DP) :: VBCMat(0:kMax,0:kMax)
+    real(DP) :: DSigMat(0:kMax,0:kMax)
+    real(DP) :: IMat(0:kMax,0:kMax)    
+    integer :: i, j, k, n 
+    integer :: IPiv(0:kMax)
+    real(DP) :: b(0:kMax,1)
+    integer :: info
+    
+    SurfVBCType = inquire_VBCSpecType(SurfBoundaryID)
+    BtmVBCType = inquire_VBCSpecType(BtmBoundaryID)
+    
+    if (SurfVBCType//BtmVBCType == 'DD') then
+       xyz(:,:,0) = xya_VBCRHS(:,:,1)
+       xyz(:,:,kMax) = xya_VBCRHS(:,:,2)
+       return
+    end if
+
+    !
+    IMat(:,:) = 0d0
+    forAll(k=0:kMax) IMat(k,k) = 1d0
+    do k=0, kMax
+       DSigMat(:,k) = z_DSig_z(IMat(:,k))
+    end do
+    
+    VBCMat(:,:) = IMat
+    if(SurfVBCType == 'N') VBCMat(0,:) = DSigMat(0,:)
+    if(BtmVBCType == 'N') VBCMat(kMax,:) = DSigMat(kMax,:)
+
+    n = size(VBCMat, 1)
+    call DGETRF(n, n, VBCMat, n, IPiv, info)
+
+    !$omp parallel do private(i, b, info)
+    do j=1, jMax
+       do i=0, iMax-1
+          b(:,1) = xyz(i,j,:);
+          b(0,1) = xya_VBCRHS(i,j,1); b(kMax,1) = xya_VBCRHS(i,j,2) 
+          
+          call DGETRS('N', n, 1, VBCMat, n, IPiv, b, n, info)
+          xyz(i,j,0) = b(0,1); xyz(i,j,kMax) = b(kMax,1)
+       end do
+    end do
+    
+  end subroutine solve_VBCEq
+  
+end module DOGCM_Boundary_spm_mod

@@ -1,0 +1,124 @@
+&Grid_nml
+ nLat = 64,
+ nLon = 1,
+! nLon = 128,
+ nZ = 60,
+/
+&TemporalInteg_nml
+  barocTimeIntModeName = 'TimeIntMode_LF', !
+                                           ! [LF / LFAM3 / Euler]  
+  DelTimeVal = 6.0,
+  DelTimeUnit = 'hour',
+  ReStartTimeVal = 0.0, 
+  ReStartTimeUnit = 'day', 
+  InitYear=2000, InitMonth=1, InitDay=1, InitHour=0, InitMin=0,
+  EndYear =2005, EndMonth =1,
+  EndDay =1, EndHour=0, EndMin=0,
+!  IntegTimeVal  = 1.0,
+!  IntegTimeUnit  = 'day'
+  ProgMessageIntVal = 90.0,
+  ProgMessageIntUnit = 'day',
+/
+&BoundaryCondition_nml
+  KinBCSurface   = 'Rigid',
+  DynBCSurface   = 'SpecStress', 
+  DynBCBottom    = 'NoSlip',
+  ThermBCSurface = 'Adiabat', 
+  ThermBCBottom  = 'Adiabat', 
+  SaltBCSurface  = 'Adiabat',
+  SaltBCBottom   = 'Adiabat', 
+/
+&gtool_historyauto_nml
+  IntValue = 20.0,                  ! 出力間隔の数値
+  IntUnit = 'day',                  ! 出力間隔の単位 
+  FilePrefix = '',
+/
+&RestartFile_nml
+ OutputFileName = 'Restart.nc', 
+ InputFileName  = '', !InitData.nc', 
+ IntValue = 200, 
+ IntUnit = 'day'
+/
+&GovernEq_nml
+  DynEqTypeName    = 'HydroBoussinesq', 
+  EOSTypeName      = 'EOS_LINEAR',
+                                         ! For EOS Type, 
+					 ! 'EOS_LINEAR, EOS_SIMPLE_NONLINEAR, and EOS_JM95' 
+					 ! are available.
+					 !
+  LPhysNames       = 'LMixMOM, LMixTRC', 
+                                         ! In lateral oceanic physics, 
+					 ! 'LMixMOM, LMixTRC, and RediGM' 
+					 ! are available.
+					 !
+  VPhysNames        = 'VMixMOM, VMixTRC', 
+                                         ! In vertical oceanic physics,
+					 ! 'VMixMOM, VMixTRC, and Convection' are available
+					 ! 
+/
+&SGSPhys_VMixing_nml
+  VMixCoef_scheme_name = 'Const'         !
+					 ! 'Const or Simple' 
+					 ! are available.
+/
+&SemiImplicitScheme_nml
+  VDiffTermACoef    = 0.5,
+  CoriolisTermACoef = 0.53, 
+/
+&Constants_nml
+  RPlanet    = 6.371e06,
+                              ! $ a $ [m].
+                              ! 惑星半径.
+                              ! Radius of planet
+  Omega      = 7.292115e-5,
+                              ! $ \Omega $ [s-1].
+                              ! 回転角速度.
+                              ! Angular velocity
+  Grav       = 9.79764e0,
+                              ! $ g $ [m s-2].
+                              ! 重力加速度.
+                              ! Gravitational acceleration
+ hViscCoef   = 3d5,
+ vViscCoef   = 1d-2,
+ hHyperViscCoef = 1d13, 
+ vHyperViscCoef = 0d0, 
+ hDiffCoef   = 1d3,
+ vDiffCoef   = 1d-2, 
+ hHyperDiffCoef = 0d0, 
+ vHyperDiffCoef = 0d0, 
+/
+!* For OGCM
+&gtool_historyauto_nml
+  Name = 'U, V, OMG, PTemp, Salt, H', 
+  Precision = 'float'
+/
+&gtool_historyauto_nml
+  Name = 'SfcPres, HydPres, ConvIndex', ! Output variables
+  Precision='float'
+/
+&gtool_historyauto_nml
+  Name = 'VViscCoef, VDiffCoef', ! Output variables
+  Precision='float'
+/
+&gtool_historyauto_nml
+  Name = 'WindStressU, WindStressV', ! Output variables
+  Precision = 'float'
+/
+!--------------------------------------------------------------------------------
+!* For Sea-ice model 
+!&gtool_historyauto_nml
+! Name = 'SIceEn, SIceCon, SnowThick, IceThick, SIceTemp, SIceSurfTemp', ! Output variables
+! Precision = 'float'
+!/
+!* For debug of coupler
+!&gtool_historyauto_nml
+! Name = 'TauXAtm, TauYAtm, SensFlxAtm, LatentFlxAtm, SWDWRFlxAtm, SWUWRFlxAtm, LWDWRFlxAtm, LWUWRFlxAtm, RainAtm, SnowAtm, SurfAirTempAtm, DSurfHFlxDTsAtm, DSurfLatentFlxDTsAtm',
+! Precision = 'float', 
+! TimeAverage = .true.
+!/
+!&gtool_historyauto_nml
+! Name = 'SurfHFlxO, SurfFwFlxO, SurfHFlxAI, SurfHFlxAO, SurfHFlxAIO',
+! Precision='float',
+! TimeAverage = .true.
+!/
+

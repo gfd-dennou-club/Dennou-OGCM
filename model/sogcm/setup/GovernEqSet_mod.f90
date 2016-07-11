@@ -10,21 +10,25 @@ module GovernEqSet_mod
 
   ! モジュール引用; Use statements
   !
+
+  !* gtool5
+
   use dc_types, only: &
        & TOKEN, STRING, DP
 
   use dc_message, only: &
        & MessageNotify
 
-  !
-    use EOS_Linear_mod, only: &
-         & EOSTYPE_LINEAR, EOSTYPENAME_LINEAR
+  !* Dennou-OGCM
+  
+  use EOS_Linear_mod, only: &
+       & EOSTYPE_LINEAR, EOSTYPENAME_LINEAR
 
-    use EOS_SimpleNonLinear_mod, only: &
-         & EOSTYPE_SIMPLENONLINEAR, EOSTYPENAME_SIMPLENONLINEAR
+  use EOS_SimpleNonLinear_mod, only: &
+       & EOSTYPE_SIMPLENONLINEAR, EOSTYPENAME_SIMPLENONLINEAR
 
-    use EOS_JM95_mod, only: &
-         & EOSTYPE_JM95, EOSTYPENAME_JM95
+  use EOS_JM95_mod, only: &
+       & EOSTYPE_JM95, EOSTYPENAME_JM95
   
   ! 宣言文; Declareration statements
   !
@@ -48,6 +52,9 @@ module GovernEqSet_mod
   character(*), public, parameter :: GOVERNEQSET_DYN_HYDROBOUSSINESQ_NAME = "HydroBoussinesq"
   integer, public, parameter :: GOVERNEQSET_DYN_HYDROBOUSSINESQ = 1
 
+  character(*), public, parameter :: GOVERNEQSET_DYN_NONDYN_MIXEDLYR_NAME = "NonDynMixedLyr"
+  integer, public, parameter :: GOVERNEQSET_DYN_NONDYN_MIXEDLYR = 2
+  
   ! For equation of state
   integer, public, parameter :: GOVERNEQSET_EOS_LINEAR = EOSTYPE_LINEAR
   integer, public, parameter :: GOVERNEQSET_EOS_SIMPLENONLINEAR = EOSTYPE_SIMPLENONLINEAR
@@ -202,8 +209,10 @@ contains
     !
 
     DynEqType = typeName2ID( DynEqTypeName, &
-         & (/ GOVERNEQSET_DYN_HYDROBOUSSINESQ_NAME /), &
-         & (/ GOVERNEQSET_DYN_HYDROBOUSSINESQ /), &
+         & (/ GOVERNEQSET_DYN_HYDROBOUSSINESQ_NAME,     &
+         &    GOVERNEQSET_DYN_NONDYN_MIXEDLYR_NAME  /), &
+         & (/ GOVERNEQSET_DYN_HYDROBOUSSINESQ,          &
+         &    GOVERNEQSET_DYN_NONDYN_MIXEDLYR       /), &
          & "DynEqType", .false. )
 
     EOSType = typeName2ID( EOSTypeName, &

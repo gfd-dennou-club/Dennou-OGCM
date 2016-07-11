@@ -31,14 +31,14 @@ Models
       discritized with TRiSK proposed by Ringler et al. (2010).
 
   - Global shallow water model with a discontineous Galerkin method (globalSWM-DG)
-    - The model mesh is spherical triangle mesh, and the govern equation are
+    - The model mesh is spherical triangle mesh, and the governing equation are
       discritized with a DG method proposed by Läuter et al. (2008).
 
 
 Main developers
 -----------------------------------------------------------------------------------------
 
-  - Yuta Kawai (Kobe university and RIKEN AICS)
+  - Yuta Kawai (Kobe university and RIKEN AICS) and the collaborators in GFD-Dennou Club
 
 
 Some informations

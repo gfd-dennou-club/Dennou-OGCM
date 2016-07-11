@@ -5,7 +5,8 @@ SUBDIRS = \
 	model/globalSWModel_FVM \
 	model/globalSWModel_DG \
 	model/ogcm \
-	model/sogcm
+	model/sogcm \
+	model/dogcm
 
 #	model/globalSWModel_DG2 
 

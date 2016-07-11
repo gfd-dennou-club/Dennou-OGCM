@@ -308,7 +308,16 @@ AC_CONFIG_FILES([
 		 model/sogcm/experiment/Makefile
 		 model/sogcm/unit_test/Makefile
 		 model/sogcm/tool/Makefile
- ])
+		 model/dogcm/Makefile
+		 model/dogcm/util/Makefile
+		 model/dogcm/seaice/Makefile		 
+		 model/dogcm/admin/Makefile		 
+		 model/dogcm/boundary/Makefile
+		 model/dogcm/io/Makefile
+		 model/dogcm/dynamics/Makefile
+		 model/dogcm/physics/Makefile
+		 model/dogcm/tint/Makefile
+])
 
 AC_OUTPUT
 

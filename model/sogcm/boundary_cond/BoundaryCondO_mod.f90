@@ -45,6 +45,7 @@ module BoundaryCondO_mod
 
   use VariableSet_mod, only: &
        & xy_totDepthBasic, z_PTempBasic
+
   
   ! 宣言文; Declareration statements
   !
@@ -127,7 +128,9 @@ module BoundaryCondO_mod
   character(*), parameter:: module_name = 'BoundaryCondO_mod' !< Module Name
   logical :: outputSurfFlxFlag
   logical :: initSurfFlxSetFlag
-  
+
+  real(DP), parameter :: IceMaskMin = 1d0!0.999d0!0.05d0
+
 contains
 
   !>
@@ -219,6 +222,12 @@ contains
     
     use TemporalIntegSet_mod, only: &
          & CurrentTime
+
+    use gtool_history, only: &
+         & HistoryGet
+
+    use SpmlUtil_mod, only: &
+         AvrLonLat_xy
     
     ! 宣言文; Declaration statement
     !
@@ -267,6 +276,7 @@ contains
     if(calcSurfHeatFlxFlag) then
        if(.not. initSurfFlxSetFlag) then
           xy_SeaSurfTemp(:,:) = z_PTempBasic(0) + xyz_PTempEddN(:,:,0)
+!          call HistoryGet("SSTrestore.nc", "SSTrestore", xy_SeaSurfTemp)
        end if
        
        call calc_SurfaceHeatFluxO( xy_SurfHFlxO,      & ! (out)
@@ -286,7 +296,12 @@ contains
     if(outputSurfFlxFlag) then
        call output_surfaceFlux(CurrentTime)
     end if
-    
+
+!!$    write(*,*) "SurfHFlxO=", xy_SurfHFlxO(0,:)
+!!$    write(*,*) "SurfHFlxAO=", xy_SurfHFlxAO(0,:)
+!!$    write(*,*) "SurfHFlxIO=", xy_SurfHFlxIO(0,:)
+!!$    write(*,*) "SIceCon=", xy_SIceCon(0,:)
+!!$    stop
   end subroutine BoundaryCondO_Update
 
   !> @brief 
@@ -315,7 +330,8 @@ contains
     ! 局所変数
     ! Local variables
     !
-
+    real(DP) :: xy_SurfHFlxAIO(0:iMax-1,jMax)
+    
     ! 実行文; Executable statement
     !
 
@@ -333,20 +349,37 @@ contains
 !!$            & + (1d0 - albedoOcean)*xy_SWDWRFlx        &
 !!$            & - emissivOcean*(StB*xy_SurfTemp**4)
 
-       where (xy_SIceCon <= 0d0)
+       where (xy_SIceCon < IceMaskMin)
           xy_SurfHFlxO = &
                & - xy_LatentDWHFlx                            &
                & - xy_SensDWHFlx                              &
                & - (xy_LWDWRFlx - xy_LWUWRFlx)                &
                & - (xy_SWDWRFlx - xy_SWUWRFlx)                &
                & + xy_SurfHFlxIO
-               
+
+          xy_SurfHFlxAIO = xy_SurfHFlxO
 !            & + RefDens*Cp0*xy_SurfTemp*((xy_Wrain + xy_Wsnow) - xy_Wevap)
        elsewhere
           xy_SurfHFlxO = xy_SurfHFlxIO
+          xy_SurfHFlxAIO = xy_SurfHFlxAI
        end where
        !$omp end workshare
        !$omp end parallel
+
+       if ( mod(CurrentTime, 3600d0*24d0*10d0) == 0) then
+          write(*,*) &
+               "Lat=", AvrLonLat_xy(-xy_LatentDWHFlx), &
+               "Sens=", AvrLonLat_xy(-xy_SensDWHFlx), &
+               "LWD=",  AvrLonLat_xy(-xy_LWDWRFlx), &
+               "LWU=",  AvrLonLat_xy(xy_LWUWRFlx), &         
+               "SWD=",  AvrLonLat_xy(-xy_SWDWRFlx), &
+               "SWU=",  AvrLonLat_xy(xy_SWUWRFlx), &         
+               "SLR=", AvrLonLat_xy(-xy_LWDWRFlx + xy_LWUWRFlx), &
+               "SSR=", AvrLonLat_xy(-xy_SWDWRFlx + xy_SWUWRFlx)
+
+!!$    write(*,*) "SrfFlxO=", AvrLonLat_xy(xy_SurfHFlxO)
+          write(*,*) "SrfFlxAIO=", AvrLonLat_xy(xy_SurfHFlxAIO)
+    end if
        
     end if
 
@@ -377,7 +410,7 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP), dimension(0:iMax-1,jMax) :: xy_Lambda
+    real(DP) :: xy_Lambda(0:iMax-1,jMax)
 
     ! 実行文; Executable statement
     !
@@ -393,18 +426,22 @@ contains
 !!$    xy_SurfDWHFlx_AO(:,:) = xy_SurfDWHFlx_AO &
 !!$         & + xy_DSurfHFlxDTs*(xy_SeaSurfTemp - xy_SurfTemp)
 
-       where (xy_SIceCon <= 0d0)
+       where (xy_SIceCon < IceMaskMin)
           xy_SurfHFlxO = &
                & - xy_LatentDWHFlx                            &
                & - xy_SensDWHFlx                              &
                & - (xy_LWDWRFlx - xy_LWUWRFlx)                &
-               & - (1d0 - AlbedoOcean)*xy_SWDWRFlx                 !&
-!            & + RefDens*Cp0*xy_SurfTemp*((xy_Wrain + xy_Wsnow) - xy_Wevap)
-
-          xy_Lambda = xy_DSurfHFlxDTs + 4d0*StB*xy_SeaSurfTemp**3
+               & - (1d0 - AlbedoOcean)*xy_SWDWRFlx            
+          xy_Lambda = xy_DSurfHFlxDTs + 4d0*StB*xy_SeaSurfTemp**3 !
           xy_SurfHFlxO = &
                & - xy_Lambda*((xy_SeaSurfTemp - xy_SurfHFlxO/xy_Lambda) - xy_SurfTemp) &
                & + xy_SurfHFlxIO
+
+!!$          xy_SurfHFlxO = &
+!!$               (xy_DSurfHFlxDTs + 4d0*StB*xy_SurfAirTemp**3)*( xy_SurfTemp - xy_SurfAirTemp )   &
+!!$             - (xy_LWDWRFlx - StB*xy_SurfAirTemp**4)                                            &
+!!$             - (1d0 - AlbedoOcean)*xy_SWDWRFlx
+          
        elsewhere
           xy_SurfHFlxO = xy_SurfHFlxIO
        end where
@@ -446,7 +483,7 @@ contains
 !!$return
        !$omp parallel
        !$omp workshare
-       where (xy_SIceCon <= 0d0)
+       where (xy_SIceCon < IceMaskMin)
           xy_SurfFwFlxO =    (xy_Wrain + xy_Wsnow) - xy_Wevap &
                &           + xy_SurfFwFlxIO
        elsewhere
@@ -690,10 +727,11 @@ contains
     real(DP), intent(in) :: xya_VBCRHS(0:iMax-1,jMax,2)
 
     character :: SurfVBCType, BtmVBCType
-    real(DP), dimension(0:kMax,0:kMax) :: &
-         & VBCMat, DSigMat, IMat
+    real(DP) :: VBCMat(0:kMax,0:kMax)
+    real(DP) :: DSigMat(0:kMax,0:kMax)
+    real(DP) :: IMat(0:kMax,0:kMax)    
     integer :: i, j, k, n 
-    real(DP) :: IPiv(0:kMax)
+    integer :: IPiv(0:kMax)
     real(DP) :: b(0:kMax,1)
     integer :: info
     

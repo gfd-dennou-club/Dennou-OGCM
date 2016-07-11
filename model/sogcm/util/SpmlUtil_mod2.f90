@@ -117,8 +117,8 @@ module SpmlUtil_mod
   public :: xya_wa, wa_xya
 
   ! Integral or average operator
-  public :: IntLonLat_xy, ya_IntLon_xya
-  public :: AvrLonLat_xy, ya_AvrLon_xya
+  public :: IntLonLat_xy, ya_IntLon_xya, y_IntLon_xy
+  public :: AvrLonLat_xy, ya_AvrLon_xya, y_AvrLon_xy
   
   ! Interpolation
   public :: a_Interpolate_wa, Interpolate_w  
@@ -150,9 +150,9 @@ module SpmlUtil_mod
   integer :: tm      !< Maximum truncated wave number in vertical spectral method
   integer :: lm      !< Size of array saving data in wavenumber domain
 
-  real(DP), allocatable :: tr_vIntCoefMat(:,:)
-  real(DP), allocatable :: tr_vDeriv1CoefMat(:,:)
-  real(DP), allocatable :: tr_vDeriv2CoefMat(:,:)
+  real(DP), allocatable, public :: tr_vIntCoefMat(:,:)
+  real(DP), allocatable, public :: tr_vDeriv1CoefMat(:,:)
+  real(DP), allocatable, public :: tr_vDeriv2CoefMat(:,:)
   real(DP), allocatable :: vDiffProcInvMat(:,:)
 
   logical, save :: initalizedFlag = .false.
@@ -168,6 +168,8 @@ module SpmlUtil_mod
 
 contains
 
+
+    
   !>
   !!
   !!
@@ -193,6 +195,7 @@ contains
 #endif
 
     nThread = 1
+    Radius = RPlanet
 
     if( present(np) ) then
        nThread = np
@@ -201,15 +204,17 @@ contains
        call wa_Initial(nMax, iMax, jMax, kMax+1)
     end if
 
-    call MessageNotify("M", module_name, "The number of thread is %d", i=(/ nThread /))
-    call at_Initial(kMax, tMax, SigMin, SigMax)
-    
-    Radius = RPlanet
+    if ( kMax > 1 ) then
+       call at_Initial(kMax, tMax, SigMin, SigMax)
+       call construct_VDerivateOptrMat()
+    else
+       call MessageNotify( "M", module_name, &
+            "A module for vertical derivative operations is not initialized." )
+    end if
 
     ! Allocate the memory of work variables in this module. 
     allocate(xy_CosLat(0:im-1,jm))
     xy_CosLat = cos(xy_Lat)
-    call construct_VDerivateOptrMat()
     
     !
     call assign_IDRange(0, kMax+1, lkMin, lkMax)
@@ -227,6 +232,7 @@ contains
 !!$    write(*,*) 'lxyMax', lxyMax
 
     !
+    call MessageNotify("M", module_name, "The number of thread is %d", i=(/ nThread /))
     call MessageNotify("M", module_name, "SpmlUtil_mod have been initialized.")
     initalizedFlag = .true.
 
@@ -293,12 +299,31 @@ contains
     !
 
     if(present(x_Lon_))  x_Lon_ = x_Lon
+
     if(present(y_Lat_))  y_Lat_ = y_Lat
-    if(present(z_Sig_))  z_Sig_ = g_Sig
+
+    if(present(z_Sig_))  then
+       if (km > 1) then
+          z_Sig_ = g_Sig
+       else
+          z_Sig_ = 0d0
+       end if
+    end if
+
     if(present(x_Lon_Weight_))  x_Lon_Weight_ = x_Lon_Weight
+
     if(present(y_Lat_Weight_))  y_Lat_Weight_ = y_Lat_Weight
-    if(present(z_Sig_Weight_))  z_Sig_Weight_ = g_Sig_WEIGHT
+
+    if(present(z_Sig_Weight_)) then
+       if (km > 1) then
+          z_Sig_Weight_ = g_Sig_WEIGHT
+       else
+          z_Sig_Weight_ = 1d0
+       end if
+    end if
+
     if(present(xy_Lon_))  xy_Lon_ = xy_Lon
+
     if(present(xy_Lat_))  xy_Lat_ = xy_Lat
     
   end subroutine get_SpmlGridInfo
@@ -986,9 +1011,9 @@ contains
 
       integer :: k
 
-      forAll(k=0:km) &
-           & z_DSig_z(k) = sum(tr_vDeriv1CoefMat(:,k)*z(:))
-      
+      do k=0, km
+         z_DSig_z(k) = sum(tr_vDeriv1CoefMat(:,k)*z(:))
+      end do
     end function z_DSig_z
     
     function xyz_DSig_xyz(xyz)
@@ -1167,7 +1192,7 @@ contains
       real(DP) :: TIntMat(0:km,0:tm)
       real(DP) :: Sigk, theta, tl
       integer :: k, t, k2
-
+      real(DP) :: z_Val(0:km), z_Int(0:km)
 
       !
       
@@ -1199,10 +1224,36 @@ contains
      TIntMat = 0.5d0*(SigMax - SigMin) * TIntMat 
 
      tr_vIntCoefMat = transpose( matmul(TIntMat, transpose(TMat)) )
+!     tr_vIntCoefMat = transpose( matmul(TIntMat, TMat) )
 
      !
      tr_vDeriv1CoefMat = ( az_at(at_DSig_at(TMat)) )
      tr_vDeriv2CoefMat = ( az_at(at_DSig_at(at_DSig_at(TMat))) )
+
+!!$     write(*,*) "TIntMat ------------------ "
+!!$     do k=0,km
+!!$        theta = PI*k/dble(km)
+!!$        Sigk = cos(theta)
+!!$        z_Val(k) = Sigk        
+!!$     end do
+!!$     write(*,*) "z_Val=", z_Val
+!!$     do k=0,km
+!!$        z_Int(k) = sum(tr_vIntCoefMat(:,k)*z_Val)
+!!$        write(*,*) "k=", k, ":", tr_vIntCoefMat(:,k), &
+!!$             ":", sum(tr_vIntCoefMat(:,k)*z_Val)             
+!!$     end do
+!!$     write(*,*) "Vderiv1Mat ------------------ "
+!!$     do k=0,km
+!!$        z_Val(k) = sum(tr_vDeriv1CoefMat(:,k)*z_Int)
+!!$        write(*,*) "k=", k, ":", tr_vDeriv1CoefMat(:,k), ":", z_Val(k)
+!!$     end do
+!!$     write(*,*) "Vderiv1Mat ------------------ "
+!!$     do k=0,km
+!!$        z_Int(k) = sum(tr_vIntCoefMat(:,k)*z_Val)
+!!$        write(*,*) "k=", k, ":", tr_vIntCoefMat(:,k), &
+!!$             ":", sum(tr_vIntCoefMat(:,k)*z_Val)             
+!!$     end do
+!!$     stop
      
    end subroutine construct_VDerivateOptrMat
 
