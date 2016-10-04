@@ -48,6 +48,7 @@ bin_PROGRAMS = \
 # Some programs to analyze the result of exp_WindDrivenCirculation
 
 exp_WindDrivenCirculation_script_numsol_check_eq_SOURCES= \
+	exp_WindDrivenCirculation/script/integrand_mod.f90   \
 	exp_WindDrivenCirculation/script/numsol_check_eq.f90
 
 

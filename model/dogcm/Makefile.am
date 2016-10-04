@@ -1,11 +1,6 @@
 SUBDIRS = \
 	util io admin boundary seaice dynamics physics tint
 
-#util setup seaice boundary_cond  io                      \
-	dynamics sgs_param physics_driver governeq_driver        \
-	experiment                                     \
-	unit_test tool
-
 ################
 
 AM_FCFLAGS = \
@@ -57,10 +52,14 @@ bin_PROGRAMS =
 #exp_name = APEOGCircSIce
 
 #= APECoupleClimate -------
-exp_name = APECoupleClimate
+#exp_name = APECoupleClimate
 
 #= EqJetAccel -------------
 #exp_name = EqJetAccel
+
+#= APEOGCircI98BC -------
+exp_name = APEOGCircI98BC
+
 
 #######################################################################
 

@@ -93,7 +93,7 @@ module DSOGCM_main_mod
   ! Private variable
   !
 
-  type(DataFileSet) :: datFile
+  type(DataFileSet), save :: datFile
   logical :: CoupledRunFlag
   
   character(*), parameter:: module_name = 'DSOGCM_main_mod' !< Module Name

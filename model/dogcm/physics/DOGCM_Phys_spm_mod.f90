@@ -20,11 +20,12 @@ module DOGCM_Phys_spm_mod
        & MessageNotify
 
   !* Dennou-OGCM
+
   use DOGCM_Admin_Grid_mod, only: &
        & IA, IS, IE, IM, &
        & JA, JS, JE, JM, &
        & KA, KS, KE, KM, &
-       & iMax, jMax, kMax, lMax
+       & iMax, jMax, kMax, lMax, nMax
 
   use DOGCM_Admin_Constants_mod, only: &
        & PI, RPlanet,               &
@@ -48,7 +49,14 @@ module DOGCM_Phys_spm_mod
        & OCNGOVERNEQ_VPHYS_CONVEC_NAME
 
   !-- Module for the parametrizations of lateral oceanic physics
-  
+
+  use DOGCM_LPhys_DIFF_spm_mod, only: &
+       & DOGCM_LPhys_DIFF_spm_Init, DOGCM_LPhys_DIFF_spm_Final, &
+       & DOGCM_LPhys_DIFF_spm_LMixMOMRHS,                       &
+       & DOGCM_LPhys_DIFF_spm_LMixMOMRHSImpl,                   &
+       & DOGCM_LPhys_DIFF_spm_LMixTRCRHS,                       &
+       & DOGCM_LPhys_DIFF_spm_LMixTRCRHSImpl
+       
   use DOGCM_LPhys_RediGM_spm_mod, only: &
        & DOGCM_LPhys_RediGM_spm_Init, DOGCM_LPhys_RediGM_spm_Final, &
        & DOGCM_LPhys_RediGM_spm_AddMixingTerm
@@ -72,8 +80,6 @@ module DOGCM_Phys_spm_mod
 
   public :: DOGCM_Phys_spm_Do
   
-  public :: DOGCM_Phys_spm_LMixMOMRHS
-  public :: DOGCM_Phys_spm_LMixTRCRHS
   public :: DOGCM_Phys_spm_VMixMOMRHS
   public :: DOGCM_Phys_spm_VMixTRCRHS
 
@@ -106,6 +112,10 @@ contains
     !
 !    call read_nmlData(configNmlName)
 
+    if ( isPhysicsCompActivated( OCNGOVERNEQ_LPHYS_MIXTRC_NAME )  ) then
+       call DOGCM_LPhys_DIFF_spm_Init( configNmlName = configNmlName )
+    end if
+    
     if ( isPhysicsCompActivated( OCNGOVERNEQ_LPHYS_REDIGM_NAME )  ) then
        call DOGCM_LPhys_RediGM_spm_Init( confignmlFileName = configNmlName )
     end if
@@ -178,10 +188,16 @@ contains
     !-- Horizontal momentum -----------------------------------------------------
     
     if ( isPhysicsCompActivated( OCNGOVERNEQ_LPHYS_MIXMOM_NAME )  ) then
-       call DOGCM_Phys_spm_LMixMOMRHS(            &
+!!$       call DOGCM_LPhys_DIFF_spm_LMixMOMRHS( &
+!!$            & xyz_U_RHS_phy, xyz_V_RHS_phy,                              & ! (inout)
+!!$            & xyz_U, xyz_V, xyz_H, hViscCoef, hHyperViscCoef             & ! (in)
+!!$            & )
+       call DOGCM_LPhys_DIFF_spm_LMixMOMRHSImpl( &
             & xyz_U_RHS_phy, xyz_V_RHS_phy,                              & ! (inout)
-            & xyz_U, xyz_V, xyz_H, hViscCoef, hHyperViscCoef             & ! (in)
+            & xyz_U, xyz_V, xyz_H, hViscCoef, hHyperViscCoef,            & ! (in)
+            & dt                                                         & ! (in)
             & )
+
     end if
 
     if ( isPhysicsCompActivated( OCNGOVERNEQ_VPHYS_MIXMOM_NAME )  ) then
@@ -194,10 +210,16 @@ contains
     !-- Tracer ------------------------------------------------------------------
     
     if ( isPhysicsCompActivated( OCNGOVERNEQ_LPHYS_MIXTRC_NAME )  ) then
-       call DOGCM_Phys_spm_LMixTRCRHS(            &
+!!$       call DOGCM_LPhys_DIFF_spm_LMixTRCRHS(            &
+!!$            & xyza_TRC_RHS_phy,                                         & ! (inout)
+!!$            & xyza_TRC, xyz_H, hDiffCoef, hHyperDiffCoef                & ! (in)
+!!$            & )
+
+       call DOGCM_LPhys_DIFF_spm_LMixTRCRHSImpl(            &
             & xyza_TRC_RHS_phy,                                         & ! (inout)
-            & xyza_TRC, xyz_H, hDiffCoef, hHyperDiffCoef                & ! (in)
-            & )
+            & xyza_TRC, xyz_H, hDiffCoef, hHyperDiffCoef,               & ! (in)
+            & dt )                                                        ! (in)
+
 !!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_PTEMP) ))
 !!$       write(*,*) "avr_ptemp_phys (+ LMixRHS): ",  avr_ptemp_RHS_phys
     end if
@@ -343,7 +365,7 @@ contains
 
     ! 実行文; Executable statements
     !
-    
+
     call DOGCM_Boundary_spm_InqVBCRHS_TRC( &
          & xya_PTemp_VBCRHS, xya_Salt_VBCRHS,                                & ! (out)
          & xyza_TRC0(:,:,:,TRCID_PTEMP), xyza_TRC0(:,:,:,TRCID_SALT),        & ! (in)
@@ -536,110 +558,5 @@ contains
   end subroutine calc_VDiffEq
     
   !-----------------------------------------------------------------------
-  
-  subroutine DOGCM_Phys_spm_LMixMOMRHS(            &
-       & xyz_U_RHS, xyz_V_RHS,                                   & ! (inout)
-       & xyz_U, xyz_V, xyz_H,                                    & ! (in)
-       & hViscCoef, hHyperViscCoef                               & ! (in)
-       & )
-
-    ! 宣言文; Declaration statement
-    !          
-    real(DP), intent(inout) :: xyz_U_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyz_V_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: hViscCoef
-    real(DP), intent(in) :: hHyperViscCoef
-
-
-    ! 局所変数
-    ! Local variables
-    !    
-    integer :: n
-    integer :: k
-    
-    real(DP) :: w_Vor_RHS(lMax)
-    real(DP) :: w_Div_RHS(lMax)
-    real(DP) :: w_Vor(lMax)
-    real(DP) :: w_Div(lMax)
-    real(DP) :: xy_U_HDiff(0:iMax-1,jMax)
-    real(DP) :: xy_V_HDiff(0:iMax-1,jMax)
-
-    ! 実行文; Executable statements
-    !
-    
-    !$omp parallel do private(w_Vor, w_Div, w_Vor_RHS, w_Div_RHS, xy_U_HDiff, xy_V_HDiff)
-    do k=0, kMax
-       call calc_UVCosLat2VorDiv( &
-            & xyz_U(:,:,k)*xy_CosLat, xyz_V(:,:,k)*xy_CosLat, &
-            & w_Vor, w_Div                                    &
-            & )
-
-       w_Vor_RHS(:) =  &
-            &        hViscCoef* 2d0*w_Vor/RPlanet**2                          &
-            &      + w_Lapla_w( &
-            &           (hViscCoef - 2d0*hHyperViscCoef/RPlanet**2)*w_Vor     &
-            &         - hHyperViscCoef*w_Lapla_w(w_Vor)/RPlanet**2            &
-            &        )/RPlanet**2
-
-       w_Div_RHS(:) =  &
-            &        hViscCoef* 2d0*w_Div/RPlanet**2                          &
-            &      + w_Lapla_w( &
-            &           2d0*(hViscCoef - 2d0*hHyperViscCoef/RPlanet**2)*w_Div &
-            &         - 2d0*hHyperViscCoef*w_Lapla_w(w_Div)/RPlanet**2        &
-            &        )/RPlanet**2
-
-
-       call calc_VorDiv2UV( w_Vor_RHS, w_Div_RHS, &
-            & xy_U_HDiff, xy_V_HDiff )
-
-       xyz_U_RHS(:,:,k) = xyz_U_RHS(:,:,k) + xy_U_HDiff
-       xyz_V_RHS(:,:,k) = xyz_V_RHS(:,:,k) + xy_V_HDiff
-    end do
-    
-  end subroutine DOGCM_Phys_spm_LMixMOMRHS
-
-  subroutine DOGCM_Phys_spm_LMixTRCRHS(            &
-       & xyza_TRC_RHS,                              & ! (inout)
-       & xyza_TRC, xyz_H,                           & ! (in)
-       & hDiffCoef, hHyperDiffCoef                  & ! (in)
-       & )
-
-    ! 宣言文; Declaration statement
-    !      
-    real(DP), intent(inout) :: xyza_TRC_RHS(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyza_TRC(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: hDiffCoef
-    real(DP), intent(in) :: hHyperDiffCoef
-
-    ! 局所変数
-    ! Local variables
-    !    
-    real(DP) :: w_TRC(lMax)
-
-    integer :: n
-    integer :: k
-    
-
-    ! 実行文; Executable statements
-    !
-    
-    do n = 1, TRC_TOT_NUM
-       !$omp parallel do private(w_TRC)
-       do k=0, kMax
-          w_TRC(:) = w_xy(xyza_TRC(:,:,k,n))
-          
-          xyza_TRC_RHS(:,:,k,n) = xyza_TRC_RHS(:,:,k,n) &
-               & + xy_w( w_Lapla_w( &
-               &     hDiffCoef*w_TRC                             &
-               &   - hHyperDiffCoef*w_Lapla_w(w_TRC)/RPlanet**2  &
-               & )/RPlanet**2 )
-       end do
-    end do
-    
-  end subroutine DOGCM_Phys_spm_LMixTRCRHS
   
 end module DOGCM_Phys_spm_mod

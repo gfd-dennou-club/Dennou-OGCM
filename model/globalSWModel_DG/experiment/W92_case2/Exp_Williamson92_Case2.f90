@@ -141,8 +141,6 @@ subroutine callBack_EndCurrentTimeStep(tstep, wc_h, wc_hU1, wc_hU2)
 
   end if
 
-contains
-
 end subroutine callBack_EndCurrentTimeStep
 
 

@@ -154,7 +154,7 @@ contains
     ! 実行文; Executable statement
     ! 
     real(DP), dimension(0:kMax), intent(inout) :: z_PTemp, z_Salt
-    real(DP), dimension(0:kMax), intent(out) :: z_Depth
+    real(DP), dimension(0:kMax), intent(in) :: z_Depth
     logical, intent(out) :: isAdjustOccur(0:kMax)
 
     ! 局所変数

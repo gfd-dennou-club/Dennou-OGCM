@@ -28,7 +28,9 @@ libDOGCMPhysics_la_LIBADD = \
 	libDOGCMVPhys.la
 
 dist_libDOGCMLPhys_la_SOURCES= \
-	lphys/DOGCM_LPhys_RediGMHelper_mod.f90 \
+	lphys/DOGCM_LPhys_DIFF_spm_mod.f90      \
+	lphys/DOGCM_LPhys_DIFF_driver_mod.f90   \
+	lphys/DOGCM_LPhys_RediGMHelper_mod.f90  \
 	lphys/DOGCM_LPhys_RediGM_spm_mod.f90
 
 dist_libDOGCMVPhys_la_SOURCES= \

@@ -19,7 +19,9 @@ module DOGCM_IO_History_mod
   use dc_message, only: &
        & MessageNotify
 
-  use gtool_historyauto
+  use gtool_historyauto, only:  &
+       & HistoryAutoPut,        &
+       & HistoryAutoAddVariable
   
   !* Dennou-OGCM
   
@@ -201,8 +203,6 @@ contains
     use dc_calendar, only: &
          & DCCalConvertByUnit
 
-    use SpmlUtil_mod
-
     
     ! 宣言文; Declaration statement
     !
@@ -227,6 +227,12 @@ contains
 
     ! モジュール引用; Use statement
     !
+
+    use gtool_historyauto, only: &
+         & HistoryAutoCreate,      &
+         & HistoryAutoAddAttr,     &
+         & HistoryAutoAddWeight,   &
+         & HistoryAutoPutAxis         
 
     
     ! 宣言文; Declaration statement

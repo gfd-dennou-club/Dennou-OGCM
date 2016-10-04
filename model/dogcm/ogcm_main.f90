@@ -56,6 +56,9 @@ program ogcm_main
 
   character(*), parameter :: PROGRAM_NAME = "ogcm_main"
 
+  logical :: OCN_do
+  logical :: SICE_do
+  
   integer :: tstep_ocn
   integer :: tstep_sice
   
@@ -64,6 +67,8 @@ program ogcm_main
   logical :: loop_end_flag_sice
 
   character(STRING) :: configNmlFile
+
+  !-------------------------------------------------------------
   
   ! 実行文; Executable statement
   !
@@ -73,6 +78,8 @@ program ogcm_main
   call OptionParser_Init()
   call OptionParser_GetInfo( configNmlFile )
   call OptionParser_Final()
+
+  call read_nmlData( configNmlFile )
   
   call ogcm_main_Init()
   call sice_main_Init()
@@ -104,15 +111,15 @@ program ogcm_main
   do while(.not. loop_end_flag)
 
      
-     !* Sea ice component
-!!$     call MessageNotify( 'M', PROGRAM_NAME, "SIce component tstep=%d", i=(/ tstep_sice /))     
-     call sice_advance_timestep(tstep_sice, loop_end_flag_sice)
+     !* Sea ice component ************
+!!$     call MessageNotify( 'M', PROGRAM_NAME, "SIce component tstep=%d", i=(/ tstep_sice /)) 
+     if (SICE_do) call sice_advance_timestep(tstep_sice, loop_end_flag_sice)
      call pass_field_sice2ocn()
      tstep_sice = tstep_sice + 1
      
-     !* Ocean component
+     !* Ocean component ************
 !!$     call MessageNotify( 'M', PROGRAM_NAME, "OCN component tstep=%d", i=(/ tstep_ocn /))
-     call ogcm_advance_timestep(tstep_ocn, loop_end_flag_ocn)
+     if (OCN_do) call ogcm_advance_timestep(tstep_ocn, loop_end_flag_ocn)
      call pass_field_ocn2sice()
      tstep_ocn = tstep_ocn + 1
 
@@ -154,11 +161,12 @@ contains
     use DOGCM_Admin_Grid_mod, only: &
          & IS, IE, JS, JE, &
          & KS, IA, JA,     &
-         & xy_Topo, z_KAXIS_Weight
+         & z_KAXIS_Weight
     
     use DOGCM_Admin_Variable_mod, only: &
-         & xyza_U, xyza_V,                    &
-         & xyzaa_TRC, TRCID_PTEMP, TRCID_SALT
+         & xyza_U, xyza_V,                     &
+         & xyzaa_TRC, TRCID_PTEMP, TRCID_SALT, &
+         & xyza_H
 
     ! 実行文; Executable statement
     !
@@ -166,11 +174,13 @@ contains
     call DSIce_main_update_OcnField( &
          & xyzaa_TRC(:,:,KS,TRCID_PTEMP,TIMELV_ID_N),             & ! (in)
          & xyzaa_TRC(:,:,KS,TRCID_SALT,TIMELV_ID_N),              & ! (in)
-         & z_KAXIS_Weight(KS)*xy_Topo(:,:),                       & ! (in)
+         & z_KAXIS_Weight(KS)*xyza_H(:,:,KS,TIMELV_ID_N),         & ! (in)
          & xyza_U(:,:,KS,TIMELV_ID_N), xyza_V(:,:,KS,TIMELV_ID_N) & ! (in)
          & )
     
   end subroutine pass_field_ocn2sice
+
+  !-----------------------------------------------------------
   
   subroutine pass_field_sice2ocn()
 
@@ -184,7 +194,7 @@ contains
          & IceMaskMin
     
     use DSIce_Admin_TInteg_mod, only: &
-         & TIMELV_ID_N
+         & TIMELV_ID_B, TIMELV_ID_N
 
     use DSIce_Admin_Grid_mod, only: &
          & IS, IE, JS, JE, &
@@ -209,12 +219,92 @@ contains
 
     xy_BtmHFlxIO_sr(:,:) = 0d0
     call DOGCM_main_update_SIceField( &
-         & (xya_SIceCon(:,:,TIMELV_ID_N) >= IceMaskMin), & ! (in)
-         & xya_SIceCon(:,:,TIMELV_ID_N),                 & ! (in)
+         & (xya_SIceCon(:,:,TIMELV_ID_B) >= IceMaskMin), & ! (in)
+         & xya_SIceCon(:,:,TIMELV_ID_B),                 & ! (in)
          & xy_BtmHFlxIO, xy_BtmHFlxIO_sr,                & ! (in)
          & xy_FreshWtFlxS                                & ! (in)
          & )
-    
+
   end subroutine pass_field_sice2ocn
+
+  !-----------------------------------------------------------
+
+  subroutine read_nmlData( configNmlFileName )
+
+    ! モジュール引用; Use statement
+    !
+
+    ! ファイル入出力補助
+    ! File I/O support
+    !
+    use dc_iounit, only: FileOpen
+
+    ! 種別型パラメタ
+    ! Kind type parameter
+    !
+    use dc_types, only: STDOUT ! 標準出力の装置番号. Unit number of standard output
+
+    !
+    use dc_string, only: Split, Replace, StrInclude
+
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: configNmlFileName
+
+    ! 局所変数
+    ! Local variables
+    !
+    integer:: unit_nml        ! NAMELIST ファイルオープン用装置番号. 
+    ! Unit number for NAMELIST file open
+
+    integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
+    ! IOSTAT of NAMELIST read
+    
+    ! NAMELIST 変数群
+    ! NAMELIST group name
+    !
+    namelist /dogcm_nml/ &
+         & OCN_do, SIce_do
+
+
+    ! 実行文; Executable statements
+
+    ! デフォルト値の設定
+    ! Default values settings
+    !
+
+    OCN_do  = .true.
+    SICE_do = .true.
+    
+    
+    ! NAMELIST からの入力
+    ! Input from NAMELIST
+    !
+    if ( trim(configNmlFileName) /= '' ) then
+       call MessageNotify( 'M', PROGRAM_NAME, "reading namelist '%a'", ca=(/ configNmlFileName /))
+       call FileOpen( unit_nml, &             ! (out)
+            & configNmlFileName, mode = 'r' ) ! (in)
+
+       rewind( unit_nml )
+       read( unit_nml, &                                         ! (in)
+            & nml = dogcm_nml, iostat = iostat_nml )   ! (out)
+       close( unit_nml )
+    end if
+
+    ! - Convert the type name into the corresponding ID ---------
+    !
+
+    ! Specify the governing equations used in thermodynamics model
+    
+    
+
+    ! 印字 ; Print
+    !
+    call MessageNotify( 'M', PROGRAM_NAME, '----- Initialization Messages -----' )
+    call MessageNotify( 'M', PROGRAM_NAME, '< DOGCM components             >')
+    call MessageNotify( 'M', PROGRAM_NAME, '  - ocean         = %b', L = (/ OCN_do /)) 
+    call MessageNotify( 'M', PROGRAM_NAME, '  - sea ice       = %b', L = (/ SICE_do /)) 
+
+  end subroutine read_nmlData
   
 end program ogcm_main

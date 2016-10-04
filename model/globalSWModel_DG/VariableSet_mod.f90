@@ -22,7 +22,7 @@ module VariableSet_mod
   !
   public :: VariableSet_Init, VariableSet_Final
 
-  type(volScalarField), public :: v_h, v_U1, v_U2, v_BtmTopl
+  type(volScalarField), public, save :: v_h, v_U1, v_U2, v_BtmTopl
   real(DP), public, dimension(:,:), allocatable :: wc_h, wc_hU1, wc_hU2
   real(DP), public, dimension(:,:), allocatable :: wc_U1, wc_U2, wc_BtmTopl, wc_dhdt, wc_etc
   real(DP), public, dimension(:,:), allocatable :: wc_WindStress1, wc_WindStress2
@@ -60,8 +60,6 @@ subroutine VariableSet_Init()
   wc_U1 = 0d0; wc_U2 = 0d0;
   
   wc_WindStress1 = 0d0; wc_WindStress2 = 0d0;
-
-  contains
 
 end subroutine VariableSet_Init
 

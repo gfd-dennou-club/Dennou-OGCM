@@ -17,5 +17,5 @@ module SimParameters_mod
 
   character(STRING) :: gridFilePath = "../../tool/grid/grid-glevel5.nc"
 
-contains
+!!$contains
 end module SimParameters_mod

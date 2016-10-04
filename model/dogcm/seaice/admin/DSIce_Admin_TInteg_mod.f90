@@ -65,7 +65,9 @@ module DSIce_Admin_TInteg_mod
   integer, save, public :: SIceTimeIntMode
   integer, save, public :: nStage_SIceTimeInt
   logical, save, public :: isVarBUsed_SIceTimeInt
-  
+
+  type(DC_CAL), public, save :: sice_calender
+  character(TOKEN), public :: cal_type
   type(DC_CAL_DATE), save, public :: InitDate
   type(DC_CAL_DATE), save, public :: RestartDate
   type(DC_CAL_DATE), save, public :: EndDate
@@ -174,11 +176,11 @@ contains
     
     if( mod(CurrentTime, ProgMessageInterVal) == 0d0 ) then
 
-       call DCCalDateEval(InitDate, CurrentTime, 'sec', date=CurrentDate)
-       call DCCalDateInquire(InitDateStr, date=InitDate)
-       call DCCalDateInquire(EndDateStr, date=EndDate)
-       call DCCalDateInquire(CurrentDateStr, date=CurrentDate)
-       call DCCalDateInquire(RestartDateStr, date=RestartDate)
+       call DCCalDateEval(InitDate, CurrentTime, 'sec', date=CurrentDate, cal=sice_calender)
+       call DCCalDateInquire(InitDateStr, date=InitDate, cal=sice_calender)
+       call DCCalDateInquire(EndDateStr, date=EndDate, cal=sice_calender)
+       call DCCalDateInquire(CurrentDateStr, date=CurrentDate, cal=sice_calender)
+       call DCCalDateInquire(RestartDateStr, date=RestartDate, cal=sice_calender)
 
        call MessageNotify( 'M', module_name, "Current Date=%a [%a-%a (Restart Date %a)]", &
             & ca=(/ CurrentDateStr,  InitDateStr, EndDateStr, RestartDateStr /))
@@ -266,7 +268,8 @@ contains
     ! NAMELIST group name
     !
     namelist /TemporalInteg_nml/ &
-         & BarocTimeIntModeName, SIceTimeIntModeName, DelTimeVal, DelTimeUnit,      &
+         & cal_type,                                                           &
+         & BarocTimeIntModeName, SIceTimeIntModeName, DelTimeVal, DelTimeUnit, &
          & IntegTimeVal, IntegTimeUnit,                              &
          & InitYear, InitMonth, InitDay, InitHour, InitMin, InitSec, &
          & EndYear, EndMonth, EndDay, EndHour, EndMin, EndSec,       &
@@ -280,6 +283,8 @@ contains
     ! デフォルト値の設定
     ! Default values settings
     !
+
+    cal_type = 'noleap'
     
     SIceTimeIntModeName = TimeIntModeLBL_Euler
     DelTimeVal  = 10d0
@@ -324,11 +329,11 @@ contains
 
     ! Determine time to start and finish a temporal integration. 
     !
-    call DCCalCreate(cal_type='Gregorian')
+    call DCCalCreate(cal_type, cal=sice_calender)
 
-    DelTime = DCCalConvertByUnit(DelTimeVal, DelTimeUnit, 'sec')
+    DelTime = DCCalConvertByUnit(DelTimeVal, DelTimeUnit, 'sec', cal=sice_calender)
     DelTimeOcn = DelTime
-    RestartTime = DCCalConvertByUnit(RestartTimeVal, RestartTimeUnit, 'sec')
+    RestartTime = DCCalConvertByUnit(RestartTimeVal, RestartTimeUnit, 'sec', cal=sice_calender)
 
     call DCCalDateCreate( InitYear, InitMonth, InitDay, InitHour, InitMin, InitSec, &
          & InitDate ) !(out)
@@ -352,12 +357,13 @@ contains
     if( ProgMessageIntVal < 0.0 ) then
        ProgMessageInterVal = 1d-02*IntegTime
     else
-       ProgMessageInterVal = DCCalConvertByUnit(ProgMessageIntVal, ProgMessageIntUnit, 'sec')
+       ProgMessageInterVal = DCCalConvertByUnit(ProgMessageIntVal, ProgMessageIntUnit, 'sec', cal=sice_calender)
     end if
 
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
+    call MessageNotify( 'M', module_name, '  cal_type             = %a', ca=(/ cal_type /))
     call MessageNotify( 'M', module_name, '  TimeIntMode          = %a', ca=(/ SIceTimeIntModeName /))
     call MessageNotify( 'M', module_name, '  DelTime              = %f [%c]', d=(/ DelTimeVal /), c1=trim(DelTimeUnit) )
     call MessageNotify( 'M', module_name, '  RestartTime          = %f [%c]', d=(/ RestartTimeVal /), c1=trim(RestartTimeUnit) )

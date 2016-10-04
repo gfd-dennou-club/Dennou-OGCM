@@ -30,17 +30,7 @@ module DOGCM_Phys_driver_mod
   use DOGCM_Admin_Variable_mod, only: &
        & TRC_TOT_NUM,             &
        & TRCID_PTEMP, TRCID_SALT
-  
-  use DOGCM_VPhys_driver_mod, only: &
-       & DOGCM_VPhys_driver_Init, DOGCM_VPhys_driver_Final, &
-       & DOGCM_VPhys_driver_UpdateVViscDiffCoef
-
-  use DOGCM_Phys_spm_mod, only: &
-       & DOGCM_Phys_spm_Init, DOGCM_Phys_spm_Final, &
-       & DOGCM_Phys_spm_Do,           &
-       & DOGCM_Phys_spm_VImplUV,      &
-       & DOGCM_Phys_spm_VImplTRC
-       
+         
   
   ! 宣言文; Declareration statements
   !
@@ -71,6 +61,12 @@ contains
   !!
   Subroutine DOGCM_Phys_driver_Init(configNmlName)
 
+    use DOGCM_VPhys_driver_mod, only: &
+         & DOGCM_VPhys_driver_Init
+
+    use DOGCM_Phys_spm_mod, only: &
+         & DOGCM_Phys_spm_Init
+
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlName
@@ -95,6 +91,12 @@ contains
   !!
   subroutine DOGCM_Phys_driver_Final()
 
+    use DOGCM_VPhys_driver_mod, only: &
+       & DOGCM_VPhys_driver_Final
+
+    use DOGCM_Phys_spm_mod, only: &
+         & DOGCM_Phys_spm_Final
+
     ! 実行文; Executable statements
     !
 
@@ -115,6 +117,12 @@ contains
        & xyz_Z, xy_Topo,                                       & ! (in)
        & dt                                                    & ! (in)
        & )
+
+    use DOGCM_VPhys_driver_mod, only: &
+         & DOGCM_VPhys_driver_UpdateVViscDiffCoef
+
+    use DOGCM_Phys_spm_mod, only: &
+         & DOGCM_Phys_spm_Do
 
     ! 宣言文; Declareration statements
     !    
@@ -163,6 +171,9 @@ contains
        & xyz_HA, xyz_H0, xyz_VDiffCoef, dt, alpha      & ! (in)
        & )
 
+    use DOGCM_Phys_spm_mod, only: &
+         & DOGCM_Phys_spm_VImplTRC
+
     ! 宣言文; Declareration statements
     !    
     real(DP), intent(out) :: xyza_TRCA(IA,JA,KA,TRC_TOT_NUM)
@@ -191,6 +202,9 @@ contains
        & xyz_H, xyz_VViscCoef,                             & ! (in)
        & dt,  alpha                                        & ! (in)
        & )
+
+    use DOGCM_Phys_spm_mod, only: &
+         & DOGCM_Phys_spm_VImplUV
     
     ! 宣言文; Declaration statement
     !          

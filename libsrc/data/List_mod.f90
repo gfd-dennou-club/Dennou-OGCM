@@ -12,5 +12,6 @@ module List_mod
   public :: getHListSize, getVListSize
   public :: incRef, decRef
 
-contains
+!!$contains
+
 end module List_mod

@@ -6,9 +6,8 @@ module VariableSet_mod
   use GridSet_mod, only: plMesh
   implicit none
 
-
-  type(volScalarField) :: v_h, v_div, v_hb
-  type(surfaceScalarField) :: s_normalVel
+  type(volScalarField), save :: v_h, v_div, v_hb
+  type(surfaceScalarField), save :: s_normalVel
 
 contains
 

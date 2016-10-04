@@ -18,7 +18,7 @@ module Exp_Williamson94_Case2
 
   public :: setIniCond_ExpWS94Case2, callBack_EndCurrentTimeStep
   
-  type(volScalarField) :: v_h0
+  type(volScalarField), save :: v_h0
 
 contains
 subroutine setIniCond_ExpWS94Case2()

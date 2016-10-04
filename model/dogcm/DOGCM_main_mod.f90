@@ -159,7 +159,11 @@ contains
        & tstep,                           & ! (in)
        & loop_end_flag                    & ! (inout)
        & )
-    
+
+    use DOGCM_Admin_Constants_mod
+    use DOGCM_Admin_Grid_mod
+    use DOGCM_Admin_Variable_mod
+
     ! 宣言文; Declaration statement
     !
     integer, intent(in) :: tstep
@@ -203,6 +207,7 @@ contains
        call DOGCM_Admin_Variable_AdvanceTStep()
     end if
 
+!    write(*,*) "PTemp=", xyzaa_TRC(IS,JS:JE,KS,TRCID_PTEMP,TLN)
 
     call DOGCM_Boundary_driver_UpdateAfterTstep( &
          & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),  & ! (in)
@@ -271,9 +276,6 @@ contains
     !
     
     call DOGCM_Admin_Constants_Init( configNmlFile )
-    call DOGCM_Admin_TInteg_Init( configNmlFile )
-    call DOGCM_Admin_GovernEq_Init( configNmlFile )    
-    call DOGCM_Admin_BC_Init( configNmlFile )
     call DOGCM_Admin_Grid_Init( configNmlFile )
 
 #ifdef _OPENMP
@@ -294,6 +296,12 @@ contains
     
     call DOGCM_Admin_Grid_construct()
 
+    !-- Solver -----------------------------------------
+    
+    call DOGCM_Admin_TInteg_Init( configNmlFile )
+    call DOGCM_Admin_GovernEq_Init( configNmlFile )    
+    call DOGCM_Admin_BC_Init( configNmlFile )
+    
     !-- IO ---------------------------------------------
     
     call DOGCM_IO_History_Init( configNmlFile )
@@ -375,10 +383,10 @@ contains
          & KS, IA, JA
 
     use DOGCM_Boundary_vars_mod, only: &
-         & xy_OcnSfcCellMask,                   &
-         & OCNCELLMASK_OCEAN, OCNCELLMASK_SICE, &
-         & xy_SfcHFlx_ns, xy_SfcHFlx_sr,        &
-         & xy_FreshWtFlxS, xy_FreshWtFlx
+         & xy_OcnSfcCellMask,                       &
+         & OCNCELLMASK_OCEAN, OCNCELLMASK_SICE,     &
+         & xy_SfcHFlxIO_ns, xy_SfcHFlxIO_sr,        &
+         & xy_FreshWtFlxSIO, xy_FreshWtFlxIO
 
     
     logical, intent(in) :: xy_SIceMaskRecv(IA,JA)
@@ -388,14 +396,20 @@ contains
     real(DP), intent(in) :: xy_FreshWtFlxSRecv(IA,JA)
 
 
+    !$omp parallel
+    !$omp workshare
+    xy_SfcHFlxIO_ns(:,:)  = xy_SfcHFlxNsRecv
+    xy_SfcHFlxIO_sr(:,:)  = xy_SfcHFlxSrRecv
+    xy_FreshWtFlxSIO(:,:) = xy_FreshWtFlxSRecv
+    
     where ( xy_SIceMaskRecv )
        xy_OcnSfcCellMask(:,:) = OCNCELLMASK_SICE
-       xy_SfcHFlx_ns(:,:) = xy_SfcHFlxNsRecv
-       xy_SfcHFlx_sr(:,:) = xy_SfcHFlxSrRecv
-       xy_FreshWtFlxS(:,:) = xy_FreshWtFlxSRecv
     elsewhere
        xy_OcnSfcCellMask(:,:) = OCNCELLMASK_OCEAN
     end where
+    !$omp end workshare
+    !$omp end parallel
+    
     
   end subroutine DOGCM_main_update_SIceField
 

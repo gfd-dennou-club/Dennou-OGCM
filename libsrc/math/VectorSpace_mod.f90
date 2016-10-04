@@ -19,6 +19,6 @@ module VectorSpace_mod
 
   public :: print
 
-contains
+!!$contains
 
 end module VectorSpace_mod

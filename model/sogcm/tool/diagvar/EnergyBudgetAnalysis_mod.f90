@@ -79,8 +79,8 @@ module EnergyBudgetAnalysis_mod
   !
   character(*), parameter:: module_name = 'EnergyBudgetAnalysis_mod' !< Module Name
 
-  type(gt_history) :: hst_globalMeanEnergy
-  type(gt_history) :: hst_energyBudget
+  type(gt_history), save :: hst_globalMeanEnergy
+  type(gt_history), save :: hst_energyBudget
 
   logical :: globalMeanEnergyFlag
   logical :: energyBudgetAnaFlag

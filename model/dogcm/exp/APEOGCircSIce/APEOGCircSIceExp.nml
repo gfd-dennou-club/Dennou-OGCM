@@ -1,8 +1,7 @@
 &Grid_nml
- nLat = 64,
- nLon = 1,
-! nLon = 128,
- nZ = 60,
+ IM = 1,
+ JM = 64,
+ KM = 61, 
 /
 &SeaIce_Grid_nml
  IM = 1,

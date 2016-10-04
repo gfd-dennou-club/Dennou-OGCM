@@ -16,17 +16,6 @@ module DataFileSet_mod
   use dc_message, only: &
        & MessageNotify
 
-  use gtool_historyauto
-
-  use Constants_mod
-
-  use VariableSet_mod
-
-  use VarSetSeaice_mod
-
-  use BoundaryCondO_mod, only: &
-       & VARSET_KEY_WINDSTRESSLON, VARSET_KEY_WINDSTRESSLAT, &
-       & xy_WindStressU, xy_WindStressV
   
   ! 宣言文; Declareration statements
   !
@@ -37,17 +26,15 @@ module DataFileSet_mod
   ! Public procedure
   !
 
-  type, public :: DataFileSet
-
-     character(String) :: FilePrefix
-     real(DP) :: outputIntrvalSec
-
-  end type DataFileSet
-
   public :: DataFileSet_Init, DataFileSet_Final
-  public :: DataFileSet_OutputData, DataFileSet_OutputBasicData
+  public :: DataFileSet_OutputData
+  public :: DataFileSet_OutputBasicData
   public :: DataFileSet_isOutputTiming
 
+  type, public :: DataFileSet
+     character(String) :: FilePrefix
+     real(DP) :: outputIntrvalSec
+  end type DataFileSet
   
   ! 非公開手続き
   ! Private procedure
@@ -75,9 +62,8 @@ contains
     use GridSet_mod, only: &
          & iMax, jMax, kMax
 
-!!$    use Constants_mod
-!!$    use gtool_history
-!!$    use gtool_historyauto_internal
+    use gtool_historyauto, only: &
+         & HistoryAutoCreate
 
     ! 宣言文; Declaration statement
     !
@@ -130,6 +116,10 @@ contains
   !!
   subroutine DataFileSet_Final(this)
 
+    ! モジュール引用; Use statement
+    !
+    use gtool_historyauto, only: &
+         & HistoryAutoClose
 
     ! 宣言文; Declaration statement
     !
@@ -162,11 +152,17 @@ contains
     use dc_calendar, only: &
          & DCCalConvertByUnit
 
+    use gtool_historyauto, only: &
+         & HistoryAutoPut
+
     use GovernEqSet_mod, only: &
          & DynEqType, &
          & GOVERNEQSET_DYN_HYDROBOUSSINESQ, &
          & GOVERNEQSET_DYN_NONDYN_MIXEDLYR
-    
+
+    use Constants_mod, only: &
+         & RefDens
+
     use TemporalIntegSet_mod, only: &
          & CurrentTime, Nl
 
@@ -178,8 +174,16 @@ contains
 
     use DiagnoseUtil_mod
 
+    use VariableSet_mod
+
+    use VarSetSeaice_mod
+
     use EOSDriver_mod, only: &
          & EOSDriver_Eval
+
+  use BoundaryCondO_mod, only: &
+       & VARSET_KEY_WINDSTRESSLON, VARSET_KEY_WINDSTRESSLAT, &
+       & xy_WindStressU, xy_WindStressV
 
     
     ! 宣言文; Declaration statement
@@ -281,12 +285,19 @@ contains
 
     ! モジュール引用; Use statement
     !
+    use gtool_historyauto, only: &
+         & HistoryAutoPut
+
     use GridSet_mod, only: &
          & GRIDSET_KEY_LYRTHICKSIG, &
          z_LyrThickSig
     
     use TemporalIntegSet_mod, only: &
          & CurrentTime
+
+    use VariableSet_mod
+
+    use VarSetSeaice_mod
     
     ! 宣言文; Declaration statement
     !
@@ -316,6 +327,13 @@ contains
 
     ! モジュール引用;
     ! Use statements
+
+    use gtool_historyauto, only: &
+         & HistoryAutoAddVariable, &
+         & HistoryAutoPutAxis,     &
+         & HistoryAutoAddAttr,     &
+         & HistoryAutoAddWeight
+
     use Constants_mod, only: &
          PI, UNDEFVAL
 
@@ -327,6 +345,13 @@ contains
          sigName => GRIDSET_KEY_ZAXIS, sig2Name => GRIDSET_KEY_ZAXIS2, &
          timeName => GRIDSET_KEY_TAXIS, &
          GRIDSET_KEY_LYRTHICKSIG
+
+    use VariableSet_mod
+
+    use VarSetSeaice_mod
+
+    use BoundaryCondO_mod, only: &
+         & VARSET_KEY_WINDSTRESSLON, VARSET_KEY_WINDSTRESSLAT
 
 
     ! 宣言文; Declaration statement

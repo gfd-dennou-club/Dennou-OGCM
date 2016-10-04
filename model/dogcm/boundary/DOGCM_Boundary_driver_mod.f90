@@ -25,23 +25,15 @@ module DOGCM_Boundary_driver_mod
        & JA, JS, JE, JM, &
        & KA, KS, KE, KM
 
-  use SpmlUtil_mod
-  
   use DOGCM_Admin_Variable_mod, only: &
        & TRC_TOT_NUM, &
        & TRCID_PTEMP, TRCID_SALT
-
-  use DOGCM_Boundary_vars_mod, only: &
-       & DOGCM_Boundary_vars_Init, DOGCM_Boundary_vars_Final
 
   use DOGCM_Boundary_common_mod, only: &
        & DOGCM_Boundary_common_Init, DOGCM_Boundary_common_Final, &
        & DOGCM_Boundary_common_UpdateBeforeTstep,                 &
        & DOGCM_Boundary_common_UpdateAfterTstep
   
-  use DOGCM_Boundary_spm_mod, only: &
-       & DOGCM_Boundary_spm_Init, DOGCM_Boundary_spm_Final, &
-       & DOGCM_Boundary_spm_ApplyBC
 
   ! 宣言文; Declareration statements
   !
@@ -84,6 +76,13 @@ contains
   !!
   Subroutine DOGCM_Boundary_driver_Init(configNmlName)
 
+    use DOGCM_Boundary_vars_mod, only: &
+         & DOGCM_Boundary_vars_Init
+    use DOGCM_Boundary_common_mod, only: &
+         & DOGCM_Boundary_common_Init
+    use DOGCM_Boundary_spm_mod, only: &
+         & DOGCM_Boundary_spm_Init
+
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlName
@@ -104,6 +103,13 @@ contains
   !!
   subroutine DOGCM_Boundary_driver_Final()
 
+    use DOGCM_Boundary_vars_mod, only: &
+         & DOGCM_Boundary_vars_Final
+    use DOGCM_Boundary_common_mod, only: &
+         & DOGCM_Boundary_common_Final
+    use DOGCM_Boundary_spm_mod, only: &
+         & DOGCM_Boundary_spm_Final
+
     ! 実行文; Executable statements
     !
 
@@ -118,6 +124,9 @@ contains
        & xyz_U, xyz_V, xyza_TRC,                    & ! (inout)
        & xyz_H, xyz_VViscCoef, xyz_VDiffCoef        & ! (in)
        & )
+
+    use DOGCM_Boundary_spm_mod, only: &
+         & DOGCM_Boundary_spm_ApplyBC
 
     ! 宣言文; Declaration statement
     !

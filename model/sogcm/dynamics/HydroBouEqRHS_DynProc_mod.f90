@@ -464,7 +464,7 @@ contains
     real(DP), intent(inout), dimension(0:iMax-1,jMax,0:kMax) :: &
          & xyz_U, xyz_V
     real(DP), intent(out), dimension(0:iMax-1,jMax) :: xy_SurfPressA
-    real(DP), intent(out), dimension(0:iMax-1,jMax) :: xy_SurfPressRef
+    real(DP), intent(in), dimension(0:iMax-1,jMax) :: xy_SurfPressRef
     real(DP), intent(in) :: dt
 
     real(DP), dimension(lMax) :: w_HDivPressInvRho, w_PhiInvRho, w_DDiv, w_DVor

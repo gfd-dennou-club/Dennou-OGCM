@@ -43,8 +43,8 @@ module DOGCM_Exp_driver_mod
        & TRCID_PTEMP, TRCID_SALT
 
   use DOGCM_Boundary_vars_mod, only: &
-       & xy_SfcHFlx_ns, xy_SfcHFlx_sr,   &
-       & xy_FreshWtFlx, xy_FreshWtFlxS,  &
+       & xy_SfcHFlx0_ns, xy_SfcHFlx0_sr,   &
+       & xy_FreshWtFlx0, xy_FreshWtFlxS0,  &
        & xy_WindStressU, xy_WindStressV, &
        & xy_SeaSfcTemp, xy_SeaSfcSalt
 
@@ -66,7 +66,8 @@ module DOGCM_Exp_driver_mod
 !!$  use DOGCM_Exp_EqJetAccel_mod, only:        &
 !!$  use DOGCM_Exp_APEOGCirc_mod, only:            &
 !!$  use DOGCM_Exp_APEOGCircSIce_mod, only:        &
-  use DOGCM_Exp_APECoupleClimate_mod, only:        &
+!!$  use DOGCM_Exp_APECoupleClimate_mod, only:        &
+  use DOGCM_Exp_APEOGCircI98BC_mod, only:        &
        & DOGCM_Exp_Init,                           &
        & DOGCM_Exp_Final,                          &
        & DOGCM_Exp_SetInitCond,                    &
@@ -150,10 +151,10 @@ contains
     xyz_VDiffCoef(:,:,:) = vDiffCoef
     xyz_ConvIndex(:,:,:) = 0d0
     
-    xy_SfcHFlx_sr(:,:)  = 0d0
-    xy_SfcHFlx_ns(:,:)  = 0d0
-    xy_FreshWtFlx(:,:)  = 0d0
-    xy_FreshWtFlxS(:,:) = 0d0
+    xy_SfcHFlx0_sr(:,:)  = 0d0
+    xy_SfcHFlx0_ns(:,:)  = 0d0
+    xy_FreshWtFlx0(:,:)  = 0d0
+    xy_FreshWtFlxS0(:,:) = 0d0
     xy_WindStressU(:,:) = 0d0
     xy_WindStressV(:,:) = 0d0
     xy_SeaSfcTemp(:,:) = DEFAULT_PTEMP

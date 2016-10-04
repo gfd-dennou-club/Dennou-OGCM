@@ -32,8 +32,8 @@ module ShoreLine_mod
   ! 公開手続き
   ! Public procedure
   !
-  type(ClosedCurve), target, public :: shoreLines(1)
-  type(MeshUsageMask), public :: usageMask
+  type(ClosedCurve), target, public, save :: shoreLines(1)
+  type(MeshUsageMask), public, save :: usageMask
   
   public :: ShoreLine_Init, ShoreLine_Final
   public :: set_ShoreLine, get_gridDensityField

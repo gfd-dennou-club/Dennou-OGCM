@@ -34,5 +34,6 @@ module SimParameters_mod
   real(DP), parameter :: latlonIntrv = 1.0d0* PI/180d0
   
 
-contains
+!!$contains
+
 end module SimParameters_mod

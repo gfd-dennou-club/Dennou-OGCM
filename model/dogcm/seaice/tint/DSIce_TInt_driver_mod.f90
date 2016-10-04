@@ -159,6 +159,11 @@ contains
     !
     integer :: TA
     integer :: TN
+
+    real(DP) :: xy_SIceCon_thm(IA,JA)
+    real(DP) :: xy_IceThick_thm(IA,JA)
+    real(DP) :: xy_SnowThick_thm(IA,JA)
+    real(DP) :: xyz_SIceEn_thm(IA,JA,KA)
     
     ! 実行文; Executable statement
     !
@@ -168,19 +173,32 @@ contains
     
 !    call MessageNotify('M', module_name, "TInt = Euler ..")
 
-    call DSIce_TInt_common_advance_Dyn( DelTime )
-
+    xy_Wice(:,:) = 0d0
 
     call DSIce_TInt_common_advance_ThermoDyn(  &
-         !----- Time level A --------------------------------------------------
-         & xya_SIceCon(:,:,TA), xya_IceThick(:,:,TA), xya_SnowThick(:,:,TA), & ! (out)
-         & xya_SIceSfcTemp(:,:,TA), xyza_SIceTemp(:,:,:,TA),                 & ! (out)
-         & xy_Wice,                                                          & ! (out)
+         !----- Tendency due to thermodynamics process ------------------------
+         & xy_SIceCon_thm, xy_IceThick_thm, xy_SnowThick_thm,                        & ! (out)
+         & xyz_SIceEn_thm, xya_SIceSfcTemp(:,:,TA),                                  & ! (out) 
+         & xy_Wice,                                                                  & ! (out)
          !----- Time level 0 --------------------------------------------------
-         & xya_SIceCon(:,:,TN), xya_IceThick(:,:,TN), xya_SnowThick(:,:,TN), & ! (in)
-         & xya_SIceSfcTemp(:,:,TN), xyza_SIceTemp(:,:,:,TN),                 & ! (in)
+         & xya_SIceCon(:,:,TN), xya_IceThick(:,:,TN), xya_SnowThick(:,:,TN),         & ! (in)
+         & xya_SIceSfcTemp(:,:,TN), xyza_SIceTemp(:,:,:,TN), xyza_SIceEn(:,:,:,TN),  & ! (in)
          !---------------------------------------------------------------------
-         & DelTime                                                           & ! (in)
+         & DelTime                                                                   & ! (in)
+         & )
+
+    call DSIce_TInt_common_advance_Dyn(  &
+         !----- Time level A --------------------------------------------------
+         & xya_SIceCon(:,:,TA), xya_IceThick(:,:,TA), xya_SnowThick(:,:,TA),         & ! (out)
+         & xya_SIceSfcTemp(:,:,TA),                                                  & ! (inout)
+         & xyza_SIceTemp(:,:,:,TA), xyza_SIceEn(:,:,:,TA),                           & ! (out)
+         & xy_Wice,                                                                  & ! (inout)
+         !----- Time level 0 --------------------------------------------------
+         & xya_SIceCon(:,:,TN), xya_IceThick(:,:,TN), xya_SnowThick(:,:,TN),         & ! (out)
+         & xya_SIceSfcTemp(:,:,TN), xyza_SIceTemp(:,:,:,TN), xyza_SIceEn(:,:,:,TN),  & ! (out)
+         !---------------------------------------------------------------------
+         & xy_SIceCon_thm, xy_IceThick_thm, xy_SnowThick_thm, xyz_SIceEn_thm,        & ! (in) 
+         & DelTime                                                                   & ! (in)
          & )
 
   end subroutine DSIce_TInt_Euler_Do

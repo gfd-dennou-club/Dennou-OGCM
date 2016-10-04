@@ -44,19 +44,19 @@ module GridSet_mod
   public :: inverseMat
   public :: get_DGElementTri
 
-  type(PolyMesh), public :: plMesh  
-  type(fvMeshInfo), public :: fvmInfo
-  type(HexTriIcMesh), public :: htiMesh
+  type(PolyMesh), public, save :: plMesh  
+  type(fvMeshInfo), public, save :: fvmInfo
+  type(HexTriIcMesh), public, save :: htiMesh
 
 
-  type(DGTriElement), public :: DGElemInfo
+  type(DGTriElement), public, save :: DGElemInfo
   integer, public :: nDGElement
   integer, public :: nDGFace
   integer, public :: nDGNodePerElem
   integer, public :: nDGNodePerFace
   integer, public :: nDGSIntNodePerElem
 
-  type(vector3d), allocatable, public :: wc_DGNodePos(:,:)
+  type(vector3d), allocatable, public, save :: wc_DGNodePos(:,:)
 
   integer, dimension(:,:), allocatable, public :: wc_DGNodeUsage
   integer, parameter, public :: NODEUSAGE_OCEAN = 1

@@ -32,18 +32,7 @@ module DOGCM_Admin_Variable_mod
        & JS, JE, JM,              &
        & KS, KE, KM,              &
        & xyz_Z
-  
-  use DOGCM_IO_History_mod, only: &
-       & DOGCM_IO_History_RegistVar,     &
-       & DOGCM_IO_History_HistPut,       &
-       & DOGCM_IO_History_IsOutputTiming
-
-  use DOGCM_IO_Restart_mod, only: &
-       & DOGCM_IO_Restart_RegistVar,     &
-       & DOGCM_IO_Restart_HistPut,       &
-       & DOGCM_IO_Restart_HistGet,       &
-       & DOGCM_IO_Restart_IsOutputTiming
-  
+    
 
   ! 宣言文; Declareration statements
   !
@@ -67,24 +56,24 @@ module DOGCM_Admin_Variable_mod
   !
 
   
-  real(DP), public, save, allocatable :: xyza_U(:,:,:,:)    !< The velocity component in i-direction
-  real(DP), public, save, allocatable :: xyza_V(:,:,:,:)    !< The velocity component in j-direction
-  real(DP), public, save, allocatable :: xyza_OMG(:,:,:,:)  !< The velocity component in k-direction (dia-surface velocity component)
-  real(DP), public, save, allocatable :: xya_SSH(:,:,:)     !< The sea surface height
-  real(DP), public, save, allocatable :: xyza_H(:,:,:,:)    !< The vertical scale factor
+  real(DP), public, allocatable :: xyza_U(:,:,:,:)    !< The velocity component in i-direction
+  real(DP), public, allocatable :: xyza_V(:,:,:,:)    !< The velocity component in j-direction
+  real(DP), public, allocatable :: xyza_OMG(:,:,:,:)  !< The velocity component in k-direction (dia-surface velocity component)
+  real(DP), public, allocatable :: xya_SSH(:,:,:)     !< The sea surface height
+  real(DP), public, allocatable :: xyza_H(:,:,:,:)    !< The vertical scale factor
 
-  real(DP), public, save, allocatable :: xyza_HydPres(:,:,:,:) 
-  real(DP), public, save, allocatable :: xya_SfcPres(:,:,:) 
+  real(DP), public, allocatable :: xyza_HydPres(:,:,:,:) 
+  real(DP), public, allocatable :: xya_SfcPres(:,:,:) 
 
   integer, public, parameter :: TRCID_PTEMP = 1
   integer, public, parameter :: TRCID_SALT  = 2
   integer, public, parameter :: TRC_TOT_NUM = 2
-  real(DP), public, save, allocatable :: xyzaa_TRC(:,:,:,:,:)
+  real(DP), public, allocatable :: xyzaa_TRC(:,:,:,:,:)
 
-  real(DP), public, save, allocatable :: xyz_VViscCoef(:,:,:)
-  real(DP), public, save, allocatable :: xyz_VDiffCoef(:,:,:)
+  real(DP), public, allocatable :: xyz_VViscCoef(:,:,:)
+  real(DP), public, allocatable :: xyz_VDiffCoef(:,:,:)
 
-  real(DP), public, save, allocatable :: xyz_ConvIndex(:,:,:)
+  real(DP), public, allocatable :: xyz_ConvIndex(:,:,:)
 
   
   ! 非公開手続き
@@ -234,6 +223,13 @@ contains
   !!
   subroutine DOGCM_Admin_Variable_HistPut()
 
+    use DOGCM_IO_History_mod, only:      &
+       & DOGCM_IO_History_HistPut,       &
+       & DOGCM_IO_History_IsOutputTiming
+
+    use EOSDriver_mod, only: &
+       & EOSDriver_Eval
+    
     ! 宣言文; Declaration statement
     !
 
@@ -272,6 +268,10 @@ contains
   !!
   subroutine DOGCM_Admin_Variable_RestartPut()
 
+    use DOGCM_IO_Restart_mod, only:      &
+       & DOGCM_IO_Restart_HistPut,       &
+       & DOGCM_IO_Restart_IsOutputTiming
+
     ! 宣言文; Declaration statement
     !
 
@@ -309,6 +309,9 @@ contains
   
   subroutine DOGCM_Admin_Variable_HistGet()
 
+    use DOGCM_IO_Restart_mod, only:      &
+       & DOGCM_IO_Restart_HistGet
+
     ! 宣言文; Declaration statement
     !
 
@@ -345,6 +348,12 @@ contains
   !-------- Private subroutines -------------------------------------
 
   subroutine regist_OuputVariable()
+
+    use DOGCM_IO_History_mod, only: &
+       & DOGCM_IO_History_RegistVar
+
+    use DOGCM_IO_Restart_mod, only: &
+       & DOGCM_IO_Restart_RegistVar
 
 
     !- Regist variables for history

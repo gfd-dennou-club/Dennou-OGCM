@@ -180,7 +180,7 @@ contains
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
-    namelist /SIceConstants_nml/ &
+    namelist /SeaIce_Admin_Constants_nml/ &
          & SBConst, &
          & DensIce, DensSnow, DensSeaWater, &
          & CIce, LFreeze, &
@@ -240,9 +240,9 @@ contains
             & configNmlName, mode = 'r' ) ! (in)
 
        rewind( unit_nml )
-       read( unit_nml,        &           ! (in)
-            & nml = SIceConstants_nml, &  ! (out)
-            & iostat = iostat_nml )       ! (out)
+       read( unit_nml,                          &  ! (in)
+            & nml = SeaIce_Admin_Constants_nml, &  ! (out)
+            & iostat = iostat_nml )                ! (out)
        close( unit_nml )
    end if
 

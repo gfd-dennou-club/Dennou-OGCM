@@ -19,10 +19,12 @@ module DSIce_Admin_Grid_mod
        & MessageNotify
 
   !* Dennou-OGCM
+
+  use DSIce_Admin_GridDef_mod
   
   use DSIce_Admin_GaussSpmGrid_mod, only: &
        & DSIce_Admin_GaussSpmGrid_Init, DSIce_Admin_GaussSpmGrid_Final, &
-       & DSIce_Admin_GaussSpmGrid_ConstructAxisInfo,              &
+       & DSIce_Admin_GaussSpmGrid_ConstructAxisInfo,                    &
        & DSIce_Admin_GaussSpmGrid_ConstructGrid
   
   ! 宣言文; Declareration statements
@@ -40,7 +42,7 @@ module DSIce_Admin_Grid_mod
   ! 公開変数
   ! Public variables
   !
-  
+
   integer, public :: IM
   integer, public :: IA
   integer, public :: IS
@@ -59,21 +61,11 @@ module DSIce_Admin_Grid_mod
   integer, public :: KE
   integer, public :: KHALO
   
+  
+  real(DP), public, allocatable :: SCALEF_E1(:,:,:)
+  real(DP), public, allocatable :: SCALEF_E2(:,:,:)
+  real(DP), public, allocatable :: SCALEF_E3(:,:,:)
 
-  real(DP), allocatable :: CX(:)
-  real(DP), allocatable :: CDX(:)
-  real(DP), allocatable :: FX(:)
-  real(DP), allocatable :: FDX(:)
-
-  real(DP), allocatable :: CY(:)
-  real(DP), allocatable :: CDY(:)
-  real(DP), allocatable :: FY(:)
-  real(DP), allocatable :: FDY(:)
-
-  real(DP), allocatable :: CK(:)
-  real(DP), allocatable :: CDK(:)
-  real(DP), allocatable :: FK(:)
-  real(DP), allocatable :: FDK(:)
   
   type, public :: AXIS_INFO
      character(TOKEN) :: name
@@ -149,8 +141,10 @@ contains
        deallocate( x_CI, x_CDI, x_FI, x_FDI )
        deallocate( y_CJ, y_CDJ, y_FJ, y_FDJ )
        deallocate( z_CK, z_CDK, z_FK, z_FDK )
-
+       deallocate( x_IAXIS_Weight, y_JAXIS_Weight, z_KAXIS_Weight )
+       
        deallocate( xy_Lon, xy_Lat )
+       deallocate( SCALEF_E1, SCALEF_E2 )
     end if
     
   end subroutine DSIce_Admin_Grid_Final
@@ -169,12 +163,16 @@ contains
     ! 局所変数
     ! Local variables
     !
-    
+    integer :: i
+    integer :: j
+    integer :: k
     
     ! 実行文; Executable statement
     !
 
 
+    !---------------------------------------
+    
     call DSIce_Admin_GaussSpmGrid_ConstructAxisInfo( &
        & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
        & IS, IE, IA, IHALO,                                                                   & ! (out)
@@ -198,16 +196,21 @@ contains
     allocate( z_CK(KA), z_CDK(KA), z_FK(KA), z_FDK(KA), z_KAXIS_Weight(KA) )
 
     allocate( xy_Lon(IA,JA), xy_Lat(IA,JA) )
+    allocate( SCALEF_E1(IA,JA,4), SCALEF_E2(IA,JA,4) )
+
+    call DSIce_Admin_GaussSpmGrid_ConstructGrid( &
+         & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
+         & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
+         & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
+         & xy_Lon, xy_Lat,                                & ! (out)
+         & SCALEF_E1, SCALEF_E2,                          & ! (out)
+         & IS, IE, IA, IM, IHALO,                         & ! (in)
+         & JS, JE, JA, JM, JHALO,                         & ! (in)
+         & KS, KE, KA, KM, KHALO                          & ! (in)
+         & ) 
 
     
-    call DSIce_Admin_GaussSpmGrid_ConstructGrid( &
-       & x_CI, x_FI, x_IAXIS_Weight,                    & ! (out)
-       & y_CJ, y_FJ, y_JAXIS_Weight,                    & ! (out)
-       & z_CK, z_FK, z_KAXIS_Weight,                    & ! (out)
-       & xy_Lon, xy_Lat,                                & ! (out)
-       & IS, IE, IA, IM, JS, JE, JA, JM, KS, KE, KA, KM & ! (in)
-       & ) 
-
+    !----------------------------------------
 
     initedFlag = .true.
     

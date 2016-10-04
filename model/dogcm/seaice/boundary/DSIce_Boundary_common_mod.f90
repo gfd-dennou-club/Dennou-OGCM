@@ -31,6 +31,7 @@ module DSIce_Boundary_common_mod
 
   use DSIce_Admin_Constants_mod, only: &
        & SBConst, FreezeTempWater,                           &
+       & DensFreshWater,                                     &
        & Mu,                                                 &
        & AlbedoOcean, AlbedoIce, AlbedoSnow, AlbedoMeltSnow, &
        & EmissivOcean, EmissivSnow, EmissivIce,              &
@@ -52,6 +53,7 @@ module DSIce_Boundary_common_mod
   use DSIce_Boundary_vars_mod, only: &
        & xy_SfcHFlxAI, xy_DSfcHFlxAIDTs, xy_SfcHFlxAO,        &
        & xy_SDwRFlx, xy_LDwRFlx, xy_LatHFlx, xy_SenHFlx,      &
+       & xy_RainFall,                                         &
        & xy_DLatSenHFlxDTs,                                   &
        & xy_PenSDRFlx,                                        &
        & xy_BtmHFlxIO,                                        &
@@ -141,7 +143,23 @@ contains
     ! 実行文; Executable statements
     !
 
-    !-------------
+    !-------------------------------------------------
+
+    !$omp parallel
+    !$omp workshare
+    
+    xy_OcnFrzTemp(:,:) = 273.15d0 - 1.8d0  !- Mu*xy_SeaSfcSalt
+    
+    where (xy_IceThick(:,:) > IceMaskMin)
+       xy_FreshWtFlxS = xy_RainFall / DensFreshWater
+    elsewhere
+       xy_FreshWtFlxS = 0d0
+    end where
+
+    !$omp end workshare
+    !$omp end parallel
+
+    !--------------------------------
     
     call DSIce_Boundary_common_CalcSfcHFlx( &
          & xy_SfcHFlxAI, xy_SfcHFlxAO, xy_PenSDRFlx,                       & ! (out)
@@ -152,9 +170,7 @@ contains
          & )
 
 
-    !-------------
-    
-    xy_OcnFrzTemp(:,:) = 273.15d0 - 1.5d0  !- Mu*xy_SeaSfcSalt
+    !--------------------------------
     
     call DSIce_Boundary_common_CalcBtmHFlx( &
          & xy_BtmHFlxIO,                                        & ! (out)
@@ -163,6 +179,8 @@ contains
          & DelTimeOcn                                           & ! (in)
          & )
 
+    !--------------------------------
+    
   end subroutine DSIce_Boundary_common_UpdateBeforeTstep
 
 
@@ -182,9 +200,14 @@ contains
 
     ! 実行文; Executable statements
     !
-    
-    xy_FreshWtFlxS = - xy_Wice / DensSeaWater
 
+    !----------------------
+
+    xy_FreshWtFlxS(:,:) =   xy_FreshWtFlxS            &
+         &                - xy_Wice / DensFreshWater
+
+    !----------------------
+    
     call DSIce_Boundary_common_CalcSfcAlbedo( &
        & xy_SfcAlbedoAI,                          & ! (out)
        & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp & ! (in)

@@ -16,23 +16,10 @@ module PhysicsDriver_mod
   use dc_message, only: &
        & MessageNotify
 
-  use DataFileSet_mod, only: &
-       & DataFileSet
-
   use GovernEqSet_mod, only: &
        & GOVERNEQSET_PHYSICS_CONVADJUST_NAME, &
        & GOVERNEQSET_PHYSICS_EDDYMIX_NAME, &
        & isPhysicsCompActivated
-
-  use SGSEddyMixing_mod, only: &
-       & SGSEddyMixing_Init, SGSEddyMixing_Final, &
-       & SGSEddyMixing_Output, SGSEddyMixing_PrepareOutput
-
-  use SGSConvAdjust_mod, only: &
-       & SGSConvAdjust_Init, SGSConvAdjust_Final
-
-  use SGSSlowConvAdjust_mod, only: &
-       & SGSSlowConvAdjust_Init, SGSSlowConvAdjust_Final
 
   ! 宣言文; Declareration statements
   !
@@ -61,8 +48,21 @@ contains
   !!
   subroutine PhysicsDriver_Init(datFile, configNmlFileName)
 
+    use DataFileSet_mod, only: &
+         & DataFileSet
+
     use TemporalIntegSet_mod, only: &
          & RestartTime, EndTime, CurrentTime, DelTime
+
+    use SGSEddyMixing_mod, only: &
+         & SGSEddyMixing_Init,   &
+         & SGSEddyMixing_PrepareOutput
+
+    use SGSConvAdjust_mod, only: &
+         & SGSConvAdjust_Init
+
+    use SGSSlowConvAdjust_mod, only: &
+         & SGSSlowConvAdjust_Init
 
 
     type(DataFileSet), intent(in) :: datFile
@@ -89,6 +89,15 @@ contains
   !!
   subroutine PhysicsDriver_Final()
 
+    use SGSEddyMixing_mod, only: &
+         & SGSEddyMixing_Final
+
+    use SGSConvAdjust_mod, only: &
+         & SGSConvAdjust_Final
+
+    use SGSSlowConvAdjust_mod, only: &
+         & SGSSlowConvAdjust_Final
+
     ! 実行文; Executable statements
     !
     
@@ -113,6 +122,9 @@ contains
     use DataFileSet_mod, only: &
          & DataFileSet, DataFileSet_isOutputTiming
 
+    use SGSEddyMixing_mod, only: &
+         & SGSEddyMixing_Output
+
     ! 宣言文; Declaration statement
     !
     type(DataFileSet), intent(in) :: datFile
@@ -125,7 +137,7 @@ contains
     ! 実行文; Executable statement
     !
 
-    if( .not. DataFileSet_isOutputTiming(datFile, CurrentTime) ) return 
+!!$    if( .not. DataFileSet_isOutputTiming(datFile, CurrentTime) ) return 
 
     call MessageNotify('M', module_name, &
          & "Output data of variables in physics packages." )

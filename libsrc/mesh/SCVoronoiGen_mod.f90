@@ -182,10 +182,10 @@ type(vector3d) :: newMassPt, tmpMassPt
 
      pts(siteId) = newMassPt
 
-if(isNan(clusterEnergy))then
-write(*,*) siteId, ":", PolyArea
-call print(newMassPt)
-end if
+!!$if(isNan(clusterEnergy))then
+!!$   write(*,*) siteId, ":", PolyArea
+!!$   call print(newMassPt)
+!!$end if
 
 !!$
 !!$     call print(massPt)

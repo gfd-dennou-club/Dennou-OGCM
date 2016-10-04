@@ -10,9 +10,9 @@ module GridSet_mod
 
   implicit none
 
-  type(PolyMesh) :: plMesh  
-  type(fvMeshInfo) :: fvmInfo
-  type(HexTriIcMesh) :: htiMesh
+  type(PolyMesh), save :: plMesh  
+  type(fvMeshInfo), save :: fvmInfo
+  type(HexTriIcMesh), save :: htiMesh
 
 
 contains

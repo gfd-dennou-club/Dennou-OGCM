@@ -39,8 +39,8 @@ module GovernEquationSolver_mod
 
   real(DP), allocatable :: R_iv(:,:)
   real(DP), allocatable :: Wt_ff(:,:)
-  type(volScalarField) :: v_mdhdt, v_hN, v_hTmp
-  type(surfaceScalarField) :: s_mdvdt, s_normalVelN, s_normalVelTmp
+  type(volScalarField), save :: v_mdhdt, v_hN, v_hTmp
+  type(surfaceScalarField), save :: s_mdvdt, s_normalVelN, s_normalVelTmp
 
   public :: GovernEquationSolver_Init, GovernEquationSolver_Final
   public :: Solve_GovernEquation

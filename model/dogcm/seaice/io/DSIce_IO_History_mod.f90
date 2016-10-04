@@ -94,7 +94,7 @@ module DSIce_IO_History_mod
 
   logical :: isHistoryCreated
 
-  type(gt_history) :: hst_seaice
+  type(gt_history), save :: hst_seaice
   
 contains
 

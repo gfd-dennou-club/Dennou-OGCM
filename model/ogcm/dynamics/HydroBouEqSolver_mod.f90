@@ -88,16 +88,16 @@ module HydroBouEqSolver_mod
 
   type(PolyMesh), pointer :: mesh
 
-  type(volScalarField) :: zc_lyrThickMl, zc_lyrThickBMl
-  type(surfaceScalarField) :: ze_hNormVelMl
+  type(volScalarField), save :: zc_lyrThickMl, zc_lyrThickBMl
+  type(surfaceScalarField), save :: ze_hNormVelMl
   type(volScalarField), allocatable :: zc_TracersMl(:)
-  type(surfaceScalarField) :: e_hMFluxTAvg1
-  type(surfaceScalarField) :: e_hMFluxTAvg2
-  type(volScalarField) :: c_surfHeightTAvg1
-  type(volScalarField) :: c_surfHeight(nShortTimeLevel), c_surfHeightMs
-  type(surfaceScalarField) :: e_hNormVel(nShortTimeLevel), e_hNormVelMs
+  type(surfaceScalarField), save :: e_hMFluxTAvg1
+  type(surfaceScalarField), save :: e_hMFluxTAvg2
+  type(volScalarField), save :: c_surfHeightTAvg1
+  type(volScalarField), save :: c_surfHeight(nShortTimeLevel), c_surfHeightMs
+  type(surfaceScalarField), save :: e_hNormVel(nShortTimeLevel), e_hNormVelMs
 
-  type(surfaceScalarField) :: e_RHShNormVelMl
+  type(surfaceScalarField), save :: e_RHShNormVelMl
 
   real(DP), parameter :: LFAM3_GAM = 1d0/12d0
   real(DP), parameter :: LFAM3_BETA = 0d0

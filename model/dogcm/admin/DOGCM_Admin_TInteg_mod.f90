@@ -75,6 +75,7 @@ module DOGCM_Admin_TInteg_mod
   real(DP), save, public :: CoriolisTermACoef
   real(DP), save, public :: VDiffTermACoef
 
+  character(TOKEN) :: cal_type  
   type(DC_CAL_DATE), save, public :: InitDate
   type(DC_CAL_DATE), save, public :: RestartDate
   type(DC_CAL_DATE), save, public :: EndDate
@@ -281,8 +282,9 @@ contains
     ! NAMELIST group name
     !
     namelist /temporalInteg_nml/ &
+         & cal_type,                                                 &
          & barocTimeIntModeName, DelTimeVal, DelTimeUnit, SemiImplicitFlag, &
-         & IntegTimeVal, IntegTimeUnit, &
+         & IntegTimeVal, IntegTimeUnit,                              &
          & InitYear, InitMonth, InitDay, InitHour, InitMin, InitSec, &
          & EndYear, EndMonth, EndDay, EndHour, EndMin, EndSec, &
          & RestartTimeVal, RestartTimeUnit, &
@@ -297,6 +299,8 @@ contains
     ! デフォルト値の設定
     ! Default values settings
     !
+
+    cal_type = 'noleap'
     
     barocTimeIntMode = TimeIntMode_Euler
     DelTimeVal  = 10d0
@@ -350,7 +354,7 @@ contains
 
     ! Determine time to start and finish a temporal integration. 
     !
-    call DCCalCreate(cal_type='Gregorian')
+    call DCCalCreate(cal_type)
 
     DelTime = DCCalConvertByUnit(DelTimeVal, DelTimeUnit, 'sec')
     RestartTime = DCCalConvertByUnit(RestartTimeVal, RestartTimeUnit, 'sec')
@@ -383,6 +387,7 @@ contains
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
+    call MessageNotify( 'M', module_name, '  cal_type             = %a', ca=(/ cal_type /))
     call MessageNotify( 'M', module_name, '  BarocTimeIntMode     = %a', ca=(/ barocTimeIntModeName /))
     call MessageNotify( 'M', module_name, '  DelTime              = %f [%c]', d=(/ DelTimeVal /), c1=trim(DelTimeUnit) )
     call MessageNotify( 'M', module_name, '  SemiImplicitFlag     = %b     ', L=(/ SemiImplicitFlag /))

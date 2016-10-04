@@ -31,8 +31,8 @@ module OutputData_mod
   public :: OutputData, OutputDataAnalysisInfo
   public :: Output_FieldData, lonlat_interpolate_wc
 
-  type(netcdfDataWriter) :: ncWriter
-  type(PointScalarField) :: p_zeta
+  type(netcdfDataWriter), save :: ncWriter
+  type(PointScalarField), save :: p_zeta
 
   real(DP), parameter :: lon1 = -90d0 * PI/180d0
   real(DP), parameter :: lon2 =  90d0 * PI/180d0

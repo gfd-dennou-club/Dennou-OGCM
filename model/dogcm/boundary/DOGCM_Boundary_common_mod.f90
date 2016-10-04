@@ -50,10 +50,13 @@ module DOGCM_Boundary_common_mod
        & SeaSfcTempRelaxedTime, SeaSfcSaltRelaxedTime
 
   use DOGCM_Boundary_vars_mod, only: &
-       & xy_SfcHFlx_ns, xy_SfcHFlx_sr,        &
-       & xy_SfcHFlx0_ns, xy_SfcHFlx0_sr,      &
+       & xy_SfcHFlx_ns, xy_SfcHFlx_sr, xy_DSfcHFlxDTs,   &
+       & xy_SfcHFlx0_ns, xy_SfcHFlx0_sr,                 &
+       & xy_SfcHFlxIO_ns, xy_SfcHFlxIO_sr,               &
        & xy_WindStressU, xy_WindStressV,      &
        & xy_FreshWtFlx, xy_FreshWtFlxS,       &
+       & xy_FreshWtFlx0, xy_FreshWtFlxS0,     &       
+       & xy_FreshWtFlxIO, xy_FreshWtFlxSIO,     &       
        & xy_SeaSfcTemp, xy_SeaSfcSalt,        &
        & xy_SeaSfcTemp0, xy_SeaSfcSalt0,      &
        & xy_SeaSfcU, xy_SeaSfcV,              &
@@ -161,36 +164,77 @@ contains
        xy_SfcHFlx_ns(:,:) = xy_SfcHFlx0_ns
        xy_SfcHFlx_sr(:,:) = xy_SfcHFlx0_sr
     case ( ThermBCTYPE_PrescFlux      )
+       !$omp parallel
+       !$omp workshare
+       where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
+          xy_SfcHFlx_ns(:,:) =   xy_SfcHFlx0_ns + xy_SfcHFlxIO_ns
+          xy_SfcHFlx_sr(:,:) =   xy_SfcHFlx0_sr + xy_SfcHFlxIO_sr
+       elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )
+          xy_SfcHFlx_ns(:,:) = xy_SfcHFlxIO_ns
+          xy_SfcHFlx_sr(:,:) = xy_SfcHFlxIO_sr
+       end where
+       !$omp end workshare
+       !$omp end parallel
     case ( ThermBCTYPE_PresFlux_Han1984Method )
-       xy_SfcHFlx_ns(:,:) = xy_SfcHFlx0_ns
-       xy_SfcHFlx_sr(:,:) = xy_SfcHFlx0_sr
+       !$omp parallel
+       !$omp workshare
+       where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
+          xy_SfcHFlx_ns(:,:) =   xy_SfcHFlx0_ns &
+               &               + xy_DSfcHFlxDTs(:,:)*(xyza_TRC(:,:,KS,TRCID_PTEMP) - xy_SeaSfcTemp0) &
+               &               + xy_SfcHFlxIO_ns
+          xy_SfcHFlx_sr(:,:) =   xy_SfcHFlx0_sr(:,:)   &
+               &               + xy_SfcHFlxIO_ns
+       elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )
+          xy_SfcHFlx_ns(:,:) = xy_SfcHFlxIO_ns
+          xy_SfcHFlx_sr(:,:) = xy_SfcHFlxIO_sr
+       end where
+       !$omp end workshare
+       !$omp end parallel
     case ( ThermBCTYPE_Adiabat )
        xy_SfcHFlx_ns(:,:) = 0d0
        xy_SfcHFlx_sr(:,:) = 0d0
     case ( ThermBCTYPE_TempRelaxed )
+       !$omp parallel
+       !$omp workshare
        where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
           xy_SfcHFlx_ns(:,:) = - (RefDens*Cp0*MixLyrDepthConst/SeaSfcTempRelaxedTime) &
-               &                 *(xy_SeaSfcTemp0 - xyza_TRC(:,:,KS,TRCID_PTEMP))
-          xy_SfcHFlx_sr(:,:) = 0d0
+               &                 *(xy_SeaSfcTemp0 - xyza_TRC(:,:,KS,TRCID_PTEMP))     &
+               &               + xy_SfcHFlxIO_ns
+          xy_SfcHFlx_sr(:,:) = xy_SfcHFlxIO_sr
+       elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )
+          xy_SfcHFlx_ns(:,:) = xy_SfcHFlxIO_ns
+          xy_SfcHFlx_sr(:,:) = xy_SfcHFlxIO_sr
        end where
-!!$       write(*,*) "Mask=", xy_OcnSfcCellMask(IS:IE,JS:JE)
-!!$       write(*,*) "SfcHFlx=", xy_SfcHFlx_ns(IS:IE,JS:JE)
-!!$       write(*,*) "SeaSfcTemp0=", xy_SeaSfcTemp0(IS:IE,JS:JE)
-!!$       write(*,*) xyza_TRC(IS:IE,JS:JE,KS,TRCID_PTEMP)
+       !$omp end workshare
+       !$omp end parallel
     end select
-
+    
     !-- Update variables associated with boundary condition for salinity 
 
     select case(SaltBC_Surface)
     case ( SaltBCTYPE_PrescSalt )
     case ( SaltBCTYPE_PrescFixedFlux )
+       xy_FreshWtFlxS(:,:) = xy_FreshWtFlxS0
     case ( SaltBCTYPE_PrescFlux      )
+       where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
+          xy_FreshWtFlxS(:,:) =   xy_FreshWtFlxS0 + xy_FreshWtFlxSIO
+       elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )
+          xy_FreshWtFlxS(:,:) = xy_FreshWtFlxSIO
+       end where
     case ( SaltBCTYPE_PresFlux_Han1984Method )
+       where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
+          xy_FreshWtFlxS(:,:) =   xy_FreshWtFlxS0 + xy_FreshWtFlxSIO
+       elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )
+          xy_FreshWtFlxS(:,:) = xy_FreshWtFlxSIO
+       end where
     case ( SaltBCTYPE_Adiabat )
     case ( SaltBCTYPE_SaltRelaxed )
        where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
           xy_FreshWtFlxS(:,:) = - MixLyrDepthConst/(RefSalt_VBC*SeaSfcSaltRelaxedTime) &
-               &                  *(xy_SeaSfcSalt0 - xyza_TRC(:,:,KS,TRCID_SALT))
+               &                  *(xy_SeaSfcSalt0 - xyza_TRC(:,:,KS,TRCID_SALT))      &
+               &                + xy_FreshWtFlxSIO(:,:)          
+       elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )
+          xy_FreshWtFlxS(:,:) = xy_FreshWtFlxSIO(:,:)
        end where
     end select
     

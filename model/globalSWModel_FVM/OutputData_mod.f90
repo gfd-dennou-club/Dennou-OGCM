@@ -23,8 +23,8 @@ module OutputData_mod
 
   public :: OutputData, OutputDataAnalysisInfo
 
-  type(netcdfDataWriter) :: ncWriter
-  type(PointScalarField) :: p_zeta
+  type(netcdfDataWriter), save :: ncWriter
+  type(PointScalarField), save :: p_zeta
 
 contains
 

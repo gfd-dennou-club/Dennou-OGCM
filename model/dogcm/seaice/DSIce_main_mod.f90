@@ -110,7 +110,6 @@ module DSIce_main_mod
   !
 
   logical :: CoupledRunFlag
-  
   character(*), parameter:: module_name = 'DSIce_main_mod' !< Module Name
 
 contains

@@ -352,7 +352,7 @@ contains
           
           SlopeABSMax = 0d0          
           kStart = minloc(abs(xy_BarocEddyDispZ(i,j)-(xyz_Depth(i,j,:)-xyz_Depth(i,j,kMax))))
-          do k=kStart(1), 0, -1
+          do k=kStart(1), kMax, +1
              SlopeABS = xyz_fDM95(i,j,k)*sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
              if(SlopeABS > SlopeABSMax) SlopeABSMax = SlopeABS
           end do

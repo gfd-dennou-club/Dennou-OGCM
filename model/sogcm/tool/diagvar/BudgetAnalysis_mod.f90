@@ -78,7 +78,7 @@ module BudgetAnalysis_mod
   character(*), parameter, public :: BUDGETANAKEY_ANGMOMAVG = 'AngMomAvg'
 
 
-  type(gt_history) :: hst_angMomBudget
+  type(gt_history), save :: hst_angMomBudget
   logical :: angMomBudgAnaFlag
 
 contains

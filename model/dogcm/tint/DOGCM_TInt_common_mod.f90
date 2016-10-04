@@ -48,7 +48,7 @@ module DOGCM_TInt_common_mod
        & TRCID_PTEMP, TRCID_SALT
 
   use DOGCM_Boundary_vars_mod, only:   &
-       & xy_FreshWtFlx
+       & xy_FreshWtFlx, xy_FreshWtFlxS
   
   use DOGCM_Boundary_driver_mod, only: &
        & DOGCM_Boundary_driver_ApplyBC
@@ -309,7 +309,7 @@ contains
          & )
     
     !** Update tracers -------------------------------------------------------
-    
+
     call DOGCM_Dyn_driver_HTRCRHS( xyza_HTRC_RHS,                              & ! (out)
          & xyza_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H, xyza_TRC_RHS_phy   & ! (in)
          & )

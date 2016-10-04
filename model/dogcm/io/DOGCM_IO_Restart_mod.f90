@@ -20,12 +20,7 @@ module DOGCM_IO_Restart_mod
        & MessageNotify
 
   use gtool_history, only: &
-       & gt_history,         &
-       & HistorySetTime,                       &
-       & HistoryCreate, HistoryClose,          &
-       & HistoryAddVariable, HistoryAddAttr,   &       
-       & HistoryPut,                           &
-       & HistoryGet, HistoryGetAttr
+       & gt_history
 
   !* Dennou-OGCM
   
@@ -108,8 +103,6 @@ contains
   !!
   subroutine DOGCM_IO_Restart_Init(configNmlFileName)
 
-    use gtool_history
-
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlFileName
@@ -129,6 +122,9 @@ contains
   !!
   !!
   subroutine DOGCM_IO_Restart_Final()
+
+    use gtool_history, only: &
+         & HistoryClose
 
     ! 実行文; Executable statements
     !
@@ -162,6 +158,9 @@ contains
   !!
   subroutine DOGCM_IO_Restart_HistPut1D(varName, var)
 
+    use gtool_history, only: &
+         & HistoryPut
+
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: varName
@@ -178,6 +177,9 @@ contains
   !!
   subroutine DOGCM_IO_Restart_HistPut2D(varName, var)
 
+    use gtool_history, only: &
+         & HistoryPut
+
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: varName
@@ -193,6 +195,9 @@ contains
   !!
   !!
   subroutine DOGCM_IO_Restart_HistPut3D(varName, var)
+
+    use gtool_history, only: &
+         & HistoryPut
 
     ! 宣言文; Declaration statement
     !
@@ -211,11 +216,15 @@ contains
        & varName, varDimsName, varLongName, varUnits  & ! (in)
        & )
 
-    
+    use gtool_history, only: &
+         & HistoryAddVariable
+    implicit none
+
     character(*), intent(in) :: varName
     character(*), intent(in) :: varDimsName
     character(*), intent(in) :: varLongName
     character(*), intent(in) :: varUnits
+
 
     character(TOKEN) :: varDims(size(HstDimsList))
     integer :: varDimsLen
@@ -258,6 +267,9 @@ contains
     
     ! モジュール引用; Use statement
     !
+    use gtool_history, only: &
+         & HistorySetTime,   &
+         & HistoryPut
 
     use dc_calendar, only: &
          & DCCalDateInquire
@@ -297,6 +309,9 @@ contains
        & var                                    & ! (in)
        & )
 
+    use gtool_history, only: &
+         & HistoryGet
+
     real(DP), intent(inout) :: var(:)
     character(*), intent(in) :: varName
 
@@ -310,6 +325,9 @@ contains
        & var                                    & ! (in)
        & )
 
+    use gtool_history, only: &
+         & HistoryGet
+
     real(DP), intent(inout) :: var(:,:)
     character(*), intent(in) :: varName
 
@@ -322,6 +340,9 @@ contains
        & varName,                               & ! (in)
        & var                                    & ! (in)
        & )
+
+    use gtool_history, only: &
+         & HistoryGet
 
     real(DP), intent(inout) :: var(:,:,:)
     character(*), intent(in) :: varName
@@ -341,6 +362,9 @@ contains
     !
     use dc_string, only: &
          & toChar    
+
+    use gtool_history, only: &
+         & HistoryGetAttr
     
     ! 宣言文; Declaration statement
     !
@@ -458,6 +482,12 @@ contains
     
     !
     !
+    use gtool_history, only: &
+         & HistoryCreate,      &
+         & HistoryAddVariable, &
+         & HistoryAddAttr,     &
+         & HistoryPut
+
     use DOGCM_Admin_Grid_mod, only: &
          & AXIS_INFO, &
          & IAXIS_info, JAXIS_info, KAXIS_info, TAXIS_info, &

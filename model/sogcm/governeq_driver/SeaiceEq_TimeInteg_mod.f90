@@ -285,20 +285,20 @@ contains
        end do
     end do
     
-    do j=1, jMax
-       do i=0, iMax-1
-          if (isNan(xy_SIceSurfTempA(i,j)) .or. isNan(xyz_SIceTempA(i,j,1)) .or. isNan(xyz_SIceTempA(i,j,2)) ) then
-             write(*,*) "After calc temp."
-             write(*,*) "Nan T1: i,j=", i,j
-             write(*,*) "SurfTemp=", xy_SIceSurfTempA(i,:)
-             write(*,*) "Temp1=", xyz_SIceTempA(i,:,1)
-             write(*,*) "Temp2=", xyz_SIceTempA(i,:,2) 
-             write(*,*) "IceThick=", xy_IceThickA(i,:)
-             write(*,*) "SIceCon=", xy_SIceConA(i,:)
-             stop
-          end if
-       end do
-    end do
+!!$    do j=1, jMax
+!!$       do i=0, iMax-1
+!!$          if (isNan(xy_SIceSurfTempA(i,j)) .or. isNan(xyz_SIceTempA(i,j,1)) .or. isNan(xyz_SIceTempA(i,j,2)) ) then
+!!$             write(*,*) "After calc temp."
+!!$             write(*,*) "Nan T1: i,j=", i,j
+!!$             write(*,*) "SurfTemp=", xy_SIceSurfTempA(i,:)
+!!$             write(*,*) "Temp1=", xyz_SIceTempA(i,:,1)
+!!$             write(*,*) "Temp2=", xyz_SIceTempA(i,:,2) 
+!!$             write(*,*) "IceThick=", xy_IceThickA(i,:)
+!!$             write(*,*) "SIceCon=", xy_SIceConA(i,:)
+!!$             stop
+!!$          end if
+!!$       end do
+!!$    end do
 
     !
     !
@@ -333,20 +333,20 @@ contains
        end do
     end do
 
-    do j=1, jMax
-       do i=0, iMax-1
-          if (isNan(xy_SIceSurfTempA(i,j)) .or. isNan(xyz_SIceTempA(i,j,1)) .or. isNan(xyz_SIceTempA(i,j,2)) ) then
-             write(*,*) "After calc thickness.."
-             write(*,*) "Nan T1: i,j=", i,j  
-             write(*,*) "SurfTemp=", xy_SIceSurfTempA(i,:)
-             write(*,*) "Temp1=", xyz_SIceTempA(i,:,1)
-             write(*,*) "Temp2=", xyz_SIceTempA(i,:,2) 
-             write(*,*) "IceThick=", xy_IceThickA(i,:)
-             write(*,*) "SIceCon=", xy_SIceConA(i,:)
-             stop
-          end if
-       end do
-    end do
+!!$    do j=1, jMax
+!!$       do i=0, iMax-1
+!!$          if (isNan(xy_SIceSurfTempA(i,j)) .or. isNan(xyz_SIceTempA(i,j,1)) .or. isNan(xyz_SIceTempA(i,j,2)) ) then
+!!$             write(*,*) "After calc thickness.."
+!!$             write(*,*) "Nan T1: i,j=", i,j  
+!!$             write(*,*) "SurfTemp=", xy_SIceSurfTempA(i,:)
+!!$             write(*,*) "Temp1=", xyz_SIceTempA(i,:,1)
+!!$             write(*,*) "Temp2=", xyz_SIceTempA(i,:,2) 
+!!$             write(*,*) "IceThick=", xy_IceThickA(i,:)
+!!$             write(*,*) "SIceCon=", xy_SIceConA(i,:)
+!!$             stop
+!!$          end if
+!!$       end do
+!!$    end do
 
     
     !* Dynamical processes 
@@ -652,12 +652,12 @@ contains
 !!$    
     xy_SIceConA(i,j) = iceFrac
     
-    if (isNan(hiEffA) .or. isNan(TsA) .or. isNan(T1A) .or. isNan(T2A)) then
-       write(*,*) "-- hiEff is Nan. j=", j
-       write(*,*) " hs=", hs, "hi=", hi, "T=", TsA, T1A, T2A
-       write(*,*) " Gice=", Gice, "Gsnow=", Gsnow, "Gsnow2ice=", Gsnow2ice, "iceFrac=", iceFrac
-       write(*,*) " dh1=", dh1, "dh2=", dh2
-    end if
+!!$    if (isNan(hiEffA) .or. isNan(TsA) .or. isNan(T1A) .or. isNan(T2A)) then
+!!$       write(*,*) "-- hiEff is Nan. j=", j
+!!$       write(*,*) " hs=", hs, "hi=", hi, "T=", TsA, T1A, T2A
+!!$       write(*,*) " Gice=", Gice, "Gsnow=", Gsnow, "Gsnow2ice=", Gsnow2ice, "iceFrac=", iceFrac
+!!$       write(*,*) " dh1=", dh1, "dh2=", dh2
+!!$    end if
 
     
 !    if(hiEffA <= 0d0 .and. hiEffA > 0d0) xy_SIceConA(i,j) = 1d0
@@ -732,14 +732,14 @@ contains
           if (xy_IceThick(i,j) > 0d0) then
              xya_SIceTemp(i,j,1) = calc_Temp_IceLyr1(xy_q1(i,j), SaltSeaIce)
              xya_SIceTemp(i,j,2) = calc_Temp_IceLyr2(xy_q2(i,j), SaltSeaIce)
-             if (isNan(xya_SIceTemp(i,j,1)) .or. isNan(xya_SIceTemp(i,j,2)) ) then
-                write(*,*) "Nan T1: i,j=", i,j  
-                write(*,*) "q1=", xy_q1(i,:)
-                write(*,*) "q2=", xy_q1(i,:) 
-                write(*,*) "IceThick=", xy_IceThick(i,:)
-                write(*,*) "SIceCon=", xy_SIceCon(i,:)
-                stop
-             end if
+!!$             if (isNan(xya_SIceTemp(i,j,1)) .or. isNan(xya_SIceTemp(i,j,2)) ) then
+!!$                write(*,*) "Nan T1: i,j=", i,j  
+!!$                write(*,*) "q1=", xy_q1(i,:)
+!!$                write(*,*) "q2=", xy_q1(i,:) 
+!!$                write(*,*) "IceThick=", xy_IceThick(i,:)
+!!$                write(*,*) "SIceCon=", xy_SIceCon(i,:)
+!!$                stop
+!!$             end if
           else
              xya_SIceTemp(i,j,:) = UNDEFVAL
           end if

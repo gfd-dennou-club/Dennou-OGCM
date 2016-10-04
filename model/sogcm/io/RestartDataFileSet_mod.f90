@@ -67,8 +67,6 @@ contains
   !!
   subroutine RestartDataFileSet_Init(configNmlFileName)
 
-    use gtool_history
-
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlFileName
@@ -92,7 +90,8 @@ contains
   !!
   subroutine RestartDataFileSet_Final()
 
-    use gtool_history, only: HistoryClose
+    use gtool_history, only: &
+         & HistoryClose
 
     ! 実行文; Executable statements
     !

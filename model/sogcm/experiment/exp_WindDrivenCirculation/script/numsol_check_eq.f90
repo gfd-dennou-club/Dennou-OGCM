@@ -1,7 +1,14 @@
 program numsol_check_eq
-  use dc_types
-  use dc_message
-  use gtool_history
+
+  use dc_types, only: &
+       & DP, TOKEN, STRING
+
+  use dc_message, only: &
+       & MessageNotify
+
+  use gtool_history, only: &
+       & HistoryCreate, HistoryClose, HistoryAddVariable, &
+       & HistoryPut
 
   implicit none
 
@@ -148,11 +155,20 @@ write(*,*) 'McKee73 paramters: E=', EBL_THICK**2/EBL_WIDTH, 'R=', Ro0/Eh0
   end subroutine calculate_Params
 
 
+
   !> @brief 
   !!
   !!
   subroutine calc_Vel_UpperEBL(yz_U, yz_V, yz_W)
-    
+    use integrand_mod, only: &
+         & integrand_set, &
+         & gauss_integrand, &
+         & U_UpperEBL_integrand, &
+         & V_UpperEBL_integrand, &
+         & W_UpperEBL_integrand
+
+    implicit none
+
     ! 宣言文; Declaration statement
     !
     real(DP),intent(inout) :: yz_U(NY,NZ), yz_V(NY,NZ), yz_W(NY,NZ)
@@ -160,12 +176,22 @@ write(*,*) 'McKee73 paramters: E=', EBL_THICK**2/EBL_WIDTH, 'R=', Ro0/Eh0
     ! 局所変数
     ! Local variables
     !
+    abstract interface 
+       real(DP) function fx(x, xidx) 
+         use dc_types, only: DP
+
+         real(DP), intent(in) :: x
+         integer, intent(in) :: xidx
+       end function fx
+    end interface
+    procedure (fx), pointer :: integrand_ptr => null()
+
     real(DP) :: nintegRetU, nintegRetV, nintegRetW
     integer, parameter :: nTry = 5
     integer, parameter :: NMaxs(nTry) = (/ 200 , 500, 1000, 5000, 10000 /)
     integer :: try, j, k, m
     real(DP), parameter :: PMAX = 200d0
-    real(DP) :: dp
+    real(DP) :: delp
 
     ! 実行文; Executable statement
     !
@@ -182,10 +208,13 @@ write(*,*) 'McKee73 paramters: E=', EBL_THICK**2/EBL_WIDTH, 'R=', Ro0/Eh0
           if(allocated(p_integGauss)) deallocate(p_integGauss)
 
           allocate( p_integGauss(0:2*NMaxs(try)) )
-          dp = PMAX/dble(NMaxs(try))
+          call integrand_set(param_y, param_z, param_p, p_integGauss)
+
+          delp = PMAX/dble(NMaxs(try))
           do m=0, 2*NMaxs(try)
              param_p = 0.5d0*m*dp + 1d-30
-             p_integGauss(m) = numIntegrate(gauss_integrand, param_z, 0d0, int(1000*abs(param_z)) )
+             integrand_ptr => gauss_integrand
+             p_integGauss(m) = numIntegrate(integrand_ptr, param_z, 0d0, int(1000*abs(param_z)) )
 
           end do
 !!$if( k==2 ) then
@@ -194,9 +223,14 @@ write(*,*) 'McKee73 paramters: E=', EBL_THICK**2/EBL_WIDTH, 'R=', Ro0/Eh0
 
           do j=1, NY
              param_y = yz_y(j,k)
-          
+
+             integrand_ptr =>  U_UpperEBL_integrand
              nintegRetU = numIntegrate(U_UpperEBL_integrand, 1d-18, PMAX, NMaxs(try))
+
+             integrand_ptr =>  V_UpperEBL_integrand
              nintegRetV = numIntegrate(V_UpperEBL_integrand, 1d-18, PMAX, NMaxs(try))
+
+             integrand_ptr =>  W_UpperEBL_integrand
              nintegRetW = numIntegrate(W_UpperEBL_integrand, 1d-18, PMAX, NMaxs(try))
              
              if (j==41 .and. k==1) then
@@ -225,49 +259,6 @@ write(*,*) "hoge"
 
   end subroutine calc_Vel_UpperEBL
 
-  real(DP) function gauss_integrand(z, idx)
-    real(DP), intent(in) :: z
-    integer, intent(in) :: idx
-
-    gauss_integrand = exp(- 0.25d0*z**2/param_p)
-
-  end function gauss_integrand
-
-  real(DP) function W_UpperEBL_integrand(p, idx)
-    real(DP), intent(in) :: p
-    integer, intent(in) :: idx
-    
-    real(DP) :: integ_Gauss
-
-    W_UpperEBL_integrand = &
-         & 1d0/sqrt(PI) *sqrt(p)*exp(- p**3/3d0)*cos(param_y*p) &
-         &   * p_integGauss(idx)
-
-  end function W_UpperEBL_integrand
-
-  
-  
-  real(DP) function U_UpperEBL_integrand(p, idx)
-    real(DP), intent(in) :: p
-    integer, intent(in) :: idx
-
-    real(DP) :: p2
-
-    p2 = p**2
-    U_UpperEBL_integrand = - 2d0/sqrt(PI) * exp(-p2**3/3d0 - 0.25d0*param_z**2/p2) * cos(p2*param_y) 
-
-  end function U_UpperEBL_integrand
-
-  real(DP) function V_UpperEBL_integrand(p, idx)
-    real(DP), intent(in) :: p
-    integer, intent(in) :: idx
-
-    real(DP) :: p2
-
-    p2 = p**2
-    V_UpperEBL_integrand = 2d0/sqrt(PI) * exp(-p2**3/3d0 - 0.25d0*param_z**2/p2) * sin(p2*param_y) 
-
-  end function V_UpperEBL_integrand
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -314,10 +305,12 @@ write(*,*) "hoge"
   !!
   !!
   real(DP) function numIntegrate(fx, x0, x1, Nmax)
+
+    implicit none
     
     ! 宣言文; Declaration statement
     !
-    interface
+    interface 
        real(DP) function fx(x, xidx) 
          use dc_types, only: DP
 
@@ -328,6 +321,7 @@ write(*,*) "hoge"
     
     real(DP), intent(in) :: x0, x1
     integer, intent(in) :: Nmax
+
 
     ! 局所変数
     ! Local variables

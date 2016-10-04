@@ -93,17 +93,16 @@ subroutine HexTriIcMesh_generate_uniformMesh(htiMesh, glevel, scvMaxItrNum, boun
   integer, intent(in), optional :: scvMaxItrNum
   type(ClosedCurve), intent(inout), optional :: boundarys(:)
 
-  call HexTriIcMesh_generate_nonuniformMesh(htiMesh, glevel, uniform_density, scvMaxItrNum, boundarys)
+  call HexTriIcMesh_generate_nonuniformMesh(htiMesh, glevel, set_uniform_density, scvMaxItrNum, boundarys)
 
-contains 
-function uniform_density(x) result(density)
+end subroutine HexTriIcMesh_generate_uniformMesh
+
+function set_uniform_density(x) result(density)
   type(Vector3d), intent(in) :: x
   real(DP) :: density
 
   density = 1d0
-end function uniform_density  
-
-end subroutine HexTriIcMesh_generate_uniformMesh
+end function set_uniform_density  
 
 subroutine HexTriIcMesh_generate_nonuniformMesh( &
      & htiMesh, glevel, density_func, scvMaxItrNum, boundarys )

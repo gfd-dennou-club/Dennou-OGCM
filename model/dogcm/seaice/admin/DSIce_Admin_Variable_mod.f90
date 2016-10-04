@@ -75,7 +75,8 @@ module DSIce_Admin_Variable_mod
   real(DP), allocatable, public :: xyza_SIceEn(:,:,:,:)
   real(DP), allocatable, public :: xya_IceThick(:,:,:)
   real(DP), allocatable, public :: xya_SnowThick(:,:,:)
-
+  real(DP), allocatable, public :: xya_SIceU(:,:,:)
+  real(DP), allocatable, public :: xya_SIceV(:,:,:)
   real(DP), allocatable, public :: xy_Wice(:,:)
   
   character(*), parameter, public :: VARSET_KEY_SICECON = 'SIceCon'
@@ -131,6 +132,8 @@ contains
     allocate( xyza_SIceTemp(IA,JA,KA,TA) )
     allocate( xya_IceThick(IA,JA,TA) )
     allocate( xya_SnowThick(IA,JA,TA) )
+    allocate( xya_SIceU(IA,JA,TA) )
+    allocate( xya_SIceV(IA,JA,TA) )
     allocate( xy_Wice(IA,JA) )
     
     !----------------------------------------------
@@ -143,10 +146,12 @@ contains
          & 'sea-ice enthalpy at each layer per unit surface area', 'J.m-2')
     call DSIce_IO_History_RegistVar('SIceTemp', 'IJKT', &
          & 'sea-ice temperature at each layer', 'K')
-
     call DSIce_IO_History_RegistVar('IceThick', 'IJT', 'ice-layer thickness', 'm')
     call DSIce_IO_History_RegistVar('SnowThick', 'IJT', 'snow-layer thickness', 'm')
-
+    call DSIce_IO_History_RegistVar('SIceU', 'IJT', 'sea ice velocity (x component)', 'm/s')
+    call DSIce_IO_History_RegistVar('SIceV', 'IJT', 'sea ice velocity (y component)', 'm/s')
+    call DSIce_IO_History_RegistVar('Wice', 'IJT', 'sea-ice formation/melting and snow melting', 'kg/(m2.s)')
+    
     ! restart
     
     call DSIce_IO_Restart_RegistVar('SIceCon', 'IJT', 'concentration of sea ice', '1')
@@ -210,6 +215,8 @@ contains
        deallocate( xya_SIceSfcTemp )
        deallocate( xya_IceThick )
        deallocate( xya_SnowThick )
+       deallocate( xya_SIceU )
+       deallocate( xya_SIceV )
        deallocate( xy_Wice )
     end if
     
@@ -252,6 +259,7 @@ contains
 
        !$omp workshare
        xyza_SIceTemp(:,:,:,n) = xyza_SIceTemp(:,:,:,n-1)
+       xyza_SIceEn(:,:,:,n) = xyza_SIceEn(:,:,:,n-1)
        !$omp end workshare
        !$omp end parallel
     end do
@@ -281,7 +289,8 @@ contains
     call DSIce_IO_History_HistPut( 'SIceTemp', xyza_SIceTemp(IS:IE,JS:JE,KS:KE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'IceThick', xya_IceThick(IS:IE,JS:JE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'SnowThick', xya_SnowThick(IS:IE,JS:JE, TIMELV_ID_N) )
-
+    call DSIce_IO_History_HistPut( 'Wice', xy_Wice(IS:IE,JS:JE) )
+    
   end subroutine DSIce_Admin_Variable_HistPut
 
   !----------------------------------------------------------

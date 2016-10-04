@@ -127,6 +127,9 @@ module SpmlUtil_mod
   ! Operation for spectral analysis
   public :: nma_EnergyFromStreamfunc_wa, na_EnergyFromStreamfunc_wa
   public :: nma_EnstrophyFromStreamfunc_wa, na_EnstrophyFromStreamfunc_wa
+
+  ! Array managed by spml
+  public :: rn
   
   ! 非公開手続き
   ! Private procedure

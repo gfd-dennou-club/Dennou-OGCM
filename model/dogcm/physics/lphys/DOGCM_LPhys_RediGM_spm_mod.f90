@@ -285,12 +285,12 @@ contains
            & xyz_TRC, wz_TRC, xyz_H, xyz_Z,                  &  ! (in)
            & xyz_SLon, xyz_SLat, xyz_T                       &  ! (in)
            & )
-
+      
       xyz_DzFSig(:,:,:) = xyz_Dz_xyz(xyz_FSigRedi + xyz_FSigGM, xyz_H)
       !$omp parallel do
       do k = 0, kMax
-         xyz_RHS(:,:,k) = xyz_RHS(:,:,k) + &
-              &    xy_w( w_AlphaOptr_xy(                                 &
+         xyz_RHS(:,:,k) = xyz_RHS(:,:,k)  &
+              & + xy_w( w_AlphaOptr_xy(                                  &
               &     (xyz_FLonRedi(:,:,k) + xyz_FLonGM(:,:,k))*xy_CosLat, &
               &     (xyz_FLatRedi(:,:,k) + xyz_FLatGM(:,:,k))*xy_CosLat  &
               &    ) )                                                   &

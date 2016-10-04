@@ -26,10 +26,6 @@ module DOGCM_Boundary_vars_mod
        & TRC_TOT_NUM, &
        & TRCID_PTEMP, TRCID_SALT
 
-  use DOGCM_IO_History_mod, only: &
-       & DOGCM_IO_History_RegistVar,      &
-       & DOGCM_IO_History_HistPut,        &
-       & DOGCM_IO_History_IsOutputTiming
   
   ! 宣言文; Declareration statements
   !
@@ -50,15 +46,15 @@ module DOGCM_Boundary_vars_mod
 
   ! The non solar heat flux at surface
   real(DP), public, allocatable :: xy_SfcHFlx_ns(:,:)  
-
   real(DP), public, allocatable :: xy_SfcHFlx0_ns(:,:)  
-
+  real(DP), public, allocatable :: xy_SfcHFlxIO_ns(:,:)
   
   ! The incoming solar heat flux at surface
   real(DP), public, allocatable :: xy_SfcHFlx_sr(:,:)  
-
   real(DP), public, allocatable :: xy_SfcHFlx0_sr(:,:)  
+  real(DP), public, allocatable :: xy_SfcHFlxIO_sr(:,:)
 
+  !
   real(DP), public, allocatable :: xy_DSfcHFlxDTs(:,:)
   
   ! The i component of wind stress in (i,j) coordinate system
@@ -69,9 +65,13 @@ module DOGCM_Boundary_vars_mod
   
   ! The freshwater flux used in the sea surface height equation as a volume flux
   real(DP), public, allocatable :: xy_FreshWtFlx(:,:)
+  real(DP), public, allocatable :: xy_FreshWtFlx0(:,:)
+  real(DP), public, allocatable :: xy_FreshWtFlxIO(:,:)
 
   ! The freshwater flux used in the salinity equation as a concentration/dilution effect
   real(DP), public, allocatable :: xy_FreshWtFlxS(:,:)
+  real(DP), public, allocatable :: xy_FreshWtFlxS0(:,:)
+  real(DP), public, allocatable :: xy_FreshWtFlxSIO(:,:)
 
   ! Sea surface temperature
   real(DP), public, allocatable :: xy_SeaSfcTemp(:,:)
@@ -115,6 +115,9 @@ contains
   !!
   Subroutine DOGCM_Boundary_vars_Init(configNmlName)
 
+    use DOGCM_IO_History_mod, only: &
+       & DOGCM_IO_History_RegistVar
+
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlName
@@ -126,14 +129,22 @@ contains
 
 
     allocate( xy_SfcHFlx_ns(IA,JA), xy_SfcHFlx_sr(IA,JA) )
+    allocate( xy_SfcHFlxIO_ns(IA,JA), xy_SfcHFlxIO_sr(IA,JA) )
     allocate( xy_SfcHFlx0_ns(IA,JA), xy_SfcHFlx0_sr(IA,JA) )
     allocate( xy_DSfcHFlxDTs(IA,JA) )
+    
     allocate( xy_SfcAirTemp(IA,JA) )
+
     allocate( xy_WindStressU(IA,JA), xy_WindStressV(IA,JA) )
+
     allocate( xy_FreshWtFlx(IA,JA), xy_FreshWtFlxS(IA,JA) )
+    allocate( xy_FreshWtFlx0(IA,JA), xy_FreshWtFlxS0(IA,JA) )
+    allocate( xy_FreshWtFlxIO(IA,JA), xy_FreshWtFlxSIO(IA,JA) )
+
     allocate( xy_SeaSfcTemp(IA,JA), xy_SeaSfcSalt(IA,JA) )
     allocate( xy_SeaSfcTemp0(IA,JA), xy_SeaSfcSalt0(IA,JA) )
-    allocate( xy_SeaSfcU(IA,JA), xy_SeaSfcV(IA,JA) )    
+    allocate( xy_SeaSfcU(IA,JA), xy_SeaSfcV(IA,JA) )
+    
     allocate( xy_OcnSfcCellMask(IA,JA), xyz_OcnCellMask(IA,JA,KA) )
     
     !-------------------------------------------------------
@@ -142,9 +153,14 @@ contains
     call DOGCM_IO_History_RegistVar( 'WindStressV', "IJT", "wind stress (j axis)", "N/m2"   )
     call DOGCM_IO_History_RegistVar( 'SfcHFlx_ns', "IJT", "non-solar part of surface heat flux", "W/m2" )
     call DOGCM_IO_History_RegistVar( 'SfcHFlx_sr', "IJT", "solar part of surface heat flux", "W/m2" )
+    call DOGCM_IO_History_RegistVar( 'SfcHFlxIO_ns', "IJT", "non-solar part of surface heat flux", "W/m2" )
+    call DOGCM_IO_History_RegistVar( 'SfcHFlxIO_sr', "IJT", "solar part of surface heat flux", "W/m2" )
     call DOGCM_IO_History_RegistVar( 'SfcHFlxO', "IJT", "(total) surface heat flux", "W/m2" )
+    call DOGCM_IO_History_RegistVar( 'DSfcHFlxDTs', "IJT", "The dependence  of surface heat flux on SST", "W/(m2.K)" )
     call DOGCM_IO_History_RegistVar( 'FreshWtFlx', "IJT", "fresh water flux", "m/s" )
     call DOGCM_IO_History_RegistVar( 'FreshWtFlxS', "IJT", "fresh water flux (used in salinity equation", "m/s" )
+    call DOGCM_IO_History_RegistVar( 'FreshWtFlxIO', "IJT", "fresh water flux", "m/s" )
+    call DOGCM_IO_History_RegistVar( 'FreshWtFlxSIO', "IJT", "fresh water flux (used in salinity equation", "m/s" )
     call DOGCM_IO_History_RegistVar( 'SeaSfcTemp', "IJT", "Sea surface temperature", "K" )
     call DOGCM_IO_History_RegistVar( 'SeaSfcSalt', "IJT", "Sea surface salinity", "psu" )
     call DOGCM_IO_History_RegistVar( 'OcnSfcCellMask', "IJT", "map of cell type managed by ocean model", "1" )
@@ -177,14 +193,22 @@ contains
 
     if( isInitialzed ) then
        deallocate( xy_SfcHFlx_ns, xy_SfcHFlx_sr )
+       deallocate( xy_SfcHFlxIO_ns, xy_SfcHFlxIO_sr )
        deallocate( xy_SfcHFlx0_ns, xy_SfcHFlx0_sr )
        deallocate( xy_DSfcHFlxDTs )
+
        deallocate( xy_SfcAirTemp )
+
        deallocate( xy_WindStressU, xy_WindStressV )
+
        deallocate( xy_FreshWtFlx, xy_FreshWtFlxS )
+       deallocate( xy_FreshWtFlx0, xy_FreshWtFlxS0 )
+       deallocate( xy_FreshWtFlxIO, xy_FreshWtFlxSIO )
+       
        deallocate( xy_SeaSfcTemp, xy_SeaSfcSalt )
        deallocate( xy_SeaSfcTemp0, xy_SeaSfcSalt0 )
        deallocate( xy_SeaSfcU, xy_SeaSfcV )
+
        deallocate( xy_OcnSfcCellMask, xyz_OcnCellMask )
     end if
 
@@ -193,6 +217,10 @@ contains
   !-----------------------------------------
 
   subroutine DOGCM_Boundary_vars_HistPut()
+
+    use DOGCM_IO_History_mod, only:      &
+       & DOGCM_IO_History_HistPut,       &
+       & DOGCM_IO_History_IsOutputTiming
 
     ! 実行文; Executable statement
     !
@@ -204,10 +232,15 @@ contains
     
     call DOGCM_IO_History_HistPut( "SfcHFlx_ns", xy_SfcHFlx_ns(IS:IE,JS:JE) )
     call DOGCM_IO_History_HistPut( "SfcHFlx_sr", xy_SfcHFlx_sr(IS:IE,JS:JE) )
+    call DOGCM_IO_History_HistPut( "SfcHFlxIO_ns", xy_SfcHFlxIO_ns(IS:IE,JS:JE) )
+    call DOGCM_IO_History_HistPut( "SfcHFlxIO_sr", xy_SfcHFlxIO_sr(IS:IE,JS:JE) )
     call DOGCM_IO_History_HistPut( "SfcHFlxO", xy_SfcHFlx_sr(IS:IE,JS:JE) + xy_SfcHFlx_ns(IS:IE,JS:JE) )
-
+    call DOGCM_IO_History_HistPut( "DSfcHFlxDTs", xy_DSfcHFlxDTs(IS:IE,JS:JE) )
+    
     call DOGCM_IO_History_HistPut( "FreshWtFlx", xy_FreshWtFlx(IS:IE,JS:JE) )
     call DOGCM_IO_History_HistPut( "FreshWtFlxS", xy_FreshWtFlxS(IS:IE,JS:JE) )
+    call DOGCM_IO_History_HistPut( "FreshWtFlxIO", xy_FreshWtFlxIO(IS:IE,JS:JE) )
+    call DOGCM_IO_History_HistPut( "FreshWtFlxSIO", xy_FreshWtFlxSIO(IS:IE,JS:JE) )
     
     call DOGCM_IO_History_HistPut( "SeaSfcTemp", xy_SeaSfcTemp(IS:IE,JS:JE) )
     call DOGCM_IO_History_HistPut( "SeaSfcSalt", xy_SeaSfcSalt(IS:IE,JS:JE) )

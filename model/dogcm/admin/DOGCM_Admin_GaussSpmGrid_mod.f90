@@ -6,7 +6,7 @@
 !! @author Kawai Yuta
 !!
 !!
-module DSIce_Admin_GaussSpmGrid_mod 
+module DOGCM_Admin_GaussSpmGrid_mod 
 
   ! モジュール引用; Use statements
   !
@@ -24,7 +24,7 @@ module DSIce_Admin_GaussSpmGrid_mod
   use DOGCM_Admin_Constants_mod, only: &
        & RPlanet
 
-  use DSIce_Admin_GridDef_mod, only: &
+  use DOGCM_Admin_GridDef_mod, only: &
        & I_XY, I_UY, I_XV
   
   ! 宣言文; Declareration statements
@@ -35,10 +35,23 @@ module DSIce_Admin_GaussSpmGrid_mod
   ! 公開手続き
   ! Public procedure
   !
-  public :: DSIce_Admin_GaussSpmGrid_Init, DSIce_Admin_GaussSpmGrid_Final
+  public :: DOGCM_Admin_GaussSpmGrid_Init, DOGCM_Admin_GaussSpmGrid_Final
 
-  public :: DSIce_Admin_GaussSpmGrid_ConstructAxisInfo
-  public :: DSIce_Admin_GaussSpmGrid_ConstructGrid
+  ! 公開変数
+  ! Public variables
+  !
+  
+  integer, public :: nMax
+  integer, public :: lMax
+  integer, public :: tMax
+
+  integer, public :: iMax
+  integer, public :: jMax
+  integer, public :: jMaxGlobe
+  integer, public :: kMax
+  
+  public :: DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo
+  public :: DOGCM_Admin_GaussSpmGrid_ConstructGrid
   
   ! 非公開手続き
   ! Private procedure
@@ -47,36 +60,48 @@ module DSIce_Admin_GaussSpmGrid_mod
   ! 非公開変数
   ! Private variable
   !
-  character(*), parameter:: module_name = 'DSIce_Admin_GaussSpmGrid_mod' !< Module Name
+  character(*), parameter:: module_name = 'DOGCM_Admin_GaussSpmGrid_mod' !< Module Name
 
+  logical :: isInitialzed = .false.
+  
 contains
 
   !>
   !!
   !!
-  subroutine DSIce_Admin_GaussSpmGrid_Init()
+  subroutine DOGCM_Admin_GaussSpmGrid_Init(configNmlFileName)
 
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: configNmlFileName
+
+    ! 局所変数
+    ! local variable
+    !
+    
     ! 実行文; Executable statements
     !
 
-  end subroutine DSIce_Admin_GaussSpmGrid_Init
+    ! Read the path to grid data file from namelist.
+    ! call read_nmlData(configNmlFileName)
+
+    isInitialzed = .true.
+    
+  end subroutine DOGCM_Admin_GaussSpmGrid_Init
 
   !>
   !!
   !!
-  subroutine DSIce_Admin_GaussSpmGrid_Final()
+  subroutine DOGCM_Admin_GaussSpmGrid_Final()
 
     ! 実行文; Executable statements
     !
 
-  end subroutine DSIce_Admin_GaussSpmGrid_Final
+  end subroutine DOGCM_Admin_GaussSpmGrid_Final
 
   !------------------------------------
 
-  !> @brief 
-  !!
-  !!
-  subroutine DSIce_Admin_GaussSpmGrid_ConstructAxisInfo( &
+  subroutine DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo( &
        & IAXIS_name, IAXIS_long_name, IAXIS_units, IAXIS_Wt_units,    & ! (out)
        & IS, IE, IA, IHALO,                                           & ! (out)
        & JAXIS_name, JAXIS_long_name, JAXIS_units, JAXIS_Wt_units,    & ! (out)
@@ -156,18 +181,55 @@ contains
     KA = KM + 2*KHALO
     KS = KHALO + 1
     KE = KS + KM - 1
-    KAXIS_name = 'sig2'
-    KAXIS_long_name = 'general vertical coordinate (sea ice model)'
+    KAXIS_name = 'sig'
+    KAXIS_long_name = 'general vertical coordinate'
     KAXIS_units = '1'
     KAXIS_Wt_units = '1'
     
+    ! Set truncated wave number
+
+    iMax = IM
     
-  end subroutine DSIce_Admin_GaussSpmGrid_ConstructAxisInfo
+    jMax = JM
+    jMaxGlobe = jMax
+
+    kMax = KM - 1
+    tMax = kMax
+
+#ifdef DSOGCM_MODE_AXISYM
+    if (iMax /= 1) then
+       call MessageNotify("E", module_name, &
+            & "The number of grid points in longitude must be 1 in DSOGCM_MODE_AXISYM")
+    end if
+#endif
+    
+#ifdef DSOGCM_MODE_AXISYM
+    nMax = ( 2*jMaxGlobe - 1 )/ 3
+    lMax = nMax + 1 
+#else
+    nMax = ( iMax - 1 )/ 3
+    lMax = ( nMax + 1 )**2
+#endif
+    
+    ! 印字 ; Print
+    !
+    call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
+    call MessageNotify( 'M', module_name, '    nmax        = %d', i = (/   nmax  /) )
+    call MessageNotify( 'M', module_name, '    iMax        = %d', i = (/   iMax  /) )
+    call MessageNotify( 'M', module_name, '    jMaxGlobe   = %d', i = (/   jMaxGlobe /) )
+    call MessageNotify( 'M', module_name, '    jMax        = %d', i = (/   jMax  /) )
+    call MessageNotify( 'M', module_name, '    kMax        = %d', i = (/   kmax  /) )
+    call MessageNotify( 'M', module_name, '    lMax        = %d', i = (/   lmax  /) )
+    call MessageNotify( 'M', module_name, '    tMax        = %d', i = (/   tMax  /) )
+
+    call MessageNotify( 'M', module_name, ' (IM,JM,KM) = (%d,%d,%d) ', i = (/ IM,JM,KM /) )
+    
+  end subroutine DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo
 
   !> @brief 
   !!
   !!
-  subroutine DSIce_Admin_GaussSpmGrid_ConstructGrid( &
+  subroutine DOGCM_Admin_GaussSpmGrid_ConstructGrid( &
        & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
        & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
        & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
@@ -234,8 +296,10 @@ contains
     !
     real(DP) :: xy_LonSpml(IS:IE,JS:JE)
     real(DP) :: xy_LatSpml(IS:IE,JS:JE)
+    real(DP) :: z_SigSpml(KS:KE)
     real(DP) :: x_Lon_Weight(IS:IE)
     real(DP) :: y_Lat_Weight(JS:JE)
+    real(DP) :: z_Sig_Weight(KS:KE)
     real(DP) :: v_Lat
     
     real(DP) :: DSig
@@ -257,13 +321,13 @@ contains
 
     if( .not. isSpmlUtilInitialzed() ) then
        call MessageNotify('E', module_name, &
-            &  "DSIce_Admin_GaussSpmGrid_ConstructGrid is called before SpmlUtil_mod is initialized.")
+            &  "DOGCM_Admin_GaussSpmGrid_ConstructGrid is called before SpmlUtil_mod is initialized.")
     end if
 
-    
+
     call get_SpmlGridInfo( &
-         & xy_Lon_=xy_LonSpml, xy_Lat_=xy_LatSpml,                    & ! (out)
-         & x_Lon_Weight_=x_Lon_Weight, y_Lat_Weight_=y_Lat_Weight     & ! (out)
+         & xy_Lon_=xy_LonSpml, xy_Lat_=xy_LatSpml, z_Sig_=z_SigSpml,  &
+         & x_Lon_Weight_=x_Lon_Weight, y_Lat_Weight_=y_Lat_Weight, z_Sig_Weight_=z_Sig_Weight &
          & )
 
     !- Center position and size of each cell ---------------------
@@ -273,18 +337,13 @@ contains
 
     x_CI(IS:IE) = xy_LonSpml(IS:IE,JS) * 180d0 / PI
     y_CJ(JS:JE) = xy_LatSpml(IS,JS:JE) * 180d0 / PI
-
-    DSig = 1d0 / dble( KM )
-    do k = KS, KE
-       z_CK(k) =  - 0.5d0*DSig - (k - KS)*DSig
-    end do
+    z_CK(KS:KE) = z_SigSpml(KS:KE)
+    
 
     x_IAXIS_Weight(IS:IE) = x_Lon_Weight(IS:IE)    
     y_JAXIS_Weight(JS:JE) = y_Lat_Weight(JS:JE)
-
-    z_KAXIS_Weight(KS:KE) = DSig
-    z_CDK(KS:KE)          = DSig
-
+    z_KAXIS_Weight(KS:KE) = z_Sig_Weight(KS:KE)
+    
     !- Fill coordinate information at horizontal halo region
 
     x_CI(1:IS-1)  = x_CI(IE-IHALO+1:IE)
@@ -332,6 +391,7 @@ contains
 
     
     !
+    z_CDK(KS:KE) = z_Sig_Weight(KS:KE)
     z_FK(KS-1) = 0d0
     do k = KS, KE
        z_FK(k) = z_FK(k-1) + z_CDK(k)
@@ -370,10 +430,8 @@ contains
 !!$    write(*,*) "y_FDJ=", y_FDJ(1:JA)
 !!$    stop
 
-  end subroutine DSIce_Admin_GaussSpmGrid_ConstructGrid
-
-  !-----------------------------------------
-
-
-end module DSIce_Admin_GaussSpmGrid_mod
-
+  end subroutine DOGCM_Admin_GaussSpmGrid_ConstructGrid
+  
+  !------------------------------------------------------
+  
+end module DOGCM_Admin_GaussSpmGrid_mod

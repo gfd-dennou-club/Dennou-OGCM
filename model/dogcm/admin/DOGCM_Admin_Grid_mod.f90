@@ -19,7 +19,15 @@ module DOGCM_Admin_Grid_mod
   use dc_message, only: &
        & MessageNotify
 
+  !* Dennou-OGCM
 
+  use DOGCM_Admin_GaussSpmGrid_mod, only: &
+       & DOGCM_Admin_GaussSpmGrid_Init,               &
+       & DOGCM_Admin_GaussSpmGrid_Final,              &
+       & DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo,  &
+       & DOGCM_Admin_GaussSpmGrid_ConstructGrid,      &
+       & iMax, jMax, jMaxGlobe, kMax,                 &
+       & nMax, lMax, tMax
 
   ! 宣言文 ; Declaration statements  
   !
@@ -41,19 +49,14 @@ module DOGCM_Admin_Grid_mod
   ! Public variables
   !
 
-  integer, public, save :: IA, IS, IE, IM, IHALO
-  integer, public, save :: JA, JS, JE, JM, JHALO
-  integer, public, save :: KA, KS, KE, KM, KHALO
+  integer, public :: IA, IS, IE, IM, IHALO
+  integer, public :: JA, JS, JE, JM, JHALO
+  integer, public :: KA, KS, KE, KM, KHALO
   
-  integer, public, save :: kMax
-  integer, public, save :: tMax
   integer, parameter, public :: VHaloSize = 1
 
-  integer, public, save :: nMax, lMax
-  integer, public, save :: iMax, jMax
-  integer, public, save :: jMaxGlobe
-
-  
+  real(DP), public, allocatable :: xy_Lon(:,:)
+  real(DP), public, allocatable :: xy_Lat(:,:)
   real(DP), public, allocatable :: xyz_Lon(:,:,:)
   real(DP), public, allocatable :: xyz_Lat(:,:,:)
   real(DP), public, allocatable :: xyz_Z(:,:,:)
@@ -84,9 +87,24 @@ module DOGCM_Admin_Grid_mod
   real(DP), public, allocatable :: x_FI(:) ! Position of face
   real(DP), public, allocatable :: y_FJ(:)
   real(DP), public, allocatable :: z_FK(:)  
+  real(DP), public, allocatable :: x_CDI(:) 
+  real(DP), public, allocatable :: y_CDJ(:)
+  real(DP), public, allocatable :: z_CDK(:)  
+  real(DP), public, allocatable :: x_FDI(:) ! 
+  real(DP), public, allocatable :: y_FDJ(:)
+  real(DP), public, allocatable :: z_FDK(:)  
   real(DP), public, allocatable :: x_IAXIS_Weight(:)
   real(DP), public, allocatable :: y_JAXIS_Weight(:)
   real(DP), public, allocatable :: z_KAXIS_Weight(:)
+
+  real(DP), public, allocatable :: SCALEF_E1(:,:,:)
+  real(DP), public, allocatable :: SCALEF_E2(:,:,:)
+  real(DP), public, allocatable :: SCALEF_E3(:,:,:)
+  
+  ! Cascade
+
+  public :: nMax, lMax, tMax
+  public :: iMax, jMax, jMaxGlobe, kMax
   
   ! 非公開変数
   ! Private variables
@@ -117,7 +135,25 @@ contains
     ! Read the path to grid data file from namelist.
     call read_nmlData(configNmlFileName)
 
-    isInitialzed = .true.
+    !---------------------------------------
+    
+    call DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo( &
+       & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
+       & IS, IE, IA, IHALO,                                                                   & ! (out)
+       & JAXIS_info%name, JAXIS_info%long_name, JAXIS_info%units, JAXIS_info%weight_units,    & ! (out)
+       & JS, JE, JA, JHALO,                                                                   & ! (out)
+       & KAXIS_info%name, KAXIS_info%long_name, KAXIS_info%units, KAXIS_info%weight_units,    & ! (out)
+       & KS, KE, KA, KHALO,                                                                   & ! (out)
+       & IM, JM, KM                                                                           & ! (in)
+       & )
+
+    call MessageNotify('M', module_name, "(IS,JS,KS)=(%d,%d,%d)", (/ IS, JS, KS /) )
+    call MessageNotify('M', module_name, "(IE,JE,KE)=(%d,%d,%d)", (/ IE, JE, KE /) )
+    call MessageNotify('M', module_name, "(IHALO,JHALO,KHALO)=(%d,%d,%d)", (/ IHALO, JHALO, KHALO /) )
+
+    TAXIS_info%name      = "time"
+    TAXIS_info%long_name = "time"
+    TAXIS_info%units     = "sec"
     
   end subroutine DOGCM_Admin_Grid_Init
 
@@ -127,8 +163,15 @@ contains
     !
 
     if(isInitialzed) then
+       deallocate( x_CI, x_CDI, x_FI, x_FDI )
+       deallocate( y_CJ, y_CDJ, y_FJ, y_FDJ )
+       deallocate( z_CK, z_CDK, z_FK, z_FDK )
+       deallocate( x_IAXIS_Weight, y_JAXIS_Weight, z_KAXIS_Weight )
+       
+       deallocate( xy_Lon, xy_Lat )
        deallocate( xyz_Lon, xyz_Lat, xyz_Z )
-       deallocate( x_Lon_Weight, y_Lat_Weight, z_Sig_Weight )
+       deallocate( xy_Topo )
+       deallocate( SCALEF_E1, SCALEF_E2 )
     end if
     
   end subroutine DOGCM_Admin_Grid_Final
@@ -144,134 +187,51 @@ contains
     
     ! 宣言文; Declaration statement
     !
-    
         
-!!$    real(DP) :: A(kMax,0:kMax), B(kMax+1), Work(2*(kMax+1))
-!!$    integer :: k, info
-    
-    ! 実行文; Executable statement
-    !
-
-    ! Caclculate grid index
-    !
-
-
-!!$    call DOGCM_Admin_Grid_construct_Cartesian3DGrid()
-    
-    !
-    !
-    call DOGCM_Admin_Grid_construct_SPMGaussGrid()
-    
-  end subroutine DOGCM_Admin_Grid_construct
-
-  subroutine DOGCM_Admin_Grid_construct_SPMGaussGrid()
-
-    ! モジュール引用; Use statement
-    !
-    
-    use SpmlUtil_mod, only: &
-        & isSpmlUtilInitialzed=>isInitialzed, &
-        & get_SpmlGridInfo
-
     ! 局所変数
     ! Local variables
     !
-    
-    real(DP), allocatable :: xy_LonSpml(:,:)
-    real(DP), allocatable :: xy_LatSpml(:,:)
-    real(DP), allocatable :: z_SigSpml(:)
+    integer :: k
 
-    real(DP), parameter :: PI = acos(-1d0)
-    
     ! 実行文; Executable statement
     !
 
-
-    if( .not. isSpmlUtilInitialzed() ) &
-         & call MessageNotify('E', module_name, &
-         &  "DOGCM_Admin_Grid_construct is called before SpmlUtil_mod is initialized.")
+    !---------------------------------
     
-    IHALO = 1; JHALO = 1; KHALO = 1
     
-    IA = IM + 2*IHALO; IS = 1 + IHALO; IE = IA - IHALO
-    JA = JM + 2*JHALO; JS = 1 + JHALO; JE = JA - JHALO
-    KA = KM + 2*KHALO; KS = 1 + KHALO; KE = KA - KHALO
+    allocate( x_CI(IA), x_CDI(IA), x_FI(IA), x_FDI(IA), x_IAXIS_Weight(IA) )
+    allocate( y_CJ(JA), y_CDJ(JA), y_FJ(JA), y_FDJ(JA), y_JAXIS_Weight(JA) )
+    allocate( z_CK(KA), z_CDK(KA), z_FK(KA), z_FDK(KA), z_KAXIS_Weight(KA) )
 
-    call MessageNotify('M', module_name, "(IS,JS,KS)=(%d,%d,%d)", (/ IS, JS, KS /) )
-    call MessageNotify('M', module_name, "(IE,JE,KE)=(%d,%d,%d)", (/ IE, JE, KE /) )
-    call MessageNotify('M', module_name, "(IHALO,JHALO,KHALO)=(%d,%d,%d)", (/ IHALO, JHALO, KHALO /) )
-    
-    ! Allocation arrays for coordinates.
-    !
-
+    allocate( xy_Lon(IA,JA), xy_Lat(IA,JA) )
     allocate( xyz_Lon(IA,JA,KA), xyz_Lat(IA,JA,KA), xyz_Z(IA,JA,KA) )
     allocate( xy_Topo(IA,JA) )
-!!$    allocate(xyz_Lon(0:iMax-1,1:jMax,0:kMax), xyz_Lat(0:iMax-1,1:jMax,0:kMax), z_Sig(0:kMax))
+    allocate( SCALEF_E1(IA,JA,4), SCALEF_E2(IA,JA,4) )
 
-    allocate( x_CI(IA), y_CJ(JA), z_CK(KA) )
-    allocate( x_FI(IA), y_FJ(JA), z_FK(KA) )
-    allocate( x_IAXIS_Weight(IA), y_JAXIS_Weight(JA), z_KAXIS_Weight(KA) )
+    call DOGCM_Admin_GaussSpmGrid_ConstructGrid( &
+         & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
+         & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
+         & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
+         & xy_Lon, xy_Lat,                                & ! (out)
+         & SCALEF_E1, SCALEF_E2,                          & ! (out)
+         & IS, IE, IA, IM, IHALO,                         & ! (in)
+         & JS, JE, JA, JM, JHALO,                         & ! (in)
+         & KS, KE, KA, KM, KHALO                          & ! (in)
+         & ) 
+
+    do k = 1, KA
+       xyz_Lon(:,:,k) = xy_Lon(:,:)
+       xyz_Lat(:,:,k) = xy_Lat(:,:)
+    end do
     
-    ! Get the coordinates of horizontal grid from SpmlUtil_mod.
-    !
+    !---------------------------------------------
 
-    allocate( xy_LonSpml(0:iMax-1,jMax), xy_LatSpml(0:iMax-1,jMax), z_SigSpml(0:kMax) )
-    allocate( x_Lon_Weight(0:iMax-1), y_Lat_Weight(jMax), z_Sig_Weight(0:kMax) )
-    call get_SpmlGridInfo( &
-         & xy_Lon_=xy_LonSpml, xy_Lat_=xy_LatSpml, z_Sig_=z_SigSpml,  &
-         & x_Lon_Weight_=x_Lon_Weight, y_Lat_Weight_=y_Lat_Weight, z_Sig_Weight_=z_Sig_Weight &
-         & )
+    isInitialzed = .true.
     
-    xyz_Lon(IS:IE,JS:JE,KS:KE) = spread(xy_LonSpml,3,kMax+1)
-    xyz_Lat(IS:IE,JS:JE,KS:KE) = spread(xy_LatSpml,3,kMax+1)
-
-    IAXIS_info%name = 'lon'
-    IAXIS_info%long_name = 'longitude'
-    IAXIS_info%units = 'degree_east'
-    IAXIS_info%weight_units = 'radian'
-
-    JAXIS_info%name = 'lat'
-    JAXIS_info%long_name = 'latitude'
-    JAXIS_info%units = 'degree_north'
-    JAXIS_info%weight_units = 'radian'
-
-    KAXIS_info%name = 'sig'
-    KAXIS_info%long_name = 'general vertical coordinate'
-    KAXIS_info%units = '1'
-    KAXIS_info%weight_units = '1'
-
-    TAXIS_info%name = 'time'
-    TAXIS_info%long_name = 'time'
-    TAXIS_info%units = 'sec'
-    TAXIS_info%weight_units = '1'
-    
-    x_CI(IS:IE) = xy_LonSpml(0:iMax-1,1) * 180d0 / PI
-    y_CJ(JS:JE) = xy_LatSpml(0,1:jMax) * 180d0 / PI
-    z_CK(KS:KE) = z_SigSpml(0:kMax)
-    x_IAXIS_Weight(IS:IE) = x_Lon_Weight
-    y_JAXIS_Weight(JS:JE) = y_Lat_Weight
-    z_KAXIS_Weight(KS:KE) = z_Sig_Weight
-    
-    ! Calculate layer thickness.
-    !
-!    allocate( z_LyrThickSig(0:kMax) )    
-    
-!!$    A = 0d0; B = 0d0
-!!$    do k=1,kMax
-!!$       A(k,k-1:k) = 0.5d0
-!!$       B(k) = z_Sig(k-1) - z_Sig(k)
-!!$    end do
-!!$    A(1,0) = 1; A(kMax,kMax) = 1
-!!$
-!!$    call DGELS('N', kMax, kMax+1, 1, A, kMax, B, kMax+1, Work, 2*(kMax+1), info)
-!!$    z_LyrThickSig(:) = b
-
-!    z_LyrThickSig = z_Sig_Weight
-    
-  end subroutine DOGCM_Admin_Grid_construct_SPMGaussGrid
+  end subroutine DOGCM_Admin_Grid_construct
 
   subroutine DOGCM_Admin_Grid_UpdateVCoord( xyz_H, &     ! (out)
-       & xy_SSH                               ) ! (in)
+       & xy_SSH                               )          ! (in)
 
     ! モジュール引用; Use statement
     !
@@ -300,8 +260,7 @@ contains
     
   end subroutine DOGCM_Admin_Grid_UpdateVCoord
   
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+!--------------------------------------------------------
     
   subroutine read_nmlData( configNmlFileName )
 
@@ -337,7 +296,6 @@ contains
     ! NAMELIST group name
     !
     namelist /grid_nml/ &
-         & nLat, nLon, nZ, &
          & IM, JM, KM
 
     ! 実行文; Executable statements
@@ -345,7 +303,10 @@ contains
     ! デフォルト値の設定
     ! Default values settings
     !
-
+    IM = 1
+    JM = 64
+    KM = 61
+   
     ! NAMELIST からの入力
     ! Input from NAMELIST
     !
@@ -360,45 +321,9 @@ contains
             & iostat = iostat_nml )   ! (out)
        close( unit_nml )
     end if
-
-    iMax = nLon
-    jMaxGlobe = nLat
-    jMax = jMaxGlobe
-    kMax = nZ
-
-#ifdef DSOGCM_MODE_AXISYM
-    if (iMax /= 1) then
-       call MessageNotify("E", module_name, &
-            & "The number of grid points in longitude must be 1 in DSOGCM_MODE_AXISYM")
-    end if
-#endif
-
-    ! Set truncated wave number
-#ifdef DSOGCM_MODE_AXISYM
-    nMax = ( 2*jMaxGlobe - 1 )/ 3
-    lMax = nMax + 1 
-#else
-    nMax = ( iMax - 1 )/ 3
-    lMax = ( nMax + 1 )**2
-#endif
-
-    tMax = kMax
-
-    IM = iMax
-    JM = jMax
-    KM = kMax + 1
     
     ! 印字 ; Print
     !
-    call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
-    call MessageNotify( 'M', module_name, '    nmax        = %d', i = (/   nmax  /) )
-    call MessageNotify( 'M', module_name, '    iMax        = %d', i = (/   iMax  /) )
-    call MessageNotify( 'M', module_name, '    jMaxGlobe = %d', i = (/   jMaxGlobe /) )
-    call MessageNotify( 'M', module_name, '    jMax        = %d', i = (/   jMax  /) )
-    call MessageNotify( 'M', module_name, '    kMax        = %d', i = (/   kmax  /) )
-    call MessageNotify( 'M', module_name, '    lMax        = %d', i = (/   lmax  /) )
-    call MessageNotify( 'M', module_name, '    tMax        = %d', i = (/   tMax  /) )
-
     call MessageNotify( 'M', module_name, ' (IM,JM,KM) = (%d,%d,%d) ', i = (/ IM,JM,KM /) )
     
   end subroutine read_nmlData

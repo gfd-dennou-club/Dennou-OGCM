@@ -25,13 +25,13 @@ module fvCalculus_mod
      module procedure pcurl_surfNormVec
   end interface curl
 
-  interface interpolate
- !    module procedure interpolate_VolSVal_SurfSVal
-  end interface interpolate
+!!$  interface interpolate
+!!$ !    module procedure interpolate_VolSVal_SurfSVal
+!!$  end interface interpolate
 
   public :: fvCalculus_Init, fvCalculus_Final
   public :: div, grad, curl
-  public :: interpolate
+!!$  public :: interpolate
 
 contains
 subroutine fvCalculus_Init(fvmInfo_)
