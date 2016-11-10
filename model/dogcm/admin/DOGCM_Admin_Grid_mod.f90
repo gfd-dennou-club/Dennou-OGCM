@@ -21,14 +21,23 @@ module DOGCM_Admin_Grid_mod
 
   !* Dennou-OGCM
 
+  use DOGCM_Admin_GovernEq_mod, only: &
+       & SolverType,                   &
+       & OCNGOVERNEQ_SOLVER_HSPM_VSPM, &
+       & OCNGOVERNEQ_SOLVER_HSPM_VFVM       
+  
   use DOGCM_Admin_GaussSpmGrid_mod, only: &
        & DOGCM_Admin_GaussSpmGrid_Init,               &
        & DOGCM_Admin_GaussSpmGrid_Final,              &
        & DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo,  &
-       & DOGCM_Admin_GaussSpmGrid_ConstructGrid,      &
-       & iMax, jMax, jMaxGlobe, kMax,                 &
-       & nMax, lMax, tMax
+       & DOGCM_Admin_GaussSpmGrid_ConstructGrid
 
+  use DOGCM_Admin_GaussSpmVFvmGrid_mod, only: &
+       & DOGCM_Admin_GaussSpmVFvmGrid_Init,               &
+       & DOGCM_Admin_GaussSpmVFvmGrid_Final,              &
+       & DOGCM_Admin_GaussSpmVFvmGrid_ConstructAxisInfo,  &
+       & DOGCM_Admin_GaussSpmVFvmGrid_ConstructGrid
+  
   ! 宣言文 ; Declaration statements  
   !
   implicit none
@@ -87,12 +96,20 @@ module DOGCM_Admin_Grid_mod
   real(DP), public, allocatable :: x_FI(:) ! Position of face
   real(DP), public, allocatable :: y_FJ(:)
   real(DP), public, allocatable :: z_FK(:)  
+
   real(DP), public, allocatable :: x_CDI(:) 
   real(DP), public, allocatable :: y_CDJ(:)
   real(DP), public, allocatable :: z_CDK(:)  
   real(DP), public, allocatable :: x_FDI(:) ! 
   real(DP), public, allocatable :: y_FDJ(:)
   real(DP), public, allocatable :: z_FDK(:)  
+  real(DP), public, allocatable :: x_RCDI(:) 
+  real(DP), public, allocatable :: y_RCDJ(:)
+  real(DP), public, allocatable :: z_RCDK(:)  
+  real(DP), public, allocatable :: x_RFDI(:) ! 
+  real(DP), public, allocatable :: y_RFDJ(:)
+  real(DP), public, allocatable :: z_RFDK(:)  
+
   real(DP), public, allocatable :: x_IAXIS_Weight(:)
   real(DP), public, allocatable :: y_JAXIS_Weight(:)
   real(DP), public, allocatable :: z_KAXIS_Weight(:)
@@ -100,11 +117,18 @@ module DOGCM_Admin_Grid_mod
   real(DP), public, allocatable :: SCALEF_E1(:,:,:)
   real(DP), public, allocatable :: SCALEF_E2(:,:,:)
   real(DP), public, allocatable :: SCALEF_E3(:,:,:)
+
+  integer, public :: iMax
+  integer, public :: jMax
+  integer, public :: jMaxGlobal
+  integer, public :: kMax
+  integer, public :: lMax
+  integer, public :: nMax
+  integer, public :: tMax
+  
   
   ! Cascade
 
-  public :: nMax, lMax, tMax
-  public :: iMax, jMax, jMaxGlobe, kMax
   
   ! 非公開変数
   ! Private variables
@@ -121,6 +145,16 @@ contains
     !
     use DOGCM_Admin_Constants_mod, only: RPlanet
 
+    use DOGCM_Admin_GaussSpmGrid_mod, only: &
+         & hsvs_im => iMax, hsvs_jm => jMax, hsvs_km => kMax, &
+         & hsvs_nm => nMax, hsvs_lm => lMax, hsvs_tm => tMax, &
+         & hsvs_jmGl => jMaxGlobe
+
+    use DOGCM_Admin_GaussSpmVFvmGrid_mod, only: &
+         & hsvf_im => iMax, hsvf_jm => jMax, hsvf_km => kMax, &
+         & hsvf_nm => nMax, hsvf_lm => lMax, hsvf_tm => tMax, &
+         & hsvf_jmGl => jMaxGlobe
+    
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlFileName
@@ -136,16 +170,41 @@ contains
     call read_nmlData(configNmlFileName)
 
     !---------------------------------------
-    
-    call DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo( &
-       & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
-       & IS, IE, IA, IHALO,                                                                   & ! (out)
-       & JAXIS_info%name, JAXIS_info%long_name, JAXIS_info%units, JAXIS_info%weight_units,    & ! (out)
-       & JS, JE, JA, JHALO,                                                                   & ! (out)
-       & KAXIS_info%name, KAXIS_info%long_name, KAXIS_info%units, KAXIS_info%weight_units,    & ! (out)
-       & KS, KE, KA, KHALO,                                                                   & ! (out)
-       & IM, JM, KM                                                                           & ! (in)
-       & )
+
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo( &
+            & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
+            & IS, IE, IA, IHALO,                                                                   & ! (out)
+            & JAXIS_info%name, JAXIS_info%long_name, JAXIS_info%units, JAXIS_info%weight_units,    & ! (out)
+            & JS, JE, JA, JHALO,                                                                   & ! (out)
+            & KAXIS_info%name, KAXIS_info%long_name, KAXIS_info%units, KAXIS_info%weight_units,    & ! (out)
+            & KS, KE, KA, KHALO,                                                                   & ! (out)
+            & IM, JM, KM                                                                           & ! (in)
+            & )
+
+       iMax = hsvs_im; jMax = hsvs_jm; kMax = hsvs_km
+       nMax = hsvs_nm; lMax = hsvs_lm; tMax = hsvs_tm
+       jMaxGlobal = hsvs_jmGl
+
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Admin_GaussSpmVFvmGrid_ConstructAxisInfo( &
+            & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
+            & IS, IE, IA, IHALO,                                                                   & ! (out)
+            & JAXIS_info%name, JAXIS_info%long_name, JAXIS_info%units, JAXIS_info%weight_units,    & ! (out)
+            & JS, JE, JA, JHALO,                                                                   & ! (out)
+            & KAXIS_info%name, KAXIS_info%long_name, KAXIS_info%units, KAXIS_info%weight_units,    & ! (out)
+            & KS, KE, KA, KHALO,                                                                   & ! (out)
+            & IM, JM, KM                                                                           & ! (in)
+            & )
+
+       iMax = hsvf_im; jMax = hsvf_jm; kMax = hsvf_km
+       nMax = hsvf_nm; lMax = hsvf_lm; tMax = hsvf_tm
+       jMaxGlobal = hsvf_jmGl
+
+    case default
+       call MessageNotify('E', module_name, "Unexcept Solver is specified. Check!")
+    end select
 
     call MessageNotify('M', module_name, "(IS,JS,KS)=(%d,%d,%d)", (/ IS, JS, KS /) )
     call MessageNotify('M', module_name, "(IE,JE,KE)=(%d,%d,%d)", (/ IE, JE, KE /) )
@@ -163,9 +222,9 @@ contains
     !
 
     if(isInitialzed) then
-       deallocate( x_CI, x_CDI, x_FI, x_FDI )
-       deallocate( y_CJ, y_CDJ, y_FJ, y_FDJ )
-       deallocate( z_CK, z_CDK, z_FK, z_FDK )
+       deallocate( x_CI, x_CDI, x_RCDI, x_FI, x_FDI, x_RFDI )
+       deallocate( y_CJ, y_CDJ, y_RCDJ, y_FJ, y_FDJ, y_RFDJ )
+       deallocate( z_CK, z_CDK, z_RCDK, z_FK, z_FDK, z_RFDK )
        deallocate( x_IAXIS_Weight, y_JAXIS_Weight, z_KAXIS_Weight )
        
        deallocate( xy_Lon, xy_Lat )
@@ -184,6 +243,7 @@ contains
 
     ! モジュール引用; Use statements
     !
+
     
     ! 宣言文; Declaration statement
     !
@@ -199,30 +259,62 @@ contains
     !---------------------------------
     
     
-    allocate( x_CI(IA), x_CDI(IA), x_FI(IA), x_FDI(IA), x_IAXIS_Weight(IA) )
-    allocate( y_CJ(JA), y_CDJ(JA), y_FJ(JA), y_FDJ(JA), y_JAXIS_Weight(JA) )
-    allocate( z_CK(KA), z_CDK(KA), z_FK(KA), z_FDK(KA), z_KAXIS_Weight(KA) )
+    allocate( x_CI(IA), x_CDI(IA), x_RCDI(IA), x_FI(IA), x_FDI(IA), x_RFDI(IA), x_IAXIS_Weight(IA) )
+    allocate( y_CJ(JA), y_CDJ(JA), y_RCDJ(JA), y_FJ(JA), y_FDJ(JA), y_RFDJ(JA), y_JAXIS_Weight(JA) )
+    allocate( z_CK(KA), z_CDK(KA), z_RCDK(KA), z_FK(KA), z_FDK(KA), z_RFDK(KA), z_KAXIS_Weight(KA) )
 
     allocate( xy_Lon(IA,JA), xy_Lat(IA,JA) )
     allocate( xyz_Lon(IA,JA,KA), xyz_Lat(IA,JA,KA), xyz_Z(IA,JA,KA) )
     allocate( xy_Topo(IA,JA) )
     allocate( SCALEF_E1(IA,JA,4), SCALEF_E2(IA,JA,4) )
 
-    call DOGCM_Admin_GaussSpmGrid_ConstructGrid( &
-         & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
-         & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
-         & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
-         & xy_Lon, xy_Lat,                                & ! (out)
-         & SCALEF_E1, SCALEF_E2,                          & ! (out)
-         & IS, IE, IA, IM, IHALO,                         & ! (in)
-         & JS, JE, JA, JM, JHALO,                         & ! (in)
-         & KS, KE, KA, KM, KHALO                          & ! (in)
-         & ) 
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)    
+       call DOGCM_Admin_GaussSpmGrid_ConstructGrid( &
+            & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
+            & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
+            & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
+            & xy_Lon, xy_Lat,                                & ! (out)
+            & SCALEF_E1, SCALEF_E2,                          & ! (out)
+            & IS, IE, IA, IM, IHALO,                         & ! (in)
+            & JS, JE, JA, JM, JHALO,                         & ! (in)
+            & KS, KE, KA, KM, KHALO                          & ! (in)
+            & )
+       
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Admin_GaussSpmVFvmGrid_ConstructGrid( &
+            & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
+            & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
+            & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
+            & xy_Lon, xy_Lat,                                & ! (out)
+            & SCALEF_E1, SCALEF_E2,                          & ! (out)
+            & IS, IE, IA, IM, IHALO,                         & ! (in)
+            & JS, JE, JA, JM, JHALO,                         & ! (in)
+            & KS, KE, KA, KM, KHALO                          & ! (in)
+            & ) 
 
+    case default
+       call MessageNotify('E', module_name, "Unexcept Solver is specified. Check!")
+    end select
+
+
+    !--------------
+
+
+    x_RCDI(:) = 1d0/x_CDI(:)
+    x_RFDI(:) = 1d0/x_FDI(:)
+
+    y_RCDJ(:) = 1d0/y_CDJ(:)
+    y_RFDJ(:) = 1d0/y_FDJ(:)
+
+    z_RCDK(:) = 1d0/z_CDK(:)
+    z_RFDK(:) = 1d0/z_FDK(:)
+    
     do k = 1, KA
        xyz_Lon(:,:,k) = xy_Lon(:,:)
        xyz_Lat(:,:,k) = xy_Lat(:,:)
     end do
+
     
     !---------------------------------------------
 
@@ -253,10 +345,27 @@ contains
     ! 実行文; Executable statement
     !
 
-    do k = 1, KA
-       xyz_Z(:,:,k) = xy_Topo(:,:) * z_CK(k)
-    end do
-    xyz_H(IS:IE,JS:JE,KS:KE) = xyz_DSig_xyz( xyz_Z(IS:IE,JS:JE,KS:KE) )
+
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)        
+
+       do k = 1, KA
+          xyz_Z(:,:,k) = xy_Topo(:,:) * z_CK(k)
+       end do
+       xyz_H(IS:IE,JS:JE,KS:KE) = xyz_DSig_xyz( xyz_Z(IS:IE,JS:JE,KS:KE) )
+
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+
+       !$omp parallel do
+       do k=KS, KE
+          xyz_Z(:,:,k) = xy_Topo(:,:) * z_CK(k)
+          xyz_H(:,:,k) = xy_Topo(:,:) * (z_FK(k-1) - z_FK(k))/z_CDK(k)
+       end do
+       xyz_H(:,:,KS-1) = xyz_H(:,:,KS)
+       xyz_H(:,:,KE+1) = xyz_H(:,:,KE)
+       
+    end select
+
     
   end subroutine DOGCM_Admin_Grid_UpdateVCoord
   

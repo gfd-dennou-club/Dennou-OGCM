@@ -18,7 +18,8 @@ noinst_LTLIBRARIES= libDOGCMAdmin.la
 dist_libDOGCMAdmin_la_SOURCES= \
 	DOGCM_Admin_Constants_mod.f90    \
 	DOGCM_Admin_GridDef_mod.f90      \
-	DOGCM_Admin_GaussSpmGrid_mod.f90 \
+	DOGCM_Admin_GaussSpmGrid_mod.f90     \
+	DOGCM_Admin_GaussSpmVFvmGrid_mod.f90 \
 	DOGCM_Admin_Grid_mod.f90         \
 	DOGCM_Admin_TInteg_mod.f90       \
 	DOGCM_Admin_BC_mod.f90           \

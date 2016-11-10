@@ -19,10 +19,13 @@ module DOGCM_VPhys_driver_mod
 
   use DOGCM_Admin_Constants_mod, only: &
        & PI,                           &
+       & RefDens,                      &
+       & Grav,                         &
        & VDiffCoef,                    &
        & VViscCoef
   
   use DOGCM_Admin_Variable_mod, only: &
+       & TRCID_PTEMP, TRCID_SALT, &
        & TRC_TOT_NUM
   
   ! 宣言文; Declareration statements
@@ -117,7 +120,7 @@ contains
   !!
   subroutine DOGCM_VPhys_driver_UpdateVViscDiffCoef(   &
        & xyz_VViscCoef, xyz_VDiffCoef,                   & ! (out)
-       & xyz_U, xyz_V, xyza_Tracer, xyz_Z                & ! (in)
+       & xyz_U, xyz_V, xyza_Tracer, xyz_Z, xy_Topo       & ! (in)
        & )
 
     ! 宣言文; Declaration statement
@@ -128,6 +131,7 @@ contains
     real(DP), intent(in) :: xyz_V(IA,JA,KA)
     real(DP), intent(in) :: xyza_Tracer(IA,JA,KA,TRC_TOT_NUM)
     real(DP), intent(in) :: xyz_Z(IA,JA,KA)
+    real(DP), intent(in) :: xy_Topo(IA,JA)
     
     ! 実行文; Executable statements
     !
@@ -139,8 +143,14 @@ contains
     case (VMIXCOEF_SCHEME_SIMPLE)
        call calc_vViscDiffCoef_MixLyrSimple( &
             & xyz_VViscCoef, xyz_VDiffCoef,    & ! (inout)
-            & xyz_Z                            & ! (in)
+            & xyz_Z, xy_Topo                   & ! (in)
             & )
+!!$       call add_EnhancedVDiff_coef( &
+!!$            & xyz_VDiffCoef,                  & ! (inout)
+!!$            & xyza_Tracer(:,:,:,TRCID_PTEMP), & ! (in)
+!!$            & xyza_Tracer(:,:,:,TRCID_SALT),  & ! (in)
+!!$            & xyz_Z                           & ! (in)
+!!$            & )       
     end select
     
   end subroutine DOGCM_VPhys_driver_UpdateVViscDiffCoef
@@ -149,30 +159,101 @@ contains
 
   subroutine calc_vViscDiffCoef_MixLyrSimple( &
        & xyz_VViscCoef, xyz_VDiffCoef,           & ! (inout)
-       & xyz_Depth                               & ! (in)
+       & xyz_Depth, xy_Topo                      & ! (in)
        & )
 
     real(DP), intent(inout) :: xyz_VViscCoef(IA,JA,KA)
     real(DP), intent(inout) :: xyz_VDiffCoef(IA,JA,KA)
     real(DP), intent(in)    :: xyz_Depth(IA,JA,KA)
+    real(DP), intent(in)    :: xy_Topo(IA,JA)
     
     real(DP), parameter :: MixLyrDepth  = 40d0
     real(DP), parameter :: LInv         = 1d0/(0.1d0*MixLyrDepth)
-    real(DP), parameter :: ViscfCoefMax = 5d-3
-    real(DP), parameter :: DiffCoefMax  = 1d-3
+    real(DP), parameter :: ViscCoefMax  = 5d-3
+    real(DP), parameter :: DiffCoefMax  = 1d-3 
 
     real(DP) :: xyz_Func(IA,JA,KA)
+    integer :: k
 
-    !$omp parallel
-    !$omp workshare
-    xyz_Func(:,:,:) = 0.5d0 - atan((abs(xyz_Depth) - MixLyrDepth)*LInv)/PI
-    xyz_VViscCoef(:,:,:) = Av0Mom + ViscfCoefMax*xyz_Func
-    xyz_VDiffCoef(:,:,:) = Av0TRC + DiffCoefMax*xyz_Func
-    !$omp end workshare
-    !$omp end parallel
+    !$omp parallel do
+    do k = KS, KE
+       xyz_Func(:,:,k) =  &
+            &   0.5d0 - atan( ((-xyz_Depth(:,:,k)) - MixLyrDepth)*LInv )/PI             &
+            & + 0.5d0 - atan( ((xy_Topo + xyz_Depth(:,:,k)) - MixLyrDepth)*LInv )/PI
+       
+       xyz_VViscCoef(:,:,k) = Av0Mom + ViscCoefMax*xyz_Func(:,:,k)
+       xyz_VDiffCoef(:,:,k) = Av0TRc + DiffCoefMax*xyz_Func(:,:,k)
+    end do
+!!$    xyz_VDiffCoef(:,:,:) =   ( 0.8d0 + 1.05d0/PI*atan((abs(xyz_Depth) - 2500d0)/222.2d0) ) &
+!!$         &                 * 1d-4 + DiffCoefMax*xyz_Func
 
   end subroutine calc_vViscDiffCoef_MixLyrSimple
+
+  !------------
+
+  subroutine add_EnhancedVDiff_coef( xyz_VDiffCoef, &
+       & xyz_PTemp, xyz_Salt, xyz_Depth )
+
+    use EOSDriver_mod, only: &
+         & EOSDriver_Eval
+    
+    real(DP), intent(inout) :: xyz_VDiffCoef(IA,JA,KA)
+    real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Depth(IA,JA,KA)
+
+    real(DP) :: xya_DensPotPair(IA,JA,2)
+    real(DP) :: xya_RefPres(IA,JA,2)
+
+    integer :: i
+    integer :: j
+    integer :: k
+    logical :: xyz_UnstaleFlag(IA,JA,KA)
+    real(DP) :: xyz_EVDiffCoef(IA,JA,KA)
+
+    xyz_EVDiffCoef = 0d0
+    xyz_UnstaleFlag(:,:,:) = .false.
+    do k = KS, KE-1
+       xya_RefPres(:,:,1) = - RefDens*Grav*0.5d0*(xyz_Depth(:,:,k) + xyz_Depth(:,:,k+1))
+       xya_RefPres(:,:,2) = xya_RefPres(:,:,1)
        
+       call EOSDriver_Eval( rhoEdd=xya_DensPotPair(:,:,:), & ! (out)
+            & theta=xyz_PTemp(:,:,k:k+1),                & ! (in)
+            & S=xyz_Salt(:,:,k:k+1),                     & ! (in)
+            & p=xya_RefPres )
+
+       where (xya_DensPotPair(:,:,1) > xya_DensPotPair(:,:,2))
+          xyz_UnstaleFlag(:,:,k) = .true.
+          xyz_UnstaleFlag(:,:,k+1) = .true.
+          xyz_EVDiffCoef(:,:,k) = 5d-3
+          xyz_EVDiffCoef(:,:,k+1) = 5d-3
+       end where
+    end do
+
+    xyz_EVDiffCoef(:,JS-1,:) = xyz_EVDiffCoef(:,JS,:)
+    xyz_EVDiffCoef(:,JE+1,:) = xyz_EVDiffCoef(:,JE,:)
+    
+    do k = KS+1, KE-1
+       do j = JS, JE
+          do i = IS, IE
+!!$             xyz_VDiffCoef(i,j,k) = xyz_VDiffCoef(i,j,k) + &
+!!$                  &   0.25d0*0.25d0*( xyz_EVDiffCoef(i,j-1,k-1) + 2d0*xyz_EVDiffCoef(i,j-1,k) + xyz_EVDiffCoef(i,j-1,k+1) ) &
+!!$                  & + 0.50d0*0.25d0*( xyz_EVDiffCoef(i,j,k-1) + 2d0*xyz_EVDiffCoef(i,j,k) + xyz_EVDiffCoef(i,j,k+1)       ) &
+!!$                  & + 0.25d0*0.25d0*( xyz_EVDiffCoef(i,j+1,k-1) + 2d0*xyz_EVDiffCoef(i,j+1,k) + xyz_EVDiffCoef(i,j+1,k+1) )
+             xyz_VDiffCoef(i,j,k) = xyz_VDiffCoef(i,j,k) + &
+                  & + 0.25d0*( xyz_EVDiffCoef(i,j,k-1) + 2d0*xyz_EVDiffCoef(i,j,k) + xyz_EVDiffCoef(i,j,k+1) )
+
+          end do
+       end do
+    end do
+    xyz_VDiffCoef(:,:,KS) = xyz_VDiffCoef(:,:,KS+1)
+    xyz_VDiffCoef(:,:,KE) = xyz_VDiffCoef(:,:,KE-1) 
+
+!!$    where(xyz_UnstaleFlag)
+!!$       xyz_VDiffCoef(:,:,:) = xyz_VDiffCoef(:,:,:) + 3d-3
+!!$    end where
+
+  end subroutine add_EnhancedVDiff_coef
     
 !!$  subroutine calc_vViscDiffCoef_PP81( &
 !!$       & xyz_VViscCoef, xyz_VDiffCoef,                                     &

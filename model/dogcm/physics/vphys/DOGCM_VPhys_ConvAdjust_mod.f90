@@ -28,7 +28,8 @@ module DOGCM_VPhys_ConvAdjust_mod
        & EOSDriver_Eval
 
   use DOGCM_Admin_Grid_mod, only: &
-       & iMax, jMax, kMax
+       & iMax, jMax,              &
+       & KS, KE
 
   ! 宣言文; Declareration statements
   !
@@ -59,6 +60,8 @@ module DOGCM_VPhys_ConvAdjust_mod
   character(*), parameter:: module_name = 'DOGCM_VPhys_ConvAdjust_mod' !< Module Name
 
   real(DP) :: STABILITY_THRESHOLD 
+
+  integer, parameter :: ExceptBC_OFS = 0
   
 contains
 
@@ -95,32 +98,35 @@ contains
        & xyz_Z, z_LyrThickIntWt, dt                       & ! (in)
        & )
 
+    use SpmlUtil_mod
+
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: xyz_PTemp_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyz_Salt_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyz_ConvIndex(0:iMax-1,jMax, 0:kMax)    
-    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: z_LyrThickIntWt(0:kMax)
+    real(DP), intent(inout) :: xyz_PTemp_RHS(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(inout) :: xyz_Salt_RHS(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(inout) :: xyz_ConvIndex(0:iMax-1,jMax,KS:KE)    
+    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(in) :: z_LyrThickIntWt(KS:KE)
     real(DP), intent(in) :: dt
     
     ! 局所変数
     ! Local variables
     !
     integer :: i, j
-    real(DP) :: z_PTemp(0:kMax)
-    real(DP) :: z_PTempOri(0:kMax)
-    real(DP) :: z_Salt(0:kMax)
-    real(DP) :: z_Z(0:kMax)
-    logical  :: z_isAdjustOccur(0:kMax)
+    real(DP) :: z_PTemp(KS:KE)
+    real(DP) :: z_PTempOri(KS:KE)
+    real(DP) :: z_Salt(KS:KE)
+    real(DP) :: z_Z(KS:KE)
+    logical  :: z_isAdjustOccur(KS:KE)
 
     real(DP) :: PTempVInt
-    
+
     ! 実行文; Executable statement
     !
 
+    
     !$omp parallel do private(i, PTempVInt, z_PTempOri, z_PTemp, z_Salt, z_Z, z_isAdjustOccur)
     do j=1,jMax
        do i=0,iMax-1
@@ -134,11 +140,11 @@ contains
           call DOGCM_VPhys_ConvAdjust_perform_1D(z_PTemp, z_Salt,      & ! (inout)
                & z_Z, z_LyrThickIntWt,                        & ! (in)
                & z_isAdjustOccur    )                           ! (out)
-
+          
           xyz_PTemp_RHS(i,j,:) = xyz_PTemp_RHS(i,j,:) + (z_PTemp(:) - xyz_PTemp(i,j,:))/dt
           xyz_Salt_RHS(i,j,:) = xyz_Salt_RHS(i,j,:) + (z_Salt(:) - xyz_Salt(i,j,:))/dt
 
-          if( (PTempVInt - sum(z_LyrThickIntWt(:)*z_PTemp)) > 1d-10 ) then
+          if( (PTempVInt - sum(z_LyrThickIntWt(:)*z_PTemp))/PTempVInt > 1d-12 ) then
              write(*,*) "before=", PTempVInt, "after=", sum(z_LyrThickIntWt(:)*z_PTemp)
              write(*,*) "LyrThickWt=", z_LyrThickIntWt(:)
              write(*,*) "z_PTemp=", z_PTemp
@@ -158,26 +164,28 @@ contains
   
   !----------------------------------------------------------
   
-  subroutine DOGCM_VPhys_ConvAdjust_perform_1D( z_PTemp, z_Salt, &
-       & z_Z, z_LyrThickIntWt, isAdjustOccur )
+  subroutine DOGCM_VPhys_ConvAdjust_perform_1D( z_PTemp, z_Salt, & ! (inout) 
+       & z_Z, z_LyrThickIntWt, isAdjustOccur )                     ! (in)
     
     ! 実行文; Executable statement
     ! 
-    real(DP), dimension(0:kMax), intent(inout) :: z_PTemp, z_Salt
-    real(DP), dimension(0:kMax), intent(in) :: z_Z    
-    real(DP), dimension(0:kMax), intent(in) :: z_LyrThickIntWt
-    logical, dimension(0:kMax), intent(out) :: isAdjustOccur
+    real(DP), intent(inout) :: z_PTemp(KS:KE)
+    real(DP), intent(inout) :: z_Salt(KS:KE)
+    real(DP), intent(in) :: z_Z(KS:KE)
+    real(DP), intent(in) :: z_LyrThickIntWt(KS:KE)
+    logical, intent(out) :: isAdjustOccur(KS:KE)
 
     ! 局所変数
     ! Local variables
     !
-    integer :: k_, k
+    integer :: k_
+    integer :: k
     logical :: isColumnStable
     integer :: nItr
 
     integer :: r
-    real(DP) :: r_RefPress(1:kMax)
-    logical :: r_StaticStableFlag(1:kMax)
+    real(DP) :: r_RefPress(KS-1:KE)
+    logical :: r_StaticStableFlag(KS-1:KE)
     real(DP) :: DensPotPair(2)
     
     ! 実行文; Executable statement
@@ -186,12 +194,12 @@ contains
     !
     !
     r_StaticStableFlag(:) = .true.
-    do k_=1, kMax
-       r_RefPress(k_) = - RefDens*Grav*0.5d0*(z_Z(k_-1) + z_Z(k_))
-       call EOSDriver_Eval(rhoEdd=DensPotPair(1), &
-            & theta=z_PTemp(k_-1), S=z_Salt(k_-1), p=r_RefPress(k_))
-       call EOSDriver_Eval(rhoEdd=DensPotPair(2), &
-            & theta=z_PTemp(k_), S=z_Salt(k_), p=r_RefPress(k_))
+    do k_=KS, KE-1
+       r_RefPress(k_) = - RefDens*Grav*0.5d0*(z_Z(k_) + z_Z(k_+1))
+
+       call EOSDriver_Eval( rhoEdd=DensPotPair(:),       & ! (out)
+            & theta=z_PTemp(k_:k_+1), S=z_Salt(k_:k_+1), & ! (in)
+            & p=(/ r_RefPress(k_), r_RefPress(k_) /) )     ! (in)
 
        if(DensPotPair(1) > DensPotPair(2)) then
           r_StaticStableFlag(k_) = .false.
@@ -209,65 +217,64 @@ contains
     do while(.not. isColumnStable)
        nItr = nItr + 1
 !write(*,*) "itr=", nItr, "*densPot:", z_DensPotEdd
-       !
-!!$       do k_=0,kMax-1
-!!$          if(z_DensPotEdd(k_) > z_DensPotEdd(k_+1)) then
-!!$             call mix_below1stUnstableLyr(z_DensPotEdd, k_)
-!!$             exit
-!!$          end if
-!!$          if(k_==kMax-1) then
-!!$             ! If k has reached kMax-1, the sea water column is stable, and exit this subroutine.
-!!$             isColumnStable = .true.
-!!$          end if
-!!$       end do
-!!$
-       do k_=1, kMax
+
+       do k_ = KS, KE-1
+
           if(.not. r_StaticStableFlag(k_)) then
              call mix_UnstableLyr(k_)
              exit
           end if
-          if(k_==kMax) isColumnStable = .true.
+
+          if(k_ == KE-1) then
+             isColumnStable = .true.
+          end if
+          
        end do
+       
     end do
 
     !
     !
   contains
-    subroutine mix_UnstableLyr(k_)
-      integer, intent(in) :: k_
-      integer :: nLyrMix
+    subroutine mix_UnstableLyr(r_)
+      integer, intent(in) :: r_
+      integer :: nMixPair
       real(DP) :: DensPotPair(2)
-      integer :: LyrLId, LyrUId, m
+      integer :: LyrLId
+      integer :: LyrUId
+      integer :: m
 
       
-      nLyrMix = 1
-      do m=2, kMax-k_+2
-         LyrLId = k_-1
-         LyrUId = k_+m-2
-         nLyrMix = nLyrMix + 1
+      nMixPair = 0
+      LyrLId = r_
+      
+      do m=2, KE-r_+2
+
+         LyrUId = r_ + m - 2
+         nMixPair = nMixPair + 1
 
          call vmixing_PTempAndSalt(z_PTemp(LyrLId:LyrUId), z_Salt(LyrLId:LyrUId), & ! (inout)
-              & z_LyrThickIntWt(LyrLId:LyrUId), nLyrMix )                           ! (in)
-
-         if(LyrUId+1 /= kMax+1) then
-            call EOSDriver_Eval(rhoEdd=DensPotPair(:),                        & ! (out)
-                 & theta=z_PTemp(LyrUId:LyrUId+1), S=z_Salt(LyrUId:LyrUId+1), & ! (in)
-                 & p=spread(r_RefPress(k_+nLyrMix-1),1,2) )                     ! (in)
+              & z_LyrThickIntWt(LyrLId:LyrUId) )                                    ! (in)
+         
+         if(LyrUId /= KE) then
+            call EOSDriver_Eval(rhoEdd=DensPotPair(:),                        &   ! (out)
+                 & theta=z_PTemp(LyrUId:LyrUId+1), S=z_Salt(LyrUId:LyrUId+1), &   ! (in)
+                 & p=(/ r_RefPress(r_+nMixPair), r_RefPress(r_+nMixPair) /) )     ! (in)
             
-            if(DensPotPair(1) <= DensPotPair(2)) exit
+            if (DensPotPair(1) < DensPotPair(2)) exit
          end if
       end do
-
-      r_StaticStableFlag(k_:k_+nLyrMix-2) = .true.
+      r_StaticStableFlag(r_:r_+nMixPair-1) = .true.
       
-      if(LyrLId /= 0) then
+      if(LyrLId /= KS) then
          call EOSDriver_Eval(rhoEdd=DensPotPair(:),                        & ! (out)
               & theta=z_PTemp(LyrLId-1:LyrLId), S=z_Salt(LyrLId-1:LyrLId), & ! (in)
-              & p=spread(r_RefPress(k_-1),1,2) )                             ! (in)
+              & p=(/ r_RefPress(r_-1), r_RefPress(r_-1) /) )                 ! (in)
          
-            if(DensPotPair(1) > DensPotPair(2)) r_StaticStableFlag(k_-1) = .false.
+            if(DensPotPair(1) > DensPotPair(2)) r_StaticStableFlag(r_-1) = .false.
       end if
 
+      !
       isAdjustOccur(LyrLId:LyrUId) = .true.
 
     end subroutine mix_UnstableLyr
@@ -299,15 +306,15 @@ contains
 
   end subroutine DOGCM_VPhys_ConvAdjust_perform_1D
 
-  subroutine vmixing_PTempAndSalt(PTemp, Salt, LyrThick, nLayerMix)
-    integer, intent(in) :: nLayerMix
-    real(DP), intent(inout) :: PTemp(nLayerMix)
-    real(DP), intent(inout) :: Salt(nLayerMix)
-    real(DP), intent(in) :: LyrThick(nLayerMix)
+  subroutine vmixing_PTempAndSalt(PTemp, Salt, LyrThick)
+    real(DP), intent(in) :: LyrThick(:)
+    real(DP), intent(inout) :: PTemp(size(LyrThick))
+    real(DP), intent(inout) :: Salt(size(LyrThick))
 
-    real(DP) :: mixed_PTemp, mixed_Salt
+    real(DP) :: mixed_PTemp
+    real(DP) :: mixed_Salt
     real(DP) :: totLyrThick
-
+    
     totLyrThick = sum(LyrThick(:))
     mixed_PTemp = sum(PTemp*LyrThick(:))/totLyrThick
     mixed_Salt = sum(Salt*LyrThick(:))/totLyrThick

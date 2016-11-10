@@ -1,3 +1,11 @@
+!-------------------------------------------------------------
+! Copyright (c) 2016-2016 Kawai Yuta. All rights reserved.
+!-------------------------------------------------------------
+!> @brief a template module
+!! 
+!! @author Kawai Yuta
+!!
+!!
 module DSIce_Boundary_vars_mod
 
   ! モジュール引用; Use statements

@@ -314,7 +314,8 @@ contains
        rewind( unit_nml )
        read( unit_nml, &                  ! (in)
             & nml = temporalInteg_nml, &  ! (out)
-            & iostat = iostat_nml )   ! (out)
+            & iostat = iostat_nml )       ! (out)
+       close( unit_nml )       
     end if
 
     ! Determine the numerical scheme of temporal integration by reading a namelist 

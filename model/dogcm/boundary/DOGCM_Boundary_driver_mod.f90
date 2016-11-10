@@ -33,6 +33,19 @@ module DOGCM_Boundary_driver_mod
        & DOGCM_Boundary_common_Init, DOGCM_Boundary_common_Final, &
        & DOGCM_Boundary_common_UpdateBeforeTstep,                 &
        & DOGCM_Boundary_common_UpdateAfterTstep
+
+  use DOGCM_Admin_GovernEq_mod, only: &
+       & SolverType,                   &
+       & OCNGOVERNEQ_SOLVER_HSPM_VSPM, &
+       & OCNGOVERNEQ_SOLVER_HSPM_VFVM       
+
+  use DOGCM_Boundary_spm_mod, only: &
+       & DOGCM_Boundary_spm_Init,   &
+       & DOGCM_Boundary_spm_Final
+
+  use DOGCM_Boundary_hspm_vfvm_mod, only: &
+       & DOGCM_Boundary_hspm_vfvm_Init,   &
+       & DOGCM_Boundary_hspm_vfvm_Final
   
 
   ! 宣言文; Declareration statements
@@ -80,8 +93,6 @@ contains
          & DOGCM_Boundary_vars_Init
     use DOGCM_Boundary_common_mod, only: &
          & DOGCM_Boundary_common_Init
-    use DOGCM_Boundary_spm_mod, only: &
-         & DOGCM_Boundary_spm_Init
 
     ! 宣言文; Declaration statement
     !
@@ -92,7 +103,14 @@ contains
 
     call DOGCM_Boundary_vars_Init( configNmlName )
     call DOGCM_Boundary_common_Init( configNmlName )
-    call DOGCM_Boundary_spm_Init( configNmlName )
+
+    select case( SolverType )
+    case (OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Boundary_spm_Init( configNmlName )
+    case (OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Boundary_hspm_vfvm_Init( configNmlName )
+    end select
+    
 !    call read_nmlData(configNmlName)
 
     
@@ -107,13 +125,17 @@ contains
          & DOGCM_Boundary_vars_Final
     use DOGCM_Boundary_common_mod, only: &
          & DOGCM_Boundary_common_Final
-    use DOGCM_Boundary_spm_mod, only: &
-         & DOGCM_Boundary_spm_Final
 
     ! 実行文; Executable statements
     !
 
-    call DOGCM_Boundary_spm_Final()
+    select case( SolverType )
+    case (OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Boundary_spm_Final()
+    case (OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Boundary_hspm_vfvm_Final()
+    end select
+    
     call DOGCM_Boundary_common_Final()
     call DOGCM_Boundary_vars_Final()
     
@@ -138,14 +160,26 @@ contains
     real(DP), intent(in) :: xyz_VDiffCoef(IA,JA,KA)
     
     ! 実行文; Executable statements
+
     !
 
-    call DOGCM_Boundary_spm_ApplyBC(    &
-         & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), & ! (inout)
-         & xyza_TRC(IS:IE,JS:JE,KS:KE,:),                      & ! (inout)
-         & xyz_H(IS:IE,JS:JE,KS:KE),                                           & ! (in)
-         & xyz_VViscCoef(IS:IE,JS:JE,KS:KE), xyz_VDiffCoef(IS:IE,JS:JE,KS:KE)  & ! (in)
-         & )
+    select case( SolverType )
+    case (OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Boundary_spm_ApplyBC(    &
+            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), & ! (inout)
+            & xyza_TRC(IS:IE,JS:JE,KS:KE,:),                      & ! (inout)
+            & xyz_H(IS:IE,JS:JE,KS:KE),                                           & ! (in)
+            & xyz_VViscCoef(IS:IE,JS:JE,KS:KE), xyz_VDiffCoef(IS:IE,JS:JE,KS:KE)  & ! (in)
+            & )
+    case (OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Boundary_spm_ApplyBC(    &
+            & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:), & ! (inout)
+            & xyza_TRC(IS:IE,JS:JE,:,:),                                       & ! (inout)
+            & xyz_H(IS:IE,JS:JE,:),                                            & ! (in)
+            & xyz_VViscCoef(IS:IE,JS:JE,:), xyz_VDiffCoef(IS:IE,JS:JE,:)       & ! (in)
+            & )
+    end select
+    
     
   end subroutine DOGCM_Boundary_driver_ApplyBC
   

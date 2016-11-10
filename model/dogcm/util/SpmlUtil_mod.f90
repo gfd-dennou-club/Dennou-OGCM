@@ -91,6 +91,8 @@ module SpmlUtil_mod
   public :: xyz_DSigDSig_xyz
   public :: IntSig_BtmToTop, xy_IntSig_BtmToTop_xyz
   public :: xyz_IntSig_SigToTop_xyz, calc_IntSig_BtmToTop
+  public :: xya_wa, wa_xya
+
   
   ! 公開変数
   ! Public variables
@@ -113,8 +115,9 @@ module SpmlUtil_mod
   public :: xy_GradLon_w, xy_GradLambda_w, xy_GradLat_w, xy_GradMu_w
   public :: w_DivLambda_xy, w_DivMu_xy
   public :: w_Lapla_w, w_LaplaInv_w
+  public :: t_DSig_t
+  
   public :: l_nm, nm_l
-  public :: xya_wa, wa_xya
 
   ! Integral or average operator
   public :: IntLonLat_xy, ya_IntLon_xya
@@ -156,8 +159,27 @@ module SpmlUtil_mod
   real(DP), save, allocatable :: tr_vDeriv2CoefMat(:,:)
   real(DP), save, allocatable :: tr_vIntCoefMat(:,:)
 
+  
+  real(DP), save, allocatable :: S2GMat(:,:)
+  real(DP), save, allocatable :: G2SMat(:,:)
+
+  real(DP), save, allocatable :: DifMat(:,:)
+  real(DP), save, allocatable :: IntMat(:,:)
+
+  real(DP), save, allocatable :: RMatP1(:,:)
+  real(DP), save, allocatable :: RMatM1(:,:)
+  real(DP), save, allocatable :: RMatM2(:,:)
+  
   real(DP), parameter :: SigMin = -1d0
   real(DP), parameter :: SigMax =  0d0
+
+  real(DP), parameter :: PI = acos(-1d0)
+  
+  public :: tr_vDeriv1CoefMat
+  public :: DifMat
+  public :: IntMat
+  public :: RMatM1
+  public :: RMatM2
   
 contains
 
@@ -630,11 +652,19 @@ contains
     !    
     real(DP) :: tt_I(0:tm,0:tm)
     real(DP) :: TMat(0:tm,0:km)
+    real(DP) :: TMat2(0:tm,0:tm)
     real(DP) :: TIntMat(0:km,0:tm)
+    real(DP) :: t2g_Mat(0:km,0:tm)
+    real(DP) :: g2t_Mat(0:tm,0:km)
+    real(DP) :: PMat(0:km,0:km)
     real(DP) :: Sigk, theta, tl
     integer :: k, t, k2
 
-    real(DP), parameter :: PI = acos(-1d0)
+    real(DP) :: a_check(0:tm)
+    real(DP) :: z_sig(0:km)
+    real(DP) :: z_cgl(0:km)
+    integer :: N
+
 
     ! 実行文; Executable statement
     !      
@@ -650,29 +680,211 @@ contains
     TMat = at_az(tt_I)
 
     !
-    do k=0, km
-       theta = PI*k/dble(km)
-       Sigk = cos(theta)
-       TIntMat(k,0) = 1d0 - Sigk
-       TIntMat(k,1) = 0.5d0*(1d0 - Sigk**2)
-
-       do t=2, tm
-          TIntMat(k,t) = 1d0/(1d0-t**2) &
-               & - 0.5d0*( cos((t+1)*theta)/dble(t+1) - cos((t-1)*theta)/dble(t-1) )
-       end do
-    end do
-    TIntMat(:,0) = 0.5d0*TIntMat(:,0)
-    TIntMat(:,tm) = 0.5d0*TIntMat(:,tm)
-
-    TIntMat = 0.5d0*(SigMax - SigMin) * TIntMat 
-
-    tr_vIntCoefMat = transpose( matmul(TIntMat, transpose(TMat)) )
-
-    !
-    tr_vDeriv1CoefMat = ( az_at(at_DSig_at(TMat)) )
+!!$    do k=0, km
+!!$       theta = PI*k/dble(km)
+!!$       Sigk = cos(theta)
+!!$       TIntMat(k,0) = 1d0 - Sigk
+!!$       TIntMat(k,1) = 0.5d0*(1d0 - Sigk**2)
+!!$
+!!$       do t=2, tm
+!!$          TIntMat(k,t) = 1d0/(1d0-t**2) &
+!!$               & - 0.5d0*( cos((t+1)*theta)/dble(t+1) - cos((t-1)*theta)/dble(t-1) )
+!!$       end do
+!!$    end do
+!!$    TIntMat(:,0) = 0.5d0*TIntMat(:,0)
+!!$    TIntMat(:,tm) = 0.5d0*TIntMat(:,tm)
+!!$
+!!$    TIntMat = 0.5d0*(SigMax - SigMin) * TIntMat 
+!!$
+!!$    tr_vIntCoefMat = transpose( matmul(TIntMat, transpose(TMat)) )
+!!$    tr_vDeriv1CoefMat = ( az_at(at_DSig_at(TMat)) )
     tr_vDeriv2CoefMat = ( az_at(at_DSig_at(at_DSig_at(TMat))) )
 
+    allocate( G2SMat(0:km,0:km), S2GMat(0:km,0:km), &
+         &    DifMat(0:km,0:km), IntMat(0:km,0:km) )
+    
+    call construct_Chebyshev_OptrMat( &
+         & z_cgl, z_sig,              &
+         & G2SMat, S2GMat, DifMat, IntMat, km, -1d0, 0d0 )
+
+    tr_vIntCoefMat = transpose(IntMat)
+    tr_vDeriv1CoefMat = transpose(DifMat)
+
+
+    allocate( RMatP1(0:km+1,0:km), &
+         &    RMatM1(0:km-1,0:km), RMatM2(0:km-2,0:km) )
+
+    call construct_Chebyshev_ResampleMat(  &
+       & RMatP1, RMatM1, RMatM2,           &
+       & z_cgl, km )
+
+!!$    write(*,*) "cgl", z_cgl
+!!$    write(*,*) "sig", z_sig
+!!$    write(*,*) "g_sig", g_Sig
+!!$
+!!$    a_check(:) = cos(z_sig*PI)
+!!$    write(*,*) "check", a_check
+!!$    write(*,*) "g2s:", matmul(G2SMat, a_check)
+!!$    write(*,*) "s2g:", matmul(S2GMat, matmul(G2SMat, a_check))
+!!$    write(*,*) "---"
+!!$    write(*,*) "tint:",  matmul(IntMat, a_check)
+!!$    write(*,*) - sin(z_sig*PI)/PI
+!!$    write(*,*) "---"
+!!$    stop
+    
+    
   end subroutine construct_VDerivateOptrMat
-   
+
+  !----------------
+
+  subroutine construct_Chebyshev_ResampleMat( &
+       & RMatP1, RMatM1, RMatM2,              &
+       & x, N )
+
+    integer, intent(in) :: N
+    real(DP), intent(out) :: RMatP1(0:N+1,0:N)
+    real(DP), intent(out) :: RMatM1(0:N-1,0:N)
+    real(DP), intent(out) :: RMatM2(0:N-2,0:N)
+    real(DP), intent(in) :: x(0:N)
+    
+    real(DP) :: w(0:N)
+    real(DP) :: rhow(0:N)
+    integer :: k
+    real(DP) :: y
+    
+    !-----
+
+    
+    rhow(:) = 2d0; rhow(1:N-1) = 1d0
+    w(0) = 1d0
+    do k=1, N
+       w(k) = - w(k-1)
+    end do
+    w(:) = w/rhow
+
+    !----
+
+    do k=0, N+1
+       y = cos((2*k+1)*PI/dble(2*(N+2)))
+       RMatP1(k,:) = w(:) / (y - x(:)) / sum(w(:)/(y - x(:)))
+    end do
+
+    do k=0, N-1
+       y = cos((2*k+1)*PI/dble(2*N))
+       RMatM1(k,:) = w(:) / (y - x(:)) / sum(w(:)/(y - x(:)))
+    end do
+
+    do k=0, N-2
+       y = cos((2*k+1)*PI/dble(2*(N-1)))
+       RMatM2(k,:) = w(:) / (y - x(:)) / sum(w(:)/(y - x(:)))
+    end do    
+    
+  end subroutine construct_Chebyshev_ResampleMat
+  
+  subroutine construct_Chebyshev_OptrMat(       &
+       & x, y, G2SMat, S2GMat, DMat, IntMat,    &
+       & N, xmin, xmax )
+
+    integer, intent(in) :: N
+    real(DP), intent(out) :: x(0:N)  ! CGL collocation pts
+    real(DP), intent(out) :: y(0:N)
+    real(DP), intent(out) :: G2SMat(0:N,0:N)
+    real(DP), intent(out) :: S2GMat(0:N,0:N)
+    real(DP), intent(out) :: DMat(0:N,0:N)
+    real(DP), intent(out) :: IntMat(0:N,0:N)
+    real(DP), intent(in) :: xmin
+    real(DP), intent(in) :: xmax
+
+    real(DP) :: imat(0:N,0:N)
+    
+    real(DP) :: c(0:N)
+    real(DP) :: theta(0:N)
+    
+    real(DP) :: sign
+
+    integer :: k
+    integer :: k2
+    integer :: l
+
+    integer :: IPIV(0:N)
+    real(DP) :: workInv(N*64)
+    integer :: info
+    integer :: Nb
+    
+    !--------------------------------
+
+    Nb = N + 1
+    
+    c(:) = 1d0
+    c(0) = 2d0; c(N) = 2d0
+    do k = 0, N
+       theta(k) = PI*k/dble(N)       
+       x(k) = cos(theta(k))
+    end do
+
+    y(:) = xmin + 0.5d0*(xmax - xmin) * (1d0 + x(:))
+    
+    !-------------------------------
+
+    do k=0, N
+       do l=0, N
+          S2GMat(k,l) = cos(l*theta(k))
+!!$          S2GMat_x(k,l) = l*sin(l*theta(k))/sin(theta(k))
+       end do
+!!$       S2GMat_x(:,0) = 0d0
+!!$       S2GMat_x(:,1) = 1d0
+    end do
+
+    G2SMat(:,:) = S2GMat(:,:)
+    call DGETRF(Nb, Nb, G2SMat, Nb, IPIV, info)
+    call DGETRI(Nb, G2SMat, Nb, IPIV, workInv, size(workInv), info)
+    
+    !--------------------------------
+    
+    do k = 0, N
+       do k2 = 0, N
+          if ( mod(k+k2,2) == 0 ) then
+             sign = 1d0
+          else
+             sign = -1d0
+          end if
+          dmat(k,k2) = c(k)/c(k2) * sign / (x(k) - x(k2))
+       end do
+
+       dmat(k,k) = 0d0
+       do k2 = 0, N
+          if (k /= k2) then
+             dmat(k,k) =  dmat(k,k) - dmat(k,k2)
+          end if
+       end do
+
+    end do
+
+    dmat(0,0) = (2d0*N**2 + 1d0)/6d0
+    dmat(N,N) = - dmat(0,0)
+
+    DMat(:,:) = dmat(:,:) * 2d0/(xmax - xmin)
+    
+    !--------------------------------
+
+    do k=0, N
+       imat(k,0) = 1d0 - x(k)
+       imat(k,1) = 0.5d0*(1d0 - x(k)**2)
+
+       do k2=2, N
+          imat(k,k2) = 1d0/(1d0 - k2**2) &
+               & - 0.5d0*(   cos((k2 + 1)*theta(k))/dble(k2 + 1)   &
+               &           - cos((k2 - 1)*theta(k))/dble(k2 - 1) )
+       end do
+    end do
+!!$    imat(:,0) = 0.5d0*imat(:,0)
+!!$    imat(:,N) = 0.5d0*imat(:,N)
+
+    IntMat(:,:) = (xmax - xmin)/2d0 * matmul(imat, G2SMat)
+
+    !-------------------
+    
+  end subroutine construct_Chebyshev_OptrMat
+  
 end module SpmlUtil_mod
 

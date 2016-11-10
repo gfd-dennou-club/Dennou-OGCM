@@ -228,6 +228,7 @@ contains
           xy_FreshWtFlxS(:,:) = xy_FreshWtFlxSIO
        end where
     case ( SaltBCTYPE_Adiabat )
+       xy_FreshWtFlxS(:,:) = 0d0
     case ( SaltBCTYPE_SaltRelaxed )
        where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
           xy_FreshWtFlxS(:,:) = - MixLyrDepthConst/(RefSalt_VBC*SeaSfcSaltRelaxedTime) &

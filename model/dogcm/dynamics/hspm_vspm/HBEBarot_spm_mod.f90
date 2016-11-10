@@ -198,7 +198,7 @@ contains
     
     call calc_UVCosLat2VorDiv( xy_UBarotA*xy_CosLat, xy_VBarotA*xy_CosLat, & ! (in)
          & w_Vor, w_Div )                                                    ! (out)
-
+    
     w_DDiv(:) = - w_Div; w_DVor(:) = 0d0
     call calc_VorDiv2UV( w_DVor, w_DDiv,   &  ! (in)
          & xy_DUBarot, xy_DVBarot )           ! (out)
@@ -220,12 +220,12 @@ contains
     !$omp parallel
     !$omp workshare
     xy_SfcPresA(:,:) = xy_SfcPresA + xy_DSfcPres
-    xy_SSHA(:,:) = xy_SfcPresA/(RefDens*Grav)
+    xy_SSHA(:,:) = 0d0 !xy_SfcPresA/(RefDens*Grav)
     xy_UBarotA(:,:) = xy_UBarotA + xy_DUBarot
     xy_VBarotA(:,:) = xy_VBarotA + xy_DVBarot
     !$omp end workshare
     !$omp end parallel
-
+    
   end subroutine HBEBarot_Update_LinFreeSfc
        
 end module HBEBarot_spm_mod

@@ -48,7 +48,8 @@ module DOGCM_Admin_BC_mod
   integer, public, parameter :: DynBCTYPE_NoSlip = 101
   integer, public, parameter :: DynBCTYPE_Slip = 102
   integer, public, parameter :: DynBCTYPE_SpecStress = 103
-
+  integer, public, parameter :: DynBCTYPE_LinFric = 104
+  
   integer, public, parameter :: KinBCTYPE_FreeSurf    = 201
   integer, public, parameter :: KinBCTYPE_RigidLid    = 202
   integer, public, parameter :: KinBCTYPE_LinFreeSurf = 203
@@ -72,7 +73,8 @@ module DOGCM_Admin_BC_mod
   character(*), public, parameter :: DynBCTYPELBL_NoSlip = 'NoSlip'
   character(*), public, parameter :: DynBCTYPELBL_Slip = 'Slip'
   character(*), public, parameter :: DynBCTYPELBL_SpecStress = 'SpecStress'
-
+  character(*), public, parameter :: DynBCTYPELBL_LinFric = 'LinFric'
+  
   character(*), public, parameter :: KinBCTYPELBL_FreeSurf = 'Free'
   character(*), public, parameter :: KinBCTYPELBL_RigidLid = 'Rigid'
   character(*), public, parameter :: KinBCTYPELBL_LinFreeSurf = 'LinFree'
@@ -166,7 +168,7 @@ contains
           VBCSpecType = 'N'
        case(DynBCTYPE_NoSlip)        !-- dynamical boundary condition ------------ 
           VBCSpecType = 'D'
-       case(DynBCTYPE_SpecStress)
+       case(DynBCTYPE_SpecStress, DynBCTYPE_LinFric)
           VBCSpecType = 'N'
        case(ThermBCTYPE_PrescTemp)   !-- thermal boundary condition ------------ 
           VBCSpecType = 'D'
@@ -363,6 +365,8 @@ contains
           DynBCID = DynBCTYPE_NoSlip
        case(DynBCTYPELBL_SpecStress)
           DynBCID = DynBCTYPE_SpecStress
+       case(DynBCTYPELBL_LinFric)
+          DynBCID = DynBCTYPE_LinFric
        case default
           call MessageNotify("E", module_name, &
                & "The dynamical boundary condition '%c' is not available.", c1=trim(DynBCLBL) )

@@ -6,7 +6,7 @@
 !! @author Yuta Kawai
 !!
 !!
-module DOGCM_Boundary_spm_mod
+module DOGCM_Boundary_hspm_vfvm_mod
 
   ! モジュール引用; Use statements
   !
@@ -29,7 +29,8 @@ module DOGCM_Boundary_spm_mod
        & IA, IS, IE, IM, &
        & JA, JS, JE, JM, &
        & KA, KS, KE, KM, &
-       & iMax, jMax, kMax, lMax
+       & iMax, jMax, kMax, lMax, &
+       & z_CDK
 
   use SpmlUtil_mod
   
@@ -68,12 +69,12 @@ module DOGCM_Boundary_spm_mod
   ! Public procedure
   !
 
-  public :: DOGCM_Boundary_spm_Init, DOGCM_Boundary_spm_Final
+  public :: DOGCM_Boundary_hspm_vfvm_Init, DOGCM_Boundary_hspm_vfvm_Final
 
-  public :: DOGCM_Boundary_spm_ApplyBC
+  public :: DOGCM_Boundary_hspm_vfvm_ApplyBC
   
-  public :: DOGCM_Boundary_spm_InqVBCRHS_UV
-  public :: DOGCM_Boundary_spm_InqVBCRHS_TRC
+  public :: DOGCM_Boundary_hspm_vfvm_InqVBCRHS_UV
+  public :: DOGCM_Boundary_hspm_vfvm_InqVBCRHS_TRC
   
   ! 公開変数
   ! Public variable
@@ -89,7 +90,7 @@ module DOGCM_Boundary_spm_mod
   ! Private variable
   !
   
-  character(*), parameter:: module_name = 'DOGCM_Boundary_spm_mod' !< Module Name
+  character(*), parameter:: module_name = 'DOGCM_Boundary_hspm_vfvm_mod' !< Module Name
 
   
 contains
@@ -97,7 +98,7 @@ contains
   !>
   !!
   !!
-  Subroutine DOGCM_Boundary_spm_Init( &
+  Subroutine DOGCM_Boundary_hspm_vfvm_Init( &
        & configNmlName )                   ! (in)
 
     ! 宣言文; Declaration statement
@@ -110,34 +111,34 @@ contains
 !    call read_nmlData(configNmlName)
 
     
-  end subroutine DOGCM_Boundary_spm_Init
+  end subroutine DOGCM_Boundary_hspm_vfvm_Init
 
   !>
   !!
   !!
-  subroutine DOGCM_Boundary_spm_Final()
+  subroutine DOGCM_Boundary_hspm_vfvm_Final()
 
     ! 実行文; Executable statements
     !
 
 
-  end subroutine DOGCM_Boundary_spm_Final
+  end subroutine DOGCM_Boundary_hspm_vfvm_Final
 
   !-----------------------------------------
   
-  subroutine DOGCM_Boundary_spm_ApplyBC(    &
+  subroutine DOGCM_Boundary_hspm_vfvm_ApplyBC(    &
        & xyz_U, xyz_V, xyza_TRC,                    & ! (inout)
        & xyz_H, xyz_VViscCoef, xyz_VDiffCoef        & ! (in)
        & )
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: xyz_U(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyz_V(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyza_TRC(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)    
-    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xyz_U(0:iMax-1,jMax,KA)
+    real(DP), intent(inout) :: xyz_V(0:iMax-1,jMax,KA)
+    real(DP), intent(inout) :: xyza_TRC(0:iMax-1,jMax,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)    
+    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,KA)
 
     ! 局所変数
     ! Local variables
@@ -152,7 +153,7 @@ contains
     ! 実行文; Executable statements
     !
 
-    call DOGCM_Boundary_spm_InqVBCRHS_UV( &
+    call DOGCM_Boundary_hspm_vfvm_InqVBCRHS_UV( &
          & xya_U_VBCRHS, xya_V_VBCRHS,                 & ! (out)
          & xyz_U, xyz_V, xyz_H, xyz_VViscCoef          & ! (in)
          & )
@@ -165,7 +166,7 @@ contains
          & DynBC_Surface, DynBC_Bottom, xya_V_VBCRHS   & ! (in)
          & )
 
-    call DOGCM_Boundary_spm_InqVBCRHS_TRC( &
+    call DOGCM_Boundary_hspm_vfvm_InqVBCRHS_TRC( &
          & xya_PTemp_VBCRHS, xya_Salt_VBCRHS,          & ! (out)
          & xyza_TRC(:,:,:,TRCID_PTEMP), xyza_TRC(:,:,:,TRCID_SALT),  & ! (in)
          & xyz_H, xyz_VDiffCoef                                      & ! (in)
@@ -183,11 +184,11 @@ contains
 !!$   write(*,*) "After BC mod:",  z_DSig_z( xyza_TRC(0,jMax/2,:,TRCID_SAlT) )
 !!$   write(*,*) ":-> ", (- avr_salt + AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyza_TRC(:,:,:,TRCID_SALT))))
 
-  end subroutine DOGCM_Boundary_spm_ApplyBC
+  end subroutine DOGCM_Boundary_hspm_vfvm_ApplyBC
        
   !-----------------------------
 
-  subroutine DOGCM_Boundary_spm_InqVBCRHS_TRC( &
+  subroutine DOGCM_Boundary_hspm_vfvm_InqVBCRHS_TRC( &
        & xya_PTemp_VBCRHS, xya_Salt_VBCRHS,            & ! (out)
        & xyz_PTemp, xyz_Salt, xyz_H, xyz_VDiffCoef     & ! (in)
        & )
@@ -200,10 +201,10 @@ contains
 
     real(DP), intent(out) :: xya_PTemp_VBCRHS(0:iMax-1,jMax,2)
     real(DP), intent(out) :: xya_Salt_VBCRHS(0:iMax-1,jMax,2)
-    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,KA)
 
 
     ! 局所変数
@@ -226,7 +227,7 @@ contains
        !$omp parallel
        !$omp workshare
        xya_PTemp_VBCRHS(:,:,1) = &
-            & - xyz_H(:,:,0)/(RefDens*Cp0*xyz_vDiffCoef(:,:,0))*( &
+            & - xyz_H(:,:,KS)/(RefDens*Cp0*xyz_vDiffCoef(:,:,KS))*( &
             &      xy_SfcHFlx_sr(IS:IE,JS:JE) + xy_SfcHFlx_ns(IS:IE,JS:JE) &
             & )
        !$omp end workshare
@@ -258,7 +259,7 @@ contains
          & SaltBCTYPE_PresFlux_Han1984Method,               &
          & SaltBCTYPE_SaltRelaxed                           &
          & )
-       xya_Salt_VBCRHS(:,:,1) = - xyz_H(:,:,0)/xyz_VDiffCoef(:,:,0)*( &
+       xya_Salt_VBCRHS(:,:,1) = - xyz_H(:,:,KS)/xyz_VDiffCoef(:,:,KS)*( &
             & xy_FreshWtFlxS(IS:IE,JS:JE) * RefSalt_VBC )
     case default 
        call throw_UnImplementVBCError('SaltBC_Surface', SaltBC_Surface)       
@@ -272,9 +273,9 @@ contains
        call throw_UnImplementVBCError('SaltBC_Bottom', SaltBC_Bottom)       
     End select
     
-  end subroutine DOGCM_Boundary_spm_InqVBCRHS_TRC
+  end subroutine DOGCM_Boundary_hspm_vfvm_InqVBCRHS_TRC
   
-  subroutine DOGCM_Boundary_spm_InqVBCRHS_UV( &
+  subroutine DOGCM_Boundary_hspm_vfvm_InqVBCRHS_UV( &
        & xya_U_VBCRHS, xya_V_VBCRHS,                   & ! (out)
        & xyz_U, xyz_V, xyz_H, xyz_VViscCoef            & ! (in)
        & )
@@ -287,10 +288,10 @@ contains
 
     real(DP), intent(out) :: xya_U_VBCRHS(0:iMax-1,jMax,2)
     real(DP), intent(out) :: xya_V_VBCRHS(0:iMax-1,jMax,2)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,KA)
 
     ! 局所変数
     ! Local variables
@@ -309,8 +310,8 @@ contains
          & )
        !$omp parallel
        !$omp workshare
-       xya_U_VBCRHS(:,:,1) = xyz_H(:,:,0)/(RefDens*xyz_VViscCoef(:,:,0))*xy_WindStressU(IS:IE,JS:JE)
-       xya_V_VBCRHS(:,:,1) = xyz_H(:,:,0)/(RefDens*xyz_VViscCoef(:,:,0))*xy_WindStressV(IS:IE,JS:JE)
+       xya_U_VBCRHS(:,:,1) = xyz_H(:,:,KS)/(RefDens*xyz_VViscCoef(:,:,KS))*xy_WindStressU(IS:IE,JS:JE)
+       xya_V_VBCRHS(:,:,1) = xyz_H(:,:,KS)/(RefDens*xyz_VViscCoef(:,:,KS))*xy_WindStressV(IS:IE,JS:JE)
        !$omp end workshare
        !$omp end parallel
        
@@ -334,7 +335,7 @@ contains
        call throw_UnImplementVBCError('DynBC_Bottom', DynBC_Bottom)       
     end select
 
-  end subroutine DOGCM_Boundary_spm_InqVBCRHS_UV
+  end subroutine DOGCM_Boundary_hspm_vfvm_InqVBCRHS_UV
 
   subroutine throw_UnImplementVBCError(boundaryLabel, BCTypeID)
     character(*), intent(in) :: boundaryLabel
@@ -348,23 +349,22 @@ contains
   
   !- Private subroutines -------------------------------------------------
 
-  
   subroutine solve_VBCEq( xyz,                       & ! (inout)
        & SurfBoundaryID, BtmBoundaryID, xya_VBCRHS   & ! (in)
        & )
-    real(DP), intent(inout) :: xyz(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xyz(0:iMax-1,jMax,KA)
     integer, intent(in) :: SurfBoundaryID
     integer, intent(in) :: BtmBoundaryID
     real(DP), intent(in) :: xya_VBCRHS(0:iMax-1,jMax,2)
 
     character :: SurfVBCType
     character :: BtmVBCType
-    real(DP) :: VBCMat(0:kMax,0:kMax)
-    real(DP) :: DSigMat(0:kMax,0:kMax)
-    real(DP) :: IMat(0:kMax,0:kMax)    
+    real(DP) :: VBCMat(KA,KA)
+    real(DP) :: DSigMat(KA,KA)
+    real(DP) :: IMat(KA,KA)    
     integer :: i, j, k, n 
-    integer :: IPiv(0:kMax)
-    real(DP) :: b(0:kMax)
+    integer :: IPiv(KA)
+    real(DP) :: b(KA)
     integer :: info
 
     real(DP) :: BCMat(2,2)
@@ -376,72 +376,21 @@ contains
     
     SurfVBCType = inquire_VBCSpecType(SurfBoundaryID)
     BtmVBCType = inquire_VBCSpecType(BtmBoundaryID)
-    
-    if (SurfVBCType//BtmVBCType == 'DD') then
-       xyz(:,:,0) = xya_VBCRHS(:,:,1)
-       xyz(:,:,kMax) = xya_VBCRHS(:,:,2)
-       return
-    end if
 
-    !
-    IMat(:,:) = 0d0
-    forAll(k=0:kMax) IMat(k,k) = 1d0
-    do k = 0, kMax
-       DSigMat(:,k) = z_DSig_z(IMat(:,k))
-    end do
+    select case(SurfVBCType)
+    case('D')
+       xyz(:,:,KS-1) = 2d0*xya_VBCRHS(:,:,1) -  xyz(:,:,KS)
+    case('N')
+       xyz(:,:,KS-1) = xyz(:,:,KS) - xya_VBCRHS(:,:,1)*z_CDK(KS)
+    end select
 
-!!$    select case(SurfVBCType)
-!!$    case('D')
-!!$       a1 = 1; a2 = 0
-!!$    case('N')
-!!$       a1 = 0; a2 = 1
-!!$    end select
-!!$
-!!$    select case(BtmVBCType)
-!!$    case('D')
-!!$       b1 = 1; b2 = 0
-!!$    case('N')
-!!$       b1 = 0; b2 = 1
-!!$    end select
-!!$
-!!$    BCMat(1,:) = (/ a1 + a2*DSigMat(0,0), a2*DSigMat(0,kMax) /)
-!!$    BCMat(2,:) = (/ b2*DSigMat(kMax,0), b1 + b2*DSigMat(kMax,kMax) /)
-!!$
-!!$    BCInvMat(1,:) = (/ BCMat(2,2), -BCMat(1,2) /)
-!!$    BCInvMat(2,:) = (/ -BCMat(2,1), BCMat(1,1) /)
-!!$    BCInvMat(:,:) = BCInvMat(:,:)/(BCMat(1,1)*BCMat(2,2) - BCMat(1,2)*BCMat(2,1))
-!!$
-!!$    do j=1, jMax
-!!$       do i=0, iMax-1
-!!$          RHS1 = xya_VBCRHS(i,j,1) - a2*sum(DSigMat(0,1:kMax-1)*xyz(i,j,1:kMax-1))
-!!$          RHS2 = xya_VBCRHS(i,j,2) - b2*sum(DSigMat(kMax,1:kMax-1)*xyz(i,j,1:kMax-1))
-!!$          xyz(i,j,0) = BCInvMat(1,1)*RHS1 + BCInvMat(1,2)*RHS2
-!!$          xyz(i,j,kMax) = BCInvMat(2,1)*RHS1 + BCInvMat(2,2)*RHS2          
-!!$       end do
-!!$    end do
-!!$    return
-    
-    !--------------
-    
-    VBCMat(:,:) = IMat
-    if(SurfVBCType == 'N') VBCMat(0,:) = DSigMat(0,:)
-    if(BtmVBCType == 'N') VBCMat(kMax,:) = DSigMat(kMax,:)
-    n = size(VBCMat, 1)
-
-    call DGETRF(n, n, VBCMat, n, IPiv, info)
-
-    !$omp parallel do private(i, b, info)
-    do j=1, jMax
-       do i=0, iMax-1
-          b(:) = xyz(i,j,:);
-          b(0) = xya_VBCRHS(i,j,1); b(kMax) = xya_VBCRHS(i,j,2) 
-
-          call DGETRS('N', n, 1, VBCMat, n, IPiv, b, n, info)
-
-          xyz(i,j,0) = b(0); xyz(i,j,kMax) = b(kMax)
-       end do
-    end do
+    select case(SurfVBCType)
+    case('D')
+       xyz(:,:,KE+1) = 2d0*xya_VBCRHS(:,:,2) -  xyz(:,:,KE)
+    case('N')
+       xyz(:,:,KE+1) = xyz(:,:,KE) + xya_VBCRHS(:,:,2)*z_CDK(KE)
+    end select
     
   end subroutine solve_VBCEq
   
-end module DOGCM_Boundary_spm_mod
+end module DOGCM_Boundary_hspm_vfvm_mod

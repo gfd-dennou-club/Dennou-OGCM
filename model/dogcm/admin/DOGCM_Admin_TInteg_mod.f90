@@ -1,5 +1,5 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2013 Kawai Yuta. All rights reserved.
+! Copyright (c) 2013-2016 Kawai Yuta. All rights reserved.
 !-------------------------------------------------------------
 !> @brief a template module
 !! 

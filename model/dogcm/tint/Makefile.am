@@ -4,7 +4,8 @@ AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../../libsrc/ \
         $(MODPATHFLAG)$(srcdir)/../util      \
         $(MODPATHFLAG)$(srcdir)/../admin     \
-        $(MODPATHFLAG)$(srcdir)/../boundary  \
+        $(MODPATHFLAG)$(srcdir)/../io        \
+	$(MODPATHFLAG)$(srcdir)/../boundary  \
 	$(MODPATHFLAG)$(srcdir)/../physics   \
         $(MODPATHFLAG)$(srcdir)/../dynamics  \
         $(MODPATHFLAG)$(srcdir)/../seaice    \

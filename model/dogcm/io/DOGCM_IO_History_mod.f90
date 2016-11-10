@@ -56,6 +56,7 @@ module DOGCM_IO_History_mod
   public :: DOGCM_IO_History_IsOutputTiming
 
   interface DOGCM_IO_History_HistPut
+     module procedure DOGCM_IO_History_HistPut0D
      module procedure DOGCM_IO_History_HistPut1D
      module procedure DOGCM_IO_History_HistPut2D
      module procedure DOGCM_IO_History_HistPut3D
@@ -142,6 +143,22 @@ contains
   end function DOGCM_IO_History_isOutputTiming
 
   !----------------------------------------------------------------
+
+  !> @brief 
+  !!
+  !!
+  subroutine DOGCM_IO_History_HistPut0D(varName, var)
+
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: varName
+    real(DP), intent(in) :: var
+    
+    ! 実行文; Executable statement
+    !    
+    call HistoryAutoPut(CurrentTime, varName, var)
+
+  end subroutine DOGCM_IO_History_HistPut0D
   
   !> @brief 
   !!
@@ -334,6 +351,9 @@ contains
     integer :: varDimsLen
     
     select case (varDimsName)
+    case ('T')
+       varDimsLen = 1
+       varDims(1:varDimsLen) = (/ HstDimsList(HstDimsID_T) /)
     case ('K')
        varDimsLen = 1       
        varDims(1:varDimsLen) = (/ HstDimsList(HstDimsID_K) /)

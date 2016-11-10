@@ -42,7 +42,8 @@ module EOS_JM95_mod
   public :: EOS_JM95_PTemp2Temp, EOS_JM95_Temp2PTemp
   public :: EOS_JM95_AdLapseRate
   public :: EOS_JM95_HeatCapacity
-
+  public :: EOS_JM95_alpha_beta
+  
   ! 公開変数
   ! Public variables
   !
@@ -119,7 +120,9 @@ contains
     
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(in) :: theta, s, p
+    real(DP), intent(in) :: theta
+    real(DP), intent(in) :: s
+    real(DP), intent(in) :: p
     real(DP) :: rho
 
     ! 局所変数
@@ -231,6 +234,8 @@ contains
 
   end function EOS_JM95_HeatCapacity
 
+  !--------------------------------------------------------
+  
   !> @brief 
   !!
   !! @param [in] P     pressure              [bar]
@@ -253,6 +258,78 @@ contains
     adLapseRate = SeaWaterProp_FM83_AdLapseRate(S=S, t=T, p=bar2dbar(p))
 
   end function EOS_JM95_AdLapseRate
+
+  !--------------------------------------------------------
+
+  !> @brief 
+  !!
+  !! @param [out] alpha thermal expansion coefficient [degree C^-1]
+  !! @param [out] beta  saline contraction coefficient [psu^-1]
+  !! @param [in] P      pressure              [dbar]
+  !! @param [in] S      practical salinity    [psu]
+  !! @param [in] T      in-situ temperature [degree C]
+  !!  
+  elemental subroutine EOS_JM95_alpha_beta( alpha, beta, &
+       & theta, S, p )
+
+    real(DP), intent(out) :: alpha
+    real(DP), intent(out) :: beta
+    real(DP), intent(in) :: theta
+    real(DP), intent(in) :: s
+    real(DP), intent(in) :: p
+
+    real(DP) :: alpha_div_beta
+
+    real(DP), parameter :: ab000 =  0.665157d-1
+    real(DP), parameter :: ab100 =  0.170907d-1
+    real(DP), parameter :: ab200 = -0.203814d-3
+    real(DP), parameter :: ab300 =  0.298357d-5
+    real(DP), parameter :: ab400 = -0.255019d-7
+    real(DP), parameter :: ab010 =  0.378110d-2
+    real(DP), parameter :: ab110 = -0.846960d-4
+    real(DP), parameter :: ab011 = -0.164759d-6
+    real(DP), parameter :: ab012 = -0.251520d-11
+    real(DP), parameter :: ab020 = -0.678662d-5
+    real(DP), parameter :: ab001 =  0.380374d-4
+    real(DP), parameter :: ab101 = -0.933746d-6
+    real(DP), parameter :: ab201 =  0.791325d-8
+    real(DP), parameter :: ab202 =  0.512857d-12
+    real(DP), parameter :: ab003 = -0.302285d-13
+
+    real(DP), parameter :: b000 =  0.785567d-3
+    real(DP), parameter :: b100 = -0.301985d-5
+    real(DP), parameter :: b200 =  0.555579d-7
+    real(DP), parameter :: b300 = -0.415613d-9
+    real(DP), parameter :: b010 = -0.356603d-6
+    real(DP), parameter :: b110 =  0.788212d-8
+    real(DP), parameter :: b011 =  0.408195d-10
+    real(DP), parameter :: b012 = -0.602281d-15
+    real(DP), parameter :: b020 =  0.515032d-8
+    real(DP), parameter :: b001 = -0.121555d-7
+    real(DP), parameter :: b101 =  0.192867d-9
+    real(DP), parameter :: b201 = -0.213127d-11
+    real(DP), parameter :: b002 =  0.176621d-12
+    real(DP), parameter :: b102 = -0.175379d-14
+    real(DP), parameter :: b003 =  0.121551d-17
+    
+    alpha_div_beta = ab000 &
+         & +      theta*( ab100 + theta*(ab200 + theta*(ab300 + theta*ab400)) )    &
+         & + (S - 35d0)*( ab010 + ab110*theta + p*(ab011 + ab012*p)                &
+         & +            + (S - 35d0)*ab020                                    )    &
+         & +          p*( ab001 + theta*(ab101 + theta*(ab201 + p*ab202))          &
+         &                + p*p*ab003                                         )
+
+    
+    beta = b000 &
+         & +    theta*(b100 + theta*(b200 + theta*b300))                 &
+         & + (S-35d0)*(   b010 + b110*theta + p*(b011 + b012*p)          &
+         & +            + (S-35d0)*b020                               )  &
+         & +        p*(   b001 + theta*(b101 + theta*b201 + p*b102)      &
+         &              + p*(b002 + p*b003)                           )
+
+    alpha = alpha_div_beta * beta
+    
+  end subroutine EOS_JM95_alpha_beta
 
 end module EOS_JM95_mod
 

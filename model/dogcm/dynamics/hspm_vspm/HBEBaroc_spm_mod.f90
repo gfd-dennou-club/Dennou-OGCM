@@ -66,7 +66,7 @@ contains
 
     ! 実行文; Executable statements
     !
-    
+
   end subroutine HBEBaroc_Init
 
   !>
@@ -82,11 +82,13 @@ contains
 
 !- RHS of tracer equation ------------------------------------
 
-  subroutine HBEBaroc_HTRCRHS( wz_HTRC_RHS,                &  ! (out)
-       & xyz_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H,   &  ! (in)
-       & xyz_HTRCRHS_phys )                                   ! (in)
-
-    real(DP), intent(out) :: wz_HTRC_RHS(lMax,0:kMax)
+!!$  subroutine HBEBaroc_HTRCRHS( wz_HTRC_RHS,              &  ! (out)
+  subroutine HBEBaroc_HTRCRHS( xyz_HTRC_RHS,                &  ! (out)
+       & xyz_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H,    &  ! (in)
+       & xyz_HTRCRHS_phys )                                    ! (in)
+use SpmlUtil_mod
+!!$    real(DP), intent(out) :: wz_HTRC_RHS(lMax,0:kMax)
+    real(DP), intent(out) :: xyz_HTRC_RHS(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_TRC(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
@@ -98,23 +100,52 @@ contains
     integer :: k
 
     real(DP) :: xyz_DSigTRC(0:iMax-1,jMax,0:kMax)
+!!$    real(DP) :: xyz_DSigOMGTRC(0:iMax-1,jMax,0:kMax)
     real(DP) :: xy_HTRCCosLat(0:iMax-1,jMax)
-    
+!!$    real(DP) :: xyz_TRCFlxSig(0:iMax-1,jMax,0:kMax)
+!!$    real(DP) :: xy_Tmp(0:iMax-1,jMax)
+
     xyz_DSigTRC(:,:,:) = xyz_DSig_xyz(xyz_TRC)
+
+!!$    xyz_TRCFlxSig = xyz_TRC*xyz_OMG
+!!$    xyz_TRCFlxSig(:,:,0) = 0d0    
+!!$    xyz_TRCFlxSig(:,:,kMax) = 0d0
+!!$    xyz_DSigOMGTRC(:,:,:) = xyz_DSig_xyz(xyz_TRCFlxSig)
 
     !$omp parallel do private(xy_HTRCCosLat)
     do k=0, kMax
        xy_HTRCCosLat(:,:) = xyz_H(:,:,k)*xy_CosLat(:,:)*xyz_TRC(:,:,k)
-       wz_HTRC_RHS(:,k) = &
-            & - w_AlphaOptr_xy( xyz_U(:,:,k)*xy_HTRCCosLat, xyz_V(:,:,k)*xy_HTRCCosLat )    &
-            & + w_xy(                                                                       &
-            &    - xyz_OMG(:,:,k)*xyz_DSigTRC(:,:,k)                                        &
-            &    + xyz_H(:,:,k)*( xyz_Div(:,:,k)*xyz_TRC(:,:,k) + xyz_HTRCRHS_phys(:,:,k))  &
-            & )
+!!$       wz_HTRC_RHS(:,k) = &
+!!$            & - w_AlphaOptr_xy( xyz_U(:,:,k)*xy_HTRCCosLat, xyz_V(:,:,k)*xy_HTRCCosLat )    &
+!!$            & + w_xy(                                                                       &
+!!$            &    - xyz_OMG(:,:,k)*xyz_DSigTRC(:,:,k)                                        &
+!!$            &    + xyz_H(:,:,k)*( xyz_Div(:,:,k)*xyz_TRC(:,:,k) + xyz_HTRCRHS_phys(:,:,k))  &
+!!$            & )
+       xyz_HTRC_RHS(:,:,k) = &
+            & + xy_w( &
+            &         - w_AlphaOptr_xy( xyz_U(:,:,k)*xy_HTRCCosLat, xyz_V(:,:,k)*xy_HTRCCosLat )          &
+            &         + w_xy( - xyz_OMG(:,:,k)*xyz_DSigTRC(:,:,k)                                         &
+            &                 + xyz_H(:,:,k)*(xyz_Div(:,:,k)*xyz_TRC(:,:,k) + xyz_HTRCRHS_phys(:,:,k)) )  &
+            &   )
+!!$       xyz_HTRC_RHS(:,:,k) = &
+!!$            & + xy_w( &
+!!$            &         - w_AlphaOptr_xy( xyz_U(:,:,k)*xy_HTRCCosLat, xyz_V(:,:,k)*xy_HTRCCosLat )          &
+!!$            &         + w_xy( - xyz_DSigOMGTRC(:,:,k)                                                     &
+!!$            &                 + xyz_H(:,:,k)*( + xyz_HTRCRHS_phys(:,:,k)) )  &
+!!$            &   )
+!!$       xyz_HTRC_RHS(:,:,k) = xy_w( w_xy( xyz_H(:,:,k)*(                 &
+!!$            & - xyz_U(:,:,k)*xy_GradLon_w(w_xy(xyz_TRC(:,:,k)))/RPlanet &
+!!$            & - xyz_V(:,:,k)*xy_GradLat_w(w_xy(xyz_TRC(:,:,k)))/RPlanet &            
+!!$            & - xyz_OMG(:,:,k)/xyz_H(:,:,k)*xyz_DSigTRC(:,:,k)          &
+!!$            & + xyz_HTRCRHS_phys(:,:,k)                                 &
+!!$            & ) ) )
+
+
     end do
 
   end subroutine HBEBaroc_HTRCRHS
 
+  
 !- RHS of momentum equation ------------------------------------
 
   subroutine HBEBaroc_MOMRHS_VorDivForm( wz_Vor_RHS, wz_Div_RHS,        & ! (out)

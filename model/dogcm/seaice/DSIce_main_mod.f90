@@ -149,13 +149,15 @@ contains
   !!
   subroutine DSIce_main_advance_timestep( &
        & tstep,                           & ! (in)
-       & loop_end_flag                    & ! (inout)
+       & loop_end_flag,                   & ! (inout)
+       & skip_flag                        & ! (in)
        & )
     
     ! 宣言文; Declaration statement
     !
     integer, intent(in) :: tstep
     logical, intent(inout) :: loop_end_flag
+    logical, intent(in), optional :: skip_flag
     
     ! 局所変数
     ! Local variables
@@ -184,16 +186,17 @@ contains
             & xya_SIceCon(:,:,TLN), xya_IceThick(:,:,TLN), xya_SnowThick(:,:,TLN), & ! (in)
             & xya_SIceSfcTemp(:,:,TLN), xyza_SIceTemp(:,:,:,TLN)                   & ! (in)
             & )    
-       
-       if(CurrentTimeStep == 1 .and. (.not. RestartFlag)) then
-          call DSIce_TInt_driver_Do( isSelfStartSchemeUsed=.true. )
-       else
-          call DSIce_TInt_driver_Do( isSelfStartSchemeUsed=.false. )
+
+       if ( present(skip_flag) .and. (.not. skip_flag) ) then
+          if(CurrentTimeStep == 1 .and. (.not. RestartFlag)) then
+             call DSIce_TInt_driver_Do( isSelfStartSchemeUsed=.true. )
+          else
+             call DSIce_TInt_driver_Do( isSelfStartSchemeUsed=.false. )
+          end if
        end if
 
        call DSIce_Admin_TInteg_AdvanceLongTStep()
        call DSIce_Admin_Variable_AdvanceTStep()
-       
     end if
 
     call DSIce_Boundary_driver_UpdateAfterTstep( &

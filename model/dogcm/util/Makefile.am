@@ -36,7 +36,8 @@ dist_libDOGCMUtil_la_SOURCES= \
 	SeaWaterProp_FM83_mod.f90   \
 	EOS_JM95_mod.f90            \
 	EOSDriver_mod.f90           \
-	TemporalIntegUtil_mod2.f90
+	TemporalIntegUtil_mod2.f90  \
+	VFvmUtil_mod.f90
 
 
 #	DiagnoseUtil_mod.f90

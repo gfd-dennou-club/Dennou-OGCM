@@ -26,7 +26,16 @@ module DOGCM_Dyn_driver_mod
        & TRC_TOT_NUM, &
        & TRCID_PTEMP, TRCID_SALT
 
+  use DOGCM_Admin_GovernEq_mod, only: &
+       & SolverType,                   &
+       & OCNGOVERNEQ_SOLVER_HSPM_VSPM, &
+       & OCNGOVERNEQ_SOLVER_HSPM_VFVM       
+
+  !- Dynamical core
+  
   use DOGCM_Dyn_spm_mod
+  
+  use DOGCM_Dyn_hspm_vfvm_mod
   
   ! 宣言文; Declareration statements
   !
@@ -53,6 +62,7 @@ module DOGCM_Dyn_driver_mod
   public :: DOGCM_Dyn_driver_BarotUpdate
   
   public :: DOGCM_Dyn_driver_OMGDiag
+  public :: DOGCM_Dyn_driver_OMGDiag2
   public :: DOGCM_Dyn_driver_HydPresDiag
   public :: DOGCM_Dyn_driver_VorDivDiag
   public :: DOGCM_Dyn_driver_UVBarotDiag
@@ -73,7 +83,11 @@ contains
 
 !    call read_nmlData(configNmlName)
 
-    call DOGCM_Dyn_spm_Init( configNmlName )
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_Init( configNmlName )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+    end select
     
   end subroutine DOGCM_Dyn_driver_Init
 
@@ -85,7 +99,12 @@ contains
     ! 実行文; Executable statements
     !
 
-    call DOGCM_Dyn_spm_Final()
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_Final()
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+    end select
+    
     
   end subroutine DOGCM_Dyn_driver_Final
 
@@ -105,10 +124,19 @@ contains
 
 !    call MessageNotify('M', module_name, "SSHRHS..")
 
-    call DOGCM_Dyn_spm_SSHRHS( xy_SSH_RHS(IS:IE,JS:JE),        &  ! (out)
-         & xy_SSH(IS:IE,JS:JE), xy_TotDepBasic(IS:IE,JS:JE),   &  ! (in)
-         & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), &  ! (in)
-         & xy_FreshWtFlx(IS:IE,JS:JE)   )                         ! (in)
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_SSHRHS( xy_SSH_RHS(IS:IE,JS:JE),        &  ! (out)
+            & xy_SSH(IS:IE,JS:JE), xy_TotDepBasic(IS:IE,JS:JE),   &  ! (in)
+            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), &  ! (in)
+            & xy_FreshWtFlx(IS:IE,JS:JE)   )                         ! (in)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_SSHRHS( xy_SSH_RHS(IS:IE,JS:JE),  &  ! (out)
+            & xy_SSH(IS:IE,JS:JE), xy_TotDepBasic(IS:IE,JS:JE),   &  ! (in)
+            & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:),         &  ! (in)
+            & xy_FreshWtFlx(IS:IE,JS:JE)   )                         ! (in)
+    end select
+    
     
   end subroutine DOGCM_Dyn_driver_SSHRHS
 
@@ -129,12 +157,22 @@ contains
 
 !    call MessageNotify('M', module_name, "HTRCRHS..")
 
-    call DOGCM_Dyn_spm_HTRCRHS( xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,:),      &  ! (out)
-         & xyza_TRC(IS:IE,JS:JE,KS:KE,:),                                                  &  ! (in)
-         & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE), &  ! (in)
-         & xyz_OMG(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE),                           &  ! (in)
-         & xyza_HTRC_RHS_phys(IS:IE,JS:JE,KS:KE,:)                                         &  ! (in)
-         & )
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_HTRCRHS( xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,:),      &  ! (out)
+            & xyza_TRC(IS:IE,JS:JE,KS:KE,:),                                                  &  ! (in)
+            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE), &  ! (in)
+            & xyz_OMG(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE),                           &  ! (in)
+            & xyza_HTRC_RHS_phys(IS:IE,JS:JE,KS:KE,:)                                         &  ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_HTRCRHS( xyza_HTRC_RHS(IS:IE,JS:JE,:,:),      &  ! (out)
+            & xyza_TRC(IS:IE,JS:JE,:,:),                                           &  ! (in)
+            & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:), xyz_Div(IS:IE,JS:JE,:),  &  ! (in)
+            & xyz_OMG(IS:IE,JS:JE,:), xyz_H(IS:IE,JS:JE,:),                        &  ! (in)
+            & xyza_HTRC_RHS_phys(IS:IE,JS:JE,:,:)                                  &  ! (in)
+            & )
+    end select
     
   end subroutine DOGCM_Dyn_driver_HTRCRHS
 
@@ -164,16 +202,31 @@ contains
     
 !    call MessageNotify('M', module_name, "MOMBarocRHS..")
 
-    call DOGCM_Dyn_spm_MOMBarocRHS( &
-         & xyz_U_RHS(IS:IE,JS:JE,KS:KE), xyz_V_RHS(IS:IE,JS:JE,KS:KE),                     &  ! (out)
-         & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_OMG(IS:IE,JS:JE,KS:KE), &  ! (in)
-         & xyz_Vor(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE),                         &  ! (in)
-         & xyz_H(IS:IE,JS:JE,KS:KE),                                                       &  ! (in)
-         & xyz_Pres(IS:IE,JS:JE,KS:KE), xyz_DensEdd(IS:IE,JS:JE,KS:KE),                    &  ! (in)
-         & xyz_GeoPot(IS:IE,JS:JE,KS:KE),                                                  &  ! (in)
-         & xyz_CoriU(IS:IE,JS:JE,KS:KE), xyz_CoriV(IS:IE,JS:JE,KS:KE),                     &  ! (in)
-         & xyz_URHS_phys(IS:IE,JS:JE,KS:KE), xyz_VRHS_phys(IS:IE,JS:JE,KS:KE)              &  ! (in)
-         & )
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_MOMBarocRHS( &
+            & xyz_U_RHS(IS:IE,JS:JE,KS:KE), xyz_V_RHS(IS:IE,JS:JE,KS:KE),                     &  ! (out)
+            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_OMG(IS:IE,JS:JE,KS:KE), &  ! (in)
+            & xyz_Vor(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE),                         &  ! (in)
+            & xyz_H(IS:IE,JS:JE,KS:KE),                                                       &  ! (in)
+            & xyz_Pres(IS:IE,JS:JE,KS:KE), xyz_DensEdd(IS:IE,JS:JE,KS:KE),                    &  ! (in)
+            & xyz_GeoPot(IS:IE,JS:JE,KS:KE),                                                  &  ! (in)
+            & xyz_CoriU(IS:IE,JS:JE,KS:KE), xyz_CoriV(IS:IE,JS:JE,KS:KE),                     &  ! (in)
+            & xyz_URHS_phys(IS:IE,JS:JE,KS:KE), xyz_VRHS_phys(IS:IE,JS:JE,KS:KE)              &  ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_MOMBarocRHS( &
+            & xyz_U_RHS(IS:IE,JS:JE,:), xyz_V_RHS(IS:IE,JS:JE,:),                     &  ! (out)
+            & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:), xyz_OMG(IS:IE,JS:JE,:),     &  ! (in)
+            & xyz_Vor(IS:IE,JS:JE,:), xyz_Div(IS:IE,JS:JE,:),                         &  ! (in)
+            & xyz_H(IS:IE,JS:JE,:),                                                   &  ! (in)
+            & xyz_Pres(IS:IE,JS:JE,:), xyz_DensEdd(IS:IE,JS:JE,:),                    &  ! (in)
+            & xyz_GeoPot(IS:IE,JS:JE,:),                                              &  ! (in)
+            & xyz_CoriU(IS:IE,JS:JE,:), xyz_CoriV(IS:IE,JS:JE,:),                     &  ! (in)
+            & xyz_URHS_phys(IS:IE,JS:JE,:), xyz_VRHS_phys(IS:IE,JS:JE,:)              &  ! (in)
+            & )
+    end select
+    
     
   end subroutine DOGCM_Dyn_driver_MOMBarocRHS
 
@@ -193,11 +246,20 @@ contains
 
  !   call MessageNotify('M', module_name, "MOMBarotRHS..")
     
-    call DOGCM_Dyn_spm_MOMBarotRHS( &
-         & xy_UBarot_RHS(IS:IE,JS:JE), xy_VBarot_RHS(IS:IE,JS:JE),                             &  ! (out)
-         & xy_CoriUBarot(IS:IE,JS:JE), xy_CoriVBarot(IS:IE,JS:JE), xy_SfcPres(IS:IE,JS:JE),    &  ! (in)
-         & xy_UBarocForce(IS:IE,JS:JE), xy_VBarocForce(IS:IE,JS:JE)                            &  ! (in)
-         & )
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_MOMBarotRHS( &
+            & xy_UBarot_RHS(IS:IE,JS:JE), xy_VBarot_RHS(IS:IE,JS:JE),                             &  ! (out)
+            & xy_CoriUBarot(IS:IE,JS:JE), xy_CoriVBarot(IS:IE,JS:JE), xy_SfcPres(IS:IE,JS:JE),    &  ! (in)
+            & xy_UBarocForce(IS:IE,JS:JE), xy_VBarocForce(IS:IE,JS:JE)                            &  ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_MOMBarotRHS( &
+            & xy_UBarot_RHS(IS:IE,JS:JE), xy_VBarot_RHS(IS:IE,JS:JE),                             &  ! (out)
+            & xy_CoriUBarot(IS:IE,JS:JE), xy_CoriVBarot(IS:IE,JS:JE), xy_SfcPres(IS:IE,JS:JE),    &  ! (in)
+            & xy_UBarocForce(IS:IE,JS:JE), xy_VBarocForce(IS:IE,JS:JE)                            &  ! (in)
+            & )
+    end select
     
   end subroutine DOGCM_Dyn_Driver_MOMBarotRHS
 
@@ -217,11 +279,21 @@ contains
     real(DP), intent(in) :: DelTimeSSH
     real(DP), intent(in) :: PresTAvgCoefA
 
-    call DOGCM_Dyn_spm_BarotUpdate( &
-         & xy_UBarotA(IS:IE,JS:JE), xy_VBarotA(IS:IE,JS:JE),               & ! (out)
-         & xy_SfcPresA(IS:IE,JS:JE), xy_SSHA(IS:IE,JS:JE),                 & ! (out)
-         & xy_Cori(IS:IE,JS:JE), DelTime, DelTimeSSH, PresTAvgCoefA        & ! (in)
-         & )
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_BarotUpdate( &
+            & xy_UBarotA(IS:IE,JS:JE), xy_VBarotA(IS:IE,JS:JE),               & ! (out)
+            & xy_SfcPresA(IS:IE,JS:JE), xy_SSHA(IS:IE,JS:JE),                 & ! (out)
+            & xy_Cori(IS:IE,JS:JE), DelTime, DelTimeSSH, PresTAvgCoefA        & ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_BarotUpdate( &
+            & xy_UBarotA(IS:IE,JS:JE), xy_VBarotA(IS:IE,JS:JE),               & ! (out)
+            & xy_SfcPresA(IS:IE,JS:JE), xy_SSHA(IS:IE,JS:JE),                 & ! (out)
+            & xy_Cori(IS:IE,JS:JE), DelTime, DelTimeSSH, PresTAvgCoefA        & ! (in)
+            & )       
+    end select
+    
     
   end subroutine DOGCM_Dyn_driver_BarotUpdate
   
@@ -236,13 +308,48 @@ contains
     real(DP), intent(in) :: xyz_HA(IA,JA,KA)
     real(DP), intent(in) :: DelTime
 
-    call DOGCM_Dyn_spm_OMGDiag( xyz_OMG(IS:IE,JS:JE,KS:KE),         & ! (out)
-         & xyz_Div(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE),    & ! (in)
-         & xyz_HA(IS:IE,JS:JE,KS:KE), DelTime                       & ! (in)
-         & )
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_OMGDiag( xyz_OMG(IS:IE,JS:JE,KS:KE),         & ! (out)
+            & xyz_Div(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE),    & ! (in)
+            & xyz_HA(IS:IE,JS:JE,KS:KE), DelTime                       & ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_OMGDiag( xyz_OMG(IS:IE,JS:JE,:),   & ! (out)
+            & xyz_Div(IS:IE,JS:JE,:), xyz_H(IS:IE,JS:JE,:),        & ! (in)
+            & xyz_HA(IS:IE,JS:JE,:), DelTime                       & ! (in)
+            & )
+    end select
+    
 
   end subroutine DOGCM_Dyn_driver_OMGDiag
 
+  subroutine DOGCM_Dyn_driver_OMGDiag2( xyz_OMG,      & ! (out)
+       & xyz_U, xyz_V, xyz_H, xyz_HA, DelTime )             ! (in)
+
+    real(DP), intent(out) :: xyz_OMG(IA,JA,KA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_HA(IA,JA,KA)
+    real(DP), intent(in) :: DelTime
+
+    select case(SolverType)    
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_OMGDiag2( xyz_OMG(IS:IE,JS:JE,KS:KE),         & ! (out)
+            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE),    & ! (in)
+            & xyz_HA(IS:IE,JS:JE,KS:KE), DelTime                       & ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_OMGDiag2( xyz_OMG(IS:IE,JS:JE,:),         & ! (out)
+            & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:), xyz_H(IS:IE,JS:JE,:),    & ! (in)
+            & xyz_HA(IS:IE,JS:JE,:), DelTime                       & ! (in)
+            & )
+    end select
+    
+
+  end subroutine DOGCM_Dyn_driver_OMGDiag2
+  
   !--------------------------------------------------------------
 
   subroutine DOGCM_Dyn_driver_VorDivDiag( xyz_Vor, xyz_Div,    & ! (out)
@@ -253,10 +360,19 @@ contains
     real(DP), intent(in) :: xyz_U(IA,JA,KA)
     real(DP), intent(in) :: xyz_V(IA,JA,KA)
 
-    call DOGCM_Dyn_spm_VorDivDiag( &
-         & xyz_Vor(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE),    & ! (out)
-         & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE)         & ! (in)
-         & )
+    select case(SolverType)    
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_VorDivDiag( &
+            & xyz_Vor(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE),    & ! (out)
+            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE)         & ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_VorDivDiag( &
+            & xyz_Vor(IS:IE,JS:JE,:), xyz_Div(IS:IE,JS:JE,:),    & ! (out)
+            & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:)         & ! (in)
+            & )
+    end select
+    
 
   end subroutine DOGCM_Dyn_driver_VorDivDiag
   
@@ -269,13 +385,23 @@ contains
     real(DP), intent(in) :: xyz_DensEdd(IA,JA,KA)
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
 
-    call DOGCM_Dyn_spm_HydPresDiag( &
-         & xyz_HydPres(IS:IE,JS:JE,KS:KE),                          & ! (out)
-         & xyz_DensEdd(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE) & ! (in)
-         & )
+    select case(SolverType)    
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_HydPresDiag( &
+            & xyz_HydPres(IS:IE,JS:JE,KS:KE),                          & ! (out)
+            & xyz_DensEdd(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE) & ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_HydPresDiag( &
+            & xyz_HydPres(IS:IE,JS:JE,:),                          & ! (out)
+            & xyz_DensEdd(IS:IE,JS:JE,:), xyz_H(IS:IE,JS:JE,:)     & ! (in)
+            & )
+    end select
+    
     
   end subroutine DOGCM_Dyn_driver_HydPresDiag
 
+  !--------------------------------------------------------------
 
   subroutine DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot, xy_VBarot,    & ! (out)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xy_Topo )                       ! (in)
@@ -288,11 +414,20 @@ contains
     real(DP), intent(in) :: xy_SSH(IA,JA)
     real(DP), intent(in) :: xy_Topo(IA,JA)
 
-    call DOGCM_Dyn_spm_UVBarotDiag( &
-         & xy_UBarot(IS:IE,JS:JE), xy_VBarot(IS:IE,JS:JE),                               & ! (out)
-         & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE), & ! (in)
-         & xy_SSH(IS:IE,JS:JE), xy_Topo(IS:IE,JS:JE)                                     & ! (in)
-         & )
+    select case(SolverType)    
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Dyn_spm_UVBarotDiag( &
+            & xy_UBarot(IS:IE,JS:JE), xy_VBarot(IS:IE,JS:JE),                               & ! (out)
+            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE), & ! (in)
+            & xy_SSH(IS:IE,JS:JE), xy_Topo(IS:IE,JS:JE)                                     & ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_UVBarotDiag( &
+            & xy_UBarot(IS:IE,JS:JE), xy_VBarot(IS:IE,JS:JE),                               & ! (out)
+            & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:), xyz_H(IS:IE,JS:JE,:),             & ! (in)
+            & xy_SSH(IS:IE,JS:JE), xy_Topo(IS:IE,JS:JE)                                     & ! (in)
+            & )
+    end select
     
   end subroutine DOGCM_Dyn_driver_UVBarotDiag
   

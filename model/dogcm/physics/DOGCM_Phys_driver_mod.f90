@@ -30,7 +30,11 @@ module DOGCM_Phys_driver_mod
   use DOGCM_Admin_Variable_mod, only: &
        & TRC_TOT_NUM,             &
        & TRCID_PTEMP, TRCID_SALT
-         
+
+  use DOGCM_Admin_GovernEq_mod, only: &
+       & SolverType,                   &
+       & OCNGOVERNEQ_SOLVER_HSPM_VSPM, &
+       & OCNGOVERNEQ_SOLVER_HSPM_VFVM       
   
   ! 宣言文; Declareration statements
   !
@@ -67,6 +71,9 @@ contains
     use DOGCM_Phys_spm_mod, only: &
          & DOGCM_Phys_spm_Init
 
+    use DOGCM_Phys_hspm_vfvm_mod, only: &
+         & DOGCM_Phys_hspm_vfvm_Init
+    
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlName
@@ -79,7 +86,12 @@ contains
     ! Initialize some modules for physical process
     !
 
-    call DOGCM_Phys_spm_Init( configNmlName )
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Phys_spm_Init( configNmlName )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Phys_hspm_vfvm_Init( configNmlName )
+    end select
     
     call DOGCM_VPhys_driver_Init( configNmlName )
 
@@ -97,18 +109,27 @@ contains
     use DOGCM_Phys_spm_mod, only: &
          & DOGCM_Phys_spm_Final
 
+    use DOGCM_Phys_hspm_vfvm_mod, only: &
+         & DOGCM_Phys_hspm_vfvm_Final
+
     ! 実行文; Executable statements
     !
 
     call DOGCM_VPhys_driver_Final()
 
-    call DOGCM_Phys_spm_Final()
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Phys_spm_Final()
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Phys_hspm_vfvm_Final()
+    end select
+    
     
   end subroutine DOGCM_Phys_driver_Final
 
   
 
-  !-------------------------------------
+  !--------------------------------------------------
 
   subroutine DOGCM_Phys_driver_Do( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,       & ! (out)
@@ -124,6 +145,9 @@ contains
     use DOGCM_Phys_spm_mod, only: &
          & DOGCM_Phys_spm_Do
 
+    use DOGCM_Phys_hspm_vfvm_mod, only: &
+         & DOGCM_Phys_hspm_vfvm_Do
+    
     ! 宣言文; Declareration statements
     !    
     real(DP), intent(inout) :: xyz_U_RHS_phy(IA,JA,KA)
@@ -145,40 +169,67 @@ contains
     
     call DOGCM_VPhys_driver_UpdateVViscDiffCoef(   &
          & xyz_VViscCoef, xyz_VDiffCoef,               & ! (out)
-         & xyz_U, xyz_V, xyza_TRC, xyz_Z               & ! (in)
+         & xyz_U, xyz_V, xyza_TRC,                     & ! (in)
+         & xyz_Z, xy_TOPO                              & ! (in)
          & )
+
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Phys_spm_Do(     &
+            & xyz_U_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (out)
+            & xyz_V_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (out)
+            & xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,:),      & ! (out)
+            & xyz_VViscCoef(IS:IE,JS:JE,KS:KE),           & ! (in)
+            & xyz_VDiffCoef(IS:IE,JS:JE,KS:KE),           & ! (in)
+            & xyz_U(IS:IE,JS:JE,KS:KE),                   & ! (in)
+            & xyz_V(IS:IE,JS:JE,KS:KE),                   & ! (in)
+            & xyz_H(IS:IE,JS:JE,KS:KE),                   & ! (in)
+            & xy_SSH(IS:IE,JS:JE),                        & ! (in)
+            & xyza_TRC(IS:IE,JS:JE,KS:KE,:),              & ! (in)
+            & xyz_Z(IS:IE,JS:JE,KS:KE),                   & ! (in)
+            & xy_Topo(IS:IE,JS:JE),                       & ! (in)
+            & dt                                          & ! (in)
+            & )    
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Phys_hspm_vfvm_Do(     &
+            & xyz_U_RHS_phy(IS:IE,JS:JE,:),           & ! (out)
+            & xyz_V_RHS_phy(IS:IE,JS:JE,:),           & ! (out)
+            & xyza_TRC_RHS_phy(IS:IE,JS:JE,:,:),      & ! (out)
+            & xyz_VViscCoef(IS:IE,JS:JE,:),           & ! (in)
+            & xyz_VDiffCoef(IS:IE,JS:JE,:),           & ! (in)
+            & xyz_U(IS:IE,JS:JE,:),                   & ! (in)
+            & xyz_V(IS:IE,JS:JE,:),                   & ! (in)
+            & xyz_H(IS:IE,JS:JE,:),                   & ! (in)
+            & xy_SSH(IS:IE,JS:JE),                    & ! (in)
+            & xyza_TRC(IS:IE,JS:JE,:,:),              & ! (in)
+            & xyz_Z(IS:IE,JS:JE,:),                   & ! (in)
+            & xy_Topo(IS:IE,JS:JE),                   & ! (in)
+            & dt                                      & ! (in)
+            & )    
+    end select
     
-    call DOGCM_Phys_spm_Do(     &
-         & xyz_U_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (out)
-         & xyz_V_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (out)
-         & xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,:),      & ! (out)
-         & xyz_VViscCoef(IS:IE,JS:JE,KS:KE),           & ! (in)
-         & xyz_VDiffCoef(IS:IE,JS:JE,KS:KE),           & ! (in)
-         & xyz_U(IS:IE,JS:JE,KS:KE),                   & ! (in)
-         & xyz_V(IS:IE,JS:JE,KS:KE),                   & ! (in)
-         & xyz_H(IS:IE,JS:JE,KS:KE),                   & ! (in)
-         & xy_SSH(IS:IE,JS:JE),                        & ! (in)
-         & xyza_TRC(IS:IE,JS:JE,KS:KE,:),              & ! (in)
-         & xyz_Z(IS:IE,JS:JE,KS:KE),                   & ! (in)
-         & xy_Topo(IS:IE,JS:JE),                       & ! (in)
-         & dt                                          & ! (in)
-         & )    
     
   end subroutine DOGCM_Phys_driver_Do
 
+  !------------------------------------------------------------
+  
   subroutine DOGCM_Phys_driver_VImplTRC( xyza_TRCA,    & ! (out)
-       & xyza_TRC0, xyza_TRC_RHS,                      & ! (in)
+       & xyza_TRC0, xyza_HTRC_RHS,                     & ! (in)
        & xyz_HA, xyz_H0, xyz_VDiffCoef, dt, alpha      & ! (in)
        & )
 
     use DOGCM_Phys_spm_mod, only: &
          & DOGCM_Phys_spm_VImplTRC
 
+    use DOGCM_Phys_hspm_vfvm_mod, only: &
+         & DOGCM_Phys_hspm_vfvm_VImplTRC
+
+
     ! 宣言文; Declareration statements
     !    
     real(DP), intent(out) :: xyza_TRCA(IA,JA,KA,TRC_TOT_NUM)
     real(DP), intent(in) :: xyza_TRC0(IA,JA,KA,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyza_TRC_RHS(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyza_HTRC_RHS(IA,JA,KA,TRC_TOT_NUM)
     real(DP), intent(in) :: xyz_HA(IA,JA,KA)    
     real(DP), intent(in) :: xyz_H0(IA,JA,KA)    
     real(DP), intent(in)  :: xyz_VDiffCoef(IA,JA,KA)
@@ -187,16 +238,29 @@ contains
 
     ! 実行文; Executable statements
     !
+
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Phys_spm_VImplTRC( xyza_TRCA(IS:IE,JS:JE,KS:KE,:),                & ! (out)
+            & xyza_TRC0(IS:IE,JS:JE,KS:KE,:), xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,:),   & ! (in)
+            & xyz_HA(IS:IE,JS:JE,KS:KE), xyz_H0(IS:IE,JS:JE,KS:KE),                 & ! (in)
+            & xyz_VDiffCoef(IS:IE,JS:JE,KS:KE),                                     & ! (in)
+            & dt,  alpha                                                            & ! (in)
+            & )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Phys_hspm_vfvm_VImplTRC( xyza_TRCA(IS:IE,JS:JE,:,:),          & ! (out)
+            & xyza_TRC0(IS:IE,JS:JE,:,:), xyza_HTRC_RHS(IS:IE,JS:JE,:,:),       & ! (in)
+            & xyz_HA(IS:IE,JS:JE,:), xyz_H0(IS:IE,JS:JE,:),                     & ! (in)
+            & xyz_VDiffCoef(IS:IE,JS:JE,:),                                     & ! (in)
+            & dt,  alpha                                                        & ! (in)
+            & )
+    end select
     
-    call DOGCM_Phys_spm_VImplTRC( xyza_TRCA(IS:IE,JS:JE,KS:KE,:),                & ! (out)
-         & xyza_TRC0(IS:IE,JS:JE,KS:KE,:), xyza_TRC_RHS(IS:IE,JS:JE,KS:KE,:),    & ! (in)
-         & xyz_HA(IS:IE,JS:JE,KS:KE), xyz_H0(IS:IE,JS:JE,KS:KE),                 & ! (in)
-         & xyz_VDiffCoef(IS:IE,JS:JE,KS:KE),                                     & ! (in)
-         & dt,  alpha                                                            & ! (in)
-         & )
 
   end subroutine DOGCM_Phys_driver_VImplTRC
 
+  !--------------------------------------------------
+  
   subroutine DOGCM_Phys_driver_VImplUV( xyz_UA, xyz_VA,    & ! (out)
        & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,             & ! (in)
        & xyz_H, xyz_VViscCoef,                             & ! (in)
@@ -205,6 +269,9 @@ contains
 
     use DOGCM_Phys_spm_mod, only: &
          & DOGCM_Phys_spm_VImplUV
+
+    use DOGCM_Phys_hspm_vfvm_mod, only: &
+         & DOGCM_Phys_hspm_vfvm_VImplUV
     
     ! 宣言文; Declaration statement
     !          
@@ -222,13 +289,25 @@ contains
     ! 実行文; Executable statements
     !
 
-    call DOGCM_Phys_spm_VImplUV( &
-         & xyz_UA(IS:IE,JS:JE,KS:KE), xyz_VA(IS:IE,JS:JE,KS:KE),       & ! (out)
-         & xyz_U0(IS:IE,JS:JE,KS:KE), xyz_V0(IS:IE,JS:JE,KS:KE),       & ! (in)
-         & xyz_U_RHS(IS:IE,JS:JE,KS:KE), xyz_V_RHS(IS:IE,JS:JE,KS:KE), & ! (in)
-         & xyz_H(IS:IE,JS:JE,KS:KE), xyz_VViscCoef(IS:IE,JS:JE,KS:KE), & ! (in)
-         & dt, alpha )
 
+    select case(SolverType)
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+       call DOGCM_Phys_spm_VImplUV( &
+            & xyz_UA(IS:IE,JS:JE,KS:KE), xyz_VA(IS:IE,JS:JE,KS:KE),       & ! (out)
+            & xyz_U0(IS:IE,JS:JE,KS:KE), xyz_V0(IS:IE,JS:JE,KS:KE),       & ! (in)
+            & xyz_U_RHS(IS:IE,JS:JE,KS:KE), xyz_V_RHS(IS:IE,JS:JE,KS:KE), & ! (in)
+            & xyz_H(IS:IE,JS:JE,KS:KE), xyz_VViscCoef(IS:IE,JS:JE,KS:KE), & ! (in)
+            & dt, alpha )
+    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Phys_hspm_vfvm_VImplUV( &
+            & xyz_UA(IS:IE,JS:JE,:), xyz_VA(IS:IE,JS:JE,:),       & ! (out)
+            & xyz_U0(IS:IE,JS:JE,:), xyz_V0(IS:IE,JS:JE,:),       & ! (in)
+            & xyz_U_RHS(IS:IE,JS:JE,:), xyz_V_RHS(IS:IE,JS:JE,:), & ! (in)
+            & xyz_H(IS:IE,JS:JE,:), xyz_VViscCoef(IS:IE,JS:JE,:), & ! (in)
+            & dt, alpha )
+    end select
+    
+    
   end subroutine DOGCM_Phys_driver_VImplUV
 
   

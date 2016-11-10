@@ -74,10 +74,18 @@ module DOGCM_Admin_GovernEq_mod
   character(*), public, parameter :: OCNGOVERNEQ_TYPENOSPEC_NAME = "UnActivated"
   integer, public, parameter :: OCNGOVERNEQ_TYPENOSPEC = -1
 
-
   !
+  character(*), public, parameter :: OCNGOVERNEQ_SOLVER_HSPM_VSPM_NAME = "HSPM-VSPM"
+  integer, public, parameter :: OCNGOVERNEQ_SOLVER_HSPM_VSPM           = 1
+  character(*), public, parameter :: OCNGOVERNEQ_SOLVER_HSPM_VFVM_NAME = "HSPM-VFVM"
+  integer, public, parameter :: OCNGOVERNEQ_SOLVER_HSPM_VFVM           = 2
+  
+  
+  !
+  integer, public, save :: SOLVERType
   integer, public, save :: DynEqType       !< The type of dynamical equations
   integer, public, save :: EOSType         !< The type of equation of state
+
   
   ! 非公開手続き
   ! Private procedure
@@ -185,6 +193,7 @@ contains
     integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
     ! IOSTAT of NAMELIST read
 
+    character(TOKEN) :: SolverTypeName
     character(TOKEN) :: DynEqTypeName
     character(TOKEN) :: EOSTypeName
     character(STRING) :: LPhysNames
@@ -197,6 +206,7 @@ contains
     ! NAMELIST group name
     !
     namelist /GovernEq_nml/ &
+         & SolverTypeName,  &
          & DynEqTypeName,   &
          & EOSTypeName,     &
          & LPhysNames,      &
@@ -209,6 +219,7 @@ contains
     ! Default values settings
     !
 
+    SolverTypeName = OCNGOVERNEQ_SOLVER_HSPM_VSPM_NAME
     DynEqTypeName = OCNGOVERNEQ_DYN_HYDROBOUSSINESQ_NAME
     EOSTypeName = EOSTYPENAME_LINEAR
 
@@ -232,6 +243,15 @@ contains
     ! - Convert the type name into the corresponding ID ---------
     !
 
+    ! Specify the solver used in DOGCM
+    SOLVERType = typeName2ID( SolverTypeName, &
+         & (/ OCNGOVERNEQ_SOLVER_HSPM_VSPM_NAME,    &
+         &    OCNGOVERNEQ_SOLVER_HSPM_VFVM_NAME /), &
+         & (/ OCNGOVERNEQ_SOLVER_HSPM_VSPM,         &
+         &    OCNGOVERNEQ_SOLVER_HSPM_VFVM      /), &
+         & "SolverType", .false. )
+
+    
     ! Specify the governing equations used in dynamical core
     
     DynEqType = typeName2ID( DynEqTypeName, &
@@ -291,6 +311,7 @@ contains
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, '< Ocean Dynamics             >')
+    call MessageNotify( 'M', module_name, '  - SolverType           = %c', c1 = SolverTypeName )     
     call MessageNotify( 'M', module_name, '  - DynEqType            = %c', c1 = DynEqTypeName ) 
     call MessageNotify( 'M', module_name, '  - EOSType              = %c', c1 = EOSTypeName )
     call MessageNotify( 'M', module_name, '< Ocean Lateral Physics      >')

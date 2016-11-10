@@ -52,13 +52,13 @@ bin_PROGRAMS =
 #exp_name = APEOGCircSIce
 
 #= APECoupleClimate -------
-#exp_name = APECoupleClimate
+exp_name = APECoupleClimate
 
 #= EqJetAccel -------------
 #exp_name = EqJetAccel
 
 #= APEOGCircI98BC -------
-exp_name = APEOGCircI98BC
+#exp_name = APEOGCircI98BC
 
 
 #######################################################################

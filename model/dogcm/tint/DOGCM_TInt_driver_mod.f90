@@ -158,7 +158,6 @@ contains
     !
 
 
-
     !-- Advance time step ---------------------------------------------------------
     
     if ( isSelfStartSchemeUsed ) then
@@ -207,7 +206,7 @@ contains
          & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),   & ! (inout)
          & xyza_H(:,:,:,TLN), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
          & )
-    
+
     call DOGCM_TInt_common_advance_Phys( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                  & ! (out)
        & xyz_VViscCoef, xyz_VDiffCoef,                                    & ! (out)
@@ -216,7 +215,7 @@ contains
        & xyz_Z, xy_Topo,                                                  & ! (in)
        & DelTime                                                          & ! (in)
        & )
-    
+
     call DOGCM_TInt_common_advance_Dyn(  &
          ! ------ Time lelve A ------------------------------------------------- 
          & xyza_U(:,:,:,TLA), xyza_V(:,:,:,TLA), xyza_OMG(:,:,:,TLA),      & ! (out)
@@ -282,10 +281,10 @@ contains
     TLN = TIMELV_ID_N
     TLB = TIMELV_ID_B
 
-    call DOGCM_Boundary_driver_ApplyBC( &
-         & xyza_U(:,:,:,TLB), xyza_V(:,:,:,TLB), xyzaa_TRC(:,:,:,:,TLB),   & ! (inout)
-         & xyza_H(:,:,:,TLB), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
-         & )
+!!$    call DOGCM_Boundary_driver_ApplyBC( &
+!!$         & xyza_U(:,:,:,TLB), xyza_V(:,:,:,TLB), xyzaa_TRC(:,:,:,:,TLB),   & ! (inout)
+!!$         & xyza_H(:,:,:,TLB), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
+!!$         & )
     
     call DOGCM_Boundary_driver_ApplyBC( &
          & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),   & ! (inout)
@@ -348,12 +347,6 @@ contains
 
   subroutine DOGCM_TInt_LFAM3_Do()
 
-    use DOGCM_Boundary_vars_mod
-
-    use DOGCM_Admin_Constants_mod
-
-    use SpmlUtil_mod, only: &
-         & AvrLonLat_xy, xy_IntSig_BtmToTop_xyz
     
     ! 作業変数
     ! Work variables
@@ -361,7 +354,10 @@ contains
     real(DP) :: xyz_U_RHS_phy(IA,JA,KA)
     real(DP) :: xyz_V_RHS_phy(IA,JA,KA)
     real(DP) :: xyza_TRC_RHS_phy(IA,JA,KA,TRC_TOT_NUM)
-    integer :: TLA, TLN, TLB
+
+    integer :: TLA
+    integer :: TLN
+    integer :: TLB
 
     real(DP) :: xyz_U(IA,JA,KA)
     real(DP) :: xyz_V(IA,JA,KA)
@@ -380,20 +376,20 @@ contains
     
 !!$    call MessageNotify('M', module_name, "TInt = LFAM3 ..")
     
-    
     TLA = TIMELV_ID_A
     TLN = TIMELV_ID_N
     TLB = TIMELV_ID_B
 
-    call DOGCM_Boundary_driver_ApplyBC( &
-         & xyza_U(:,:,:,TLB), xyza_V(:,:,:,TLB), xyzaa_TRC(:,:,:,:,TLB),   & ! (inout)
-         & xyza_H(:,:,:,TLB), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
-         & )
-    
-    call DOGCM_Boundary_driver_ApplyBC( &
-         & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),   & ! (inout)
-         & xyza_H(:,:,:,TLN), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
-         & )
+!!$    call DOGCM_Boundary_driver_ApplyBC( &
+!!$         & xyza_U(:,:,:,TLB), xyza_V(:,:,:,TLB), xyzaa_TRC(:,:,:,:,TLB),   & ! (inout)
+!!$         & xyza_H(:,:,:,TLB), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
+!!$         & )
+!!$
+
+!!$    call DOGCM_Boundary_driver_ApplyBC( &
+!!$         & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),   & ! (inout)
+!!$         & xyza_H(:,:,:,TLN), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
+!!$         & )
     
 !!$    call MessageNotify('M', module_name, "OCN_Phys [1/2] ..")
     call DOGCM_TInt_common_advance_Phys( &
@@ -425,7 +421,7 @@ contains
          & 2d0*DelTime,                                                    & ! (in)
          & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef & ! (in)    
          & )    
-    
+
     !$omp parallel
     !$omp workshare
     xyz_U(:,:,:) = (5d0*xyza_U(:,:,:,TLA) + 8d0*xyza_U(:,:,:,TLN) - xyza_U(:,:,:,TLB))/12d0
@@ -435,7 +431,7 @@ contains
     xy_SSH(:,:) = (5d0*xya_SSH(:,:,TLA) + 8d0*xya_SSH(:,:,TLN) - xya_SSH(:,:,TLB))/12d0
     !$omp end workshare
     !$omp end parallel
-
+    
 !!$    call MessageNotify('M', module_name, "OCN_Phys [2/2] ..")
 
     call DOGCM_TInt_common_advance_Phys( &
@@ -444,7 +440,7 @@ contains
        & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN),                            & ! (in)
        & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),     & ! (in)
        & xyz_Z, xy_Topo,                                                  & ! (in)
-       & DelTime                                                         & ! (in)
+       & DelTime, .true.                                                  & ! (in)
        & )
 
 !!$    call MessageNotify('M', module_name, "OCN_Dyn [2/2] ..")        
@@ -465,8 +461,8 @@ contains
          & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                 & ! (in)
          & xyz_VViscCoef, xyz_VDiffCoef,                                   & ! (in)
          & DelTime,                                                        & ! (in)
-         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef & ! (in)    
-         & )    
+         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef, & ! (in)    
+         & lhst_tend=.true. )    
 
 !!$    avr_ptempN = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_PTEMP,TLN)) )    
 !!$    avr_ptempA = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_PTEMP,TLA)) )

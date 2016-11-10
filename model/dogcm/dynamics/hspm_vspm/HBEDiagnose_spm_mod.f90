@@ -45,6 +45,7 @@ module HBEDiagnose_spm_mod
   !
   public :: HBEDiagnose_Init, HBEDiagnose_Final
   public :: HBEDiagnose_OMG
+  public :: HBEDiagnose_OMG2
   public :: HBEDiagnose_HydPres
   public :: HBEDiagnose_VorDiv
   public :: HBEDiagnose_UVBarot
@@ -85,6 +86,10 @@ contains
   subroutine HBEDiagnose_OMG( xyz_OMG,      & ! (out)
        & xyz_Div, xyz_H, xyz_HA, DelTime )    ! (in)
 
+
+    use SpmlUtil_mod, only: &
+         & DifMat, IntMat, RMatM1, RMatM2
+    
     real(DP), intent(out) :: xyz_OMG(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
@@ -93,7 +98,18 @@ contains
 
     integer :: k
     real(DP) :: xyz_IntSig_kernel(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_DSigOMG(0:iMax-1,jMax,0:kMax)
 
+    real(DP) :: AMat(0:kMax,0:kMax)
+    real(DP) :: b(0:kMax)
+    integer :: IPIV(0:kMax)
+    integer :: info
+
+
+    integer :: i
+    integer :: j
+
+    
     !$omp parallel
     !$omp workshare
     xyz_IntSig_kernel(:,:,:) = &
@@ -102,11 +118,61 @@ contains
     !$omp end workshare
     !$omp end parallel
     xyz_OMG(:,:,:) = xyz_IntSig_SigToTop_xyz(xyz_IntSig_kernel)
-
     xyz_OMG(:,:,kMax) = 0d0
-    
+
+!!$    do j=1, jMax
+!!$       do i=0, iMax-1
+!!$          AMat(1:kMax,:) = matmul(RMatM1, DifMat)
+!!$          AMat(0,:) =  0d0; AMat(0,0) = 1d0
+!!$          AMat(kMax,:) =  0d0; AMat(kMax,0) = 1d0
+!!$          b(1:kMax-1) = - matmul(RMatM2, xyz_H(i,j,:)*xyz_Div(i,j,:))
+!!$          b(0) = 0d0; b(kMax) = 0d0
+!!$          call DGESV(kMax+1, 1, AMat, kMax+1, IPIV, b, kMax+1, info)
+!!$          xyz_OMG(i,j,:) = b(:)
+!!$          xyz_OMG(i,j,kMax) = 0d0
+!!$       end do
+!!$    end do
+!!$    
+!!$    xyz_DSigOMG = xyz_DSig_xyz(xyz_OMG)/xyz_H
+!!$    do k=0, kMax
+!!$       write(*,'(a,i2,3(E18.5e2))') "k=", k, xyz_Div(0,jMax/2,k), xyz_DSigOMG(0,jMax/2,k), xyz_OMG(0,jMax/2,k)
+!!$    end do
+!!$    write(*,*) "----------"
+!!$    stop
   end subroutine HBEDiagnose_OMG
 
+  !-----------
+
+  subroutine HBEDiagnose_OMG2( xyz_OMG,           & ! (out)
+       & xyz_U, xyz_V, xyz_H, xyz_HA, DelTime )    ! (in)
+
+    real(DP), intent(out) :: xyz_OMG(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_HA(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: DelTime
+
+    integer :: k
+
+    real(DP) :: xyz_IntSig_U(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_IntSig_V(0:iMax-1,jMax,0:kMax)
+
+    xyz_IntSig_U(:,:,:) = xyz_IntSig_SigToTop_xyz(xyz_U)
+    xyz_IntSig_V(:,:,:) = xyz_IntSig_SigToTop_xyz(xyz_V)
+
+    xyz_OMG(:,:,0) = 0d0
+    !$omp parallel do
+    do k=1, kMax
+       xyz_OMG(:,:,k) = xy_w(w_AlphaOptr_xy( &
+            & xyz_H(:,:,k)*xyz_IntSig_U(:,:,k)*xy_CosLat, &
+            & xyz_H(:,:,k)*xyz_IntSig_V(:,:,k)*xy_CosLat ))
+    end do
+    
+!!$    write(*,*) "check: hDIV:", xyz_OMG(0,jMax/2,:)    
+
+  end subroutine HBEDiagnose_OMG2
+  
   !--------------
   
   subroutine HBEDiagnose_UVBarot( xy_UBarot, xy_VBarot,       & ! (out)

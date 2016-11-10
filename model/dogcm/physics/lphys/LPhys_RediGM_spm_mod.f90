@@ -6,7 +6,7 @@
 !! @author Yuta Kawai
 !!
 !!
-module DOGCM_LPhys_RediGM_spm_mod 
+module LPhys_RediGM_spm_mod 
 
   ! モジュール引用; Use statements
   !
@@ -24,7 +24,9 @@ module DOGCM_LPhys_RediGM_spm_mod
   !* Dennou-OGCM
 
   use DOGCM_Admin_Constants_mod, only: &
-       & PI, RPlanet, Omega
+       & PI,                           &
+       & RPlanet, Omega, Grav,         &
+       & RefDens
 
   use SpmlUtil_mod, only: &
        & w_AlphaOptr_xy,  &
@@ -32,10 +34,12 @@ module DOGCM_LPhys_RediGM_spm_mod
        & xya_wa, wa_xya,  &
        & xy_GradLon_w,    &
        & xy_GradLat_w,    &
+       & xyz_DSig_xyz,    &
        & xy_CosLat
 
   use EOSDriver_mod, only: &
-       & EOSDriver_Eval
+       & EOSDriver_Eval,      &
+       & EOSDriver_alpha_beta
 
   use DOGCM_Admin_Grid_mod, only: &
        & IS, IE, JS, JE, KS, kE,       &
@@ -43,8 +47,11 @@ module DOGCM_LPhys_RediGM_spm_mod
        & xyz_Lat, xyz_Lon,             &
        & x_CI, y_CJ, z_CK
 
-  use DOGCM_LPhys_RediGMHelper_mod, only: &
-       & DOGCM_LPhys_RediGMHelper_Init, DOGCM_LPhys_RediGMHelper_Final, &
+  use DOGCM_Admin_TInteg_mod, only: &
+       & CurrentTime
+  
+  use LPhys_RediGMHelper_mod, only: &
+       & LPhys_RediGMHelper_Init, LPhys_RediGMHelper_Final,   &
        & prepare_SlopeTapering,                               &       
        & xyz_Dz_xyz,                                          &
        & DFM08Info, prepare_DFM08Info, TaperingDFM08_GM, TaperingDFM08_IDIFF
@@ -57,11 +64,11 @@ module DOGCM_LPhys_RediGM_spm_mod
   ! 公開手続き
   ! Public procedure
   !
-  public :: DOGCM_LPhys_RediGM_spm_Init, DOGCM_LPhys_RediGM_spm_Final
-  public :: DOGCM_LPhys_RediGM_spm_GetParameters
-  public :: DOGCM_LPhys_RediGM_spm_Output, DOGCM_LPhys_RediGM_spm_PrepareOutput
+  public :: LPhys_RediGM_spm_Init, LPhys_RediGM_spm_Final
+  public :: LPhys_RediGM_spm_GetParameters
+  public :: LPhys_RediGM_spm_Output, LPhys_RediGM_spm_PrepareOutput
 
-  public :: DOGCM_LPhys_RediGM_spm_AddMixingTerm
+  public :: LPhys_RediGM_spm_AddMixingTerm
 
   public :: calc_IsoNeutralSlope
   public :: calc_IsopycDiffFlux
@@ -78,7 +85,7 @@ module DOGCM_LPhys_RediGM_spm_mod
   ! 非公開変数
   ! Private variable
   !
-  character(*), parameter:: module_name = 'DOGCM_LPhys_RediGM_spm_mod' !< Module Name
+  character(*), parameter:: module_name = 'LPhys_RediGM_spm_mod' !< Module Name
 
   real(DP) :: SGSEddyMixType
   real(DP) :: Kappa_Redi              !< Isopycnal diffusivity with Redi scheme [m^2/s]
@@ -95,16 +102,23 @@ contains
   !> Initialize this module.
   !!
   !! Choose a scheme to parametrize sub-grid scale eddy mixing.
-  !! If Redi scheme is used, set SGSEddyMixParamType to \link #DOGCM_LPhys_RediGM_spm_Redi \endlink. 
-  !! If GM scheme is used, set SGSEddyMixParamType to \link #DOGCM_LPhys_RediGM_spm_GM \endlink. 
+  !! If Redi scheme is used, set SGSEddyMixParamType to \link #LPhys_RediGM_spm_Redi \endlink. 
+  !! If GM scheme is used, set SGSEddyMixParamType to \link #LPhys_RediGM_spm_GM \endlink. 
   !! KappaRedi and KappaGM are the parameters associated with the magnitude of diffusivity tensor in Redi or GM scheme,
   !! respectively(see a document of Dennou-OGCM for details).
   !! If you want, you can also set the parameters and output flag for analysis through namelist. In that case, specify
   !! the confignmlFileName.
   !!
-  subroutine DOGCM_LPhys_RediGM_spm_Init( &
+  subroutine LPhys_RediGM_spm_Init( &
        & KappaRedi, KappaGM, isVarsOutput, confignmlFileName & ! (in)
        & )
+
+    use DOGCM_Admin_TInteg_mod, only: &
+         & OriginTime => RestartTime, &
+         & EndTime
+    
+    use DOGCM_IO_History_mod, only: &
+         & FilePrefix, OutputIntrvalSec
 
     ! 宣言文; Declaration statement
     !
@@ -132,31 +146,38 @@ contains
     end if
 
     ! Initialize a module to help this module
-    call DOGCM_LPhys_RediGMHelper_Init()
+    call LPhys_RediGMHelper_Init()
+
+    if (OutputFlag) then
+       call LPhys_RediGM_spm_PrepareOutput(   &
+            & OriginTime, EndTime, OutputIntrvalSec, FilePrefix & ! (in)
+            & )
+       call LPhys_RediGM_spm_Output()
+    end if
     
-  end subroutine DOGCM_LPhys_RediGM_spm_Init
+  end subroutine LPhys_RediGM_spm_Init
 
   
   !>
   !!
   !!
-  subroutine DOGCM_LPhys_RediGM_spm_Final()
+  subroutine LPhys_RediGM_spm_Final()
 
     ! 実行文; Executable statements
     !
 
-    call DOGCM_LPhys_RediGMHelper_Final()
+    call LPhys_RediGMHelper_Final()
     
     if(OutputFlag) call HistoryClose(hst_SGSEddyMix)
     
-  end subroutine DOGCM_LPhys_RediGM_spm_Final
+  end subroutine LPhys_RediGM_spm_Final
 
   !-------------------------------------------------------------------
   
   !>
   !!
   !!
-  subroutine DOGCM_LPhys_RediGM_spm_GetParameters( &
+  subroutine LPhys_RediGM_spm_GetParameters( &
        & KappaRedi, KappaGM                   & ! (out)
        & )
 
@@ -171,12 +192,12 @@ contains
     if(present(KappaRedi)) KappaRedi = Kappa_Redi
     if(present(KappaGM)) KappaGM = Kappa_GM
 
-  end subroutine DOGCM_LPhys_RediGM_spm_GetParameters
+  end subroutine LPhys_RediGM_spm_GetParameters
   
   !> @brief 
   !!
   !!
-  subroutine DOGCM_LPhys_RediGM_spm_AddMixingTerm( &
+  subroutine LPhys_RediGM_spm_AddMixingTerm( &
        & xyz_PTemp_RHS, xyz_Salt_RHS,                                &  ! (inout)
        & xyz_PTemp, xyz_Salt, xyz_H, xyz_Z, xy_Topo                  &  ! (in)
        & )
@@ -184,8 +205,6 @@ contains
     ! モジュール引用; Use statements
     !    
     use DOGCM_Admin_Constants_mod
-    use DOGCM_Admin_TInteg_mod, only: &
-         & CurrentTime
 
     ! 宣言文; Declaration statement
     !
@@ -210,27 +229,31 @@ contains
     real(DP) :: xyz_T(0:iMax-1,jMax,0:kMax)
 
     integer :: k
-
+    
     ! 実行文; Executable statement
     !
     
     ! Calculate the potential density.
     !
     xyz_RefPress = 0d0
-    call EOSDriver_Eval( xyz_DensPot, &                !(out)
-         & xyz_PTemp, xyz_Salt, xyz_RefPress )         !(in)
+    call EOSDriver_Eval( xyz_DensPot, &                ! (out)
+         & xyz_PTemp, xyz_Salt, xyz_RefPress )         ! (in)
 
     
     ! Calculate the components of the isoneutral slope. 
     !
     
-    call calc_IsoNeutralSlope( xyz_SLon, xyz_SLat, &   !(out)
-         & xyz_DensPot, xyz_H )                        !(in)
+!!$    call calc_IsoNeutralSlope( xyz_SLon, xyz_SLat, &   !(out)
+!!$         & xyz_DensPot, xyz_H )                            !(in)
+
+    call calc_IsoNeutralSlope_new( xyz_SLon, xyz_SLat, &   !(out)
+         & xyz_PTemp, xyz_Salt, xyz_H, xyz_Z )         !(in)
 
     call prepare_SlopeTapering( xyz_T, xyz_SLon, xyz_SLat, & ! (inout)
          & xyz_DensPot, xyz_Z                              & ! (in)
          & )
 
+    
 !    call check_StaticStability(xyz_T, xyz_DensPot)
 
     
@@ -267,7 +290,13 @@ contains
 
       integer :: k
 
-      real(DP) :: xyz_DzFSig(0:iMax-1,jMax,0:kMax)
+      real(DP) :: xyz_DSig_FSig(0:iMax-1,jMax,0:kMax)
+
+!!$      real(DP) :: xyz_BolusU(0:iMax-1,jMax,0:kMax)
+!!$      real(DP) :: xyz_BolusV(0:iMax-1,jMax,0:kMax)
+!!$      real(DP) :: xyz_BolusW(0:iMax-1,jMax,0:kMax)
+!!$      real(DP) :: xy_BolusDiv(0:iMax-1,jMax)
+!!$      real(DP) :: xyz_DzTRC(0:iMax-1,jMax,0:kMax)
       
       ! 実行文; Executable statement
       !
@@ -286,7 +315,7 @@ contains
            & xyz_SLon, xyz_SLat, xyz_T                       &  ! (in)
            & )
       
-      xyz_DzFSig(:,:,:) = xyz_Dz_xyz(xyz_FSigRedi + xyz_FSigGM, xyz_H)
+      xyz_DSig_FSig(:,:,:) = xyz_DSig_xyz(xyz_FSigRedi + xyz_FSigGM)
       !$omp parallel do
       do k = 0, kMax
          xyz_RHS(:,:,k) = xyz_RHS(:,:,k)  &
@@ -294,12 +323,35 @@ contains
               &     (xyz_FLonRedi(:,:,k) + xyz_FLonGM(:,:,k))*xy_CosLat, &
               &     (xyz_FLatRedi(:,:,k) + xyz_FLatGM(:,:,k))*xy_CosLat  &
               &    ) )                                                   &
-              & + xyz_DzFSig(:,:,k)
+              & + xyz_DSig_FSig(:,:,k)/xyz_H(:,:,k)
       end do
 
+!!$      !-- Advect form--
+!!$      
+!!$      xyz_DzFSig(:,:,:) = xyz_DSig_xyz(xyz_FSigRedi)  !xyz_Dz_xyz(xyz_FSigRedi + xyz_FSigGM, xyz_H)      
+!!$      call calc_BolusVelocity( &
+!!$           & xyz_BolusU, xyz_BolusV, xyz_BolusW,                & ! (out)
+!!$           & xyz_H, xyz_Z, xyz_SLon, xyz_SLat, xyz_T            & ! (in)
+!!$           & )
+!!$
+!!$      xyz_DzTRC = xyz_DSig_xyz(xyz_TRC)
+!!$      !$omp parallel do private(xy_BolusDiv)
+!!$      do k = 0, kMax
+!!$         xy_BolusDiv(:,:) = xy_w(w_AlphaOptr_xy(xyz_BolusU(:,:,k)*xy_CosLat, xyz_BolusV(:,:,k)*xy_CosLat))
+!!$         
+!!$         xyz_RHS(:,:,k) = xyz_RHS(:,:,k) - xy_w(  &
+!!$              &     w_AlphaOptr_xy( &
+!!$              &         (-xyz_FLonRedi(:,:,k) + xyz_BolusU(:,:,k)*xyz_TRC(:,:,k))*xy_CosLat,           &
+!!$              &         (-xyz_FLatRedi(:,:,k) + xyz_BolusV(:,:,k)*xyz_TRC(:,:,k))*xy_CosLat  )         &
+!!$              &   + w_xy( - xyz_TRC(:,:,k)* xy_BolusDiv(:,:)                                           &
+!!$              &           + (-xyz_DzFSig(:,:,k) + xyz_BolusW(:,:,k)*xyz_DzTRC(:,:,k))/xyz_H(:,:,k)   ) &
+!!$              &  )
+!!$
+!!$      end do
+      
     end subroutine append_Redi_GM_RHS
 
-  end subroutine DOGCM_LPhys_RediGM_spm_AddMixingTerm
+  end subroutine LPhys_RediGM_spm_AddMixingTerm
   
   subroutine calc_IsopycDiffFlux( &
        & xyz_FLon, xyz_FLat, xyz_FSig,            &  ! (out)
@@ -337,9 +389,11 @@ contains
     ! Calculate the components of diffusive flux along isopycnal surface.
     !
     
-    xyz_DzTRC(:,:,:) = xyz_Dz_xyz(xyz_TRC, xyz_H)
+!!$    xyz_DzTRC(:,:,:) = xyz_Dz_xyz(xyz_TRC, xyz_H)
+    xyz_DzTRC(:,:,:) = xyz_DSig_xyz(xyz_TRC)/xyz_H
+
     !$omp parallel do private(xy_GradLonTRC, xy_GradLatTRC)
-    do k = 1, kMax-1
+    do k = 0, kMax
        xy_GradLonTRC(:,:) = xy_GradLon_w(wz_TRC(:,k))/RPlanet
        xy_GradLatTRC(:,:) = xy_GradLat_w(wz_TRC(:,k))/RPlanet
        
@@ -415,7 +469,8 @@ contains
     ! 実行文; Executable statement
     !
 
-    xyz_DzTRC(:,:,:) = xyz_Dz_xyz(xyz_TRC, xyz_H)
+    xyz_DzTRC(:,:,:) = xyz_DSig_xyz(xyz_TRC)/xyz_H
+!!$    xyz_DzTRC(:,:,:) = xyz_Dz_xyz(xyz_TRC, xyz_H)
 
     !$omp parallel 
     !$omp do
@@ -448,7 +503,7 @@ contains
   end subroutine calc_SkewFlux
   
   subroutine calc_IsoNeutralSlope( xyz_SLon, xyz_SLat,          &  ! (out)
-       & xyz_DensPot, xyz_H                                     &  ! (in)
+       & xyz_DensPot, xyz_H                                         &  ! (in)
        & )
 
     ! 宣言文; Declaration statement
@@ -471,7 +526,7 @@ contains
     !
 
     xyz_DzDensPot(:,:,:) = xyz_Dz_xyz(xyz_DensPot, xyz_H)
-
+    
     !$omp parallel do private(w_DensPot)
     do k=0, kMax
        w_DensPot(:) = w_xy(xyz_DensPot(:,:,k))
@@ -481,34 +536,60 @@ contains
     
   end subroutine calc_IsoNeutralSlope
 
+  subroutine calc_IsoNeutralSlope_new( xyz_SLon, xyz_SLat,          &  ! (out)
+       & xyz_PTemp, xyz_Salt, xyz_H, xyz_Z                      &  ! (in)
+       & )
 
-  
-!!$  subroutine check_StaticStability(xyz_KappRho, xyz_DensPot)
-!!$
-!!$    ! 宣言文; Declaration statement
-!!$    !
-!!$    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(inout) :: xyz_KappRho
-!!$    real(DP), dimension(0:iMax-1,jMax,0:kMax), intent(in) :: xyz_DensPot
-!!$
-!!$    ! 局所変数
-!!$    ! Local variables
-!!$    !
-!!$    integer :: k
-!!$
-!!$    ! 実行文; Executable statement
-!!$    !
-!!$
-!!$    return
-!!$    
-!!$!    !$omp parallel do
-!!$    do k=0, kMax-1
-!!$       where(xyz_DensPot(:,:,k) > xyz_DensPot(:,:,k+1))
-!!$          xyz_KappRho(:,:,k) = 0d0
-!!$          xyz_KappRho(:,:,k+1) = 0d0
-!!$       end where
-!!$    end do
-!!$
-!!$  end subroutine check_StaticStability
+    ! 宣言文; Declaration statement
+    !
+
+    real(DP), intent(out) :: xyz_SLon(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(out) :: xyz_SLat(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,0:kMax)
+
+    ! 局所変数
+    ! Local variables
+    !
+
+    real(DP) :: xyz_DSigPTemp(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_DSigSalt(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xy_Tmp(0:iMax-1,jMax)
+    
+    real(DP) :: xy_alpha(0:iMax-1,jMax)
+    real(DP) :: xy_beta(0:iMax-1,jMax)
+    real(DP) :: w_PTemp(lMax)
+    real(DP) :: w_Salt(lMax)
+
+    integer :: k
+    real(DP), parameter :: EPS = 1d-10
+
+    ! 実行文; Executable statement
+    !
+
+    xyz_DSigPTemp(:,:,:) = xyz_Dz_xyz(xyz_PTemp,xyz_H)*xyz_H ! xyz_DSig_xyz(xyz_PTemp)
+    xyz_DSigSalt(:,:,:) = xyz_Dz_xyz(xyz_Salt,xyz_H)*xyz_H !xyz_DSig_xyz(xyz_Salt)
+
+    !$omp parallel do private(xy_alpha, xy_beta,  w_PTemp, w_Salt, xy_Tmp)
+    do k = 0, kMax
+       call EOSDriver_alpha_beta( alpha=xy_alpha, beta=xy_beta,   & ! (out)
+            & theta=xyz_PTemp(:,:,k), S=xyz_Salt(:,:,k),          & ! (in)
+            & p=-RefDens*Grav*xyz_Z(:,:,k) )                        ! (in)
+
+       w_PTemp(:) = w_xy(xyz_PTemp(:,:,k))
+       w_Salt(:) = w_xy(xyz_Salt(:,:,k))
+
+       xy_Tmp(:,:) =  xyz_H(:,:,k)/RPlanet &
+            &             / ( xy_alpha*xyz_DSigPTemp(:,:,k) - xy_beta*xyz_DSigSalt(:,:,k) + EPS ) 
+       xyz_SLon(:,:,k) =  - (xy_alpha*xy_GradLon_w(w_PTemp) - xy_beta*xy_GradLon_w(w_Salt)) * xy_Tmp 
+       xyz_SLat(:,:,k) =  - (xy_alpha*xy_GradLat_w(w_PTemp) - xy_beta*xy_GradLat_w(w_Salt)) * xy_Tmp 
+    end do
+    
+  end subroutine calc_IsoNeutralSlope_new
+
+  !-----------------------------------------------------------
   
   subroutine calc_BolusVelocity( &
        & xyz_BolusU, xyz_BolusV, xyz_BolusW,                & ! (out)
@@ -554,9 +635,10 @@ contains
             & DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb, xyz_Z )
     end if
 
-    xyz_BolusU(:,:,:) = - xyz_Dz_xyz(xyz_PsiLat, xyz_H)
-    xyz_BolusV(:,:,:) =   xyz_Dz_xyz(xyz_PsiLon, xyz_H) ! xyz_Dz_xyz(xyz_PsiLon*xyz_CosLat, xyz_H)/xyz_CosLat
-                                                        ! = xyz_Dz_xyz(xyz_PsiLon, xyz_H)
+    xyz_BolusU(:,:,:) = - xyz_DSig_xyz(xyz_PsiLat)/xyz_H !-xyz_Dz_xyz(xyz_PsiLat, xyz_H)
+    xyz_BolusV(:,:,:) =   xyz_DSig_xyz(xyz_PsiLon)/xyz_H ! xyz_Dz_xyz(xyz_PsiLon, xyz_H)
+                                                         ! xyz_Dz_xyz(xyz_PsiLon*xyz_CosLat, xyz_H)/xyz_CosLat
+                                                         ! = xyz_Dz_xyz(xyz_PsiLon, xyz_H)
     !$omp parallel do
     do k = 0, kMax
        xyz_BolusW(:,:,k) = xy_w( &
@@ -572,7 +654,7 @@ contains
 
     ! モジュール引用; Use statement
     !
-    use DOGCM_LPhys_RediGMHelper_mod, only: &
+    use LPhys_RediGMHelper_mod, only: &
          & init_taperingScheme, &
          & TAPERINGTYPE_DM95_NAME, PBLTAPERINGTYPE_LDD95_NAME
     
@@ -680,7 +762,7 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine DOGCM_LPhys_RediGM_spm_Output()
+  subroutine LPhys_RediGM_spm_Output()
 
     ! モジュール引用; Use statement
     !
@@ -695,6 +777,9 @@ contains
          & xyzaa_TRC, xyza_H,     &
          & TRCID_SALT, TRCID_PTEMP
 
+    use DOGCM_IO_History_mod, only:      &
+       & DOGCM_IO_History_IsOutputTiming
+    
     ! 局所変数
     ! Local variables
     !
@@ -726,7 +811,8 @@ contains
     ! 実行文; Executable statement
     !
 
-    if(.not. OutputFlag) return 
+    if( .not. DOGCM_IO_History_isOutputTiming(CurrentTime) ) return
+    if( .not. OutputFlag) return 
 
     xyz_PTemp(:,:,:) = xyzaa_TRC(IS:IE,JS:JE,KS:KE, TRCID_PTEMP,TL_N)
     xyz_Salt(:,:,:) = xyzaa_TRC(IS:IE,JS:JE,KS:KE, TRCID_SALT,TL_N)
@@ -738,9 +824,12 @@ contains
          & xyz_PTemp, xyz_Salt, xyz_RefPress )     !(in)
 
     ! Calculate the components of the isoneutral slope. 
-    call calc_IsoNeutralSlope(xyz_SLon, xyz_SLat, &  !(out)
-         & xyz_DensPot, xyz_H                )       !(in)
+!!$    call calc_IsoNeutralSlope(xyz_SLon, xyz_SLat, &  !(out)
+!!$         & xyz_DensPot, xyz_H                )       !(in)
 
+    call calc_IsoNeutralSlope_new( xyz_SLon, xyz_SLat, &   !(out)
+         & xyz_PTemp, xyz_Salt, xyz_H, xyz_Z )         !(in)
+    
     !
     !
     call prepare_SlopeTapering(xyz_T, xyz_SLon, xyz_SLat,  & ! (inout)
@@ -760,11 +849,11 @@ contains
          & xyz_SLon, xyz_SLat, xyz_T                       &  ! (in)
          & )
     
-!!$    call HistoryPut('DensPot', xyz_DensPot, hst_SGSEddyMix)
+    call HistoryPut('DensPot', xyz_DensPot, hst_SGSEddyMix)
 !!$    call HistoryPut('MixLyrDepth', xy_BLD, hst_SGSEddyMix)
 
-    call HistoryPut('SlopeLon', xyz_T*xyz_SLon, hst_SGSEddyMix)
-    call HistoryPut('SlopeLat', xyz_T*xyz_SLat, hst_SGSEddyMix)
+    call HistoryPut('SlopeLon', xyz_SLon, hst_SGSEddyMix)
+    call HistoryPut('SlopeLat', xyz_SLat, hst_SGSEddyMix)
     call HistoryPut('diffCoefEff', xyz_T, hst_SGSEddyMix)
 
     !
@@ -777,9 +866,9 @@ contains
     call HistoryPut('BolusV', xyz_BolusV, hst_SGSEddyMix)
     call HistoryPut('BolusW', xyz_BolusW, hst_SGSEddyMix)
 
-  end subroutine DOGCM_LPhys_RediGM_spm_Output
+  end subroutine LPhys_RediGM_spm_Output
 
-  subroutine DOGCM_LPhys_RediGM_spm_PrepareOutput(   &
+  subroutine LPhys_RediGM_spm_PrepareOutput(   &
        & OriginTime, EndTime, Intrv, FilePrefix & ! (in)
        & )
 
@@ -817,10 +906,10 @@ contains
          & origin=real(OriginTime), interval=real(Intrv),  &        
          & history=hst_SGSEddyMix  )    
 
-    call HistoryPut(lonName, x_CI(IS:IE)*180d0/PI, hst_SGSEddyMix)
+    call HistoryPut(lonName, x_CI(IS:IE), hst_SGSEddyMix)
     call HistoryAddAttr(lonName, 'topology', 'circular', hst_SGSEddyMix)
     call HistoryAddAttr(lonName, 'modulo', 360.0, hst_SGSEddyMix)
-    call HistoryPut(latName, y_CJ(JS:JE)*180d0/PI, hst_SGSEddyMix)
+    call HistoryPut(latName, y_CJ(JS:JE), hst_SGSEddyMix)
     call HistoryPut(sigName, z_CK(KS:KE), hst_SGSEddyMix)
 
 !!$    call regist_XYZTVariable('Etc1', 'tendency term1', 's-1')
@@ -830,7 +919,7 @@ contains
 !!$    call regist_XYZTVariable('Etc5', 'tendency term2', 's-1')
 !!$    call regist_XYZTVariable('Etc6', 'tendency term3', 's-1')
 
-!!$    call regist_XYZTVariable('DensPot', 'potential density', 'kg/m3')
+    call regist_XYZTVariable('DensPot', 'potential density', 'kg/m3')
     call regist_XYZTVariable('SlopeLon', 'the longitude component of slope of isoneutral', '1')
     call regist_XYZTVariable('SlopeLat', 'the latitude component of slope of isoneutral', '1')
     call regist_XYZTVariable('diffCoefEff', 'rescale factor of diffusivity', '1')
@@ -879,7 +968,7 @@ contains
 
     end subroutine regist_XYTVariable
 
-  end subroutine DOGCM_LPhys_RediGM_spm_PrepareOutput
+  end subroutine LPhys_RediGM_spm_PrepareOutput
 
-end module DOGCM_LPhys_RediGM_spm_mod
+end module LPhys_RediGM_spm_mod
 

@@ -32,7 +32,8 @@ module DOGCM_main_mod
        & DOGCM_Admin_TInteg_AdvanceLongTStep,  &       
        & EndTemporalInteg,                     &
        & CurrentTimeStep,                      &
-       & TLN => TIMELV_ID_N
+       & TLN => TIMELV_ID_N,                   &
+       & TLA => TIMELV_ID_A
   
   use DOGCM_Admin_BC_mod, only:                &
        & DOGCM_Admin_BC_Init,                  &
@@ -44,7 +45,10 @@ module DOGCM_main_mod
   
   use DOGCM_Admin_GovernEq_mod, only:        &
        & DOGCM_Admin_GovernEq_Init,          &
-       & DOGCM_Admin_GovernEq_Final
+       & DOGCM_Admin_GovernEq_Final,         &
+       & SolverType,                         &
+       & OCNGOVERNEQ_SOLVER_HSPM_VSPM,       &
+       & OCNGOVERNEQ_SOLVER_HSPM_VFVM
   
   use DOGCM_Admin_Variable_mod, only:        &
        & DOGCM_Admin_Variable_Init,          & 
@@ -87,7 +91,11 @@ module DOGCM_main_mod
   use DOGCM_Exp_driver_mod, only:      &
        & DOGCM_Exp_driver_Init,        &
        & DOGCM_Exp_driver_Final
-   
+
+  use LPhys_RediGM_spm_mod, only: &
+       & LPhys_RediGM_spm_Output
+  use LPhys_RediGM_hspm_vfvm_mod, only: &
+       & LPhys_RediGM_hspm_vfvm_Output
   
   ! 宣言文; Declareration statements
   !
@@ -157,9 +165,10 @@ contains
   !!
   subroutine DOGCM_main_advance_timestep( &
        & tstep,                           & ! (in)
-       & loop_end_flag                    & ! (inout)
+       & loop_end_flag,                   & ! (inout)
+       & skip_flag                        & ! (in)
        & )
-
+    
     use DOGCM_Admin_Constants_mod
     use DOGCM_Admin_Grid_mod
     use DOGCM_Admin_Variable_mod
@@ -168,6 +177,7 @@ contains
     !
     integer, intent(in) :: tstep
     logical, intent(inout) :: loop_end_flag
+    logical, intent(in), optional :: skip_flag
     
     ! 局所変数
     ! Local variables
@@ -189,38 +199,39 @@ contains
           call DOGCM_Admin_Variable_HistGet()
        end if
     else
-
        !-  Advace one time step ----------------------------------------------------
+       
        
        call DOGCM_Boundary_driver_UpdateBeforeTstep( &
             & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),  & ! (in)
             & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN)                            & ! (in)
             & )    
-       
-       if(CurrentTimeStep == 1 .and. (.not. RestartFlag)) then
-          call DOGCM_TInt_driver_Do( isSelfStartSchemeUsed=.true. )
-       else
-          call DOGCM_TInt_driver_Do( isSelfStartSchemeUsed=.false. )
-       end if
 
+       if ( present(skip_flag) .and. (.not. skip_flag) ) then
+          if(CurrentTimeStep == 1 .and. (.not. RestartFlag)) then
+             call DOGCM_TInt_driver_Do( isSelfStartSchemeUsed=.true. )
+          else
+             call DOGCM_TInt_driver_Do( isSelfStartSchemeUsed=.false. )
+          end if
+       end if
+       
        call DOGCM_Admin_TInteg_AdvanceLongTStep()
        call DOGCM_Admin_Variable_AdvanceTStep()
+
+       call DOGCM_Boundary_driver_UpdateAfterTstep( &
+            & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),  & ! (in)
+            & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN)                            & ! (in)
+            & )
     end if
-
-!    write(*,*) "PTemp=", xyzaa_TRC(IS,JS:JE,KS,TRCID_PTEMP,TLN)
-
-    call DOGCM_Boundary_driver_UpdateAfterTstep( &
-         & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),  & ! (in)
-         & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN)                            & ! (in)
-         & )    
-    
     !- Output  --------------------------------------------------------------------
 
     ! history
     call DOGCM_IO_History_Output()
     call DOGCM_Admin_Variable_HistPut()
     call DOGCM_Boundary_vars_HistPut()
-
+!!$    call LPhys_RediGM_spm_Output()
+    call LPhys_RediGM_hspm_vfvm_Output()
+    
     ! restart
     call DOGCM_IO_Restart_Output()
     call DOGCM_Admin_Variable_RestartPut()
@@ -237,15 +248,20 @@ contains
     ! モジュール引用; Use statements
     !
     use OptionParser_mod
-
+         
     use DOGCM_Admin_Grid_mod, only: &
-         & iMax, jMax, kMax, &
-         & nMax, tMax, &
+         & iMax, jMax, kMax,           &
+         & nMax, tMax,                 &
+         & IA, JA,                     &
+         & KS, KE, KA, z_CDK,          &
          & DOGCM_Admin_Grid_construct
 
     use SpmlUtil_mod, only: &
-         SpmlUtil_Init
+         & SpmlUtil_Init
 
+    use VFvmUtil_mod, only: &
+         & VFvmUtil_Init
+    
 #ifdef _OPENMP
     use omp_lib
 #endif
@@ -276,8 +292,12 @@ contains
     !
     
     call DOGCM_Admin_Constants_Init( configNmlFile )
+    call DOGCM_Admin_GovernEq_Init( configNmlFile )  
     call DOGCM_Admin_Grid_Init( configNmlFile )
 
+    ! Initialize some helper modules to solve oceanic flow
+    !
+    
 #ifdef _OPENMP
     !$omp parallel
     !$omp single
@@ -291,16 +311,22 @@ contains
     call MessageNotify('M', module_name, "Execute as Serial  Mode..")
     call SpmlUtil_Init(iMax, jMax, kMax, nMax, tMax, RPlanet)
 #endif
-
+    
     !-- Grid -------------------------------------------
     
     call DOGCM_Admin_Grid_construct()
+    
 
     !-- Solver -----------------------------------------
+
+    select case ( SolverType )
+    case( OCNGOVERNEQ_SOLVER_HSPM_VFVM )
+       call VFvmUtil_Init(KS, KE, KA, z_CDK, IA, JA)
+    end select
     
     call DOGCM_Admin_TInteg_Init( configNmlFile )
-    call DOGCM_Admin_GovernEq_Init( configNmlFile )    
     call DOGCM_Admin_BC_Init( configNmlFile )
+
     
     !-- IO ---------------------------------------------
     
@@ -341,6 +367,9 @@ contains
     use SpmlUtil_mod, only: &
          SpmlUtil_Final
 
+    use VFvmUtil_mod, only: &
+         & VFvmUtil_Final
+    
     ! 宣言文; Declaration statement
     !
 
@@ -366,7 +395,12 @@ contains
     call DOGCM_Admin_TInteg_Final()
     call DOGCM_Admin_Constants_Final()
 
+    !
     call SpmlUtil_Final()
+    select case ( SolverType )
+    case( OCNGOVERNEQ_SOLVER_HSPM_VFVM )
+       call VFvmUtil_Final()
+    end select
     
   end subroutine DOGCM_main_shutdown
 
