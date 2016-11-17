@@ -94,10 +94,10 @@ contains
   
   subroutine DSIce_Dyn_fvm_SIceThickDiffRHS(           & 
        & xy_SIceCon_RHS, xy_IceThick_RHS, xy_SnowThick_RHS, & ! (out)
-       & xyz_SIceEn_RHS,                                    & ! (out)
+       & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                & ! (out)
        & xy_SIceU, xy_SIceV,                                & ! (out)
        & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,          & ! (in)
-       & xyz_SIceEn0                                        & ! (in)
+       & xyz_SIceEn0, xy_SIceSfcTemp0                       & ! (in)
        & )
 
     ! モジュール引用; Use statements
@@ -109,22 +109,23 @@ contains
          & DensSnow, DensIce,            &
          & SIceHDiffCoef
 
-!!$    use SpmlUtil_mod
-!!$    use DSIce_Admin_TInteg_mod
+    use SpmlUtil_mod
+    use DSIce_Admin_TInteg_mod
     
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(out) :: xy_SIceCon_RHS(IA,JA)
-    real(DP), intent(out) :: xy_IceThick_RHS(IA,JA)
-    real(DP), intent(out) :: xy_SnowThick_RHS(IA,JA)
-    real(DP), intent(out) :: xyz_SIceEn_RHS(IA,JA,KA)
-    real(DP), intent(out) :: xy_SIceU(IA,JA)
-    real(DP), intent(out) :: xy_SIceV(IA,JA)
+    real(DP), intent(inout) :: xy_SIceCon_RHS(IA,JA)
+    real(DP), intent(inout) :: xy_IceThick_RHS(IA,JA)
+    real(DP), intent(inout) :: xy_SnowThick_RHS(IA,JA)
+    real(DP), intent(inout) :: xyz_SIceEn_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xy_SIceSfcTemp_RHS(IA,JA)
+    real(DP), intent(inout) :: xy_SIceU(IA,JA)
+    real(DP), intent(inout) :: xy_SIceV(IA,JA)
     real(DP), intent(in) :: xy_SIceCon0(IA,JA)
     real(DP), intent(in) :: xy_IceThick0(IA,JA)
     real(DP), intent(in) :: xy_SnowThick0(IA,JA)
     real(DP), intent(in) :: xyz_SIceEn0(IA,JA,KA)
-
+    real(DP), intent(in) :: xy_SIceSfcTemp0(IA,JA)
 
     ! 作業変数
     ! Work variables
@@ -166,9 +167,9 @@ contains
                &       * xy_OcnMask(i,j)*xy_OcnMask(i,j+1)
           
           if (SIceMassTmp > 1d-10) then
-             xy_SIceV(i,j) = xy_SIceV(i,j) + &
+             xy_SIceV(i,j) = xy_SIceV(i,j) - &
                   & SIceHDiffCoef*(xy_SIceMass(i,j+1) - xy_SIceMass(i,j)) &
-                  & / (SIceMassTmp*SCALEF_E2(i,j,I_XY)*y_FDJ(j))
+                  & / (SIceMassTmp*SCALEF_E2(i,j,I_XV)*y_FDJ(j))
           end if
        end do
     end do
@@ -179,14 +180,19 @@ contains
 
     
 !!$    call FVM_UD1( xy_SIceCon_RHS, xy_SIceCon0, xy_SIceU, xy_SIceV )
-    xy_SIceCon_RHS(:,:) = 0d0    
     call FVM_UD1( xy_IceThick_RHS, xy_IceThick0, xy_SIceU, xy_SIceV )
     call FVM_UD1( xy_SnowThick_RHS, xy_SnowThick0, xy_SIceU, xy_SIceV )
     call FVM_UD1( xyz_SIceEn_RHS(:,:,KS), xyz_SIceEn0(:,:,KS), xy_SIceU, xy_SIceV )
     call FVM_UD1( xyz_SIceEn_RHS(:,:,KS+1), xyz_SIceEn0(:,:,KS+1), xy_SIceU, xy_SIceV )
+!!$    call FVM_UD1( xy_SIceSfcTemp_RHS, xy_SIceSfcTemp0, xy_SIceU, xy_SIceV )
 
-!!$    gl_mean = (AvrLonLat_xy( xy_IceThick_RHS(IS:IE,JS:JE) )*DelTime) !&
-!!$!         &    /AvrLonLat_xy( xy_IceThick0(IS:IE,JS:JE) )
+!!$    write(*,*) "SIceEn1Flx:", xyz_SIceEn_RHS(IS,JS:JE,KS)
+!!$    write(*,*) "SIceEn1:", xyz_SIceEn0(IS,JS:JE,KS)
+!!$    write(*,*) "SIceEn2Flx:", xyz_SIceEn_RHS(IS,JS:JE,KS+1)
+!!$    write(*,*) "SIceEn2:", xyz_SIceEn0(IS,JS:JE,KS+1)
+
+!!$    gl_mean = (AvrLonLat_xy( xy_IceThick_RHS(IS:IE,JS:JE) )*DelTime) &
+!!$         &    /AvrLonLat_xy( xy_IceThick0(IS:IE,JS:JE) )
 !!$    write(*,*) "IceThickRHS_glmean=", gl_mean
 !!$
 !!$    gl_mean = 0d0
@@ -221,17 +227,18 @@ contains
 
     ! 実行文; Executable statements
     !
-    
-    !$omp parallel do private(i)
-    do j = JS, JE
-       do i = IS-1, IE
-          Flx(i,j,XDIR) = SCALEF_E2(i,j,I_UY) * &
-               &  0.5d0 * (   ( xy_q(i+1,j) + xy_q(i,j) )*    uy_u(i,j)     &
-               &            - ( xy_q(i+1,j) - xy_q(i,j) )*abs(uy_u(i,j))  )
-       end do
-    end do
 
-    !$omp parallel do private(i)    
+    !$omp parallel
+!!$!    !$omp do collapse(2)
+!!$    do j = JS, JE
+!!$       do i = IS-1, IE
+!!$          Flx(i,j,XDIR) = SCALEF_E2(i,j,I_UY) * &
+!!$               &  0.5d0 * (   ( xy_q(i+1,j) + xy_q(i,j) )*    uy_u(i,j)     &
+!!$               &            - ( xy_q(i+1,j) - xy_q(i,j) )*abs(uy_u(i,j))  )
+!!$       end do
+!!$    end do
+
+    !$omp do collapse(2)
     do j = JS-1, JE
        do i = IS, IE
           Flx(i,j,YDIR) = SCALEF_E1(i,j,I_XV) * &
@@ -240,16 +247,17 @@ contains
        end do
     end do
 
-    
-    !$omp parallel do private(i)    
+    !$omp do collapse(2)
     do j = JS, JE
        do i = IS, IE
           xy_q_RHS(i,j) = ( &
-               &    ( Flx(i,j,XDIR) - Flx(i-1,j,XDIR) ) / x_CDI(i)  &
-               &  + ( Flx(i,j,YDIR) - Flx(i,j-1,YDIR) ) / y_CDJ(j)  &
+!!$               &  - ( Flx(i,j,XDIR) - Flx(i-1,j,XDIR) ) / x_CDI(i)  &
+               &  - ( Flx(i,j,YDIR) - Flx(i,j-1,YDIR) ) / y_CDJ(j)  &
                & ) / (SCALEF_E1(i,j,I_XY)*SCALEF_E2(i,j,I_XY))
        end do
     end do
+
+    !$omp end parallel
     
   end subroutine FVM_UD1
     

@@ -58,9 +58,9 @@ module DOGCM_TInt_driver_mod
   
   use DOGCM_Admin_Variable_mod, only: &
        & xya_SSH, xyza_H, xyza_U, xyza_V, xyza_OMG, xyzaa_TRC, &
-       & xyza_HydPres, xya_SfcPres,                               &
-       & xyz_VViscCoef, xyz_VDiffCoef,                            &
-       & TRC_TOT_NUM, &
+       & xyza_HydPres, xya_SfcPres,                            &
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,        &
+       & TRC_TOT_NUM,                                          &
        & TRCID_PTEMP, TRCID_SALT
 
   use DOGCM_Boundary_driver_mod, only: &
@@ -203,13 +203,13 @@ contains
 
 
     call DOGCM_Boundary_driver_ApplyBC( &
-         & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),   & ! (inout)
-         & xyza_H(:,:,:,TLN), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
+         & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),    & ! (inout)
+         & xyza_H(:,:,:,TLN), xyz_VViscCoef, xyz_VDiffCoef                  & ! (in)
          & )
 
     call DOGCM_TInt_common_advance_Phys( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                  & ! (out)
-       & xyz_VViscCoef, xyz_VDiffCoef,                                    & ! (out)
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                   & ! (out)
        & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN),                            & ! (in)
        & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),     & ! (in)
        & xyz_Z, xy_Topo,                                                  & ! (in)
@@ -231,12 +231,14 @@ contains
          & xya_SfcPres(:,:,TLN), xyza_HydPres(:,:,:,TLN),                  & ! (in)
          ! ----------------------------------------------------------------------
          & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                 & ! (in)
-         & xyz_VViscCoef, xyz_VDiffCoef,                                   & ! (in)
+         & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                  & ! (in)
          & DelTime,                                                        & ! (in)
-         & alpha=0d0, gamma=1d0, lambda=VDiffTermACoef                     & ! (in)
+         ! -- Note that when alpha=0.5 and gamma=1.0 in this temporal scheme,
+         !    Crank-Nicolson method is applied for the Coriolis and surface pressure terms. 
+         & alpha=0.5d0, gamma=1d0, lambda=VDiffTermACoef                   & ! (in)
          & )    
 
-    
+
   end subroutine DOGCM_TInt_Euler_Do
 
   !-----------------------------------------------
@@ -264,7 +266,7 @@ contains
     ! 作業変数
     ! Work variables
     !    
-    real(DP), parameter :: filterCoef = 5d-2
+    real(DP), parameter :: filterCoef = 1d-3
     real(DP) :: coef1, coef2
     
     real(DP) :: xyz_U_RHS_phy(IA,JA,KA)
@@ -284,16 +286,15 @@ contains
 !!$    call DOGCM_Boundary_driver_ApplyBC( &
 !!$         & xyza_U(:,:,:,TLB), xyza_V(:,:,:,TLB), xyzaa_TRC(:,:,:,:,TLB),   & ! (inout)
 !!$         & xyza_H(:,:,:,TLB), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
+!!$         & )    
+!!$    call DOGCM_Boundary_driver_ApplyBC( &
+!!$         & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),   & ! (inout)
+!!$         & xyza_H(:,:,:,TLN), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
 !!$         & )
-    
-    call DOGCM_Boundary_driver_ApplyBC( &
-         & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),   & ! (inout)
-         & xyza_H(:,:,:,TLN), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
-         & )
     
     call DOGCM_TInt_common_advance_Phys( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                  & ! (out)
-       & xyz_VViscCoef, xyz_VDiffCoef,                                    & ! (out)
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                   & ! (out)
        & xyza_U(:,:,:,TLB), xyza_V(:,:,:,TLB),                            & ! (in)
        & xyza_H(:,:,:,TLB), xya_SSH(:,:,TLB), xyzaa_TRC(:,:,:,:,TLB),     & ! (in)
        & xyz_Z, xy_Topo,                                                  & ! (in)
@@ -315,17 +316,16 @@ contains
          & xya_SfcPres(:,:,TLB), xyza_HydPres(:,:,:,TLB),                  & ! (in)
          ! ----------------------------------------------------------------------
          & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                 & ! (in)
-         & xyz_VViscCoef, xyz_VDiffCoef,                                   & ! (in)
+         & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                  & ! (in)
          & 2d0*DelTime,                                                    & ! (in)
-!         & alpha=1d0/3d0, gamma=1d0/3d0, lambda=VDiffTermACoef       & ! (in)
-         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef                   & ! (in)
+         & alpha=1d0/3d0, gamma=1d0/3d0, lambda=VDiffTermACoef             & ! (in)
+!         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef                   & ! (in)
          & )    
 
-
+    
     ! Time filter by Asselin (1972)
     !
-    
-    
+        
     coef1 = 1d0 - 2d0*filterCoef
     coef2 = filterCoef
 
@@ -365,6 +365,7 @@ contains
     real(DP) :: xyza_TRC(IA,JA,KA,TRC_TOT_NUM)
     real(DP) :: xyz_H(IA,JA,KA)
     real(DP) :: xy_SSH(IA,JA)
+    real(DP) :: xy_SfcPres(IA,JA)
 
     real(DP) :: avr_ptempN
     real(DP) :: avr_ptempA
@@ -394,7 +395,7 @@ contains
 !!$    call MessageNotify('M', module_name, "OCN_Phys [1/2] ..")
     call DOGCM_TInt_common_advance_Phys( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                  & ! (out)
-       & xyz_VViscCoef, xyz_VDiffCoef,                                    & ! (out)
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                   & ! (out)
        & xyza_U(:,:,:,TLB), xyza_V(:,:,:,TLB),                            & ! (in)
        & xyza_H(:,:,:,TLB), xya_SSH(:,:,TLB), xyzaa_TRC(:,:,:,:,TLB),     & ! (in)
        & xyz_Z, xy_Topo,                                                  & ! (in)
@@ -417,9 +418,10 @@ contains
          & xya_SfcPres(:,:,TLB), xyza_HydPres(:,:,:,TLB),                  & ! (in)
          ! ----------------------------------------------------------------------
          & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                 & ! (in)
-         & xyz_VViscCoef, xyz_VDiffCoef,                                   & ! (in)
+         & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                  & ! (in)
          & 2d0*DelTime,                                                    & ! (in)
-         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef & ! (in)    
+         & alpha=0.5d0, gamma=0d0, lambda=VDiffTermACoef                   & ! (in)    
+!!$         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef & ! (in)    
          & )    
 
     !$omp parallel
@@ -429,6 +431,7 @@ contains
     xyz_H(:,:,:) = (5d0*xyza_H(:,:,:,TLA) + 8d0*xyza_H(:,:,:,TLN) - xyza_H(:,:,:,TLB))/12d0
     xyza_TRC(:,:,:,:) = (5d0*xyzaa_TRC(:,:,:,:,TLA) + 8d0*xyzaa_TRC(:,:,:,:,TLN) - xyzaa_TRC(:,:,:,:,TLB))/12d0
     xy_SSH(:,:) = (5d0*xya_SSH(:,:,TLA) + 8d0*xya_SSH(:,:,TLN) - xya_SSH(:,:,TLB))/12d0
+    xy_SfcPres(:,:) = (5d0*xya_SfcPres(:,:,TLA) + 8d0*xya_SfcPres(:,:,TLN) - xya_SfcPres(:,:,TLB))/12d0    
     !$omp end workshare
     !$omp end parallel
     
@@ -436,7 +439,7 @@ contains
 
     call DOGCM_TInt_common_advance_Phys( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                  & ! (out)
-       & xyz_VViscCoef, xyz_VDiffCoef,                                    & ! (out)
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                   & ! (out)
        & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN),                            & ! (in)
        & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),     & ! (in)
        & xyz_Z, xy_Topo,                                                  & ! (in)
@@ -452,16 +455,17 @@ contains
          ! ------ Time lelve Dyn -------------------------------------------------
          & xyz_U, xyz_V, xyz_OMG,                                          & ! (in)
          & xyz_H, xy_SSH, xyza_TRC,                                        & ! (in)
-         & xya_SfcPres(:,:,TLN), xyza_HydPres(:,:,:,TLN),                  & ! (in)
+         & xy_SfcPres, xyza_HydPres(:,:,:,TLN),                            & ! (in)
          ! ------ Time lelve 0 --------------------------------------------------
          & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyza_OMG(:,:,:,TLN),      & ! (in)
          & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),    & ! (in)
          & xya_SfcPres(:,:,TLN), xyza_HydPres(:,:,:,TLN),                  & ! (in)
          ! ----------------------------------------------------------------------
          & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                 & ! (in)
-         & xyz_VViscCoef, xyz_VDiffCoef,                                   & ! (in)
+         & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                  & ! (in)
          & DelTime,                                                        & ! (in)
-         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef, & ! (in)    
+         & alpha=0.5d0, gamma=0d0, lambda=VDiffTermACoef,                  & ! (in)    
+!!$         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef, & ! (in)    
          & lhst_tend=.true. )    
 
 !!$    avr_ptempN = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_PTEMP,TLN)) )    

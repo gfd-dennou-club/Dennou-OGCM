@@ -151,24 +151,27 @@ contains
     real(DP), intent(in) :: xy_UBarocForce(0:iMax-1,jMax)
     real(DP), intent(in) :: xy_VBarocForce(0:iMax-1,jMax)
 
-    real(DP) :: w_SfcPres(lMax)
-
-    w_SfcPres(:) = w_xy(xy_SfcPres)
-
-    xy_UBarot_RHS(:,:) = &
-         & + xy_CoriVBarot                                 &
-         & - xy_GradLon_w(w_SfcPres) / (RefDens*RPlanet)   &
-         & + xy_UBarocForce
-
-    xy_VBarot_RHS(:,:) = &
-         & - xy_CoriUBarot                                 &
-         & - xy_GradLat_w(w_SfcPres) / (RefDens*RPlanet)   &
-         & + xy_VBarocForce
-
-!!$    write(*,*) "Cori=", -xy_CoriUBarot
-!!$    write(*,*) "Pres=", -xy_GradLat_w(w_SfcPres)/(RefDens*RPlanet)
-!!$    write(*,*) "Fbaroc=", xy_VBarocForce
+    ! 作業変数
+    ! Work variables
     
+    real(DP) :: xy_A(0:iMax-1,jMax)
+    real(DP) :: xy_B(0:iMax-1,jMax)
+    real(DP) :: w_Vor_RHS(lMax)
+    real(DP) :: w_Div_RHS(lMax)
+
+    ! 実行文; Executable statements
+    !
+    
+    xy_A(:,:) = xy_CosLat*(xy_CoriUBarot - xy_VBarocForce)
+    xy_B(:,:) = xy_CosLat*(xy_CoriVBarot + xy_UBarocForce)
+
+    w_Vor_RHS(:) = - w_AlphaOptr_xy(xy_A,   xy_B)
+    w_Div_RHS(:) =   w_AlphaOptr_xy(xy_B, - xy_A)                     &
+         &          - w_Lapla_w(w_xy(xy_SfcPres))/(RefDens*RPlanet**2)
+
+    call calc_VorDiv2UV( w_Vor_RHS, w_Div_RHS, & ! (in)
+         & xy_UBarot_RHS, xy_VBarot_RHS )        ! (out)
+
   end subroutine HBEBarot_MOMRHS
 
   subroutine HBEBarot_Update_LinFreeSfc( &
@@ -185,6 +188,9 @@ contains
     real(DP), intent(in) :: DelTimeSSH
     real(DP), intent(in) :: PresTAvgCoefA
 
+    ! 作業変数
+    ! Work variables
+    
     real(DP) :: w_DDiv(lMax)
     real(DP) :: w_DVor(lMax)
     real(DP) :: w_Vor(lMax)
@@ -195,7 +201,10 @@ contains
     real(DP) :: xy_DSfcPres(0:iMax-1,jMax)
 
     integer :: itr
-    
+
+    ! 実行文; Executable statements
+    !
+
     call calc_UVCosLat2VorDiv( xy_UBarotA*xy_CosLat, xy_VBarotA*xy_CosLat, & ! (in)
          & w_Vor, w_Div )                                                    ! (out)
     
@@ -205,7 +214,7 @@ contains
 
 !!$    do itr = 1, 2
 !!$       w_DVor(:) = - w_xy( &
-!!$            & 1.0d0*DelTime*( &
+!!$            & 1d0*DelTime*( &
 !!$            & xy_Cori*xy_w(w_DDiv) + 2d0*Omega*xy_DVBarot*xy_CosLat/RPlanet &
 !!$            & ) )
 !!$       

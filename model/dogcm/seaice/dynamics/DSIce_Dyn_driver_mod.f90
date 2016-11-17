@@ -92,10 +92,10 @@ contains
   
   subroutine DSIce_Dyn_driver_ADVRHS(                           & 
        & xy_SIceCon_RHS, xy_IceThick_RHS, xy_SnowThick_RHS,     & ! (out)
-       & xyz_SIceEn_RHS,                                        & ! (out)
+       & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                    & ! (out)
        & xy_SIceU, xy_SIceV,                                    & ! (out)
        & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,              & ! (in)
-       & xyz_SIceEn0                                            & ! (in)
+       & xyz_SIceEn0, xy_SIceSfcTemp0                           & ! (in)
        & )
 
     ! 宣言文; Declaration statement
@@ -104,21 +104,33 @@ contains
     real(DP), intent(out) :: xy_IceThick_RHS(IA,JA)
     real(DP), intent(out) :: xy_SnowThick_RHS(IA,JA)
     real(DP), intent(out) :: xyz_SIceEn_RHS(IA,JA,KA)
+    real(DP), intent(out) :: xy_SIceSfcTemp_RHS(IA,JA)
     real(DP), intent(out) :: xy_SIceU(IA,JA)
     real(DP), intent(out) :: xy_SIceV(IA,JA)
     real(DP), intent(in) :: xy_SIceCon0(IA,JA)
     real(DP), intent(in) :: xy_IceThick0(IA,JA)
     real(DP), intent(in) :: xy_SnowThick0(IA,JA)
     real(DP), intent(in) :: xyz_SIceEn0(IA,JA,KA)
-
-    !
+    real(DP), intent(in) :: xy_SIceSfcTemp0(IA,JA)
+    
+    !$omp parallel
+    !$omp workshare
+    xy_SIceCon_RHS     = 0d0
+    xy_IceThick_RHS    = 0d0
+    xy_SnowThick_RHS   = 0d0
+    xyz_SIceEn_RHS     = 0d0
+    xy_SIceSfcTemp_RHS = 0d0
+    !$omp end workshare
+    !$omp end parallel
+    
+    ! Parameterization of horizontal transport with icethickness diffusion. 
     !
     call DSIce_Dyn_fvm_SIceThickDiffRHS(           & 
        & xy_SIceCon_RHS, xy_IceThick_RHS, xy_SnowThick_RHS, & ! (out)
-       & xyz_SIceEn_RHS,                                    & ! (out)
+       & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                & ! (out)
        & xy_SIceU, xy_SIceV,                                & ! (out)
        & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,          & ! (in)
-       & xyz_SIceEn0                                        & ! (in)
+       & xyz_SIceEn0, xy_SIceSfcTemp0                       & ! (in)
        & )
     
   end subroutine DSIce_Dyn_driver_ADVRHS

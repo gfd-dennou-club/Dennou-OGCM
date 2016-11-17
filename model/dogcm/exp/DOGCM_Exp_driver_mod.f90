@@ -66,8 +66,8 @@ module DOGCM_Exp_driver_mod
 !!$  use DOGCM_Exp_EqJetAccel_mod, only:        &
 !!$  use DOGCM_Exp_APEOGCirc_mod, only:            &
 !!$  use DOGCM_Exp_APEOGCircSIce_mod, only:        &
-  use DOGCM_Exp_APECoupleClimate_mod, only:        &
-!!$  use DOGCM_Exp_APEOGCircI98BC_mod, only:        &
+!!$  use DOGCM_Exp_APECoupleClimate_mod, only:        &
+  use DOGCM_Exp_APEOGCircI98BC_mod, only:        &
        & DOGCM_Exp_Init,                           &
        & DOGCM_Exp_Final,                          &
        & DOGCM_Exp_SetInitCond,                    &

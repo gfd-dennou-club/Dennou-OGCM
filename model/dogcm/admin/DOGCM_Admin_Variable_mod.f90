@@ -72,7 +72,7 @@ module DOGCM_Admin_Variable_mod
 
   real(DP), public, allocatable :: xyz_VViscCoef(:,:,:)
   real(DP), public, allocatable :: xyz_VDiffCoef(:,:,:)
-
+  real(DP), public, allocatable :: xy_BtmFrictCoef(:,:)
   real(DP), public, allocatable :: xyz_ConvIndex(:,:,:)
 
   
@@ -120,6 +120,7 @@ contains
     allocate( xyza_HydPres(IA,JA,KA,TA), xya_SfcPres(IA,JA,TA) )
     allocate( xyzaa_TRC(IA,JA,KA,TRC_TOT_NUM,TA) )
     allocate( xyz_VViscCoef(IA,JA,KA), xyz_VDiffCoef(IA,JA,KA) )
+    allocate( xy_BtmFrictCoef(IA,JA) )
     allocate( xyz_ConvIndex(IA,JA,KA) )
 
     !- Regist output variables for history and restart --------------
@@ -164,6 +165,7 @@ contains
        deallocate( xyza_HydPres, xya_SfcPres )
        deallocate( xyzaa_TRC )
        deallocate( xyz_VViscCoef, xyz_VDiffCoef )
+       deallocate( xy_BtmFrictCoef )
        deallocate( xyz_ConvIndex )
        
     end if
@@ -250,7 +252,7 @@ contains
     call DOGCM_IO_History_HistPut( 'Z', xyz_Z(IS:IE,JS:JE,KS:KE) )
 
     call DOGCM_IO_History_HistPut( 'HydPres', xyza_HydPres(IS:IE,JS:JE,KS:KE, TIMELV_ID_B) )
-    call DOGCM_IO_History_HistPut( 'SfcPres', xya_SfcPres(IS:IE,JS:JE, TIMELV_ID_B) )
+    call DOGCM_IO_History_HistPut( 'SfcPres', xya_SfcPres(IS:IE,JS:JE, TIMELV_ID_N) )
 
 
     call DOGCM_IO_History_HistPut( 'ConvIndex', xyz_ConvIndex(IS:IE,JS:JE,KS:KE) )

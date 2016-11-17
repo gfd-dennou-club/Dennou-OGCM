@@ -133,7 +133,7 @@ contains
 
   subroutine DOGCM_Phys_driver_Do( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,       & ! (out)
-       & xyz_VViscCoef, xyz_VDiffCoef,                         & ! (out)
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,        & ! (out)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xyza_TRC,                & ! (in)
        & xyz_Z, xy_Topo,                                       & ! (in)
        & dt                                                    & ! (in)
@@ -155,6 +155,7 @@ contains
     real(DP), intent(inout) :: xyza_TRC_RHS_phy(IA,JA,KA,TRC_TOT_NUM)
     real(DP), intent(out) :: xyz_VViscCoef(IA,JA,KA)
     real(DP), intent(out) :: xyz_VDiffCoef(IA,JA,KA)
+    real(DP), intent(out) :: xy_BtmFrictCoef(IA,JA)
     real(DP), intent(in) :: xyz_U(IA,JA,KA)
     real(DP), intent(in) :: xyz_V(IA,JA,KA)
     real(DP), intent(in) :: xyz_H(IA,JA,KA)    
@@ -168,19 +169,20 @@ contains
     !
     
     call DOGCM_VPhys_driver_UpdateVViscDiffCoef(   &
-         & xyz_VViscCoef, xyz_VDiffCoef,               & ! (out)
-         & xyz_U, xyz_V, xyza_TRC,                     & ! (in)
-         & xyz_Z, xy_TOPO                              & ! (in)
+         & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,  & ! (out)
+         & xyz_U, xyz_V, xyza_TRC,                         & ! (in)
+         & xyz_H, xyz_Z, xy_TOPO                           & ! (in)
          & )
 
     select case(SolverType)
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
        call DOGCM_Phys_spm_Do(     &
-            & xyz_U_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (out)
-            & xyz_V_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (out)
-            & xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,:),      & ! (out)
-            & xyz_VViscCoef(IS:IE,JS:JE,KS:KE),           & ! (in)
-            & xyz_VDiffCoef(IS:IE,JS:JE,KS:KE),           & ! (in)
+            & xyz_U_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (inout)
+            & xyz_V_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (inout)
+            & xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,:),      & ! (inout)
+            & xyz_VViscCoef(IS:IE,JS:JE,KS:KE),           & ! (out)
+            & xyz_VDiffCoef(IS:IE,JS:JE,KS:KE),           & ! (out)
+            & xy_BtmFrictCoef(IS:IE,JS:JE),               & ! (out)
             & xyz_U(IS:IE,JS:JE,KS:KE),                   & ! (in)
             & xyz_V(IS:IE,JS:JE,KS:KE),                   & ! (in)
             & xyz_H(IS:IE,JS:JE,KS:KE),                   & ! (in)
@@ -192,11 +194,12 @@ contains
             & )    
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
        call DOGCM_Phys_hspm_vfvm_Do(     &
-            & xyz_U_RHS_phy(IS:IE,JS:JE,:),           & ! (out)
-            & xyz_V_RHS_phy(IS:IE,JS:JE,:),           & ! (out)
-            & xyza_TRC_RHS_phy(IS:IE,JS:JE,:,:),      & ! (out)
-            & xyz_VViscCoef(IS:IE,JS:JE,:),           & ! (in)
-            & xyz_VDiffCoef(IS:IE,JS:JE,:),           & ! (in)
+            & xyz_U_RHS_phy(IS:IE,JS:JE,:),           & ! (inout)
+            & xyz_V_RHS_phy(IS:IE,JS:JE,:),           & ! (inout)
+            & xyza_TRC_RHS_phy(IS:IE,JS:JE,:,:),      & ! (inout)
+            & xyz_VViscCoef(IS:IE,JS:JE,:),           & ! (out)
+            & xyz_VDiffCoef(IS:IE,JS:JE,:),           & ! (out)
+            & xy_BtmFrictCoef(IS:IE,JS:JE),           & ! (out)
             & xyz_U(IS:IE,JS:JE,:),                   & ! (in)
             & xyz_V(IS:IE,JS:JE,:),                   & ! (in)
             & xyz_H(IS:IE,JS:JE,:),                   & ! (in)
@@ -263,7 +266,7 @@ contains
   
   subroutine DOGCM_Phys_driver_VImplUV( xyz_UA, xyz_VA,    & ! (out)
        & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,             & ! (in)
-       & xyz_H, xyz_VViscCoef,                             & ! (in)
+       & xyz_H, xyz_VViscCoef, xy_BtmFrictCoef,            & ! (in)
        & dt,  alpha                                        & ! (in)
        & )
 
@@ -283,6 +286,7 @@ contains
     real(DP), intent(in) :: xyz_V_RHS(IA,JA,KA)
     real(DP), intent(in) :: xyz_H(IA,JA,KA)    
     real(DP), intent(in) :: xyz_VViscCoef(IA,JA,KA)
+    real(DP), intent(in) :: xy_BtmFrictCoef(IA,JA)
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: alpha
 
@@ -297,6 +301,7 @@ contains
             & xyz_U0(IS:IE,JS:JE,KS:KE), xyz_V0(IS:IE,JS:JE,KS:KE),       & ! (in)
             & xyz_U_RHS(IS:IE,JS:JE,KS:KE), xyz_V_RHS(IS:IE,JS:JE,KS:KE), & ! (in)
             & xyz_H(IS:IE,JS:JE,KS:KE), xyz_VViscCoef(IS:IE,JS:JE,KS:KE), & ! (in)
+            & xy_BtmFrictCoef(IS:IE,JS:JE),                               & ! (in)
             & dt, alpha )
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
        call DOGCM_Phys_hspm_vfvm_VImplUV( &
@@ -304,6 +309,7 @@ contains
             & xyz_U0(IS:IE,JS:JE,:), xyz_V0(IS:IE,JS:JE,:),       & ! (in)
             & xyz_U_RHS(IS:IE,JS:JE,:), xyz_V_RHS(IS:IE,JS:JE,:), & ! (in)
             & xyz_H(IS:IE,JS:JE,:), xyz_VViscCoef(IS:IE,JS:JE,:), & ! (in)
+            & xy_BtmFrictCoef(IS:IE,JS:JE),                       & ! (in)            
             & dt, alpha )
     end select
     

@@ -189,56 +189,80 @@ contains
     real(DP) :: xy_IceThick_RHS(IA,JA)
     real(DP) :: xy_SnowThick_RHS(IA,JA)
     real(DP) :: xyz_SIceEn_RHS(IA,JA,KA)
+    real(DP) :: xy_SIceSfcTemp_RHS(IA,JA)
+    
     real(DP) :: xy_SIceU(IA,JA)
     real(DP) :: xy_SIceV(IA,JA)
     real(DP) :: IceMass
 
+    real(DP) :: xy_SIceSfcTempADV(IA,JA)
+    
     real(DP), parameter :: EPS_ICETHICK = 1d-13
+
     
     ! 実行文; Executable statements
     !
 
+    where( xy_SIceSfcTempADV > 0d0)
+       xy_SIceSfcTempADV(:,:) = 0d0
+    elsewhere
+       xy_SIceSfcTempADV(:,:) = xy_SIceSfcTemp0
+    end where
+    
     call DSIce_Dyn_driver_ADVRHS(                               & 
        & xy_SIceCon_RHS, xy_IceThick_RHS, xy_SnowThick_RHS,     & ! (out)
-       & xyz_SIceEn_RHS,                                        & ! (out)
+       & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                    & ! (out)
        & xy_SIceU, xy_SIceV,                                    & ! (out)
        & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,              & ! (in)
-       & xyz_SIceEn0                                            & ! (in)
+       & xyz_SIceEn0, xy_SIceSfcTempADV                         & ! (in)
        & )    
 !!$    xy_SIceCon_RHS = 0d0
 !!$    xy_IceThick_RHS = 0d0
 !!$    xy_SnowThick_RHS = 0d0
 !!$    xyz_SIceEn_RHS = 0d0
     
-    !$omp parallel do private(i, IceMass)
+    !$omp parallel do private(IceMass) collapse(2)
     do j = JS, JE
        do i = IS, IE
-          xy_IceThickA(i,j)  = xy_IceThick0(i,j)              &
+
+          ! * Update the tendency of ice thickness and the entalphy, and snow thickness.  
+          !
+
+          xy_IceThickA(i,j)  = xy_IceThick0(i,j)                                     &
                & + dt*(xy_IceThick_RHS(i,j) + xy_IceThick_thm(i,j))
 
-          xy_SnowThickA(i,j) = xy_SnowThick0(i,j)             &
+          xy_SnowThickA(i,j) = xy_SnowThick0(i,j)                                    &
                & + dt*(xy_SnowThick_RHS(i,j) + xy_SnowThick_thm(i,j))
 
-          xyz_SIceEnA(i,j,KS:KS+1) = xyz_SIceEn0(i,j,KS:KS+1) &
+          xyz_SIceEnA(i,j,KS:KS+1) = xyz_SIceEn0(i,j,KS:KS+1)                        &
                & + dt*(xyz_SIceEn_RHS(i,j,KS:KS+1) + xyz_SIceEn_thm(i,j,KS:KS+1))
 
-          !          
-          if ( xy_IceThickA(i,j) > EPS_ICETHICK ) then
-             xy_SIceConA(i,j) = 1d0
+          if ( xy_IceThickA(i,j) > 0d0 ) then
              
              IceMass = DensIce*0.5d0*xy_IceThickA(i,j)
              xyz_SIceTempA(i,j,KS  ) = calc_Temp_IceLyr1(xyz_SIceEnA(i,j,KS  )/IceMass, SaltSeaIce)
              xyz_SIceTempA(i,j,KS+1) = calc_Temp_IceLyr2(xyz_SIceEnA(i,j,KS+1)/IceMass, SaltSeaIce)
+             xy_SIceConA(i,j)        = 1d0
+
+             ! * Set the sea-ice surface temperature to the freezing point, if  no sea-ice exists at time N,
+             !   or sea-ice is melted completely in thermodynamics process, but then the sea-ice is advected
+             !   into the grid cell by the horizontal transport.
+             !
+             if ( xy_SIceSfcTempA(i,j) == UNDEFVAL ) then
+                xy_SIceSfcTempA(i,j) = - Mu*SaltSeaIce
+             end if
+             
           else
-             xy_SIceConA(i,j)   = 0d0
-             xy_IceThickA(i,j)  = 0d0
-             xy_SnowThickA(i,j) = 0d0
+             xy_SIceConA(i,j)           = 0d0
+             xy_IceThickA(i,j)          = 0d0
+             xy_SnowThickA(i,j)         = 0d0
              xyz_SIceEnA(i,j,KS:KS+1)   = 0d0
              xyz_SIceTempA(i,j,KS:KS+1) = UNDEFVAL
+             xy_SIceSfcTempA(i,j)       = UNDEFVAL
           end if
+          
        end do
     end do
-
 
 #ifdef DEBUG_SEAICE
     do j = JS, JE
@@ -249,18 +273,25 @@ contains
                   & "hiA=", xy_IceThickA(i,j), "hsA=", xy_SnowThickA(i,j),             &
                   & "TsfcA=", xy_SIceSfcTempA(i,j), "TA=", xyz_SIceTempA(i,j,KS:KE),   &
                   & "SIceConA=", xy_SIceConA(i,j)
+             write(*,*) "SIceEnA=", xyz_SIceEnA(i,j,KS:KE)
+
              write(*,*) &
                   & "hi0=", xy_IceThick0(i,j), "hs0=", xy_SnowThick0(i,j),             &
                   & "Tsfc0=", xy_SIceSfcTemp0(i,j), "T0=", xyz_SIceTemp0(i,j,KS:KE),   &
                   & "SIceCon0=", xy_SIceCon0(i,j)
-
+             write(*,*) "SIceEn0=", xyz_SIceEn0(i,j,KS:KE)
+             
              write(*,*) "BtmHFlxIO=", xy_BtmHFlxIO(i,j), "FreshWtFlxS=", -xy_Wice(i,j)/DensFreshWater
              write(*,*) "***********************************************************************************"
+             if (isNan(xy_BtmHFlxIO(i,j))) then
+                write(*,*) "Detect Nan. Stop!"
+                stop
+             end if
           end if
        end do
     end do
 #endif !<- DEBUG_SEAICE
-
+    
     !-- Final part of dynamical process -------------------------
     
     call DSIce_TInt_common_MeltThinMinIce( &
@@ -268,6 +299,7 @@ contains
        & xy_SIceSfcTempA, xyz_SIceTempA,  xyz_SIceEnA, & ! (inout)
        & xy_BtmHFlxIO, xy_Wice,                        & ! (inout)
        & dt )
+
     
   end subroutine DSIce_TInt_common_advance_Dyn
 
@@ -464,12 +496,17 @@ contains
                 xy_SIceSfcTempA(i,j) = UNDEFVAL
                 z_SIceTempA(KS:KE)   = UNDEFVAL
              end if
+
+             !---------------------------
+             
+             z_SIceEnA(KS  ) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr1(z_SIceTempA(KS  ),SaltSeaIce)
+             z_SIceEnA(KS+1) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr2(z_SIceTempA(KS+1),SaltSeaIce)             
              
           else
              !- The case when there is no sea-ice at the grid point -----------------------------------------
              
              FrzPot =    CpOcn*DensSeaWater*xy_OcnMixLyrDepth(i,j)/dt         &
-                  &    * ( OcnFrzTemp - K2degC(xy_SeaSfcTemp(i,j)) )
+                  &    * ( OcnFrzTemp - K2degC(xy_SeaSfcTemp(i,j)) )            ! [J/(K.kg)*(kg.m-3)*m.s-1.K = J/(m2.s)]
              
              if ( FrzPot > 0d0 ) then
                 !- Initalize sea ice ------------------------------------------------                
@@ -480,10 +517,14 @@ contains
                 
                 SIceConA   = 1d0
                 SnowThickA = 0d0
+                
                 IceThickA  = FrzPot * dt * &
                      &       2d0 / ( - DensIce*calc_E_IceLyr1(z_SIceTempA(KS  ),SaltSeaIce)   &
-                     &               - DensIce*calc_E_IceLyr2(z_SIceTempA(KS+1),SaltSeaIce) )
+                     &               - DensIce*calc_E_IceLyr2(z_SIceTempA(KS+1),SaltSeaIce) )  
 
+                z_SIceEnA(KS  ) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr1(z_SIceTempA(KS  ),SaltSeaIce)
+                z_SIceEnA(KS+1) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr2(z_SIceTempA(KS+1),SaltSeaIce)             
+                
                 xy_Wice(i,j) = DensIce*IceThickA/dt
                 xy_BtmHFlxIO(i,j) = - FrzPot &
                      &              + LFreeze * xy_SnowFall(i,j) ! [J/kg * kg/(m2.s)]
@@ -507,9 +548,6 @@ contains
           xy_SIceCon_RHS(i,j)   = (SIceConA - xy_SIceCon0(i,j))/dt
           xy_IceThick_RHS(i,j)  = (IceThickA - xy_IceThick0(i,j))/dt
           xy_SnowThick_RHS(i,j) = (SnowThickA - xy_SnowThick0(i,j))/dt
-
-          z_SIceEnA(KS  ) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr1(z_SIceTempA(KS  ),SaltSeaIce)
-          z_SIceEnA(KS+1) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr2(z_SIceTempA(KS+1),SaltSeaIce)             
           xyz_SIceEn_RHS(i,j,KS:KS+1) = (z_SIceEnA(KS:KS+1) - z_SIceEn0(KS:KS+1))/dt
              
 
@@ -536,7 +574,7 @@ contains
           
        end do
     end do
-    
+
     !-- Final part of sea-ice thermodynamics process  -----------------------
 
 !!$
@@ -593,7 +631,9 @@ contains
     do j = JS, JE
        do i = IS, IE
           
-          if ( xy_IceThick(i,j) > 0d0 .and. xy_IceThick(i,j) < IceThickMin) then
+          if (        (xy_IceThick(i,j) > 0d0 .and. xy_IceThick(i,j) < IceThickMin) &  ! <- [i]  the case of too thin ice
+               & .or. ( xyz_SIceTemp(i,j,KS+1) >  - Mu*SaltSeaIce                 ) &  ! <- [ii] the case where the temperature of lower ice layer
+               & ) then                                                                !         exceeds the freezing point
 
              ! Melt too thin ice in order to avoid numerical instability
              
@@ -627,7 +667,7 @@ contains
           
        end do
     end do
-
+    
   end subroutine DSIce_TInt_common_MeltThinMinIce
   
 end module DSIce_TInt_common_mod

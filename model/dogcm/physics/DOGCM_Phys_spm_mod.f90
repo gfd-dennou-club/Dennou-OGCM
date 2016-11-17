@@ -148,7 +148,7 @@ contains
 
   subroutine DOGCM_Phys_spm_Do( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,       & ! (out)
-       & xyz_VViscCoef, xyz_VDiffCoef,                         & ! (in)
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,        & ! (inout)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xyza_TRC,                & ! (in)
        & xyz_Z, xy_Topo,                                       & ! (in)
        & dt                                                    & ! (in)
@@ -168,8 +168,9 @@ contains
     real(DP), intent(inout) :: xyz_U_RHS_phy(0:iMax-1,jMax,0:kMax)
     real(DP), intent(inout) :: xyz_V_RHS_phy(0:iMax-1,jMax,0:kMax)
     real(DP), intent(inout) :: xyza_TRC_RHS_phy(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xy_BtmFrictCoef(0:iMax-1,jMax)
     real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)    
@@ -424,7 +425,8 @@ contains
   
   subroutine DOGCM_Phys_spm_VImplUV( xyz_UA, xyz_VA,    & ! (out)
        & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,          & ! (in)
-       & xyz_H, xyz_VViscCoef, dt, alpha                & ! (in)
+       & xyz_H, xyz_VViscCoef, xy_BtmFrictCoef,         & ! (in)
+       & dt, alpha                                      & ! (in)
        & )
 
     ! モジュール引用; Use statements
@@ -447,6 +449,7 @@ contains
     real(DP), intent(in) :: xyz_U_RHS(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_V_RHS(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(in) :: xy_BtmFrictCoef(0:iMax-1,jMax)    
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: alpha

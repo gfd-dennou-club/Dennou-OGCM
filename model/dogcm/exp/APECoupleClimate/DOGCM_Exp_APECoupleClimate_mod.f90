@@ -127,6 +127,7 @@ contains
     use DOGCM_Admin_Variable_mod, only: &
          & xyza_U, xyza_V,              &
          & xyzaa_TRC, xya_SSH, xyza_H,  &
+         & xya_SfcPres,                 &
          & TRCID_PTEMP, TRCID_SALT
 
     use DOGCM_Admin_Grid_mod, only: &
@@ -145,8 +146,8 @@ contains
          & IAS => IA, JAS => JA, KAS => KA
     
     use DSIce_Admin_Variable_mod, only: &
-         & xya_SIceCon, xya_IceThick, xya_SnowThick, &
-         & xya_SIceSfcTemp, xyza_SIceTemp
+         & xya_SIceCon, xya_IceThick, xya_SnowThick,   &
+         & xya_SIceSfcTemp, xyza_SIceTemp, xyza_SIceEn
     
     use DSIce_Boundary_vars_mod, only:   &
          & xy_SDwRFlxSIce => xy_SDwRFlx, xy_LDwRFlxSIce => xy_LDwRFlx, &
@@ -174,6 +175,7 @@ contains
     real(DP) :: xyz_PTemp0(IA,JA,KA)
     real(DP) :: xyz_Salt0(IA,JA,KA)
     real(DP) :: xyz_H0(IA,JA,KA)
+    real(DP) :: xy_SfcPres0(IA,JA)
     real(DP) :: xy_OcnMixLyrDepth(IA,JA)
     
     real(DP) :: xy_IceThick0(IAS,JAS)
@@ -181,6 +183,7 @@ contains
     real(DP) :: xyz_SIceTemp0(IAS,JAS,KAS)
     real(DP) :: xy_SIceSfcTemp0(IAS,JAS)
     real(DP) :: xy_SIceCon0(IAS,JAS)
+    real(DP) :: xyz_SIceEn0(IAS,JAS,KAS)
 
     real(DP) :: xy_WindStressU(IA,JA)
     real(DP) :: xy_WindStressV(IA,JA)    
@@ -236,20 +239,24 @@ contains
     else
 
        !
-       call get_Field4Standalone( SfcBCDataDir, "U.nc", "U", &
+       call get_Field4Standalone( SfcBCDataDir, "U.nc", "U",             &
             & MeanInitTime, MeanEndTime, xyz=xyz_U0 )
 
-       call get_Field4Standalone( SfcBCDataDir, "V.nc", "V", &
+       call get_Field4Standalone( SfcBCDataDir, "V.nc", "V",             &
             & MeanInitTime, MeanEndTime, xyz=xyz_V0 )
 
-       call get_Field4Standalone( SfcBCDataDir, "PTemp.nc", "PTemp", &
+       call get_Field4Standalone( SfcBCDataDir, "PTemp.nc", "PTemp",     &
             & MeanInitTime, MeanEndTime, xyz=xyz_PTemp0 )
 
-       call get_Field4Standalone( SfcBCDataDir, "Salt.nc", "Salt", &
+       call get_Field4Standalone( SfcBCDataDir, "Salt.nc", "Salt",       &
             & MeanInitTime, MeanEndTime, xyz=xyz_Salt0 )       
 
-       call get_Field4Standalone( SfcBCDataDir, "H.nc", "H", &
+       call get_Field4Standalone( SfcBCDataDir, "H.nc", "H",             &
             & MeanInitTime, MeanEndTime, xyz=xyz_H0 )       
+
+       call get_Field4Standalone( SfcBCDataDir, "SfcPres.nc", "SfcPres", &
+            & MeanInitTime, MeanEndTime, xy=xy_SfcPres0 )       
+       
        xy_OcnMixLyrDepth(:,:) = xyz_H0(:,:,KS) * z_KAXIS_Weight(KS)
        
        !----------------------------
@@ -266,7 +273,7 @@ contains
        
        call get_IceFieldStandalone( SfcBCDataDir, "history_sice.nc",        & ! (in)
             & MeanInitTime, MeanEndTime,                                    & ! (in)
-            & xy_IceThick0, xyz_SIceTemp0, xy_SIceSfcTemp0,                 & ! (out)
+            & xy_IceThick0, xyz_SIceTemp0, xyz_SIceEn0, xy_SIceSfcTemp0,    & ! (out)
             & xy_SIceCon0, xy_SnowThick0, xyz_PTemp0(:,:,KS),               & ! (inout)
             & xy_OcnMixLyrDepth                                             & ! (in)
             & )        
@@ -279,6 +286,7 @@ contains
        xyza_V(:,:,:,TIMELV_ID_N) = xyz_V0(:,:,:)
        xyzaa_TRC(:,:,:,TRCID_PTEMP,TIMELV_ID_N) = xyz_PTemp0(:,:,:)
        xyzaa_TRC(:,:,:,TRCID_SALT,TIMELV_ID_N) = xyz_Salt0(:,:,:)
+       xya_SfcPres(:,:,TIMELV_ID_N) = xy_SfcPres0(:,:)
        !$omp end workshare
        !$omp end parallel
        
@@ -289,6 +297,7 @@ contains
        xya_SIceCon(:,:,TIMELV_ID_N)     = xy_SIceCon0(:,:)
        xya_SIceSfcTemp(:,:,TIMELV_ID_N) = xy_SIceSfcTemp0(:,:)
        xyza_SIceTemp(:,:,:,TIMELV_ID_N) = xyz_SIceTemp0(:,:,:)
+       xyza_SIceEn(:,:,:,TIMELV_ID_N)   = xyz_SIceEn0(:,:,:)
        !$omp end workshare
        !$omp end parallel
 
@@ -488,7 +497,7 @@ contains
 
   subroutine get_IceFieldStandalone( dir, ncFileName,               & ! (in)
        & MeanInitTime, MeanEndTime,                                 & ! (in)
-       & xy_IceThick, xyz_SIceTemp, xy_SIceSfcTemp,                 & ! (out)
+       & xy_IceThick, xyz_SIceTemp, xyz_SIceEn, xy_SIceSfcTemp,     & ! (out)
        & xy_SIceCon, xy_SnowThick, xy_SeaSfcTemp, xy_OcnMixLyrDepth & ! (inout)
        & ) 
 
@@ -521,6 +530,7 @@ contains
     real(DP), intent(in) :: MeanEndTime
     real(DP), intent(out) :: xy_IceThick(IA,JA)
     real(DP), intent(out) :: xyz_SIceTemp(IA,JA,KA)
+    real(DP), intent(out) :: xyz_SIceEn(IA,JA,KA)
     real(DP), intent(out) :: xy_SIceSfcTemp(IA,JA)
     real(DP), intent(inout) :: xy_SIceCon(IA,JA)
     real(DP), intent(inout) :: xy_SnowThick(IA,JA)
@@ -542,7 +552,6 @@ contains
     real(DP) :: xya_SIceSfcTemp(IA,JA,ReadChunkSize)
     real(DP) :: xyza_SIceTemp(IA,JA,KA,ReadChunkSize)
     real(DP) :: xyza_SIceEn(IA,JA,KA,ReadChunkSize)
-    real(DP) :: xyz_SIceEn(IA,JA,KA)
 
     integer :: i
     integer :: j
@@ -651,7 +660,8 @@ contains
                   & i=(/ i,j /) )
              write(*,*) "i,j=", i,j, ": SIceTemp=", xyz_SIceTemp(i,j,KS:KE), "SIceSfcTemp=", xy_SIceSfcTemp(i,j), &
                   & "SnowThick=", xy_SnowThick(i,j), &
-                  & "IceThick=", xy_IceThick(i,j), "SIceEn=", xyz_SIceEn(i,j,KS:KE), "SST=", xy_SeaSfcTemp(i,j)
+                  & "IceThick=", xy_IceThick(i,j), "SIceEn=", xyz_SIceEn(i,j,KS:KE), "SST=", xy_SeaSfcTemp(i,j), &
+                  & "LFreeze", LFreeze*0.5d0*DensIce*xy_IceThick(i,j)
              
              DelOcnPTemp = - (   &
                   &              DensSnow * xy_IceThick(i,j) * LFreeze       & ! > 0

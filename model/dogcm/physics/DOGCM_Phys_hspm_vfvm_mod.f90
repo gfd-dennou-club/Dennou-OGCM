@@ -150,8 +150,8 @@ contains
   !-----------------------------------------
 
   subroutine DOGCM_Phys_hspm_vfvm_Do( &
-       & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,       & ! (out)
-       & xyz_VViscCoef, xyz_VDiffCoef,                         & ! (in)
+       & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,       & ! (inout)
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,        & ! (inout)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xyza_TRC,                & ! (in)
        & xyz_Z, xy_Topo,                                       & ! (in)
        & dt                                                    & ! (in)
@@ -173,6 +173,7 @@ contains
     real(DP), intent(inout) :: xyza_TRC_RHS_phy(0:iMax-1,jMax,KA,TRC_TOT_NUM)
     real(DP), intent(inout) :: xyz_VViscCoef(0:iMax-1,jMax,KA)
     real(DP), intent(inout) :: xyz_VDiffCoef(0:iMax-1,jMax,KA)
+    real(DP), intent(inout) :: xy_BtmFrictCoef(0:iMax-1,jMax)
     real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)    
@@ -206,9 +207,9 @@ contains
     end if
 
     if ( isPhysicsCompActivated( OCNGOVERNEQ_VPHYS_MIXMOM_NAME )  ) then
-       call DOGCM_Phys_hspm_vfvm_VMixMOMRHS(            & 
+       call DOGCM_Phys_hspm_vfvm_VMixMOMRHS( & 
             & xyz_U_RHS_phy, xyz_V_RHS_phy,                              & ! (inout)
-            & xyz_U, xyz_V, xyz_H, xyz_VViscCoef                         & ! (in)
+            & xyz_U, xyz_V, xyz_H, xyz_VViscCoef, xy_BtmFrictCoef        & ! (in)
             & )
     end if
 
@@ -279,8 +280,8 @@ contains
   !-----------------------------------------------------------------------
   
   subroutine DOGCM_Phys_hspm_vfvm_VMixMOMRHS(     &
-       & xyz_U_RHS, xyz_V_RHS,                            & ! (out)
-       & xyz_U, xyz_V, xyz_H, xyz_VViscCoef               & ! (in)
+       & xyz_U_RHS, xyz_V_RHS,                                  & ! (out)
+       & xyz_U, xyz_V, xyz_H, xyz_VViscCoef, xy_BtmFrictCoef    & ! (in)
        & )
 
     use DOGCM_Admin_Constants_mod, only: &
@@ -301,7 +302,8 @@ contains
     real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,KA)
-
+    real(DP), intent(in) :: xy_BtmFrictCoef(0:iMax-1,jMax)
+    
     ! 局所変数
     ! Local variables
     !
@@ -346,8 +348,8 @@ contains
     case(DynBCTYPE_NoSlip)
        !$omp parallel
        !$omp workshare
-       xyr_DiffFlxU(:,:,KE  ) = z_RFDK(KE)*xyz_VViscCoef(:,:,KE)/xyz_H(:,:,KE)* 2d0*xyz_U(:,:,KE)
-       xyr_DiffFlxV(:,:,KE  ) = z_RFDK(KE)*xyz_VViscCoef(:,:,KE)/xyz_H(:,:,KE)* 2d0*xyz_V(:,:,KE)
+       xyr_DiffFlxU(:,:,KE  ) = xy_BtmFrictCoef * xyz_U(:,:,KE)
+       xyr_DiffFlxV(:,:,KE  ) = xy_BtmFrictCoef * xyz_V(:,:,KE)
        !$omp end workshare
        !$omp end parallel
     case default
@@ -566,7 +568,7 @@ contains
   
   subroutine DOGCM_Phys_hspm_vfvm_VImplUV( xyz_UA, xyz_VA,    & ! (out)
        & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,                & ! (in)
-       & xyz_H, xyz_VViscCoef, dt, alpha                      & ! (in)
+       & xyz_H, xyz_VViscCoef, xy_BtmFrictCoef, dt, alpha     & ! (in)
        & )
 
     ! モジュール引用; Use statements
@@ -588,8 +590,9 @@ contains
     real(DP), intent(in) :: xyz_V0(0:iMax-1,jMax,KA)    
     real(DP), intent(in) :: xyz_U_RHS(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_V_RHS(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,KA)
+    real(DP), intent(in) :: xy_BtmFrictCoef(0:iMax-1,jMax)
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: alpha
 
@@ -617,14 +620,14 @@ contains
          & xyz_U0, xyz_U_RHS, xyz_VViscCoef, xyz_H, dt, alpha,             & ! (in)
          & inquire_VBCSpecType(DynBC_Surface), xya_U_VBCRHS(:,:,1),        & ! (in)
          & inquire_VBCSpecType(DynBC_Bottom),  xya_U_VBCRHS(:,:,2),        & ! (in)
-         & "U"                                                             & ! (in)
+         & "U", xy_BtmFrictCoef                                            & ! (in)
          & )
 
     call calc_VDiffEq( xyz_VA,                                             & ! (out)
          & xyz_V0, xyz_V_RHS, xyz_VViscCoef, xyz_H, dt, alpha,             & ! (in)
          & inquire_VBCSpecType(DynBC_Surface), xya_V_VBCRHS(:,:,1),        & ! (in)
          & inquire_VBCSpecType(DynBC_Bottom),  xya_V_VBCRHS(:,:,2),        & ! (in)
-         & "V"                                                             & ! (in)
+         & "V",  xy_BtmFrictCoef                                           & ! (in)
          & )
     
   end subroutine DOGCM_Phys_hspm_vfvm_VImplUV
@@ -636,7 +639,7 @@ contains
        & xyz_Kv, xyz_H, dt, alpha,              &  ! (in)
        & SeaSfcBCType, xy_SeaSfcBCVal,          &  ! (in)
        & SeaBtmBCType, xy_SeaBtmBCVal,          &  ! (in)
-       & qname                                  &  ! (in)
+       & qname, xy_BtmFrictCoef                 &  ! (in)
        & )
 
     ! 宣言文; Declaration statement
@@ -653,6 +656,7 @@ contains
     character, intent(in) :: SeaBtmBCType
     real(DP), intent(in) :: xy_SeaBtmBCVal(0:iMax-1,jMax)
     character(*), intent(in) :: qname
+    real(DP), intent(in), optional :: xy_BtmFrictCoef(0:iMax-1,jMax)
 
     ! 局所変数
     ! Local variables
@@ -731,7 +735,11 @@ contains
           select case(SeaBtmBCType)
           case('D')
              Al(k) = - alpha*coef(k)*r_DFlxCoef(k-1)
-             Ad(k) = 1d0 + alpha*coef(k)*(2d0*r_DFlxCoef(k) + r_DFlxCoef(k-1))
+             if ( present(xy_BtmFrictCoef) ) then
+                Ad(k) = 1d0 + alpha*coef(k)*(xy_BtmFrictCoef(i,j) + r_DFlxCoef(k-1))
+             else
+                Ad(k) = 1d0 + alpha*coef(k)*(2d0*r_DFlxCoef(k)    + r_DFlxCoef(k-1))
+             end if
           case('N')
              Al(k) = - alpha*coef(k)*r_DFlxCoef(k-1)
              Ad(k) = 1d0 + alpha*coef(k)*(                  + r_DFlxCoef(k-1))

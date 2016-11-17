@@ -13,9 +13,10 @@ module DOGCM_VPhys_driver_mod
 
   !* Dennou-OGCM
   use DOGCM_Admin_Grid_mod, only: &
-       & IA, IS, IE, IM, &
-       & JA, JS, JE, JM, &
-       & KA, KS, KE, KM
+       & IA, IS, IE, IM,          &
+       & JA, JS, JE, JM,          &
+       & KA, KS, KE, KM,          &
+       & z_CDK, z_FDK
 
   use DOGCM_Admin_Constants_mod, only: &
        & PI,                           &
@@ -118,18 +119,20 @@ contains
   !>
   !!
   !!
-  subroutine DOGCM_VPhys_driver_UpdateVViscDiffCoef(   &
-       & xyz_VViscCoef, xyz_VDiffCoef,                   & ! (out)
-       & xyz_U, xyz_V, xyza_Tracer, xyz_Z, xy_Topo       & ! (in)
+  subroutine DOGCM_VPhys_driver_UpdateVViscDiffCoef(      &
+       & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,   & ! (out)
+       & xyz_U, xyz_V, xyza_Tracer, xyz_H, xyz_Z, xy_Topo & ! (in)
        & )
 
     ! 宣言文; Declaration statement
     !
     real(DP), intent(out) :: xyz_VViscCoef(IA,JA,KA)
     real(DP), intent(out) :: xyz_VDiffCoef(IA,JA,KA)
+    real(DP), intent(out) :: xy_BtmFrictCoef(IA,JA)
     real(DP), intent(in) :: xyz_U(IA,JA,KA)
     real(DP), intent(in) :: xyz_V(IA,JA,KA)
     real(DP), intent(in) :: xyza_Tracer(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xyz_Z(IA,JA,KA)
     real(DP), intent(in) :: xy_Topo(IA,JA)
     
@@ -152,6 +155,9 @@ contains
 !!$            & xyz_Z                           & ! (in)
 !!$            & )       
     end select
+
+
+    xy_BtmFrictCoef(:,:) = 2d0*xyz_VViscCoef(:,:,KE)/(z_FDK(KE)*xyz_H(:,:,KE))
     
   end subroutine DOGCM_VPhys_driver_UpdateVViscDiffCoef
 

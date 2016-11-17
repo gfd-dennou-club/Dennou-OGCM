@@ -113,13 +113,13 @@ program ogcm_main
      
      !* Sea ice component ************
 !!$     call MessageNotify( 'M', PROGRAM_NAME, "SIce component tstep=%d", i=(/ tstep_sice /)) 
-     if (SICE_do) call sice_advance_timestep(tstep_sice, loop_end_flag_sice)
+     if (SICE_do) call sice_advance_timestep(tstep_sice, loop_end_flag_sice, skip_flag=.false.)
      call pass_field_sice2ocn()
      tstep_sice = tstep_sice + 1
      
      !* Ocean component ************
 !!$     call MessageNotify( 'M', PROGRAM_NAME, "OCN component tstep=%d", i=(/ tstep_ocn /))
-     if (OCN_do) call ogcm_advance_timestep(tstep_ocn, loop_end_flag_ocn)
+     if (OCN_do) call ogcm_advance_timestep(tstep_ocn, loop_end_flag_ocn, skip_flag=.false.)
      call pass_field_ocn2sice()
      tstep_ocn = tstep_ocn + 1
 

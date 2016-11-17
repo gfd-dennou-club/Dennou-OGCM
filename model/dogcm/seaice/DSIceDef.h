@@ -2,6 +2,6 @@
 #define DISceDef_H_
 
 !#define DEBUG_SEAICE
-#define DEBUG_SEAICE_j_dbg JS+54
+#define DEBUG_SEAICE_j_dbg JS+12
 
 #endif

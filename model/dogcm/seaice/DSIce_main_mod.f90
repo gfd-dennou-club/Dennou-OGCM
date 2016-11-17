@@ -157,7 +157,7 @@ contains
     !
     integer, intent(in) :: tstep
     logical, intent(inout) :: loop_end_flag
-    logical, intent(in), optional :: skip_flag
+    logical, intent(in) :: skip_flag
     
     ! 局所変数
     ! Local variables
@@ -166,6 +166,7 @@ contains
     ! 実行文; Executable statement
     !
 
+    
     if( EndTemporalInteg() ) then
        loop_end_flag = .true.; return
     else
@@ -187,7 +188,7 @@ contains
             & xya_SIceSfcTemp(:,:,TLN), xyza_SIceTemp(:,:,:,TLN)                   & ! (in)
             & )    
 
-       if ( present(skip_flag) .and. (.not. skip_flag) ) then
+       if ( .not. skip_flag ) then
           if(CurrentTimeStep == 1 .and. (.not. RestartFlag)) then
              call DSIce_TInt_driver_Do( isSelfStartSchemeUsed=.true. )
           else
