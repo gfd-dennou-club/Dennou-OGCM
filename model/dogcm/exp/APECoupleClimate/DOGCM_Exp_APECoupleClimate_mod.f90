@@ -361,7 +361,7 @@ contains
        xy_LDwRFlxSIce   = xy_LDwRFlx
        xy_LatHFlxSIce   = xy_LatHFlx
        xy_SenHFlxSIce   = xy_SenHFlx
-       xy_DLatSenHFlxDTsSIce = xy_DSfcHFlxDTs + 4d0*StB*xy_SeaSfcTemp0**3
+       xy_DLatSenHFlxDTsSIce = xy_DSfcHFlxDTs !+ 4d0*StB*xy_SeaSfcTemp0**3
        xy_RainFallSIce = xy_RainFall 
        xy_SnowFallSIce = xy_SnowFall
        xy_EvapSIce     = xy_LatHFlx/LatentHeat

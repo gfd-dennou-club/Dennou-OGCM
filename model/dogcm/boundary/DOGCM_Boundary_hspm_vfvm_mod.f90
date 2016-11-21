@@ -206,7 +206,6 @@ contains
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,KA)
 
-
     ! 局所変数
     ! Local variables
     !

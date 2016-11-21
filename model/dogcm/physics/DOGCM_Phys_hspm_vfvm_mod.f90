@@ -274,7 +274,7 @@ contains
 !!$    xyza_TRC_RHS_phy = (xyza_TRCA - xyza_TRC)/dt
 !!$    
 !!$    write(*,*) "Phys Salt:", AvrLonLat_xy( VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(:,:,:,TRCID_SALT), xyz_H) )
-
+    
   end subroutine DOGCM_Phys_hspm_vfvm_Do
 
   !-----------------------------------------------------------------------
@@ -509,7 +509,6 @@ contains
     !
     real(DP) :: xya_PTemp_VBCRHS(0:iMax-1,jMax,2)
     real(DP) :: xya_Salt_VBCRHS(0:iMax-1,jMax,2)
-    real(DP) :: xyza_DHTRC(0:iMax-1,jMax,TRC_TOT_NUM)
     integer :: n
     integer :: k
     
@@ -517,7 +516,7 @@ contains
     real(DP) :: avr_TRC0_phys
     real(DP) :: avr_TRCA_phys
 
-    real(DP) :: xyza_TRC_RHS_Conv(0:iMax-1,jMax,KA,2)
+    real(DP) :: xyza_TRC_RHS_phy(0:iMax-1,jMax,KA,TRC_TOT_NUM)
     
     ! 実行文; Executable statements
     !
@@ -548,9 +547,8 @@ contains
          & )
 
 
-
     do n = 1, TRC_TOT_NUM
-       xyza_TRCA(:,:,:,n) = xyz_H0(:,:,:)*xyza_TRCA(:,:,:,n)/xyz_HA(:,:,:)
+       xyza_TRCA(:,:,:,n) = xyz_H0(:,:,:)*xyza_TRCA(:,:,:,n)/xyz_HA(:,:,:)       
     end do
 
     

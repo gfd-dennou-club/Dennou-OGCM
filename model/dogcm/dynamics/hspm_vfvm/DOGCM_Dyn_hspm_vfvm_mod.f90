@@ -95,6 +95,8 @@ contains
     
   end subroutine DOGCM_Dyn_hspm_vfvm_Init
 
+  !-------------------------------------
+  
   !>
   !!
   !!
@@ -107,8 +109,6 @@ contains
     call HBEBarot_Final()
     
   end subroutine DOGCM_Dyn_hspm_vfvm_Final
-
-  !-------------------------------------
 
   !-------------------------------------
 
@@ -206,8 +206,8 @@ contains
   !--------------------------------------------------------------
 
   subroutine DOGCM_Dyn_hspm_vfvm_MOMBarotRHS( xy_UBarot_RHS, xy_VBarot_RHS,  &  ! (out)
-       & xy_CoriUBarot, xy_CoriVBarot, xy_SfcPres,                     &  ! (in)
-       & xy_UBarocForce, xy_VBarocForce )                                    ! (in)
+       & xy_CoriUBarot, xy_CoriVBarot, xy_SfcPres,                           &  ! (in)
+       & xy_UBarocForce, xy_VBarocForce )                                       ! (in)
 
 
     real(DP), intent(out) :: xy_UBarot_RHS(0:iMax-1,jMax)
@@ -259,7 +259,7 @@ contains
   !--------------------------------------------------------------
   
   subroutine DOGCM_Dyn_hspm_vfvm_OMGDiag( xyz_OMG,         & ! (out)
-       & xyz_Div, xyz_H, xyz_HA, DelTime )             ! (in)
+       & xyz_Div, xyz_H, xyz_HA, DelTime )                   ! (in)
 
     real(DP), intent(out) :: xyz_OMG(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,KA)
@@ -273,7 +273,7 @@ contains
   end subroutine DOGCM_Dyn_hspm_vfvm_OMGDiag
 
   subroutine DOGCM_Dyn_hspm_vfvm_OMGDiag2( xyz_OMG,         & ! (out)
-       & xyz_U, xyz_V, xyz_H, xyz_HA, DelTime )             ! (in)
+       & xyz_U, xyz_V, xyz_H, xyz_HA, DelTime )               ! (in)
 
     real(DP), intent(out) :: xyz_OMG(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
@@ -290,7 +290,7 @@ contains
   !--------------------------------------------------------------
   
   subroutine DOGCM_Dyn_hspm_vfvm_VorDivDiag( xyz_Vor, xyz_Div,    & ! (out)
-       & xyz_U, xyz_V )                                       ! (in)
+       & xyz_U, xyz_V )                                             ! (in)
 
     real(DP), intent(out) :: xyz_Vor(0:iMax-1,jMax,KA)
     real(DP), intent(out) :: xyz_Div(0:iMax-1,jMax,KA)
@@ -306,7 +306,7 @@ contains
   !--------------------------------------------------------------
   
   subroutine DOGCM_Dyn_hspm_vfvm_HydPresDiag( xyz_HydPres,    & ! (out)
-       & xyz_DensEdd, xyz_H )                             ! (in)
+       & xyz_DensEdd, xyz_H )                                   ! (in)
 
     real(DP), intent(out) :: xyz_HydPres(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,KA)
@@ -320,7 +320,7 @@ contains
   !-------------------------------------
 
   subroutine DOGCM_Dyn_hspm_vfvm_UVBarotDiag( xy_UBarot, xy_VBarot,       & ! (out)
-       & xyz_U, xyz_V, xyz_H, xy_SSH, xy_Topo )                       ! (in)
+       & xyz_U, xyz_V, xyz_H, xy_SSH, xy_Topo )                             ! (in)
 
     real(DP), intent(out) :: xy_UBarot(0:iMax-1,jMax)
     real(DP), intent(out) :: xy_VBarot(0:iMax-1,jMax)

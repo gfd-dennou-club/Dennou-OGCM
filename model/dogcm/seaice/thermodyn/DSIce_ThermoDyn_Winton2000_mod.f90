@@ -34,6 +34,8 @@ module DSIce_ThermoDyn_Winton2000_mod
        & I0,                                    &
        & IceThickMin
 
+#include "../DSIceDef.h"
+  
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -141,7 +143,7 @@ contains
     Work1 = 6d0 * dt * K_23 + HCIce
 
     B = DSfcHFlxDTs
-    A = SfcHFlx - SfcTempN*B
+    A = SfcHFlx - SfcTempN*DSfcHFlxDTs
 
     !--------------------------------------------------
     
@@ -331,7 +333,7 @@ contains
     work = Evap*dt
     dhsEvap = min(work/DensSnow, hsOld+dSnowThick)
     dSnowThick = dSnowThick - dhsEvap
-
+    
     work = work - DensSnow*dhsEvap
     dh1Evap = min(max(work/DensIce, 0d0), h1Old+dIceThick1)
     dIceThick1 = dIceThick1 - dh1Evap
@@ -351,21 +353,24 @@ contains
     work = work - DensIce*dh2Evap
     excessMeltEn = excessMeltEn + LEvap*work
     wice =   wice + work/dt
-    
-!!$    if (debugFlag) then
-!!$
+
+#ifdef DEBUG_SEAICE
+    if (debugFlag) then
 !!$       write(*,*) " (SfcResHFlx+BtmResHFlx)*dt=", (SfcResHFlx + BtmResHFlx)*dt
 !!$       write(*,*) " New - Old =", &
 !!$            &   DensSnow*LFreeze*dSnowThick                                        &
 !!$            & + DensIce*(E1*dIceThick1 + (E2*(h2Old + dIceThick2) - E2Old*h2Old))
 !!$       write(*,*) " ExcessMeltEn =", ExcessMeltEn
-!!$    end if
+       write(*,*) "dhsEvap=", dhsEvap, ", dh1Evap=", dh1Evap, ", dh2Evap=", dh2Evap, &
+            & "evap excessMeltEn=", LEvap*work
+    end if
+#endif ! <- DEBUG_SEAICE
 
   end subroutine DSIce_ThermoDyn_Winton2000_CalcLyrMassChange
 
   subroutine DSIce_ThermoDyn_Winton2000_AdjustLyrInternal( &
        & SnowThick, IceThick,                                & ! (out)
-       & z_IceTemp, Wice,                                    & ! (inout)
+       & z_IceTemp, Wice, excessMeltEn,                      & ! (inout)
        & SnowThick0, dSnowThick,                             & ! (in)
        & IceThick0, dIceThick1, dIceThick2,                  & ! (in)
        & dt, debugFlag                                       & ! (in)
@@ -377,6 +382,7 @@ contains
     real(DP), intent(out) :: IceThick
     real(DP), intent(inout) :: z_IceTemp(2)
     real(DP), intent(inout) :: Wice
+    real(DP), intent(inout) :: excessMeltEn
     real(DP), intent(in) :: SnowThick0
     real(DP), intent(in) :: dSnowThick
     real(DP), intent(in) :: IceThick0
@@ -398,6 +404,7 @@ contains
     real(DP) :: T2Tmp
     real(DP) :: dummy
     real(DP) :: extraSHEn ! extra sensible heat energy
+    real(DP) :: SIceTotEn
     real(DP) :: dIceMelt
     
     real(DP) :: IceMeltTemp
@@ -450,22 +457,11 @@ contains
        z_IceTemp(2) = T2Tmp
 
        if ( z_IceTemp(2) > IceMeltTemp ) then
-          extraSHEn = 0.5d0*IceThick*( &
-               & calc_E_IceLyr2(z_IceTemp(2),SaltSeaIce) - calc_E_IceLyr2(IceMeltTemp,SaltSeaIce) &
-               & )
-          
-          ! Note: extraSHEn > 0
-          dIceMelt =  - 2d0*extraSHEn/(calc_E_IceLyr1(z_IceTemp(1),SaltSeaIce) + calc_E_IceLyr2(IceMeltTemp,SaltSeaIce))
-          IceThick = IceThick - dIceMelt
-          Wice     = Wice - DensIce*dIceMelt/dt
-
+          ! Note: extraSHEn > 0          
+          extraSHEn = calc_E_IceLyr2(z_IceTemp(2),SaltSeaIce) ! When the temperature of lower ice layer equals to freezing point,
+                                                              ! the entalphy is defined to be zero in Winton(2002). 
           z_IceTemp(2) = IceMeltTemp
-
-          !
-          if (IceThick < 0d0) then
-             call MessageNotify( 'E', module_name, "Unexpected error occur in AdjustIceLyrInternal. Check!")
-          end if
-          
+          z_IceTemp(1) = calc_Temp_IceLyr1( calc_E_IceLyr1(z_IceTemp(1),SaltSeaIce) + extraSHEn, SaltSeaIce )
        end if
     end if
 

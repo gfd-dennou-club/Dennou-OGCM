@@ -231,7 +231,7 @@ contains
     integer :: j
     real(DP) :: SIceSfcTempK
     
-    !$omp parallel do private(i, SIceSfcTempK)
+    !$omp parallel do private(SIceSfcTempK) collapse(2)
     do j = JS, JE
        do i = IS, IE
           if ( xy_SIceCon(i,j) > IceMaskMin ) then
@@ -282,7 +282,7 @@ contains
     real(DP) :: emisiv
     real(DP) :: SIceSfcTempK
     
-    !$omp parallel do private(i, emisiv, SIceSfcTempK)
+    !$omp parallel do private(emisiv, SIceSfcTempK) collapse(2)
     do j = JS, JE
        do i = IS, IE
           
@@ -292,7 +292,7 @@ contains
              if ( xy_SnowThick(i,j) <= 0d0 ) then
                 xy_SfcAlbedoAI(i,j) = AlbedoIce
                 emisiv = EmissivIce
-                xy_PenSWRFlxAI(i,j) = - I0*(1d0 - AlbedoIce)*xy_SDWRFlx(i,j)
+                xy_PenSWRFlxAI(i,j) = I0*(1d0 - AlbedoIce)*xy_SDWRFlx(i,j) ! Note: the sign is positive. 
 
              elseif( xy_SIceSfcTemp(i,j) >= FreezeTempWater ) then
                 xy_SfcAlbedoAI(i,j) = AlbedoMeltSnow
@@ -309,6 +309,7 @@ contains
                   &   xy_LatHFlx(i,j) + xy_SenHFlx(i,j)            &
                   & - emisiv*xy_LDWRFlx(i,j)                       &
                   & - (1d0 - xy_SfcAlbedoAI(i,j))*xy_SDWRFlx(i,j)  &
+                  & + xy_PenSWRFlxAI(i,j)                          &
                   & + emisiv*(SBConst*SIceSfcTempK**4)
 
              xy_DSfcHFlxDTsAI(i,j) = &

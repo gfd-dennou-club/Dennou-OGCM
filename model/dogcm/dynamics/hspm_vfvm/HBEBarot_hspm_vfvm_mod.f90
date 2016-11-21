@@ -110,6 +110,8 @@ contains
 
   end subroutine HBEBarot_SSHRHS_LinFreeSfc
 
+  !-------------------------------------
+  
   subroutine HBEBarot_SSHRHS_NonLinFreeSfc( w_SSH_RHS,                              &  ! (out)
        & xy_SSH, xy_TotDepBasic, xy_UCosBarot, xy_VCosBarot, xy_FreshWtFlx )   ! (in)
 
@@ -137,11 +139,15 @@ contains
          & + w_xy( xy_FreshWtFlx )
     
   end subroutine HBEBarot_SSHRHS_NonLinFreeSfc
+
+  !-------------------------------------
   
   subroutine HBEBarot_MOMRHS( xy_UBarot_RHS, xy_VBarot_RHS,  &  ! (out)
        & xy_CoriUBarot, xy_CoriVBarot, xy_SfcPres,           &  ! (in)
        & xy_UBarocForce, xy_VBarocForce )                       ! (in)
 
+    ! 宣言文; Declaration statement
+    !    
 
     real(DP), intent(out) :: xy_UBarot_RHS(0:iMax-1,jMax)
     real(DP), intent(out) :: xy_VBarot_RHS(0:iMax-1,jMax)
@@ -174,10 +180,15 @@ contains
 
   end subroutine HBEBarot_MOMRHS
 
+  !-------------------------------------
+  
   subroutine HBEBarot_Update_LinFreeSfc( &
        & xy_UBarotA, xy_VBarotA, xy_SfcPresA, xy_SSHA,                       & ! (out)
        & xy_Cori, DelTime, DelTimeSSH, PresTAvgCoefA                         & ! (in)
        & )
+
+    ! 宣言文; Declaration statement
+    !
     
     real(DP), intent(inout) :: xy_UBarotA(0:iMax-1,jMax)
     real(DP), intent(inout) :: xy_VBarotA(0:iMax-1,jMax)

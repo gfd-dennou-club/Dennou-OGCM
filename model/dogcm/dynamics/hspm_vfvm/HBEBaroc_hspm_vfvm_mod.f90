@@ -1,7 +1,7 @@
 !-------------------------------------------------------------
 ! Copyright (c) 2016-2016 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
-!> @brief a template module
+!> @brief The module calculates some terms in hydrostatic boussinesq baroclinic equations.  
 !! 
 !! @author Yuta Kawai
 !!
@@ -20,7 +20,8 @@ module HBEBaroc_hspm_vfvm_mod
 
   !* Dennou-OGCM
 
-  use DOGCM_Admin_Constants_mod
+  use DOGCM_Admin_Constants_mod, only: &
+       & RPlanet, RefDens
   
   use DOGCM_Admin_Grid_mod, only: &
        & iMax, jMax, lMax,             &
@@ -43,19 +44,15 @@ module HBEBaroc_hspm_vfvm_mod
   ! 公開手続き
   ! Public procedure
   !
-
+  public :: HBEBaroc_Init, HBEBaroc_Final
+  public :: HBEBaroc_HTRCRHS
+  public :: HBEBaroc_MOMRHS_VorDivForm
   
   ! 非公開変数
   ! Private variable
   !
   character(*), parameter:: module_name = 'HBEBaroc_hspm_vfvm_mod' !< Module Name
 
-
-  public :: HBEBaroc_Init, HBEBaroc_Final
-  public :: HBEBaroc_HTRCRHS
-  public :: HBEBaroc_MOMRHS_VorDivForm
-
-  
 contains
 
   !>
@@ -89,9 +86,9 @@ contains
        & xyz_TRC, xyz_U, xyz_V, xyz_Div, xyr_OMG, xyz_H,    &  ! (in)
        & xyz_HTRCRHS_phys )                                    ! (in)
 
-    use SpmlUtil_mod
-    use VFvmUtil_mod
-
+    
+    ! 宣言文; Declaration statement
+    !
 !!$    real(DP), intent(out) :: wz_HTRC_RHS(lMax,KA)
     real(DP), intent(out) :: xyz_HTRC_RHS(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_TRC(0:iMax-1,jMax,KA)
@@ -102,19 +99,24 @@ contains
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_HTRCRHS_phys(0:iMax-1,jMax,KA)
 
-    integer :: k
-
+    ! 局所変数
+    ! Local variables
+    !
     real(DP) :: xyz_DSigTRC(0:iMax-1,jMax,KA)
     real(DP) :: xy_HTRCCosLat(0:iMax-1,jMax)
     real(DP) :: xyr_ADVFlxZ(0:iMax-1,jMax,KA)
 
+    integer :: k
+    
+    ! 実行文; Executable statements
     !
+    
 !!$    call calc_ADVFlxZ_Cen2( xyr_ADVFlxZ,    & ! (out)
 !!$         & xyr_OMG, xyz_TRC            )      ! (in)   
 
     call calc_ADVFlxZ_QUICK( xyr_ADVFlxZ,   & ! (out)
          & xyr_OMG, xyz_TRC            )      ! (in)   
-    
+
     !$omp parallel do private(xy_HTRCCosLat)
     do k=KS, KE
        xy_HTRCCosLat(:,:) = xyz_H(:,:,k)*xy_CosLat(:,:)*xyz_TRC(:,:,k)
@@ -125,8 +127,6 @@ contains
             &                 +  xyz_H(:,:,k)*( + xyz_HTRCRHS_phys(:,:,k))                     )        &
             &   ) 
     end do
-
-    
     
   end subroutine HBEBaroc_HTRCRHS
 
@@ -134,11 +134,19 @@ contains
        & xyr_OMG, xyz_TRC                    & ! (in)
        & )
 
+    ! 宣言文; Declaration statement
+    !    
     real(DP), intent(out) :: xyr_ADVFlxZ(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyr_OMG(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_TRC(0:iMax-1,jMax,KA)
 
+    ! 局所変数
+    ! Local variables
+    !    
     integer :: k
+
+    ! 実行文; Executable statements
+    !
     
     xyr_ADVFlxZ(:,:,KS-1) = 0d0
     !$omp parallel do 
@@ -152,18 +160,26 @@ contains
   end subroutine calc_ADVFlxZ_Cen2
 
   subroutine calc_ADVFlxZ_QUICK( xyr_ADVFlxZ, & ! (out)
-       & xyr_OMG, xyz_TRC                    & ! (in)
+       & xyr_OMG, xyz_TRC                     & ! (in)
        & )
 
+    ! 宣言文; Declaration statement
+    !    
     real(DP), intent(out) :: xyr_ADVFlxZ(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyr_OMG(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_TRC(0:iMax-1,jMax,KA)
 
+    ! 局所変数
+    ! Local variables
+    !    
     real(DP) :: xyz_Diff(0:iMax-1,jMax,KA)
     real(DP) :: m1(KA)
     real(DP) :: m2(KA)
     real(DP) :: dfac(KA)
     integer :: k
+
+    ! 実行文; Executable statements
+    !
     
     do k=KS, KE-1
        m1(k) = z_CDK(k+1)/(z_CDK(k) + z_CDK(k+1))
@@ -206,6 +222,8 @@ contains
        & xyz_CoriU, xyz_CoriV, xyz_URHS_phys, xyz_VRHS_phys             & ! (in)
        & )
 
+    ! 宣言文; Declaration statement
+    !    
     real(DP), intent(out) :: wz_Vor_RHS(lMax,KA)
     real(DP), intent(out) :: wz_Div_RHS(lMax,KA)
     real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
@@ -221,16 +239,21 @@ contains
     real(DP), intent(in) :: xyz_CoriV(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_URHS_phys(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_VRHS_phys(0:iMax-1,jMax,KA)
-    
-    integer :: k
+
+    ! 局所変数
+    ! Local variables
+    !
     real(DP) :: xy_A(0:iMax-1,jMax)
     real(DP) :: xy_B(0:iMax-1,jMax)
     real(DP) :: w_GeoPot(lMax)
     real(DP) :: xyr_VAdvU(0:iMax-1,jMax,KA)
     real(DP) :: xyr_VadvV(0:iMax-1,jMax,KA)
 
-    !----
-    
+    integer :: k
+
+    ! 実行文; Executable statements
+    !
+
     xyr_VAdvU(:,:,KS-1) = 0d0
     xyr_VAdvV(:,:,KS-1) = 0d0
     !$omp parallel do

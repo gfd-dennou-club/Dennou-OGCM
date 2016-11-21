@@ -90,15 +90,17 @@ contains
        & xyz_Div, xyz_H, xyz_HA, DelTime )    ! (in)
 
 
-    use SpmlUtil_mod, only: &
-         & DifMat, IntMat, RMatM1, RMatM2
-    
+    ! 宣言文; Declaration statement
+    !        
     real(DP), intent(out) :: xyr_OMG(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_HA(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: DelTime
 
+    ! 作業変数
+    ! Work variables
+    
     integer :: i
     integer :: j
     integer :: k
@@ -107,6 +109,9 @@ contains
     real(DP) :: z_H(KA)
     real(DP) :: r_OMG(KA)
 
+    ! 実行文; Executable statements
+    !
+    
     !$omp parallel do private(k, r_OMG, z_Div, z_H) collapse(2)
     do j=1, jMax
        do i=0, iMax-1
@@ -132,6 +137,8 @@ contains
   subroutine HBEDiagnose_OMG2( xyr_OMG,           & ! (out)
        & xyz_U, xyz_V, xyz_H, xyz_HA, DelTime )    ! (in)
 
+    ! 宣言文; Declaration statement
+    !        
     real(DP), intent(out) :: xyr_OMG(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
@@ -139,6 +146,9 @@ contains
     real(DP), intent(in) :: xyz_HA(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: DelTime
 
+    ! 作業変数
+    ! Work variables
+    
     integer :: i
     integer :: j
     integer :: k
@@ -153,6 +163,9 @@ contains
     real(DP) :: xyr_VHInt(0:iMax-1,jMax,KA)
     real(DP) :: int_w
     real(DP) :: xy_BtmBCFlx(0:iMax-1,jMax)
+
+    ! 実行文; Executable statements
+    !
     
     !$omp parallel do private(z_U, z_V, z_H, r_UHInt, r_VHInt, int_w, k) collapse(2)
     do j=1, jMax
@@ -199,6 +212,8 @@ contains
   subroutine HBEDiagnose_UVBarot( xy_UBarot, xy_VBarot,       & ! (out)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xy_Topo )                 ! (in)
 
+    ! 宣言文; Declaration statement
+    !        
     real(DP), intent(out) :: xy_UBarot(0:iMax-1,jMax)
     real(DP), intent(out) :: xy_VBarot(0:iMax-1,jMax)
     real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
@@ -207,9 +222,15 @@ contains
     real(DP), intent(in) :: xy_SSH(0:iMax-1,jMax)
     real(DP), intent(in) :: xy_Topo(0:iMax-1,jMax)
 
+    ! 作業変数
+    ! Work variables
+    
     integer :: k
     real(DP) :: xy_TotDep(0:iMax-1,jMax)
 
+    ! 実行文; Executable statements
+    !
+    
     xy_TotDep = xy_SSH + xy_Topo
     xy_UBarot(:,:) = 0d0
     xy_VBarot(:,:) = 0d0
@@ -229,11 +250,16 @@ contains
   subroutine HBEDiagnose_VorDiv( xyz_Vor, xyz_Div,       & ! (out)
        & xyz_U, xyz_V )                                    ! (in)
 
+    ! 宣言文; Declaration statement
+    !        
     real(DP), intent(out) :: xyz_Vor(0:iMax-1,jMax,KA)
     real(DP), intent(out) :: xyz_Div(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
 
+    ! 作業変数
+    ! Work variables
+    
     real(DP) :: w_Vor(lMax)
     real(DP) :: w_Div(lMax)
     integer :: k
@@ -256,10 +282,15 @@ contains
   subroutine HBEDiagnose_HydPres( xyz_HydPres, & ! (out)
        & xyz_DensEdd, xyz_H )                    ! (in)
 
+    ! 宣言文; Declaration statement
+    !        
     real(DP), intent(out) :: xyz_HydPres(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,KA)
     real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
 
+    ! 作業変数
+    ! Work variables
+    
     integer :: i
     integer :: j
     integer :: k
@@ -268,7 +299,9 @@ contains
     real(DP) :: z_H(KA)
     real(DP) :: z_DensEdd(KA)
     
-
+    ! 実行文; Executable statements
+    !
+    
     !$omp parallel do private(k, z_H, z_DensEdd, r_HydPres) collapse(2)
     do j=1, jMax
        do i=0, iMax-1

@@ -283,10 +283,10 @@ contains
              
              write(*,*) "BtmHFlxIO=", xy_BtmHFlxIO(i,j), "FreshWtFlxS=", -xy_Wice(i,j)/DensFreshWater
              write(*,*) "***********************************************************************************"
-             if (isNan(xy_BtmHFlxIO(i,j))) then
-                write(*,*) "Detect Nan. Stop!"
-                stop
-             end if
+!!$             if (isNan(xy_BtmHFlxIO(i,j))) then
+!!$                write(*,*) "Detect Nan. Stop!"
+!!$                stop
+!!$             end if
           end if
        end do
     end do
@@ -383,9 +383,10 @@ contains
           SfcFrzTemp = 0d0
           if (xy_SnowThick0(i,j) == 0d0) SfcFrzTemp = - Mu*SaltSeaIce
 
-          OcnFrzTemp = K2degC( xy_OcnFrzTemp(i,j) )
-          FrzPot = UNDEFVAL
-                
+          OcnFrzTemp   = K2degC( xy_OcnFrzTemp(i,j) )
+          FrzPot       = UNDEFVAL
+          excessMeltEn = 0d0
+          
           !---------------------------
 
           if ( xy_SIceCon0(i,j) >= IceMaskMin ) then
@@ -395,7 +396,7 @@ contains
                 write(*,*) "(i,j)=", i, j, "time=", CurrentTime, "*****************************"
                 write(*,*) "- Sfc & Btm heat flux ---------"
                 write(*,*) "SfcHFlx=", xy_SfcHFlxAI(i,j), "DSfcHFlxDTs=", xy_DSfcHFlxAIDTs(i,j)
-                write(*,*) "PenSDRFlx=", xy_PenSDRFlx(i,j), "BtmHFlx=", xy_BtmHFlxIO(i,j)
+                write(*,*) "PenSDRFlx=", xy_PenSDRFlx(i,j), "BtmHFlx0=", xy_BtmHFlxIO(i,j)
              end if
 #endif  ! <- DEBUG_SEAICE             
 
@@ -421,6 +422,7 @@ contains
                 write(*,*) "FinalNetEnBudget=", dt*( &
                      &   (xy_SfcHFlxAI(i,j) + xy_DSfcHFlxAIDTs(i,j)*(xy_SIceSfcTempA(i,j) - xy_SIceSfcTemp0(i,j))) &
                      & - xy_BtmHFlxIO(i,j)                                                                         &
+                     & - xy_PenSDRFlx(i,j)                                                                         &
                      & )
                 write(*,*) "(SfcResHFlx + BtmResHFlx)*dt=", dt*(SfcResHFlx + BtmResHFlx)
              end if
@@ -429,23 +431,21 @@ contains
              !---------------------------
           
              call DSIce_ThermoDyn_Winton2000_CalcLyrMassChange( &
-                  & dSnowThick, dIceThick1, dIceThick2,               & ! (out)
-                  & xy_Wice(i,j), excessMeltEn,                       & ! (out)
-                  & z_SIceTempA(KS:KE),                               & ! (inout)
-                  & xy_SnowThick0(i,j), xy_IceThick0(i,j),            & ! (in)
-                  & SfcResHFlx, BtmResHFlx, OcnFrzTemp,               & ! (in)
-                  & xy_RainFall(i,j), xy_SnowFall(i,j), xy_Evap(i,j), & ! (in)
-                  & dt,  (i==IS .and. j==j_dbg) )                       ! (in)
+                  & dSnowThick, dIceThick1, dIceThick2,                 & ! (out)
+                  & xy_Wice(i,j), excessMeltEn,                         & ! (out)
+                  & z_SIceTempA(KS:KE),                                 & ! (inout)
+                  & xy_SnowThick0(i,j), xy_IceThick0(i,j),              & ! (in)
+                  & SfcResHFlx, BtmResHFlx, OcnFrzTemp,                 & ! (in)
+                  & xy_RainFall(i,j), xy_SnowFall(i,j), xy_Evap(i,j),   & ! (in)
+                  & dt,  (i==IS .and. j==j_dbg) )                         ! (in)
 
-
-             xy_BtmHFlxIO(i,j) = xy_BtmHFlxIO(i,j) - excessMeltEn/dt
              
 #ifdef DEBUG_SEAICE                          
              if (i==IS .and. j==j_dbg) then
                 write(*,*) "-calcLyrMassChange----------------------"
                 write(*,*) "dhs=", dSnowThick, "dhi1=", dIceThick1, "dhi2=", dIceThick2
                 write(*,*) "Temp=", xy_SIceSfcTempA(i,j), z_SIceTempA(:)                
-                write(*,*) "excessMeltEn=", excessMeltEn, "BtmHFlxIO=", xy_BtmHFlxIO(i,j)
+                write(*,*) "excessMeltEn=", excessMeltEn
                 write(*,*) "SnowFall=", xy_SnowFall(i,j), "Wice=", xy_Wice(i,j)
                 write(*,*) "TotMassCange=", &
                      & DensSnow*dSnowThick + DensIce*(dIceThick1 + dIceThick2), &
@@ -464,7 +464,7 @@ contains
 
              call DSIce_ThermoDyn_Winton2000_AdjustLyrInternal( &
                   & SnowThickA, IceThickA,                               & ! (out)
-                  & z_SIceTempA(KS:KE), xy_Wice(i,j),                    & ! (inout)
+                  & z_SIceTempA(KS:KE), xy_Wice(i,j), excessMeltEn,      & ! (inout)
                   & xy_SnowThick0(i,j), dSnowThick,                      & ! (in)
                   & xy_IceThick0(i,j), dIceThick1, dIceThick2,           & ! (in)
                   & dt, (i==IS .and. j==j_dbg) )                           ! (in)
@@ -475,6 +475,7 @@ contains
                 write(*,*) "-adjustLyrInternal ----------------------"
                 write(*,*) "hsA=", SnowThickA, "hiA=", IceThickA, "TempA", z_SIceTempA(KS:KE)
                 write(*,*) "hs0=", xy_SnowThick0(i,j), "hi0=", xy_IceThick0(i,j)
+                write(*,*) "excessMeltEn=", excessMeltEn
                 write(*,*) "MassTotA-MassTotB=", &
                      &    DensSnow*SnowThickA         + DensIce*IceThickA           &
                      & - (DensSnow*xy_SnowThick0(i,j) + DensIce*xy_IceThick0(i,j)), &
@@ -498,7 +499,8 @@ contains
              end if
 
              !---------------------------
-             
+
+             xy_BtmHFlxIO(i,j) = xy_BtmHFlxIO(i,j) - excessMeltEn/dt             
              z_SIceEnA(KS  ) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr1(z_SIceTempA(KS  ),SaltSeaIce)
              z_SIceEnA(KS+1) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr2(z_SIceTempA(KS+1),SaltSeaIce)             
              
@@ -518,7 +520,7 @@ contains
                 SIceConA   = 1d0
                 SnowThickA = 0d0
                 
-                IceThickA  = FrzPot * dt * &
+                IceThickA  = FrzPot * dt *                                                    &
                      &       2d0 / ( - DensIce*calc_E_IceLyr1(z_SIceTempA(KS  ),SaltSeaIce)   &
                      &               - DensIce*calc_E_IceLyr2(z_SIceTempA(KS+1),SaltSeaIce) )  
 
@@ -526,7 +528,7 @@ contains
                 z_SIceEnA(KS+1) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr2(z_SIceTempA(KS+1),SaltSeaIce)             
                 
                 xy_Wice(i,j) = DensIce*IceThickA/dt
-                xy_BtmHFlxIO(i,j) = - FrzPot &
+                xy_BtmHFlxIO(i,j) = - FrzPot                                                  &
                      &              + LFreeze * xy_SnowFall(i,j) ! [J/kg * kg/(m2.s)]
              else
                 !- No sea ice -------------------------------------------------------
@@ -541,7 +543,8 @@ contains
              end if
 
           end if
-             
+
+
           !---------------------------------------------------------------------
                           
           ! Calculate tendency due to sea-ice thermodynamics
@@ -566,7 +569,7 @@ contains
              write(*,*) "SST=", xy_SeaSfcTemp(i,j), "OcnFrzTemp=", OcnFrzTemp, &
                   & "FrzPot=", FrzPot, "dhi=", FrzPot/( - DensIce*calc_E_IceLyr2(OcnFrzTemp,SaltSeaIce) )*dt
 
-             write(*,*) "BtmHFlxIO=", xy_BtmHFlxIO(i,j), "FreshWtFlxS=", -xy_Wice(i,j)/DensFreshWater
+             write(*,*) "BtmHFlxIOA=", xy_BtmHFlxIO(i,j), "FreshWtFlxS=", -xy_Wice(i,j)/DensFreshWater
              write(*,*) "***********************************************************************************"
           end if
 #endif !<- DEBUG_SEAICE
@@ -584,15 +587,15 @@ contains
 !!$       & xy_SIceSfcTempA, xyz_SIceTempA,  xyz_SIceEnA, & ! (inout)
 !!$       & xy_BtmHFlxIO, xy_Wice,                        & ! (inout)
 !!$       & dt )
-    
 
-          
 #ifdef DEBUG_SEAICE
     write(*,*) "----------------------------------"
 #endif !<- DEBUG_SEAICE
-    
+
   end subroutine DSIce_TInt_common_advance_ThermoDyn
 
+  !----------------------------------------------------------------------
+  
   subroutine DSIce_TInt_common_MeltThinMinIce( &
        & xy_SnowThick, xy_IceThick, xy_SIceCon,     & ! (inout)
        & xy_SIceSfcTemp, xyz_SIceTemp,  xyz_SIceEn, & ! (inout)
@@ -661,7 +664,6 @@ contains
              xyz_SIceEn(i,j,KS:KE)   = 0d0 
              xyz_SIceTemp(i,j,KS:KE) = UNDEFVAL
              xy_SIceSfcTemp(i,j)     = UNDEFVAL
-
              
           end if
           
