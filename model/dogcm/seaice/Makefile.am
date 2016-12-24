@@ -1,8 +1,9 @@
 SUBDIRS =
 
 AM_FCFLAGS = \
-        $(MODPATHFLAG)$(srcdir)/../../../include/  \
+        $(MODPATHFLAG)$(srcdir)/../include/        \
         $(MODPATHFLAG)$(srcdir)/../util            \
+        $(MODPATHFLAG)$(srcdir)/../admin           \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \

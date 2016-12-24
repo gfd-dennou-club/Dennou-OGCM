@@ -222,7 +222,7 @@ contains
 
     ! 実行文; Executable statements
     !
-    
+
     !$omp parallel do private(w_Vor, w_Div, w_Vor_RHS, w_Div_RHS, xy_U_HDiff, xy_V_HDiff)
     do k=KS, KE
        call calc_UVCosLat2VorDiv( &
@@ -294,7 +294,7 @@ contains
             & w_Vor, w_Div                                    &
             & )
 
-       w_Fact(:) = w_HViscCoefH(:)/(1d0 - dt*w_HViscCoefH(:))
+       w_Fact(:) = 1d0/(1d0/w_HViscCoefH(:) - dt)
        call calc_VorDiv2UV( w_Fact*w_Vor, w_Fact*w_Div,       & ! (in)
             & xy_U_HDiff, xy_V_HDiff                          & ! (out)
             & )
@@ -382,7 +382,8 @@ contains
           w_TRC(:) = w_xy(xyza_TRC(:,:,k,n))
 
           xyza_TRC_RHS(:,:,k,n) = xyza_TRC_RHS(:,:,k,n) +  &
-               & (   xy_w( w_HDiffCoefH(:)*w_TRC(:)/(1d0 - dt*w_HDiffCoefH(:)) ) &
+               & (   xy_w( w_TRC(:)/(1d0/w_HDiffCoefH(:) - dt) ) &
+!!$               & (   xy_w( w_HDiffCoefH(:)*w_TRC(:)/(1d0 - dt*w_HDiffCoefH(:)) ) &
                & )
        end do
     end do

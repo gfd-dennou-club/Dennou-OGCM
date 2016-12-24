@@ -196,7 +196,7 @@ contains
     if (.not. StrInclude(HstVarsList(1:HstVarsNum), trim(varName)) ) return
 
     call HistoryPut(varName, var, history=hst_seaice)
-
+    
   end subroutine DSIce_IO_History_HistPut2D
 
   !> @brief 
@@ -241,7 +241,7 @@ contains
     !
 
     if( .not. DSIce_IO_History_isOutputTiming(CurrentTime) ) return
-
+    
     call HistorySetTime( &
          & timed=DCCalConvertByUnit(CurrentTime, "sec", OutputIntUnit), & 
          & history=hst_seaice                                           &

@@ -373,7 +373,7 @@ contains
     call DOGCM_Dyn_driver_HTRCRHS( xyza_HTRC_RHS,                              & ! (out)
          & xyza_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H, xyza_TRC_RHS_phy   & ! (in)
          & )
-
+    
 !!$    xyza_HTRC_RHS(:,:,:,TRCID_PTEMP) = xyza_TRC_RHS_phy(:,:,:,TRCID_PTEMP)*xyz_H    
 !!$    xyza_HTRC_RHS(:,:,:,TRCID_SALT) = xyza_TRC_RHS_phy(:,:,:,TRCID_SALT)*xyz_H
 !!$    write(*,*) "After Dyn:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_SALT)/xyz_H(IS:IE,JS:JE,KS:KE)))

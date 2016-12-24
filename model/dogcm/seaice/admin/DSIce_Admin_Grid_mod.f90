@@ -94,7 +94,7 @@ module DSIce_Admin_Grid_mod
   real(DP), public, allocatable :: x_IAXIS_Weight(:)
   real(DP), public, allocatable :: y_JAXIS_Weight(:)
   real(DP), public, allocatable :: z_KAXIS_Weight(:)
-
+  real(DP), public ,allocatable :: xy_CArea(:,:)
   real(DP), public, allocatable :: xy_Lon(:,:)
   real(DP), public, allocatable :: xy_Lat(:,:)
 
@@ -142,7 +142,7 @@ contains
        deallocate( y_CJ, y_CDJ, y_FJ, y_FDJ )
        deallocate( z_CK, z_CDK, z_FK, z_FDK )
        deallocate( x_IAXIS_Weight, y_JAXIS_Weight, z_KAXIS_Weight )
-       
+
        deallocate( xy_Lon, xy_Lat )
        deallocate( SCALEF_E1, SCALEF_E2 )
     end if
@@ -194,7 +194,7 @@ contains
     allocate( x_CI(IA), x_CDI(IA), x_FI(IA), x_FDI(IA), x_IAXIS_Weight(IA) )
     allocate( y_CJ(JA), y_CDJ(JA), y_FJ(JA), y_FDJ(JA), y_JAXIS_Weight(JA) )
     allocate( z_CK(KA), z_CDK(KA), z_FK(KA), z_FDK(KA), z_KAXIS_Weight(KA) )
-
+    
     allocate( xy_Lon(IA,JA), xy_Lat(IA,JA) )
     allocate( SCALEF_E1(IA,JA,4), SCALEF_E2(IA,JA,4) )
 

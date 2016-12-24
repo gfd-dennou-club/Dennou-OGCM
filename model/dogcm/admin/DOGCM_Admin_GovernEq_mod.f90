@@ -10,21 +10,25 @@ module DOGCM_Admin_GovernEq_mod
 
   ! モジュール引用; Use statements
   !
+
+  !* gtool5
+  
   use dc_types, only: &
        & TOKEN, STRING, DP
 
   use dc_message, only: &
        & MessageNotify
 
-  !
-    use EOS_Linear_mod, only: &
-         & EOSTYPE_LINEAR, EOSTYPENAME_LINEAR
+  !* Dennou-OGCM
+  
+  use EOS_Linear_mod, only: &
+       & EOSTYPE_LINEAR, EOSTYPENAME_LINEAR
 
-    use EOS_SimpleNonLinear_mod, only: &
-         & EOSTYPE_SIMPLENONLINEAR, EOSTYPENAME_SIMPLENONLINEAR
+  use EOS_SimpleNonLinear_mod, only: &
+       & EOSTYPE_SIMPLENONLINEAR, EOSTYPENAME_SIMPLENONLINEAR
 
-    use EOS_JM95_mod, only: &
-         & EOSTYPE_JM95, EOSTYPENAME_JM95
+  use EOS_JM95_mod, only: &
+       & EOSTYPE_JM95, EOSTYPENAME_JM95
   
   ! 宣言文; Declareration statements
   !

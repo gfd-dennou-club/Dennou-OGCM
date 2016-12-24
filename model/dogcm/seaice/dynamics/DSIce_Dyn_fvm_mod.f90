@@ -21,6 +21,9 @@ module DSIce_Dyn_fvm_mod
 
   !* Dennou-OGCM/SIce
 
+  use DOGCM_Admin_Constants_mod, only: &
+       & RPlanet
+  
   use UnitConversion_mod, only: &
        & degC2K, K2degC
 
@@ -29,11 +32,12 @@ module DSIce_Dyn_fvm_mod
        & I_XY, I_UY, I_XV
   
   use DSIce_Admin_Grid_mod, only: &
-       & IS, IE, IA, x_IAXIS_Weight,  &
-       & JS, JE, JA, y_JAXIS_Weight,  &
-       & KS, KE, KA, z_KAXIS_Weight,  &
-       & x_CDI, x_FDI, y_CDJ, y_FDJ,  &
-       & SCALEF_E1, SCALEF_E2
+       & IS, IE, IA, x_IAXIS_Weight,   &
+       & JS, JE, JA, y_JAXIS_Weight,   &
+       & KS, KE, KA, z_KAXIS_Weight,   &
+       & x_CDI, x_FDI, y_CDJ, y_FDJ,   &
+       & SCALEF_E1, SCALEF_E2,         &
+       & x_IAXIS_Weight, y_JAXIS_Weight
 
   ! 宣言文; Declareration statements
   !
@@ -85,10 +89,6 @@ contains
     !
 
   end subroutine DSIce_Dyn_fvm_Final
-
-  !----------------------------------------------------------------------
-
-
   
   !---------------------------------------------------------------
   
@@ -97,7 +97,7 @@ contains
        & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                & ! (out)
        & xy_SIceU, xy_SIceV,                                & ! (out)
        & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,          & ! (in)
-       & xyz_SIceEn0, xy_SIceSfcTemp0                       & ! (in)
+       & xyz_SIceEn0                                        & ! (in)
        & )
 
     ! モジュール引用; Use statements
@@ -125,7 +125,6 @@ contains
     real(DP), intent(in) :: xy_IceThick0(IA,JA)
     real(DP), intent(in) :: xy_SnowThick0(IA,JA)
     real(DP), intent(in) :: xyz_SIceEn0(IA,JA,KA)
-    real(DP), intent(in) :: xy_SIceSfcTemp0(IA,JA)
 
     ! 作業変数
     ! Work variables
@@ -182,9 +181,8 @@ contains
 !!$    call FVM_UD1( xy_SIceCon_RHS, xy_SIceCon0, xy_SIceU, xy_SIceV )
     call FVM_UD1( xy_IceThick_RHS, xy_IceThick0, xy_SIceU, xy_SIceV )
     call FVM_UD1( xy_SnowThick_RHS, xy_SnowThick0, xy_SIceU, xy_SIceV )
-    call FVM_UD1( xyz_SIceEn_RHS(:,:,KS), xyz_SIceEn0(:,:,KS), xy_SIceU, xy_SIceV )
+    call FVM_UD1( xyz_SIceEn_RHS(:,:,KS  ), xyz_SIceEn0(:,:,KS  ), xy_SIceU, xy_SIceV )
     call FVM_UD1( xyz_SIceEn_RHS(:,:,KS+1), xyz_SIceEn0(:,:,KS+1), xy_SIceU, xy_SIceV )
-!!$    call FVM_UD1( xy_SIceSfcTemp_RHS, xy_SIceSfcTemp0, xy_SIceU, xy_SIceV )
 
 !!$    write(*,*) "SIceEn1Flx:", xyz_SIceEn_RHS(IS,JS:JE,KS)
 !!$    write(*,*) "SIceEn1:", xyz_SIceEn0(IS,JS:JE,KS)
@@ -241,26 +239,30 @@ contains
     !$omp do collapse(2)
     do j = JS-1, JE
        do i = IS, IE
-          Flx(i,j,YDIR) = SCALEF_E1(i,j,I_XV) * &
-               &  0.5d0 * (   ( xy_q(i,j+1) + xy_q(i,j) )*    xv_v(i,j)      &
-               &            - ( xy_q(i,j+1) - xy_q(i,j) )*abs(xv_v(i,j)) )
+          Flx(i,j,YDIR) = SCALEF_E1(i,j,I_XV) * x_CDI(i) * ( &
+               &    0.5d0 * (   ( xy_q(i,j+1) + xy_q(i,j) )*    xv_v(i,j)      &
+               &              - ( xy_q(i,j+1) - xy_q(i,j) )*abs(xv_v(i,j))  )  &
+               & )
        end do
     end do
 
     !$omp do collapse(2)
     do j = JS, JE
        do i = IS, IE
+!!$          xy_q_RHS(i,j) = ( &
+!!$               &  - ( Flx(i,j,XDIR) - Flx(i-1,j,XDIR) )             &
+!!$               &  - ( Flx(i,j,YDIR) - Flx(i,j-1,YDIR) )                &
+!!$               & ) / (SCALEF_E1(i,j,I_XY)*SCALEF_E2(i,j,I_XY)*x_CDI(i)*y_CDJ(j))
           xy_q_RHS(i,j) = ( &
-!!$               &  - ( Flx(i,j,XDIR) - Flx(i-1,j,XDIR) ) / x_CDI(i)  &
-               &  - ( Flx(i,j,YDIR) - Flx(i,j-1,YDIR) ) / y_CDJ(j)  &
-               & ) / (SCALEF_E1(i,j,I_XY)*SCALEF_E2(i,j,I_XY))
+!!$               &  - ( Flx(i,j,XDIR) - Flx(i-1,j,XDIR) )             &
+               &  - ( Flx(i,j,YDIR) - Flx(i,j-1,YDIR) )                   &
+               & ) / (RPlanet**2 * x_IAXIS_Weight(i) * y_JAXIS_Weight(j))
+
        end do
     end do
 
     !$omp end parallel
     
   end subroutine FVM_UD1
-    
-  
-  
+      
 end module DSIce_Dyn_fvm_mod

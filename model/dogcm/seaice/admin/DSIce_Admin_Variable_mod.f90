@@ -189,13 +189,15 @@ contains
     ! 実行文; Executable statement
     !
 
-    xya_SIceCon = 0d0
+    xya_SIceCon     = 0d0
     xya_SIceSfcTemp = 0d0
-    xyza_SIceTemp = 0d0
-    xyza_SIceEn = 0d0
-    xya_SnowThick = 0d0
-    xya_IceThick = 0d0
-    xy_Wice = 0d0
+    xyza_SIceTemp   = 0d0
+    xyza_SIceEn     = 0d0
+    xya_SnowThick   = 0d0
+    xya_IceThick    = 0d0
+    xya_SIceU       = 0d0
+    xya_SIceV       = 0d0
+    xy_Wice         = 0d0
     
   end subroutine DSIce_Admin_Variable_SetDefualtValue
 
@@ -254,7 +256,9 @@ contains
        xya_SIceCon(:,:,n) = xya_SIceCon(:,:,n-1)
        xya_SIceSfcTemp(:,:,n) = xya_SIceSfcTemp(:,:,n-1)
        xya_IceThick(:,:,n) = xya_IceThick(:,:,n-1)
-       xya_SnowThick(:,:,n) = xya_SnowThick(:,:,n-1)       
+       xya_SnowThick(:,:,n) = xya_SnowThick(:,:,n-1)
+       xya_SIceU(:,:,n) = xya_SIceU(:,:,n-1)
+       xya_SIceV(:,:,n) = xya_SIceV(:,:,n-1)       
        !$omp end workshare
 
        !$omp workshare
@@ -282,15 +286,17 @@ contains
     !
     
     if( .not. DSIce_IO_History_isOutputTiming(CurrentTime) ) return
-
+    
     call DSIce_IO_History_HistPut( 'SIceCon', xya_SIceCon(IS:IE,JS:JE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'SIceSfcTemp', xya_SIceSfcTemp(IS:IE,JS:JE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'SIceEn', xyza_SIceEn(IS:IE,JS:JE,KS:KE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'SIceTemp', xyza_SIceTemp(IS:IE,JS:JE,KS:KE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'IceThick', xya_IceThick(IS:IE,JS:JE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'SnowThick', xya_SnowThick(IS:IE,JS:JE, TIMELV_ID_N) )
+    call DSIce_IO_History_HistPut( 'SIceU', xya_SIceU(IS:IE,JS:JE, TIMELV_ID_N) )
+    call DSIce_IO_History_HistPut( 'SIceV', xya_SIceV(IS:IE,JS:JE, TIMELV_ID_N) )    
     call DSIce_IO_History_HistPut( 'Wice', xy_Wice(IS:IE,JS:JE) )
-    
+
   end subroutine DSIce_Admin_Variable_HistPut
 
   !----------------------------------------------------------

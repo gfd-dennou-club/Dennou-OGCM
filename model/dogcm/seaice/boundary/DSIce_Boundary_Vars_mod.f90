@@ -56,6 +56,9 @@ module DSIce_Boundary_vars_mod
   real(DP), public, allocatable :: xy_SfcHFlxAI(:,:)  
 
   !
+  real(DP), public, allocatable :: xy_SfcHFlxAI0(:,:)  
+  
+  !
   real(DP), public, allocatable :: xy_SfcHFlxAO(:,:)  
   
   !
@@ -97,13 +100,14 @@ module DSIce_Boundary_vars_mod
   real(DP), public, allocatable :: xy_SfcAlbedoAI(:,:)
 
   real(DP), public, allocatable :: xy_SeaSfcTemp(:,:)
-
+  
   real(DP), public, allocatable :: xy_SeaSfcSalt(:,:)
 
   real(DP), public, allocatable :: xy_OcnFrzTemp(:,:)
   
   real(DP), public, allocatable :: xy_OcnMixLyrDepth(:,:)
 
+  real(DP), public, allocatable :: xy_SIceSfcTemp0(:,:)
   real(DP), public, allocatable :: xy_SDwRFlx(:,:)
   real(DP), public, allocatable :: xy_LDwRFlx(:,:)
   real(DP), public, allocatable :: xy_LatHFlx(:,:)
@@ -143,6 +147,7 @@ contains
     call MessageNotify( 'M', module_name, "Allocate array memory  ..")
 
     allocate( xy_SfcHFlxAI(IA,JA), xy_DSfcHFlxAIDTs(IA,JA) )
+    allocate( xy_SfcHFlxAI0(IA,JA) )
     allocate( xy_SfcHFlxAO(IA,JA) )
     allocate( xy_PenSDRFlx(IA,JA) )
     allocate( xy_BtmHFlxIO(IA,JA) )
@@ -159,6 +164,8 @@ contains
     allocate( xy_SeaSfcHFlx_ns(IA,JA), xy_SeaSfcHFlx_sr(IA,JA) )
     allocate( xy_FreshWtFlx(IA,JA), xy_FreshWtFlxS(IA,JA) )    
     allocate( xy_SeaSfcTemp(IA,JA), xy_SeaSfcSalt(IA,JA) )
+    allocate( xy_SIceSfcTemp0(IA,JA) )
+    
     allocate( xy_SeaSfcU(IA,JA), xy_SeaSfcV(IA,JA) )
     allocate( xy_OcnFrzTemp(IA,JA) )
     allocate( xy_OcnMixLyrDepth(IA,JA) )
@@ -173,8 +180,9 @@ contains
     call DSIce_IO_History_RegistVar( 'BtmHFlxIO', "IJT", "bottom heat flux between sea-ice and ocean interfaces", "W/m2" )
     call DSIce_IO_History_RegistVar( 'FreshWtFlx', "IJT", "fresh water flux", "m/s" )
     call DSIce_IO_History_RegistVar( 'FreshWtFlxS', "IJT", "fresh water flux (used in salinity equation", "m/s" )
-    call DSIce_IO_History_RegistVar( 'RainFall', "IJT", "rain fall", "m/s" )
-    call DSIce_IO_History_RegistVar( 'SnowFall', "IJT", "snow fall", "m/s" )
+    call DSIce_IO_History_RegistVar( 'RainFall', "IJT", "rain fall", "kg.m-2.s-1" )
+    call DSIce_IO_History_RegistVar( 'SnowFall', "IJT", "snow fall", "kg.m-2.s-1" )
+    call DSIce_IO_History_RegistVar( 'Evap', "IJT", "evarporation", "kg.m-2.s-1" )
     call DSIce_IO_History_RegistVar( 'SfcAlbedoAI', 'IJT', 'surface albedo', '1' )
     
     
@@ -197,6 +205,7 @@ contains
        call MessageNotify( 'M', module_name, "Deallocate array memory  ..")
 
        deallocate( xy_SfcHFlxAI, xy_DSfcHFlxAIDTs, xy_SfcHFlxAO )
+       deallocate( xy_SfcHFlxAI0 )
        deallocate( xy_PenSDRFlx )
        deallocate( xy_BtmHFlxIO )
 
@@ -206,7 +215,8 @@ contains
        deallocate( xy_SDwRFlx, xy_LDwRFlx )
        deallocate( xy_LatHFlx, xy_SenHFlx )
        deallocate( xy_DLatSenHFlxDTs )
-
+       deallocate( xy_SIceSfcTemp0 )
+       
        deallocate( xy_WindStressUIO, xy_WindStressVIO )
        deallocate( xy_FreshWtFlx, xy_FreshWtFlxS )       
        deallocate( xy_SeaSfcU, xy_SeaSfcV )
@@ -224,7 +234,7 @@ contains
     ! 実行文; Executable statement
     !
 
-    if( .not. DSIce_IO_History_isOutputTiming(CurrentTime) ) return
+!!$    if( .not. DSIce_IO_History_isOutputTiming(CurrentTime) ) return
 
     call DSIce_IO_History_HistPut( "WindStressUAI", xy_WindStressUAI(IS:IE,JS:JE) )
     call DSIce_IO_History_HistPut( "WindStressVAI", xy_WindStressVAI(IS:IE,JS:JE) )
@@ -240,6 +250,7 @@ contains
     
     call DSIce_IO_History_HistPut( "RainFall", xy_RainFall(IS:IE,JS:JE) )
     call DSIce_IO_History_HistPut( "SnowFall", xy_SnowFall(IS:IE,JS:JE) )
+    call DSIce_IO_History_HistPut( "Evap", xy_Evap(IS:IE,JS:JE) )
 
     call DSIce_IO_History_HistPut( "SfcAlbedoAI", xy_SfcAlbedoAI(IS:IE,JS:JE) )
     

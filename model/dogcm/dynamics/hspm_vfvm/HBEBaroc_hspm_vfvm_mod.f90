@@ -127,7 +127,7 @@ contains
             &                 +  xyz_H(:,:,k)*( + xyz_HTRCRHS_phys(:,:,k))                     )        &
             &   ) 
     end do
-    
+
   end subroutine HBEBaroc_HTRCRHS
 
   subroutine calc_ADVFlxZ_Cen2( xyr_ADVFlxZ, & ! (out)

@@ -37,8 +37,9 @@ module DSIce_TInt_driver_mod
        & DelTime
   
   use DSIce_Admin_Variable_mod, only: &
-       & xya_SIceCon, xya_IceThick, xya_SnowThick,   &
+       & xya_SIceCon, xya_IceThick, xya_SnowThick,    &
        & xya_SIceSfcTemp, xyza_SIceEn, xyza_SIceTemp, &
+       & xya_SIceU, xya_SIceV,                        &
        & xy_Wice
   
   use DSIce_Dyn_driver_mod, only: &
@@ -192,6 +193,7 @@ contains
          & xya_SIceCon(:,:,TA), xya_IceThick(:,:,TA), xya_SnowThick(:,:,TA),         & ! (out)
          & xya_SIceSfcTemp(:,:,TA),                                                  & ! (inout)
          & xyza_SIceTemp(:,:,:,TA), xyza_SIceEn(:,:,:,TA),                           & ! (out)
+         & xya_SIceU(:,:,TA), xya_SIceV(:,:,TA),                                     & ! (out)
          & xy_Wice,                                                                  & ! (inout)
          !----- Time level 0 --------------------------------------------------
          & xya_SIceCon(:,:,TN), xya_IceThick(:,:,TN), xya_SnowThick(:,:,TN),         & ! (out)

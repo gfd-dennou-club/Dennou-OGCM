@@ -49,6 +49,9 @@ module DSIce_Boundary_common_mod
   
   use DSIce_Admin_Variable_mod, only: &
        & xy_Wice
+
+  use DOGCM_Admin_BC_mod, only: &
+       &  ThermBCTYPE_PresFlux_Han1984Method, ThermBC_Surface
   
   use DSIce_Boundary_vars_mod, only: &
        & xy_SfcHFlxAI, xy_DSfcHFlxAIDTs, xy_SfcHFlxAO,        &
@@ -62,6 +65,7 @@ module DSIce_Boundary_common_mod
        & xy_FreshWtFlxS, xy_FreshWtFlx,                       &
        & xy_SfcAlbedoAI,                                      &
        & xy_SeaSfcTemp, xy_SeaSfcSalt,                        &
+       & xy_SIceSfcTemp0,                                     &
        & xy_SeaSfcU, xy_SeaSfcV,                              &
        & xy_OcnFrzTemp, xy_OcnMixLyrDepth
        
@@ -150,7 +154,7 @@ contains
     
     xy_OcnFrzTemp(:,:) = 273.15d0 - 1.8d0  !- Mu*xy_SeaSfcSalt
     
-    where (xy_IceThick(:,:) > IceMaskMin)
+    where (xy_SIceCon(:,:) > IceMaskMin)
        xy_FreshWtFlxS = xy_RainFall / DensFreshWater
     elsewhere
        xy_FreshWtFlxS = 0d0
@@ -222,14 +226,22 @@ contains
        & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp & ! (in)
        & )
 
+    ! 宣言文; Declaration statement
+    !    
     real(DP), intent(out) :: xy_SIceAlbedoAI(IA,JA)
     real(DP), intent(in) :: xy_SIceCon(IA,JA)
     real(DP), intent(in) :: xy_SnowThick(IA,JA)
     real(DP), intent(in) :: xy_SIceSfcTemp(IA,JA)
 
+    ! 局所変数
+    ! Local variables
+    !        
     integer :: i
     integer :: j
     real(DP) :: SIceSfcTempK
+
+    ! 実行文; Executable statements
+    !
     
     !$omp parallel do private(SIceSfcTempK) collapse(2)
     do j = JS, JE
@@ -261,6 +273,8 @@ contains
        & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp, xy_SeaSfcTemp   & ! (in)
        & )
 
+    ! 宣言文; Declaration statement
+    !    
     real(DP), intent(out) :: xy_SfcHFlxAI(IA,JA)
     real(DP), intent(out) :: xy_SfcHFlxAO(IA,JA)
     real(DP), intent(out) :: xy_PenSWRFlxAI(IA,JA)
@@ -276,19 +290,24 @@ contains
     real(DP), intent(in) :: xy_SIceSfcTemp(IA,JA)  !< degC
     real(DP), intent(in) :: xy_SeaSfcTemp(IA,JA)   !< K
 
-
+    ! 局所変数
+    ! Local variables
+    !    
     integer :: i
     integer :: j
     real(DP) :: emisiv
     real(DP) :: SIceSfcTempK
+
+    ! 実行文; Executable statements
+    !
     
     !$omp parallel do private(emisiv, SIceSfcTempK) collapse(2)
     do j = JS, JE
        do i = IS, IE
           
           if ( xy_SIceCon(i,j) > IceMaskMin ) then
-             SIceSfcTempK = degC2K( xy_SIceSfcTemp(i,j) )
-             
+
+             !--
              if ( xy_SnowThick(i,j) <= 0d0 ) then
                 xy_SfcAlbedoAI(i,j) = AlbedoIce
                 emisiv = EmissivIce
@@ -305,6 +324,8 @@ contains
                 xy_PenSWRFlxAI(i,j) = 0d0
              end if
 
+             SIceSfcTempK = degC2K( xy_SIceSfcTemp(i,j) )
+             
              xy_SfcHFlxAI(i,j) = &
                   &   xy_LatHFlx(i,j) + xy_SenHFlx(i,j)            &
                   & - emisiv*xy_LDWRFlx(i,j)                       &
@@ -315,7 +336,6 @@ contains
              xy_DSfcHFlxDTsAI(i,j) = &
                   &   xy_DLatSensHFlxDTs(i,j)                      &
                   & + 4d0*emisiv*(SBConst*SIceSfcTempK**3)
-
              
           else ! grid cell not covered by sea ice
              xy_SfcAlbedoAI(i,j) = UNDEFVAL
@@ -330,7 +350,7 @@ contains
           
        end do
     end do
-
+             
   end subroutine DSIce_Boundary_common_CalcSfcHFlx
 
   !-----------------------------------------
@@ -342,6 +362,8 @@ contains
        & dt                                             & ! (in)
        & )
 
+    ! 宣言文; Declaration statement
+    !        
     real(DP), intent(out) :: xy_BtmHFlxIO(IA,JA)
     real(DP), intent(in) :: xy_SIceCon(IA,JA)       
     real(DP), intent(in) :: xy_UO(IA,JA)
@@ -350,12 +372,19 @@ contains
     real(DP), intent(in) :: xy_OcnMixLyrDepth(IA,JA)
     real(DP), intent(in) :: xy_OcnFrzTemp(IA,JA)
     real(DP), intent(in) :: dt
-    
+
+    ! 局所変数
+    ! Local variables
+    !        
     integer :: i
     integer :: j
     real(DP) :: FricVel
     real(DP) :: FrzPot
-
+    real(DP), parameter :: DragCoef = 0.00536d0   ! a constant ice-ocean drag coefficient
+    
+    ! 実行文; Executable statements
+    !
+    
     !$omp parallel do private(i, FricVel, FrzPot)
     do j = JS, JE
        do i = IS, IE
@@ -365,7 +394,7 @@ contains
                   &    * (xy_OcnFrzTemp(i,j) - xy_SeaSfcTemp(i,j))
              
              if ( FrzPot <= 0d0 ) then
-                FricVel = max(sqrt(xy_UO(i,j)**2 + xy_VO(i,j)**2), 5d-3)
+                FricVel = max(DragCoef*sqrt(xy_UO(i,j)**2 + xy_VO(i,j)**2), 5d-3)
                 xy_BtmHFlxIO(i,j) = &
                      & - max( FrzPot ,                                                        &
                      &        BaseMeltHeatTransCoef*FricVel*FrzPot*dt/xy_OcnMixLyrDepth(i,j)  &

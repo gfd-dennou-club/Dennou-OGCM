@@ -1,3 +1,10 @@
+!-------------------------------------------------------------
+! Copyright (c) 2015-2016 Yuta Kawai. All rights reserved.
+!-------------------------------------------------------------
+!> @brief A module to manage some variables associated with boundary conditions. 
+!! 
+!! @author Yuta Kawai
+!!
 module DOGCM_Boundary_vars_mod
 
   ! モジュール引用; Use statements
@@ -225,8 +232,8 @@ contains
     ! 実行文; Executable statement
     !
 
-    if( .not. DOGCM_IO_History_isOutputTiming(CurrentTime) ) return
-
+!!$    if( .not. DOGCM_IO_History_isOutputTiming(CurrentTime) ) return
+    
     call DOGCM_IO_History_HistPut( "WindStressU", xy_WindStressU(IS:IE,JS:JE) )
     call DOGCM_IO_History_HistPut( "WindStressV", xy_WindStressV(IS:IE,JS:JE) )
     

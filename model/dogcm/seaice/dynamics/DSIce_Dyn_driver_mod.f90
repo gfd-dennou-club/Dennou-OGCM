@@ -95,7 +95,7 @@ contains
        & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                    & ! (out)
        & xy_SIceU, xy_SIceV,                                    & ! (out)
        & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,              & ! (in)
-       & xyz_SIceEn0, xy_SIceSfcTemp0                           & ! (in)
+       & xyz_SIceEn0                                            & ! (in)
        & )
 
     ! 宣言文; Declaration statement
@@ -111,7 +111,6 @@ contains
     real(DP), intent(in) :: xy_IceThick0(IA,JA)
     real(DP), intent(in) :: xy_SnowThick0(IA,JA)
     real(DP), intent(in) :: xyz_SIceEn0(IA,JA,KA)
-    real(DP), intent(in) :: xy_SIceSfcTemp0(IA,JA)
     
     !$omp parallel
     !$omp workshare
@@ -119,7 +118,6 @@ contains
     xy_IceThick_RHS    = 0d0
     xy_SnowThick_RHS   = 0d0
     xyz_SIceEn_RHS     = 0d0
-    xy_SIceSfcTemp_RHS = 0d0
     !$omp end workshare
     !$omp end parallel
     
@@ -130,7 +128,7 @@ contains
        & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                & ! (out)
        & xy_SIceU, xy_SIceV,                                & ! (out)
        & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,          & ! (in)
-       & xyz_SIceEn0, xy_SIceSfcTemp0                       & ! (in)
+       & xyz_SIceEn0                                        & ! (in)
        & )
     
   end subroutine DSIce_Dyn_driver_ADVRHS

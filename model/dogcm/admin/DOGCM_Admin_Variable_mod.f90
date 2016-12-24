@@ -239,7 +239,7 @@ contains
     ! 実行文; Executable statement
     !
     
-    if( .not. DOGCM_IO_History_isOutputTiming(CurrentTime) ) return
+!!$    if( .not. DOGCM_IO_History_isOutputTiming(CurrentTime) ) return
 
     call DOGCM_IO_History_HistPut( 'U', xyza_U(IS:IE,JS:JE,KS:KE, TIMELV_ID_N) )
     call DOGCM_IO_History_HistPut( 'V', xyza_V(IS:IE,JS:JE,KS:KE, TIMELV_ID_N) )
@@ -259,7 +259,6 @@ contains
 
     call DOGCM_IO_History_HistPut( 'VViscCoef', xyz_VViscCoef(IS:IE,JS:JE,KS:KE) )
     call DOGCM_IO_History_HistPut( 'VDiffCoef', xyz_VDiffCoef(IS:IE,JS:JE,KS:KE) )
-    
     
   end subroutine DOGCM_Admin_Variable_HistPut
 

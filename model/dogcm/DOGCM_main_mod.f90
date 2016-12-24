@@ -63,8 +63,7 @@ module DOGCM_main_mod
   use DOGCM_IO_History_mod, only:               &
        & DOGCM_IO_History_Init,                 &
        & DOGCM_IO_History_Final,                &
-       & DOGCM_IO_History_Create,               &
-       & DOGCM_IO_History_Output
+       & DOGCM_IO_History_Create
   
   use DOGCM_IO_Restart_mod, only:               &
        & DOGCM_IO_Restart_Init,                 &
@@ -226,7 +225,6 @@ contains
     !- Output  --------------------------------------------------------------------
 
     ! history
-    call DOGCM_IO_History_Output()
     call DOGCM_Admin_Variable_HistPut()
     call DOGCM_Boundary_vars_HistPut()
 !!$    call LPhys_RediGM_spm_Output()
@@ -235,7 +233,7 @@ contains
     ! restart
     call DOGCM_IO_Restart_Output()
     call DOGCM_Admin_Variable_RestartPut()
-    
+
   end subroutine DOGCM_main_advance_timestep
 
 !-------------------------------------------------------------------------------------------------

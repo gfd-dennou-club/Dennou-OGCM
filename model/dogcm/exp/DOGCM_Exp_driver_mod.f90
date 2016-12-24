@@ -57,20 +57,30 @@ module DOGCM_Exp_driver_mod
 
   use DSIce_Boundary_vars_mod, only: &
        & xy_SfcHFlxAI,               &
-       & xy_DSfcHFlxAIDTs
+       & xy_DSfcHFlxAIDTs,           &
+       & xy_SIceSfcTemp0
   
-!------------------------------------------------  
-!!$  use DOGCM_Exp_BarotRossby_mod, only:       &
-!!$  use DOGCM_Exp_IGW_mod, only:               &
-!!$  use DOGCM_Exp_WindDrivCirc_mod, only:      &
-!!$  use DOGCM_Exp_EqJetAccel_mod, only:        &
-!!$  use DOGCM_Exp_APEOGCirc_mod, only:            &
-!!$  use DOGCM_Exp_APEOGCircSIce_mod, only:        &
-  use DOGCM_Exp_APECoupleClimate_mod, only:        &
-!!$  use DOGCM_Exp_APEOGCircI98BC_mod, only:        &
-       & DOGCM_Exp_Init,                           &
-       & DOGCM_Exp_Final,                          &
-       & DOGCM_Exp_SetInitCond,                    &
+  !------------------------------------------------
+#if defined(Exp_BarotRossby)
+  use DOGCM_Exp_BarotRossby_mod, only:       &
+#elif defined(Exp_IGW)
+  use DOGCM_Exp_IGW_mod, only:               &
+#elif defined(Exp_WindDrivCirc)
+  use DOGCM_Exp_WindDrivCirc_mod, only:      &
+#elif defined(Exp_EqJetAccel)
+  use DOGCM_Exp_EqJetAccel_mod, only:        &
+#elif defined(Exp_APEOGCirc)
+  use DOGCM_Exp_APEOGCirc_mod, only:         &
+#elif defined(Exp_APEOGCircSIce)
+  use DOGCM_Exp_APEOGCircSIce_mod, only:     &
+#elif defined(Exp_APECoupleClimate)
+  use DOGCM_Exp_APECoupleClimate_mod, only:  &
+#else
+  use DOGCM_Exp_APEOGCircI98BC_mod, only:    &
+#endif
+       & DOGCM_Exp_Init,                     &
+       & DOGCM_Exp_Final,                    &
+       & DOGCM_Exp_SetInitCond,              &
        & DOGCM_Exp_Do
   
   ! 宣言文; Declareration statements
@@ -167,7 +177,8 @@ contains
     xya_SIceSfcTemp(:,:,:) = UNDEFVAL
     xyza_SIceTemp(:,:,:,:) = UNDEFVAL
     xya_SIceCon(:,:,:) = 0d0
-
+    
+    xy_SIceSfcTemp0(:,:) = UNDEFVAL
     xy_SfcHFlxAI(:,:) = 0d0
     xy_DSfcHFlxAIDTs(:,:) = 0d0
     

@@ -392,7 +392,8 @@ contains
     call MessageNotify( 'M', module_name, '  DelTime              = %f [%c]', d=(/ DelTimeVal /), c1=trim(DelTimeUnit) )
     call MessageNotify( 'M', module_name, '  SemiImplicitFlag     = %b     ', L=(/ SemiImplicitFlag /))
     call MessageNotify( 'M', module_name, '  SubCycleNum          = %d [time]', i=(/ SubCycleNum /))
-    call MessageNotify( 'M', module_name, '  RestartTime          = %f [%c]', d=(/ RestartTimeVal /), c1=trim(RestartTimeUnit) )
+    call MessageNotify( 'M', module_name, '  RestartTime          = %f [%c]',  d=(/ RestartTimeVal /), c1=trim(RestartTimeUnit) )
+    call MessageNotify( 'M', module_name, '  RestartTimeSec       = %f [sec]', d=(/ RestartTime    /) )
     call MessageNotify( 'M', module_name, '  IntegTime            = %f [sec]', d=(/ IntegTime /))
 
     call DCCalDateInquire(InitDateStr, date=InitDate)

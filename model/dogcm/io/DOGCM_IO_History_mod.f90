@@ -52,7 +52,6 @@ module DOGCM_IO_History_mod
   public :: DOGCM_IO_History_Init, DOGCM_IO_History_Final
   public :: DOGCM_IO_History_Create
   public :: DOGCM_IO_History_RegistVar
-  public :: DOGCM_IO_History_Output
   public :: DOGCM_IO_History_IsOutputTiming
 
   interface DOGCM_IO_History_HistPut
@@ -205,38 +204,11 @@ contains
     ! 実行文; Executable statement
     !    
     call HistoryAutoPut(CurrentTime, varName, var)
-
+    
   end subroutine DOGCM_IO_History_HistPut3D
   
   !-----------------------------------------------------------------
   
-  !> @brief 
-  !!
-  !!
-  subroutine DOGCM_IO_History_Output()
-
-    ! モジュール引用; Use statement
-    !
-    use dc_calendar, only: &
-         & DCCalConvertByUnit
-
-    
-    ! 宣言文; Declaration statement
-    !
-    
-    
-    ! 局所変数
-    ! Local variables
-    !
-    
-    
-    ! 実行文; Executable statement
-    !
-
-    if( .not. DOGCM_IO_History_isOutputTiming(CurrentTime) ) return
-    
-  end subroutine DOGCM_IO_History_Output
-
   !> @brief 
   !!
   !!
@@ -300,7 +272,7 @@ contains
     HstUnitsList(2) = JAXIS_info%units
     HstUnitsList(3) = KAXIS_info%units
     HstUnitsList(4) = TAXIS_info%units
-    
+
     call HistoryAutoCreate( &                            ! ヒストリー作成
          & title  = 'DOGCM Output',             &
          & source = 'DOGCM Output',                                         &
@@ -420,12 +392,17 @@ contains
     real(DP) :: IntValue
     character(TOKEN) :: IntUnit
     character(STRING) :: Name
+    real(DP) :: OriginValue
+    character(TOKEN) :: OriginUnit
+    real(DP) :: TerminusValue
+    character(TOKEN) :: TerminusUnit
 
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
     namelist /gtool_historyauto_nml/ &
-         & IntValue, IntUnit, Name, FilePrefix
+         & IntValue, IntUnit, Name, FilePrefix,                  &
+         & OriginValue, OriginUnit, TerminusValue, TerminusUnit
 
 
     ! 実行文; Executable statements

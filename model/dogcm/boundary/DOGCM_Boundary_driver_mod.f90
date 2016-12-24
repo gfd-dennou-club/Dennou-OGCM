@@ -150,6 +150,9 @@ contains
     use DOGCM_Boundary_spm_mod, only: &
          & DOGCM_Boundary_spm_ApplyBC
 
+    use DOGCM_Boundary_hspm_vfvm_mod, only: &
+         & DOGCM_Boundary_hspm_vfvm_ApplyBC
+    
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: xyz_U(IA,JA,KA)
@@ -172,7 +175,7 @@ contains
             & xyz_VViscCoef(IS:IE,JS:JE,KS:KE), xyz_VDiffCoef(IS:IE,JS:JE,KS:KE)  & ! (in)
             & )
     case (OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Boundary_spm_ApplyBC(    &
+       call DOGCM_Boundary_hspm_vfvm_ApplyBC(    &
             & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:), & ! (inout)
             & xyza_TRC(IS:IE,JS:JE,:,:),                                       & ! (inout)
             & xyz_H(IS:IE,JS:JE,:),                                            & ! (in)

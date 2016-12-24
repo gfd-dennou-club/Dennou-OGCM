@@ -109,8 +109,7 @@ program ogcm_main
 
   !- Time loop ---------------------------------------------------------------------------
   do while(.not. loop_end_flag)
-
-     
+          
      !* Sea ice component ************
 !!$     call MessageNotify( 'M', PROGRAM_NAME, "SIce component tstep=%d", i=(/ tstep_sice /)) 
      if (SICE_do) call sice_advance_timestep(tstep_sice, loop_end_flag_sice, skip_flag=.false.)
@@ -161,7 +160,7 @@ contains
     use DOGCM_Admin_Grid_mod, only: &
          & IS, IE, JS, JE, &
          & KS, IA, JA,     &
-         & z_KAXIS_Weight
+         & z_KAXIS_Weight, xy_Topo
     
     use DOGCM_Admin_Variable_mod, only: &
          & xyza_U, xyza_V,                     &

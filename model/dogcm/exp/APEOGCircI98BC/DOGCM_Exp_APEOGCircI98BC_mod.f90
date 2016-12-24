@@ -59,7 +59,6 @@ module DOGCM_Exp_APEOGCircI98BC_mod
   integer :: expCaseNum
 
   real(DP), parameter :: SeaWaterFusionPt = 271.35d0
-
   
 contains
 

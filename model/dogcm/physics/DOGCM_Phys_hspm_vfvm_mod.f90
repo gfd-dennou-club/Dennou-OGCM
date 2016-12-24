@@ -221,9 +221,8 @@ contains
             & xyza_TRC_RHS_phy(:,:,KS:KE,:),                                       & ! (inout)
             & xyza_TRC(:,:,KS:KE,:), xyz_H(:,:,KS:KE), hDiffCoef, hHyperDiffCoef,  & ! (in)
             & dt )                                                                   ! (in)
-
-!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_SALT) ))
-!!$       write(*,*) "->avr_ptemp_phys (+ LMixRHS): ", avr_ptemp_RHS_phys
+!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(:,:,:, TRCID_SALT), xyz_H))
+!!$       write(*,*) "->avr_ptemp_phys (+ LMixRHS): ", avr_ptemp_RHS_phys/35d0*dt*1d3
     end if
 
 
@@ -237,8 +236,8 @@ contains
             & xyza_TRC(:,:,:,TRCID_PTEMP), xyza_TRC(:,:,:,TRCID_SALT),  & ! (in)
             & xyz_H, xyz_Z, xy_Topo                                     & ! (in)
             & )
-!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_SALT) ))
-!!$       write(*,*) "avr_ptemp_phys (+ RediGMRHS): ",  avr_ptemp_RHS_phys
+!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(:,:,:, TRCID_SALT), xyz_H))
+!!$       write(*,*) "avr_ptemp_phys (+ RediGMRHS): ",  avr_ptemp_RHS_phys/35d0*dt*1d3
     end if
 
     !-- Vertical mixing of tracers by non-penetrative convection -------------------
@@ -251,8 +250,8 @@ contains
             & xyza_TRC(:,:,KS:KE,TRCID_PTEMP), xyza_TRC(:,:,KS:KE,TRCID_SALT), & ! (in)
             & xyz_Z(:,:,KS:KE), z_KAXIS_Weight(KS:KE), dt                      & ! (in)
             & )
-!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_SALT) ))
-!!$       write(*,*) "avr_ptemp_phys (+ ConvAdjustRHS): ",  avr_ptemp_RHS_phys       
+!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(:,:,:, TRCID_SALT), xyz_H))
+!!$       write(*,*) "avr_ptemp_phys (+ ConvAdjustRHS): ",  avr_ptemp_RHS_phys/35d0*dt*1d3
     end if
 
 
@@ -261,8 +260,8 @@ contains
             & xyza_TRC_RHS_phy,                                         & ! (inout)
             & xyza_TRC, xyz_H, xyz_VDiffCoef                            & ! (in)
             & )
-!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_SALT) ))
-!!$       write(*,*) "avr_ptemp_phys (+ VMixRHS): ",  avr_ptemp_RHS_phys
+!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(:,:,:, TRCID_SALT), xyz_H))
+!!$       write(*,*) "avr_ptemp_phys (+ VMixRHS): ",  avr_ptemp_RHS_phys/35d0*dt*1d3
 !!$       write(*,*) "avr_ptemp_phys_local:", IntSig_BtmToTop(xyza_TRC_RHS_phy(0,jMax/2,:,TRCID_SALT))
     end if
     
@@ -389,6 +388,9 @@ contains
     use DOGCM_Boundary_vars_mod, only: &
          & xy_SfcHFlx_sr, xy_SfcHFlx_ns, xy_SeaSfcTemp, &
          & xy_FreshWtFlxS, xy_SeaSfcSalt
+
+    use SpmlUtil_mod, only: &
+         & AvrLonLat_xy, xy_IntSig_BtmToTop_xyz
     
     ! 宣言文; Declaration statement
     !          
@@ -447,8 +449,8 @@ contains
 
     ! for salinity    
     k = KS; n = TRCID_SALT
-    select case(ThermBC_Surface)
-    case(ThermBCTYPE_PrescTemp)
+    select case(SaltBC_Surface)
+    case(SaltBCTYPE_PrescSalt)
        xyra_DiffFlxTRC(:,:,KS-1,n) = - z_RFDK(k)*xyz_VDiffCoef(:,:,KS)/xyz_H(:,:,KS)             &
             &                        * 2d0*(xyza_TRC(:,:,KS,n) - xy_SeaSfcSalt(IS:IE,JS:JE))
     case default
@@ -520,7 +522,7 @@ contains
     
     ! 実行文; Executable statements
     !
-
+    
     call DOGCM_Boundary_hspm_vfvm_InqVBCRHS_TRC( &
          & xya_PTemp_VBCRHS, xya_Salt_VBCRHS,                                & ! (out)
          & xyza_TRC0(:,:,:,TRCID_PTEMP), xyza_TRC0(:,:,:,TRCID_SALT),        & ! (in)

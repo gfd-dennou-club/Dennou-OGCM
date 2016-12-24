@@ -333,7 +333,7 @@ contains
            & xyzaa_HGradTRC(:,:,:,:,TRCID), xyra_DSigTRC(:,:,:,TRCID)      &  ! (in)
            & )
 
-!      !$omp parallel do
+      !$omp parallel do
       do k = KS, KE
          xyz_RHS(:,:,k) = xyz_RHS(:,:,k)  &
               & + xy_w( w_AlphaOptr_xy(                                        &
@@ -366,20 +366,20 @@ contains
 
     real(DP) :: w_TRC(lMax)
     
- !   !$omp parallel
- !   !$omp do
+    !$omp parallel
+    !$omp do
     do k=KS, KE-1
        xyra_DSigTRC(:,:,k,PTEMP) = (xyz_PTemp(:,:,k) - xyz_PTemp(:,:,k+1))*z_RFDK(k)
        xyra_DSigTRC(:,:,k,SALT ) = (xyz_Salt (:,:,k) - xyz_Salt (:,:,k+1))*z_RFDK(k)       
     end do
- !   !$omp workshare
+    !$omp workshare
     xyra_DSigTRC(:,:,KS-1,:) = xyra_DSigTRC(:,:,KS  ,:)
     xyra_DSigTRC(:,:,KE  ,:) = xyra_DSigTRC(:,:,KE-1,:)
- !   !$omp end workshare
- !   !$omp end parallel
+    !$omp end workshare
+    !$omp end parallel
 
- !   !$omp parallel private(w_TRC)
-!    !$omp do
+    !$omp parallel private(w_TRC)
+    !$omp do
     do k=KS, KE
        w_TRC(:) = w_xy(xyz_PTemp(:,:,k))
        xyzaa_HGradTRC(:,:,k,LON,PTEMP) = xy_GradLon_w(w_TRC)/RPlanet
@@ -389,11 +389,11 @@ contains
        xyzaa_HGradTRC(:,:,k,LON,SALT) = xy_GradLon_w(w_TRC)/RPlanet
        xyzaa_HGradTRC(:,:,k,LAT,SALT) = xy_GradLat_w(w_TRC)/RPlanet
     end do
-!    !$omp workshare
+    !$omp workshare
     xyzaa_HGradTRC(:,:,KS-1,:,:) = xyzaa_HGradTRC(:,:,KS,:,:)
     xyzaa_HGradTRC(:,:,KE+1,:,:) = xyzaa_HGradTRC(:,:,KE,:,:)
-!    !$omp end workshare
-!    !$omp end parallel
+    !$omp end workshare
+    !$omp end parallel
     
   end subroutine calc_GradTRC
 
@@ -559,7 +559,7 @@ contains
 
     !$omp do
     do k = KS, KE
-       xy_DzTRC(:,:) = 0.5d0*(xyr_DSigTRC(:,:,k-1) + xyr_DSigTRC(:,:,k+1))/xyz_H(:,:,k)
+       xy_DzTRC(:,:) = 0.5d0*(xyr_DSigTRC(:,:,k-1) + xyr_DSigTRC(:,:,k))/xyz_H(:,:,k)
        xyz_FLon(:,:,k) = - xyza_Psi(:,:,k,LAT)*xy_DzTRC(:,:)
        xyz_FLat(:,:,k) =   xyza_Psi(:,:,k,LON)*xy_DzTRC(:,:)       
     end do

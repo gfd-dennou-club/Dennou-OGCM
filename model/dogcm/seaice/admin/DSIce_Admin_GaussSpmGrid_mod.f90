@@ -71,7 +71,7 @@ contains
 
   end subroutine DSIce_Admin_GaussSpmGrid_Final
 
-  !------------------------------------
+  !--------------------------------------------------------------------
 
   !> @brief 
   !!
@@ -164,6 +164,8 @@ contains
     
   end subroutine DSIce_Admin_GaussSpmGrid_ConstructAxisInfo
 
+  !--------------------------------------------------------------------
+  
   !> @brief 
   !!
   !!
@@ -284,7 +286,7 @@ contains
 
     z_KAXIS_Weight(KS:KE) = DSig
     z_CDK(KS:KE)          = DSig
-
+    
     !- Fill coordinate information at horizontal halo region
 
     x_CI(1:IS-1)  = x_CI(IE-IHALO+1:IE)
@@ -292,7 +294,7 @@ contains
 
     y_CJ(1:JS-1)  = y_CJ(JE-JHALO+1:JE)
     y_CJ(JE+1:JA) = y_CJ(JS:JS+JHALO-1)
-    
+
     !- Center position and size of each face cell -----------------
 
     !
@@ -307,29 +309,18 @@ contains
     x_FDI(IS-1:IE) = x_CI(IS:IE+1) - x_CI(IS-1:IE)
        
     !
-    y_FJ(JS-1) = - 90d0
-    y_FJ(JE)   =   90d0
-
-    Mat = 0d0; B = 0d0
+    y_FJ(JS-1) = - PI/2d0
     do j = JS, JE-1
-       Mat(j,j:j+1) = 0.5d0
-       B(j) = y_CJ(j+1) - y_CJ(j)
+       y_FJ(j) = asin( y_JAXIS_Weight(j) + sin(y_FJ(j-1)) )
     end do
-    Mat(JS-1,JS) = 0.5d0; B(JS-1) = y_CJ(JS) - y_FJ(JS-1)
-    Mat(JE  ,JE) = 0.5d0; B(JE  ) = y_FJ(JE) - y_CJ(JE)
+    y_FJ(JE) = PI/2d0
+    y_FJ(:) = y_FJ*180d0/PI
     
-    call  DGELS('N', JM+1, JM, 1, Mat, JM+1, B, JM+1, work, size(work), info)
-
-    do j = JS, JE-1
-       y_FJ(j) = 0.5d0 * (y_CJ(j) + y_CJ(j+1))
-    end do
-
     y_CDJ(JS:JE) = y_FJ(JS:JE) - y_FJ(JS-1:JE-1)
 
     y_FDJ(JS-1) = 0d0
     y_FDJ(JE)   = 0d0
     y_FDJ(JS:JE-1) = y_CJ(JS+1:JE) - y_CJ(JS:JE-1)
-
     
     !
     z_FK(KS-1) = 0d0

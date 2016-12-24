@@ -40,6 +40,9 @@ module DSIce_TInt_common_mod
        & LFreeze,                      &
        & IceMaskMin, IceThickMin
 
+  use DOGCM_Admin_Constants_mod, only: &
+       & LEvap => LatentHeat
+  
   use DSIce_Admin_TInteg_mod, only: &
        & CurrentTime
   
@@ -140,7 +143,8 @@ contains
        & xy_SIceConA, xy_IceThickA, xy_SnowThickA,                          & ! (out)
        & xy_SIceSfcTempA,                                                   & ! (inout)
        & xyz_SIceTempA, xyz_SIceEnA,                                        & ! (out)
-       & xy_Wice,                                                           & ! (out)
+       & xy_SIceUA, xy_SIceVA,                                              & ! (out)
+       & xy_Wice,                                                           & ! (inout)
        & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,                          & ! (out)
        & xy_SIceSfcTemp0, xyz_SIceTemp0, xyz_SIceEn0,                       & ! (in)
        & xy_SIceCon_thm, xy_IceThick_thm, xy_SnowThick_thm, xyz_SIceEn_thm, & ! (in) 
@@ -156,6 +160,8 @@ contains
     
     use DSIce_Dyn_driver_mod, only: &
        & DSIce_Dyn_driver_ADVRHS
+
+    use SpmlUtil_mod
     
     ! 宣言文; Declaration statement
     !
@@ -165,7 +171,9 @@ contains
     real(DP), intent(inout) :: xy_SIceSfcTempA(IA,JA)
     real(DP), intent(out) :: xyz_SIceTempA(IA,JA,KA)
     real(DP), intent(out) :: xyz_SIceEnA(IA,JA,KA)
-    real(DP), intent(out) :: xy_Wice(IA,JA)
+    real(DP), intent(out) :: xy_SIceUA(IA,JA)
+    real(DP), intent(out) :: xy_SIceVA(IA,JA)
+    real(DP), intent(inout) :: xy_Wice(IA,JA)
     real(DP), intent(in) :: xy_SIceCon0(IA,JA)
     real(DP), intent(in) :: xy_IceThick0(IA,JA)
     real(DP), intent(in) :: xy_SnowThick0(IA,JA)
@@ -191,35 +199,41 @@ contains
     real(DP) :: xyz_SIceEn_RHS(IA,JA,KA)
     real(DP) :: xy_SIceSfcTemp_RHS(IA,JA)
     
-    real(DP) :: xy_SIceU(IA,JA)
-    real(DP) :: xy_SIceV(IA,JA)
     real(DP) :: IceMass
 
-    real(DP) :: xy_SIceSfcTempADV(IA,JA)
-    
-    real(DP), parameter :: EPS_ICETHICK = 1d-13
-
+    real(DP) :: xy_Tmp1(IA,JA)
+    real(DP) :: xy_Tmp2(IA,JA)
+    real(DP) :: xy_Tmp(IA,JA)
     
     ! 実行文; Executable statements
     !
 
-    where( xy_SIceSfcTempADV > 0d0)
-       xy_SIceSfcTempADV(:,:) = 0d0
-    elsewhere
-       xy_SIceSfcTempADV(:,:) = xy_SIceSfcTemp0
-    end where
+
+    !$omp parallel do collapse(2)
+    do j = JS, JE
+       do i = IS, IE
+          xy_IceThickA(i,j) = xy_IceThick0(i,j) + dt*xy_IceThick_thm(i,j)
+          xy_SnowThickA(i,j) = xy_SnowThick0(i,j) + dt*xy_SnowThick_thm(i,j)
+          xyz_SIceEnA(i,j,KS:KS+1) = xyz_SIceEn0(i,j,KS:KS+1) + dt*xyz_SIceEn_thm(i,j,KS:KS+1)
+       end do
+    end do
     
     call DSIce_Dyn_driver_ADVRHS(                               & 
        & xy_SIceCon_RHS, xy_IceThick_RHS, xy_SnowThick_RHS,     & ! (out)
        & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                    & ! (out)
-       & xy_SIceU, xy_SIceV,                                    & ! (out)
-       & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,              & ! (in)
-       & xyz_SIceEn0, xy_SIceSfcTempADV                         & ! (in)
-       & )    
-!!$    xy_SIceCon_RHS = 0d0
-!!$    xy_IceThick_RHS = 0d0
-!!$    xy_SnowThick_RHS = 0d0
-!!$    xyz_SIceEn_RHS = 0d0
+       & xy_SIceUA, xy_SIceVA,                                  & ! (out)
+       & xy_SIceCon0, xy_IceThickA, xy_SnowThickA,              & ! (in)
+       & xyz_SIceEnA                                            & ! (in)
+       & )
+    
+!!$    call DSIce_Dyn_driver_ADVRHS(                               & 
+!!$       & xy_SIceCon_RHS, xy_IceThick_RHS, xy_SnowThick_RHS,     & ! (out)
+!!$       & xyz_SIceEn_RHS, xy_SIceSfcTemp_RHS,                    & ! (out)
+!!$       & xy_SIceUA, xy_SIceVA,                                  & ! (out)
+!!$       & xy_SIceCon0, xy_IceThick0, xy_SnowThick0,              & ! (in)
+!!$       & xyz_SIceEn0                                            & ! (in)
+!!$       & )
+    
     
     !$omp parallel do private(IceMass) collapse(2)
     do j = JS, JE
@@ -228,14 +242,18 @@ contains
           ! * Update the tendency of ice thickness and the entalphy, and snow thickness.  
           !
 
-          xy_IceThickA(i,j)  = xy_IceThick0(i,j)                                     &
-               & + dt*(xy_IceThick_RHS(i,j) + xy_IceThick_thm(i,j))
+!!$          xy_IceThickA(i,j)  = xy_IceThick0(i,j)                                     &
+!!$               & + dt*(xy_IceThick_RHS(i,j) + xy_IceThick_thm(i,j))
+!!$
+!!$          xy_SnowThickA(i,j) = xy_SnowThick0(i,j)                                    &
+!!$               & + dt*(xy_SnowThick_RHS(i,j) + xy_SnowThick_thm(i,j))
+!!$
+!!$          xyz_SIceEnA(i,j,KS:KS+1) = xyz_SIceEn0(i,j,KS:KS+1)                        &
+!!$               & + dt*(xyz_SIceEn_RHS(i,j,KS:KS+1) + xyz_SIceEn_thm(i,j,KS:KS+1))
 
-          xy_SnowThickA(i,j) = xy_SnowThick0(i,j)                                    &
-               & + dt*(xy_SnowThick_RHS(i,j) + xy_SnowThick_thm(i,j))
-
-          xyz_SIceEnA(i,j,KS:KS+1) = xyz_SIceEn0(i,j,KS:KS+1)                        &
-               & + dt*(xyz_SIceEn_RHS(i,j,KS:KS+1) + xyz_SIceEn_thm(i,j,KS:KS+1))
+          xy_IceThickA(i,j) = xy_IceThickA(i,j) + dt*xy_IceThick_RHS(i,j)
+          xy_SnowThickA(i,j) = xy_SnowThickA(i,j) + dt*xy_SnowThick_RHS(i,j)
+          xyz_SIceEnA(i,j,KS:KS+1) = xyz_SIceEnA(i,j,KS:KS+1) + dt*xyz_SIceEn_RHS(i,j,KS:KS+1)
 
           if ( xy_IceThickA(i,j) > 0d0 ) then
              
@@ -291,7 +309,7 @@ contains
        end do
     end do
 #endif !<- DEBUG_SEAICE
-    
+
     !-- Final part of dynamical process -------------------------
     
     call DSIce_TInt_common_MeltThinMinIce( &
@@ -300,6 +318,23 @@ contains
        & xy_BtmHFlxIO, xy_Wice,                        & ! (inout)
        & dt )
 
+
+
+#ifdef DEBUG_SEAICE
+    xy_Tmp1 = xy_SnowFall + xy_RainFall - xy_Evap
+    write(*,*) "Top", AvrLonLat_xy(xy_Tmp1(IS:IE,JS:JE))
+    
+    where(xy_IceThick0 > 0d0)
+       xy_Tmp2 = -xy_Wice + xy_RainFall
+    elsewhere
+       xy_Tmp2 = -xy_Wice + xy_SnowFall + xy_RainFall - xy_Evap
+    end where
+    write(*,*) "Btm", AvrLonLat_xy(xy_Tmp2(IS:IE,JS:JE))
+
+    xy_Tmp = DensSnow*(xy_SnowThickA - xy_SnowThick0) + DensIce*(xy_IceThickA - xy_IceThick0)
+    write(*,*) "IceMassChenge:", AvrLonLat_xy(xy_Tmp(IS:IE,JS:JE))/dt, &
+         & AvrLonLat_xy(xy_Tmp1(IS:IE,JS:JE) - xy_Tmp2(IS:IE,JS:JE))
+#endif
     
   end subroutine DSIce_TInt_common_advance_Dyn
 
@@ -322,6 +357,8 @@ contains
         & DSIce_ThermoDyn_Winton2000_AdjustLyrInternal, &
         & calc_E_IceLyr1, calc_E_IceLyr2,               &
         & calc_SIceTotEn
+
+    use SpmlUtil_mod
     
     ! 宣言文; Declaration statement
     !
@@ -362,11 +399,9 @@ contains
     real(DP) :: FrzPot
     real(DP) :: excessMeltEn
     real(DP) :: OcnFrzTemp
-
     
     ! 実行文; Executable statements
     !
-
     
     !$omp parallel do private( &
     !$omp   i, SfcResHFlx, BtmResHFlx, SfcFrzTemp, OcnFrzTemp, FrzPot,             &
@@ -409,7 +444,7 @@ contains
                   & xy_PenSDRFlx(i,j), SfcFrzTemp,                       & ! (in)
                   & xy_BtmHFlxIO(i,j), OcnFrzTemp,                       & ! (in)
                   & dt,  (i==IS .and. j==j_dbg) )
-
+             
 #ifdef DEBUG_SEAICE             
              if (i==IS .and. j==j_dbg) then
                 write(*,*) "-calcTemp----------------------"
@@ -461,7 +496,7 @@ contains
 #endif ! <- DEBUG_SEAICE
              
              !---------------------------
-
+             
              call DSIce_ThermoDyn_Winton2000_AdjustLyrInternal( &
                   & SnowThickA, IceThickA,                               & ! (out)
                   & z_SIceTempA(KS:KE), xy_Wice(i,j), excessMeltEn,      & ! (inout)
@@ -544,7 +579,6 @@ contains
 
           end if
 
-
           !---------------------------------------------------------------------
                           
           ! Calculate tendency due to sea-ice thermodynamics
@@ -553,7 +587,6 @@ contains
           xy_SnowThick_RHS(i,j) = (SnowThickA - xy_SnowThick0(i,j))/dt
           xyz_SIceEn_RHS(i,j,KS:KS+1) = (z_SIceEnA(KS:KS+1) - z_SIceEn0(KS:KS+1))/dt
              
-
 #ifdef DEBUG_SEAICE
           if (i==IS .and. j==j_dbg) then
              write(*,*) "sice thermodynamics summary: (i,j)=", i, j, "time=", CurrentTime, "-----------------"
@@ -573,7 +606,6 @@ contains
              write(*,*) "***********************************************************************************"
           end if
 #endif !<- DEBUG_SEAICE
-          
           
        end do
     end do
@@ -607,7 +639,7 @@ contains
     use DSIce_ThermoDyn_Winton2000_mod, only: &
         & calc_E_IceLyr1, calc_E_IceLyr2,               &
         & calc_SIceTotEn
-    
+
     ! 宣言文; Declaration statement
     !
     real(DP), intent(inout) :: xy_SnowThick(IA,JA)
@@ -619,17 +651,16 @@ contains
     real(DP), intent(inout) :: xy_BtmHFlxIO(IA,JA)
     real(DP), intent(inout) :: xy_Wice(IA,JA)
     real(DP), intent(in) :: dt
-    
+
     ! 作業変数
     ! Work variables
     
     integer :: i
     integer :: j
 
-
     ! 実行文; Executable statements
     !
-    
+
     !$omp parallel do private(i)
     do j = JS, JE
        do i = IS, IE
@@ -669,7 +700,7 @@ contains
           
        end do
     end do
-    
+
   end subroutine DSIce_TInt_common_MeltThinMinIce
   
 end module DSIce_TInt_common_mod

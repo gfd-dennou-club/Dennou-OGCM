@@ -351,8 +351,10 @@ contains
     end if
     
     work = work - DensIce*dh2Evap
-    excessMeltEn = excessMeltEn + LEvap*work
-    wice =   wice + work/dt
+    if( work > 1d-20) then
+       excessMeltEn = excessMeltEn + LEvap*work
+       wice =   wice + work/dt
+    end if
 
 #ifdef DEBUG_SEAICE
     if (debugFlag) then
@@ -368,6 +370,8 @@ contains
 
   end subroutine DSIce_ThermoDyn_Winton2000_CalcLyrMassChange
 
+  !-----------------------------------------------
+  
   subroutine DSIce_ThermoDyn_Winton2000_AdjustLyrInternal( &
        & SnowThick, IceThick,                                & ! (out)
        & z_IceTemp, Wice, excessMeltEn,                      & ! (inout)

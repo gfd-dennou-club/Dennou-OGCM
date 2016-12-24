@@ -183,7 +183,7 @@ contains
                &               + xy_DSfcHFlxDTs(:,:)*(xyza_TRC(:,:,KS,TRCID_PTEMP) - xy_SeaSfcTemp0) &
                &               + xy_SfcHFlxIO_ns
           xy_SfcHFlx_sr(:,:) =   xy_SfcHFlx0_sr(:,:)   &
-               &               + xy_SfcHFlxIO_ns
+               &               + xy_SfcHFlxIO_sr
        elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )
           xy_SfcHFlx_ns(:,:) = xy_SfcHFlxIO_ns
           xy_SfcHFlx_sr(:,:) = xy_SfcHFlxIO_sr
@@ -220,7 +220,7 @@ contains
           xy_FreshWtFlxS(:,:) =   xy_FreshWtFlxS0 + xy_FreshWtFlxSIO
        elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )
           xy_FreshWtFlxS(:,:) = xy_FreshWtFlxSIO
-       end where
+       end where       
     case ( SaltBCTYPE_PresFlux_Han1984Method )
        where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
           xy_FreshWtFlxS(:,:) =   xy_FreshWtFlxS0 + xy_FreshWtFlxSIO
@@ -238,8 +238,7 @@ contains
           xy_FreshWtFlxS(:,:) = xy_FreshWtFlxSIO(:,:)
        end where
     end select
-    
-    
+
   end subroutine DOGCM_Boundary_common_UpdateBeforeTstep
 
   !-----------------------------------------

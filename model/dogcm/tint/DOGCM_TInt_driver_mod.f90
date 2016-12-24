@@ -347,6 +347,9 @@ contains
 
   subroutine DOGCM_TInt_LFAM3_Do()
 
+    use SpmlUtil_mod
+    use VFvmUtil_mod
+    use DOGCM_Boundary_Vars_mod
     
     ! 作業変数
     ! Work variables
@@ -467,16 +470,20 @@ contains
          & alpha=0.5d0, gamma=0d0, lambda=VDiffTermACoef,                  & ! (in)    
 !!$         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef, & ! (in)    
          & lhst_tend=.true. )    
-
-!!$    avr_ptempN = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_PTEMP,TLN)) )    
-!!$    avr_ptempA = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_PTEMP,TLA)) )
+    
+!!$    avr_ptempN = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_SALT,TLN)) )    
+!!$    avr_ptempA = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_SALT,TLA)) )
+!!$    avr_ptempN = AvrLonLat_xy( VFvm_Int_BtmToTop(  (xyzaa_TRC(IS:IE,JS:JE,:,TRCID_SALT,TLN)), xyz_H(IS:IE,JS:JE,:)))
+!!$    avr_ptempA = AvrLonLat_xy( VFvm_Int_BtmToTop(  (xyzaa_TRC(IS:IE,JS:JE,:,TRCID_SALT,TLA)), xyz_H(IS:IE,JS:JE,:)))
+!!$    write(*,*) "FreshWt:", AvrLonLat_xy(xy_FreshWtFlxS(IS:IE,JS:JE))*1d3
+!!$    write(*,*) "Salt:", (avr_ptempA - avr_ptempN)/deltime, -35d0*AvrLonLat_xy(xy_FreshWtFlxS(IS:IE,JS:JE))
 !!$    avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE, TRCID_PTEMP) ))
 !!$    
 !!$    avr_SfcHFlx = AvrLonLat_xy( (xy_SfcHFlx_ns(IS:IE,JS:JE) + xy_SfcHFlx_sr(IS:IE,JS:JE) ) )*DelTime/(RefDens*Cp0)
 !!$    write(*,*) "AvrPTempN=", avr_ptempN, ", AvrPTempA=", avr_ptempA, &
 !!$         & ", avr_SfcHFlx*dt/(Rho0*Cp0)=", avr_SfcHFlx, ", DelAvrPTemp=", (avr_ptempA - avr_ptempN)*5.2d3, &
 !!$         & ", RHS_phys=", avr_ptemp_RHS_phys*5.2d3*DelTime
-    
+
   end subroutine DOGCM_TInt_LFAM3_Do
   
 end module DOGCM_TInt_driver_mod

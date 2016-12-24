@@ -1,5 +1,5 @@
 SUBDIRS = \
-	util io admin boundary seaice dynamics physics tint
+	util admin io boundary seaice dynamics physics tint
 
 ################
 
@@ -89,15 +89,19 @@ endif
 
 #######################################################################
 
-lib_LTLIBRARIES = libDOGCM.la
+lib_LTLIBRARIES = \
+	libDOGCM.la
+
+noinst_LTLIBRARIES = \
+	libDOGCMExp.la
+
+#-----------------------------------------------------------------
+
 libDOGCM_la_SOURCES = \
-	exp/$(exp_name)/DOGCM_Exp_$(exp_name)_mod.f90 \
-	exp/DOGCM_Exp_driver_mod.f90                  \
 	DOGCM_main_mod.f90
 
-DOGCM_Exp_driver_mod.f90 : exp/$(exp_name)/DOGCM_Exp_$(exp_name)_mod.f90
-
 libDOGCM_la_LIBADD = \
+	libDOGCMExp.la                            \
 	$(srcdir)/tint/libDOGCMTInt.la            \
 	$(srcdir)/physics/libDOGCMPhysics.la      \
 	$(srcdir)/dynamics/libDOGCMDynamics.la    \
@@ -107,4 +111,17 @@ libDOGCM_la_LIBADD = \
 	$(srcdir)/util/libDOGCMUtil.la            \
 	$(srcdir)/util/libSpmlUtil.la
 
+DOGCM_main_mod.f90 : \
+	libDOGCMExp.la
+
+######################################################################
+
+libDOGCMExp_la_SOURCES = \
+	exp/$(exp_name)/DOGCM_Exp_$(exp_name)_mod.f90 \
+	exp/DOGCM_Exp_driver_mod.f90
+
+AM_FCFLAGS += "-DExp_$(exp_name)"
+
+DOGCM_Exp_driver_mod.f90 : \
+	exp/$(exp_name)/DOGCM_Exp_$(exp_name)_mod.o
 
