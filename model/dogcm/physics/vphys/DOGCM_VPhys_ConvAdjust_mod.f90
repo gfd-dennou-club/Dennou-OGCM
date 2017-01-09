@@ -1,7 +1,7 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2014 Yuta Kawai. All rights reserved.
+! Copyright (c) 2013-2016 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
-!> @brief a template module
+!> @brief A module to calculate the tendency due to a instantaneous convective adjustment.
 !! 
 !! @author Yuta Kawai
 !!
@@ -29,7 +29,9 @@ module DOGCM_VPhys_ConvAdjust_mod
 
   use DOGCM_Admin_Grid_mod, only: &
        & iMax, jMax,              &
-       & KS, KE
+       & IA, IS, IE,              &
+       & JA, JS, JE,              &
+       & KA, KS, KE
 
   ! 宣言文; Declareration statements
   !
@@ -60,8 +62,6 @@ module DOGCM_VPhys_ConvAdjust_mod
   character(*), parameter:: module_name = 'DOGCM_VPhys_ConvAdjust_mod' !< Module Name
 
   real(DP) :: STABILITY_THRESHOLD 
-
-  integer, parameter :: ExceptBC_OFS = 0
   
 contains
 
@@ -102,40 +102,39 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: xyz_PTemp_RHS(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(inout) :: xyz_Salt_RHS(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(inout) :: xyz_ConvIndex(0:iMax-1,jMax,KS:KE)    
-    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: z_LyrThickIntWt(KS:KE)
+    real(DP), intent(inout) :: xyz_PTemp_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_Salt_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_ConvIndex(IA,JA,KA)    
+    real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)
+    real(DP), intent(in) :: z_LyrThickIntWt(KA)
     real(DP), intent(in) :: dt
     
     ! 局所変数
     ! Local variables
     !
     integer :: i, j
-    real(DP) :: z_PTemp(KS:KE)
-    real(DP) :: z_PTempOri(KS:KE)
-    real(DP) :: z_Salt(KS:KE)
-    real(DP) :: z_Z(KS:KE)
-    logical  :: z_isAdjustOccur(KS:KE)
+    real(DP) :: z_PTemp(KA)
+    real(DP) :: z_PTempOri(KA)
+    real(DP) :: z_Salt(KA)
+    real(DP) :: z_Z(KA)
+    logical  :: z_isAdjustOccur(KA)
 
     real(DP) :: PTempVInt
 
     ! 実行文; Executable statement
     !
-
     
     !$omp parallel do private(i, PTempVInt, z_PTempOri, z_PTemp, z_Salt, z_Z, z_isAdjustOccur)
-    do j=1,jMax
-       do i=0,iMax-1
+    do j=JS,JE
+       do i=IS,IE
           z_PTemp(:) = xyz_PTemp(i,j,:)
           z_Salt(:) = xyz_Salt(i,j,:)
           z_Z(:) = xyz_Z(i,j,:)
 
           z_PTempOri = z_PTemp
-          PTempVInt = sum(z_LyrThickIntWt(:)*z_PTemp)
+          PTempVInt = sum(z_LyrThickIntWt(KS:KE)*z_PTemp(KS:KE))
           
           call DOGCM_VPhys_ConvAdjust_perform_1D(z_PTemp, z_Salt,      & ! (inout)
                & z_Z, z_LyrThickIntWt,                        & ! (in)
@@ -151,7 +150,6 @@ contains
              call MessageNotify('E', module_name, &
                   & "Integrated potential temperature over a column is not conserved. Check!") 
           end if
-          
 
           where( z_isAdjustOccur(:) )
              xyz_ConvIndex(i,j,:) = xyz_ConvIndex(i,j,:) + 1d0
@@ -169,11 +167,11 @@ contains
     
     ! 実行文; Executable statement
     ! 
-    real(DP), intent(inout) :: z_PTemp(KS:KE)
-    real(DP), intent(inout) :: z_Salt(KS:KE)
-    real(DP), intent(in) :: z_Z(KS:KE)
-    real(DP), intent(in) :: z_LyrThickIntWt(KS:KE)
-    logical, intent(out) :: isAdjustOccur(KS:KE)
+    real(DP), intent(inout) :: z_PTemp(KA)
+    real(DP), intent(inout) :: z_Salt(KA)
+    real(DP), intent(in) :: z_Z(KA)
+    real(DP), intent(in) :: z_LyrThickIntWt(KA)
+    logical, intent(out) :: isAdjustOccur(KA)
 
     ! 局所変数
     ! Local variables
@@ -237,20 +235,29 @@ contains
     !
   contains
     subroutine mix_UnstableLyr(r_)
+
+      ! 宣言文; Declaration statement
+      !      
       integer, intent(in) :: r_
+
+      ! 局所変数
+      ! Local variables
+      !          
       integer :: nMixPair
       real(DP) :: DensPotPair(2)
       integer :: LyrLId
       integer :: LyrUId
       integer :: m
 
+      ! 実行文; Executable statement
+      ! 
       
       nMixPair = 0
       LyrLId = r_
       
-      do m=2, KE-r_+2
+      do m=2, KE-r_+1
 
-         LyrUId = r_ + m - 2
+         LyrUId = r_ + m - 1
          nMixPair = nMixPair + 1
 
          call vmixing_PTempAndSalt(z_PTemp(LyrLId:LyrUId), z_Salt(LyrLId:LyrUId), & ! (inout)
@@ -307,20 +314,24 @@ contains
   end subroutine DOGCM_VPhys_ConvAdjust_perform_1D
 
   subroutine vmixing_PTempAndSalt(PTemp, Salt, LyrThick)
+
+    ! 宣言文; Declaration statement
+    !    
     real(DP), intent(in) :: LyrThick(:)
     real(DP), intent(inout) :: PTemp(size(LyrThick))
     real(DP), intent(inout) :: Salt(size(LyrThick))
 
-    real(DP) :: mixed_PTemp
-    real(DP) :: mixed_Salt
+    ! 局所変数
+    ! Local variables
+    !              
     real(DP) :: totLyrThick
+
+    ! 実行文; Executable statement
+    ! 
     
     totLyrThick = sum(LyrThick(:))
-    mixed_PTemp = sum(PTemp*LyrThick(:))/totLyrThick
-    mixed_Salt = sum(Salt*LyrThick(:))/totLyrThick
-
-    PTemp(:) = mixed_PTemp
-    Salt(:) = mixed_Salt
+    PTemp(:) = sum(PTemp(:)*LyrThick(:))/totLyrThick 
+    Salt(:)  = sum(Salt (:)*LyrThick(:))/totLyrThick
 
   end subroutine vmixing_PTempAndSalt
 

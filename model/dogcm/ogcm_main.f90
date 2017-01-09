@@ -45,6 +45,11 @@ program ogcm_main
        & sice_shutdown => DSIce_main_shutdown, &
        & sice_advance_timestep => DSIce_main_advance_timestep
 
+  use ProfUtil_mod, only: &
+       & ProfUtil_Init, ProfUtil_Final,        &
+       & ProfUtil_RapStart, ProfUtil_RapEnd,   &
+       & ProfUtil_RapReport
+  
   ! 宣言文; Declaration statement
   !
   implicit none
@@ -68,7 +73,7 @@ program ogcm_main
 
   character(STRING) :: configNmlFile
 
-  !-------------------------------------------------------------
+  !---------------------------------------------------------------------------------------------
   
   ! 実行文; Executable statement
   !
@@ -78,35 +83,40 @@ program ogcm_main
   call OptionParser_Init()
   call OptionParser_GetInfo( configNmlFile )
   call OptionParser_Final()
-
+  
   call read_nmlData( configNmlFile )
+
+  !*********************************************************************************************
+  ! Set up
+  !*********************************************************************************************  
+  
+  call ProfUtil_Init( configNmlFile )
+  call ProfUtil_RapStart('Setup', 0) 
   
   call ogcm_main_Init()
   call sice_main_Init()
-  
-  !***********************************
-  ! Set up
-  !***********************************
   
   call ogcm_setup( configNmlFile )
   call sice_setup( configNmlFile )
 
   !- Set initial condition ----------------------------------------------------------------  
-
+  
   call DOGCM_Exp_driver_SetInitCond()
 
+  call ProfUtil_RapEnd('Setup', 0) 
   
-  !***********************************
+  !*********************************************************************************************
   ! The loop for temporal integration
-  !************************************
+  !*********************************************************************************************
 
   call MessageNotify("M", PROGRAM_NAME, "[==== Start temporal integration ====]")
-
+  
+  call ProfUtil_RapStart('TimeLoop', 0) 
+  
   loop_end_flag = .false.  
-
   tstep_ocn = 0
   tstep_sice = 0
-
+  
   !- Time loop ---------------------------------------------------------------------------
   do while(.not. loop_end_flag)
           
@@ -131,21 +141,33 @@ program ogcm_main
      loop_end_flag = ( loop_end_flag_ocn .and. loop_end_flag_sice )     
   end do
 
-  !*************************************
+  call ProfUtil_RapEnd('TimeLoop', 0) 
+  
+  !*********************************************************************************************
   ! Finalize
-  !*************************************
+  !*********************************************************************************************
 
+  call ProfUtil_RapStart('Shutdown', 0)
+  
   call ogcm_shutdown()
   call sice_shutdown()
-  
+
   call ogcm_main_Final()
   call sice_main_Final()
-  
+
+  call ProfUtil_RapEnd('Shutdown', 0)
+
+  call ProfUtil_RapReport()
+  call ProfUtil_Final()
+   
+  !*************************************
+
   call MessageNotify("M", PROGRAM_NAME, "..End")
-
-
+  
 contains
 
+  !-----------------------------------------------------------
+  
   subroutine pass_field_ocn2sice()
 
     ! モジュール引用; Use statements
@@ -225,9 +247,9 @@ contains
          & )
 
   end subroutine pass_field_sice2ocn
-
+  
   !-----------------------------------------------------------
-
+  
   subroutine read_nmlData( configNmlFileName )
 
     ! モジュール引用; Use statement

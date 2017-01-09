@@ -120,25 +120,6 @@ contains
     xyz_OMG(:,:,:) = xyz_IntSig_SigToTop_xyz(xyz_IntSig_kernel)
     xyz_OMG(:,:,kMax) = 0d0
 
-!!$    do j=1, jMax
-!!$       do i=0, iMax-1
-!!$          AMat(1:kMax,:) = matmul(RMatM1, DifMat)
-!!$          AMat(0,:) =  0d0; AMat(0,0) = 1d0
-!!$          AMat(kMax,:) =  0d0; AMat(kMax,0) = 1d0
-!!$          b(1:kMax-1) = - matmul(RMatM2, xyz_H(i,j,:)*xyz_Div(i,j,:))
-!!$          b(0) = 0d0; b(kMax) = 0d0
-!!$          call DGESV(kMax+1, 1, AMat, kMax+1, IPIV, b, kMax+1, info)
-!!$          xyz_OMG(i,j,:) = b(:)
-!!$          xyz_OMG(i,j,kMax) = 0d0
-!!$       end do
-!!$    end do
-!!$    
-!!$    xyz_DSigOMG = xyz_DSig_xyz(xyz_OMG)/xyz_H
-!!$    do k=0, kMax
-!!$       write(*,'(a,i2,3(E18.5e2))') "k=", k, xyz_Div(0,jMax/2,k), xyz_DSigOMG(0,jMax/2,k), xyz_OMG(0,jMax/2,k)
-!!$    end do
-!!$    write(*,*) "----------"
-!!$    stop
   end subroutine HBEDiagnose_OMG
 
   !-----------

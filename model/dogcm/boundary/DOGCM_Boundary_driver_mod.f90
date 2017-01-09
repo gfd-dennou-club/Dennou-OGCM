@@ -169,17 +169,13 @@ contains
     select case( SolverType )
     case (OCNGOVERNEQ_SOLVER_HSPM_VSPM)
        call DOGCM_Boundary_spm_ApplyBC(    &
-            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), & ! (inout)
-            & xyza_TRC(IS:IE,JS:JE,KS:KE,:),                      & ! (inout)
-            & xyz_H(IS:IE,JS:JE,KS:KE),                                           & ! (in)
-            & xyz_VViscCoef(IS:IE,JS:JE,KS:KE), xyz_VDiffCoef(IS:IE,JS:JE,KS:KE)  & ! (in)
+            & xyz_U, xyz_V,  xyza_TRC,                           & ! (inout)
+            & xyz_H, xyz_VViscCoef, xyz_VDiffCoef                & ! (in)
             & )
     case (OCNGOVERNEQ_SOLVER_HSPM_VFVM)
        call DOGCM_Boundary_hspm_vfvm_ApplyBC(    &
-            & xyz_U(IS:IE,JS:JE,:), xyz_V(IS:IE,JS:JE,:), & ! (inout)
-            & xyza_TRC(IS:IE,JS:JE,:,:),                                       & ! (inout)
-            & xyz_H(IS:IE,JS:JE,:),                                            & ! (in)
-            & xyz_VViscCoef(IS:IE,JS:JE,:), xyz_VDiffCoef(IS:IE,JS:JE,:)       & ! (in)
+            & xyz_U, xyz_V,  xyza_TRC,                           & ! (inout)
+            & xyz_H, xyz_VViscCoef, xyz_VDiffCoef                & ! (in)
             & )
     end select
     

@@ -1,7 +1,7 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2013 Kawai Yuta. All rights reserved.
+! Copyright (c) 2013-2016 Kawai Yuta. All rights reserved.
 !-------------------------------------------------------------
-!> @brief a template module
+!> @brief A driver module to access some utility modules of sea-water EOS. 
 !! 
 !! @author Kawai Yuta
 !!
@@ -114,6 +114,8 @@ contains
 
   end subroutine EOSDriver_Init
 
+  !----------------------------------------------
+  
   !>
   !!
   !!
@@ -133,6 +135,8 @@ contains
 
   end subroutine EOSDriver_Final
 
+  !----------------------------------------------
+  
   !> @brief 
   !!
   !!
@@ -196,6 +200,8 @@ contains
 
   end subroutine EOSDriver_Eval_array1d
 
+  !----------------------------------------------
+  
   !> @brief 
   !!
   !!
@@ -230,6 +236,8 @@ contains
     end select
 
   end subroutine EOSDriver_Eval_array2d
+
+  !----------------------------------------------
   
   !> @brief 
   !!
@@ -281,6 +289,8 @@ contains
 
   end subroutine EOSDriver_Eval_array3d
 
+  !----------------------------------------------
+  
   !> @brief 
   !!
   !!
@@ -356,6 +366,8 @@ contains
 
   end subroutine EOSDriver_Eval_alpha_beta_element
 
+  !----------------------------------------------
+  
   !> @brief 
   !!
   !!
@@ -385,6 +397,7 @@ contains
 
   end subroutine EOSDriver_Eval_alpha_beta_array2d
   
+  !----------------------------------------------
   
   !> @brief 
   !!

@@ -140,7 +140,7 @@ contains
 
        w_HViscCoefH(l) = -(     ViscCoefH*(-w_LaplaEigVal(l) - 2d0/RPlanet**2)            &
             &                +  NumDiffCoefH*(  (-w_LaplaEigVal(l))**(NumDiffOrdH/2)      &
-            &                +                -(2d0/RPlanet**2)**(NumDiffOrdH/2) )        &
+            &                +                - (2d0/RPlanet**2)**(NumDiffOrdH/2) )        &
             &             )
     end do
     
@@ -198,11 +198,11 @@ contains
 
     ! 宣言文; Declaration statement
     !          
-    real(DP), intent(inout) :: xyz_U_RHS(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(inout) :: xyz_V_RHS(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(inout) :: xyz_U_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_V_RHS(IA,JA,KA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: hViscCoef
     real(DP), intent(in) :: hHyperViscCoef
 
@@ -217,8 +217,8 @@ contains
     real(DP) :: w_Div_RHS(lMax)
     real(DP) :: w_Vor(lMax)
     real(DP) :: w_Div(lMax)
-    real(DP) :: xy_U_HDiff(0:iMax-1,jMax)
-    real(DP) :: xy_V_HDiff(0:iMax-1,jMax)
+    real(DP) :: xy_U_HDiff(IA,JA)
+    real(DP) :: xy_V_HDiff(IA,JA)
 
     ! 実行文; Executable statements
     !
@@ -226,8 +226,8 @@ contains
     !$omp parallel do private(w_Vor, w_Div, w_Vor_RHS, w_Div_RHS, xy_U_HDiff, xy_V_HDiff)
     do k=KS, KE
        call calc_UVCosLat2VorDiv( &
-            & xyz_U(:,:,k)*xy_CosLat, xyz_V(:,:,k)*xy_CosLat, &
-            & w_Vor, w_Div                                    &
+            & xyz_U(IS:IE,JS:JE,k)*xy_CosLat, xyz_V(IS:IE,JS:JE,k)*xy_CosLat, &
+            & w_Vor, w_Div                                                    &
             & )
 
        w_Vor_RHS(:) =  &
@@ -245,8 +245,8 @@ contains
             &        )/RPlanet**2
 
 
-       call calc_VorDiv2UV( w_Vor_RHS, w_Div_RHS, &
-            & xy_U_HDiff, xy_V_HDiff )
+       call calc_VorDiv2UV( w_Vor_RHS, w_Div_RHS,                             &
+            & xy_U_HDiff(IS:IE,JS:JE), xy_V_HDiff(IS:IE,JS:JE) )
 
        xyz_U_RHS(:,:,k) = xyz_U_RHS(:,:,k) + xy_U_HDiff
        xyz_V_RHS(:,:,k) = xyz_V_RHS(:,:,k) + xy_V_HDiff
@@ -255,19 +255,18 @@ contains
   end subroutine LPhys_DIFF_spm_LMixMOMRHS
 
   subroutine LPhys_DIFF_spm_LMixMOMRHSImpl(            &
-       & xyz_U_RHS, xyz_V_RHS,                                   & ! (inout)
-       & xyz_U, xyz_V, xyz_H,                                    & ! (in)
-       & hViscCoef, hHyperViscCoef,                              & ! (in)
-       & dt                                                      & ! (in)
+       & xyz_U_RHS, xyz_V_RHS,                            & ! (inout)
+       & xyz_U, xyz_V, xyz_H, hViscCoef, hHyperViscCoef,  & ! (in)
+       & dt                                               & ! (in)
        & )
 
     ! 宣言文; Declaration statement
     !          
-    real(DP), intent(inout) :: xyz_U_RHS(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(inout) :: xyz_V_RHS(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(inout) :: xyz_U_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_V_RHS(IA,JA,KA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: hViscCoef
     real(DP), intent(in) :: hHyperViscCoef
     real(DP), intent(in) :: dt
@@ -281,26 +280,25 @@ contains
     real(DP) :: w_Fact(lMax)
     real(DP) :: w_Vor(lMax)
     real(DP) :: w_Div(lMax)
-    real(DP) :: xy_U_HDiff(0:iMax-1,jMax)
-    real(DP) :: xy_V_HDiff(0:iMax-1,jMax)
+    real(DP) :: xy_U_HDiff(IA,JA)
+    real(DP) :: xy_V_HDiff(IA,JA)
 
     ! 実行文; Executable statements
     !
-
     !$omp parallel do private(w_Vor, w_Div, w_Fact, xy_U_HDiff, xy_V_HDiff)
     do k=KS, KE
        call calc_UVCosLat2VorDiv( &
-            & xyz_U(:,:,k)*xy_CosLat, xyz_V(:,:,k)*xy_CosLat, &
-            & w_Vor, w_Div                                    &
+            & xyz_U(IS:IE,JS:JE,k)*xy_CosLat, xyz_V(IS:IE,JS:JE,k)*xy_CosLat, &
+            & w_Vor, w_Div                                                    &
             & )
 
        w_Fact(:) = 1d0/(1d0/w_HViscCoefH(:) - dt)
-       call calc_VorDiv2UV( w_Fact*w_Vor, w_Fact*w_Div,       & ! (in)
-            & xy_U_HDiff, xy_V_HDiff                          & ! (out)
+       call calc_VorDiv2UV( w_Fact*w_Vor, w_Fact*w_Div,                       & ! (in)
+            & xy_U_HDiff(IS:IE,JS:JE), xy_V_HDiff(IS:IE,JS:JE)                & ! (out)
             & )
 
-       xyz_U_RHS(:,:,k) = xyz_U_RHS(:,:,k) + xy_U_HDiff
-       xyz_V_RHS(:,:,k) = xyz_V_RHS(:,:,k) + xy_V_HDiff
+       xyz_U_RHS(:,:,k) = xyz_U_RHS(:,:,k) + xy_U_HDiff(:,:)
+       xyz_V_RHS(:,:,k) = xyz_V_RHS(:,:,k) + xy_V_HDiff(:,:)
     end do
     
   end subroutine LPhys_DIFF_spm_LMixMOMRHSImpl
@@ -355,9 +353,9 @@ contains
 
     ! 宣言文; Declaration statement
     !      
-    real(DP), intent(inout) :: xyza_TRC_RHS(0:iMax-1,jMax,KS:KE,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyza_TRC(0:iMax-1,jMax,KS:KE,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(inout) :: xyza_TRC_RHS(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyza_TRC(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: hDiffCoef
     real(DP), intent(in) :: hHyperDiffCoef
     real(DP), intent(in) :: dt
@@ -379,11 +377,10 @@ contains
     do n = 1, TRC_TOT_NUM
        !$omp parallel do private(w_TRC)
        do k=KS, KE
-          w_TRC(:) = w_xy(xyza_TRC(:,:,k,n))
+          w_TRC(:) = w_xy(xyza_TRC(IS:IE,JS:JE,k,n))
 
-          xyza_TRC_RHS(:,:,k,n) = xyza_TRC_RHS(:,:,k,n) +  &
+          xyza_TRC_RHS(IS:IE,JS:JE,k,n) = xyza_TRC_RHS(IS:IE,JS:JE,k,n) +  &
                & (   xy_w( w_TRC(:)/(1d0/w_HDiffCoefH(:) - dt) ) &
-!!$               & (   xy_w( w_HDiffCoefH(:)*w_TRC(:)/(1d0 - dt*w_HDiffCoefH(:)) ) &
                & )
        end do
     end do

@@ -22,11 +22,12 @@ module HBEDiagnose_hspm_vfvm_mod
 
   use DOGCM_Admin_Constants_mod
   
-
   use DOGCM_Admin_Grid_mod, only: &
-       & iMax, jMax, lMax,             &
-       & KS, KE, KA,                   &
-       & z_CDK, z_RCDK, z_FDK, z_RFDK
+       & iMax, jMax, lMax,                      &
+       & IS, IE, IA, JS, JE, JA, KS, KE, KA,    &
+       & z_CDK, z_RCDK, z_FDK, z_RFDK,          &
+       & JBLOCK
+#include "../../admin/DOGCM_Admin_GaussSpmGridIndexDef.h"
   
   use SpmlUtil_mod, only: &
        & w_xy, xy_w,                                      &
@@ -92,10 +93,10 @@ contains
 
     ! 宣言文; Declaration statement
     !        
-    real(DP), intent(out) :: xyr_OMG(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_HA(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyr_OMG(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Div(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_HA(IA,JA,KA)
     real(DP), intent(in) :: DelTime
 
     ! 作業変数
@@ -105,26 +106,23 @@ contains
     integer :: j
     integer :: k
 
-    real(DP) :: z_Div(KA)
-    real(DP) :: z_H(KA)
+    real(DP) :: z_DOMG(KA)
     real(DP) :: r_OMG(KA)
 
     ! 実行文; Executable statements
     !
     
-    !$omp parallel do private(k, r_OMG, z_Div, z_H) collapse(2)
-    do j=1, jMax
-       do i=0, iMax-1
-          z_H(:) = xyz_H(i,j,:)
-          z_Div(:) = xyz_Div(i,j,:)
-
-          r_OMG(KS-1) = 0d0
-          do k=KS, KE
-             r_OMG(k) = r_OMG(k-1) + &
-                  & z_H(k)*z_Div(k)*z_CDK(k)
-          end do
-          xyr_OMG(i,j,:) = r_OMG(:)
+    !$omp parallel do private(k, r_OMG, z_DOMG) collapse(2)
+    do j=JS, JE
+    do i=IS, IE
+       z_DOMG(:) = xyz_H(i,j,:)*xyz_Div(i,j,:)*z_CDK(:)
+       
+       r_OMG(KS-1) = 0d0
+       do k=KS, KE
+          r_OMG(k) = r_OMG(k-1) + z_DOMG(k)
        end do
+       xyr_OMG(i,j,:) = r_OMG(:)
+    end do
     end do
 
 !!$    write(*,*) "check: OMG:", xyr_OMG(0,:,KE)
@@ -214,34 +212,34 @@ contains
 
     ! 宣言文; Declaration statement
     !        
-    real(DP), intent(out) :: xy_UBarot(0:iMax-1,jMax)
-    real(DP), intent(out) :: xy_VBarot(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xy_SSH(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_Topo(0:iMax-1,jMax)
+    real(DP), intent(out) :: xy_UBarot(IA,JA)
+    real(DP), intent(out) :: xy_VBarot(IA,JA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xy_SSH(IA,JA)
+    real(DP), intent(in) :: xy_Topo(IA,JA)
 
     ! 作業変数
     ! Work variables
-    
-    integer :: k
-    real(DP) :: xy_TotDep(0:iMax-1,jMax)
 
+    integer :: i
+    integer :: j
+    real(DP) :: z_Fac(KA)
+    real(DP) :: totDep
+    
     ! 実行文; Executable statements
     !
-    
-    xy_TotDep = xy_SSH + xy_Topo
-    xy_UBarot(:,:) = 0d0
-    xy_VBarot(:,:) = 0d0
 
-    !$omp parallel do reduction(+: xy_UBarot, xy_VBarot)
-    do k=KS, KE
-       xy_UBarot(:,:) = xy_UBarot + xyz_H(:,:,k)*xyz_U(:,:,k)*z_CDK(k)
-       xy_VBarot(:,:) = xy_VBarot + xyz_H(:,:,k)*xyz_V(:,:,k)*z_CDK(k)       
+    !$omp parallel do private(i,j,z_Fac,totDep) collapse(2)
+    do j=JS, JE
+    do i=IS, IE
+       z_Fac(:) = xyz_H(i,j,:)*z_CDK(:)
+       totDep   = xy_SSH(i,j) + xy_Topo(i,j)
+       xy_UBarot(i,j) = sum(xyz_U(i,j,KS:KE)*z_Fac(KS:KE))/totDep
+       xy_VBarot(i,j) = sum(xyz_V(i,j,KS:KE)*z_Fac(KS:KE))/totDep
     end do
-    xy_UBarot(:,:) = xy_UBarot/xy_TotDep
-    xy_VBarot(:,:) = xy_VBarot/xy_TotDep
+    end do
     
   end subroutine HBEDiagnose_UVBarot
 
@@ -252,10 +250,10 @@ contains
 
     ! 宣言文; Declaration statement
     !        
-    real(DP), intent(out) :: xyz_Vor(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyz_Div(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_Vor(IA,JA,KA)
+    real(DP), intent(out) :: xyz_Div(IA,JA,KA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
 
     ! 作業変数
     ! Work variables
@@ -267,12 +265,11 @@ contains
     !$omp parallel do private(w_Vor, w_Div)
     do k=KS, KE
        call calc_UVCosLat2VorDiv( &
-            & xyz_U(:,:,k)*xy_CosLat, xyz_V(:,:,k)*xy_CosLat, & ! (in)
-            & w_Vor, w_Div                                    & ! (out)
+            & xyz_U(IS:IE,JS:JE,k)*xy_CosLat, xyz_V(IS:IE,JS:JE,k)*xy_CosLat, & ! (in)
+            & w_Vor, w_Div                                                    & ! (out)
             & )
-       
-       xyz_Vor(:,:,k) = xy_w(w_Vor)
-       xyz_Div(:,:,k) = xy_w(w_Div)       
+       xyz_Vor(IS:IE,JS:JE,k) = xy_w(w_Vor)
+       xyz_Div(IS:IE,JS:JE,k) = xy_w(w_Div)       
     end do
 
   end subroutine HBEDiagnose_VorDiv
@@ -284,9 +281,9 @@ contains
 
     ! 宣言文; Declaration statement
     !        
-    real(DP), intent(out) :: xyz_HydPres(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_HydPres(IA,JA,KA)
+    real(DP), intent(in) :: xyz_DensEdd(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
 
     ! 作業変数
     ! Work variables
@@ -296,28 +293,24 @@ contains
     integer :: k
 
     real(DP) :: r_HydPres(KA)
-    real(DP) :: z_H(KA)
-    real(DP) :: z_DensEdd(KA)
+    real(DP) :: z_DHydPres(KA)
     
     ! 実行文; Executable statements
     !
     
-    !$omp parallel do private(k, z_H, z_DensEdd, r_HydPres) collapse(2)
-    do j=1, jMax
-       do i=0, iMax-1
-          z_H(:) = xyz_H(i,j,:)
-          z_DensEdd(:) = xyz_DensEdd(i,j,:)
-
-          r_HydPres(KS-1) = 0d0
-          do k=KS, KE
-             r_HydPres(k) = r_HydPres(k-1) + &
-                  & Grav*z_H(k)*z_DensEdd(k)*z_CDK(k)
-          end do
-          
-          xyz_HydPres(i,j,KS:KE) = 0.5d0*( r_HydPres(KS-1:KE-1) + r_HydPres(KS:KE) ) 
-       end do
+    !$omp parallel do private(i,j,k,z_DHydPres,r_HydPres) collapse(2)
+    do j=JS, JE
+    do i=IS, IE
+       z_DHydPres(:) = Grav*xyz_H(i,j,:)*xyz_DensEdd(i,j,:)*z_CDK(:)
+       
+       r_HydPres(KS-1) = 0d0
+       do k=KS, KE
+          r_HydPres(k) = r_HydPres(k-1) + z_DHydPres(k)
+       end do          
+       xyz_HydPres(i,j,KS:KE) = 0.5d0*( r_HydPres(KS-1:KE-1) + r_HydPres(KS:KE) )      
     end do
-
+    end do
+ 
   end subroutine HBEDiagnose_HydPres
   
 end module HBEDiagnose_hspm_vfvm_mod

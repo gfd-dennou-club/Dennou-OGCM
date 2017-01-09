@@ -35,9 +35,9 @@ module DOGCM_Exp_APECoupleClimate_mod
        & DensSnow, DensIce, IceMaskMin
   
   use DOGCM_Admin_Grid_mod, only: &
-       & iMax, jMax, kMax, nMax, lMax,        &
-       & IS, IE, IA, JS, JE, JA, KS, KE, KA,  &
-       & xyz_Lat, xyz_Lon, xy_Topo,           &
+       & iMax, jMax, kMax, nMax, lMax,         &
+       & IS, IE, IA, JS, JE, JA, KS, KE, KA,   &
+       & xyz_Lat, xyz_Lon, xy_Topo,            &
        & DOGCM_Admin_Grid_UpdateVCoord, xyz_Z
 
   use DOGCM_IO_History_mod, only: &
@@ -170,8 +170,11 @@ contains
          & xy_SnowFallSIce => xy_SnowFall,                             &
          & xy_EvapSIce => xy_Evap
     
-    use SpmlUtil_mod, only: AvrLonLat_xy
-    use VFvmUtil_mod, only: VFvm_Int_BtmToTop
+    use SpmlUtil_mod, only: &
+         & AvrLonLat_xy, calc_UVCosLat2VorDiv, calc_VorDiv2UV, xy_CosLat
+
+    use VFvmUtil_mod, only: &
+         & VFvm_Int_BtmToTop
 
     use dc_iounit, only: FileOpen
     
@@ -203,7 +206,9 @@ contains
 
     real(DP) :: xy_WindStressU(IA,JA)
     real(DP) :: xy_WindStressV(IA,JA)    
-
+    real(DP) :: w_Vor(lMax)
+    real(DP) :: w_Div(lMax)
+    
     real(DP) :: xy_SDwRFlx(IA,JA)
     real(DP) :: xy_LDwRFlx(IA,JA)
     real(DP) :: xy_SUwRFlx(IA,JA)
@@ -218,6 +223,8 @@ contains
     
     real(DP) :: InputWtMass
     real(DP) :: ModMassFac
+
+    real(DP) :: xy_Tmp(IA,JA)
     
     real(DP), parameter :: Day2Sec = 86400d0
 
@@ -423,10 +430,14 @@ contains
 
        InitMass = AvrLonLat_xy( &
             & DensSnow*xy_SnowThick0(IS:IE,JS:JE) +  DensIce*xy_IceThick0(IS:IE,JS:JE) )
-       InitMass = InitMass - AvrLonLat_xy( &
-            & VFvm_Int_BtmToTop( (xyz_Salt0(IS:IE,JS:JE,:) - 35d0)/35d0*1d3, xyz_H0(IS:IE,JS:JE,:) ))
 
-
+       xy_Tmp(:,:) = 0d0
+       do k=KS, KE
+          xy_Tmp(:,:) = xy_Tmp(:,:) + &
+               & (xyz_Salt0(:,:,k) - RefSalt)/RefSalt * 1d3 * xyz_H0(:,:,k) * z_KAXIS_Weight(k)
+       end do
+       InitMass = InitMass - AvrLonLat_xy( xy_Tmp(IS:IE,JS:JE) )
+       
        !* Store input data 
 
        !$omp parallel
@@ -436,9 +447,10 @@ contains
        
        xy_SeaSfcTemp0 = xyz_PTemp0(:,:,KS)
        xy_SeaSfcSalt0 = xyz_Salt0(:,:,KS)
-       
+
        xy_WindStressUOcn = xy_WindStressU
        xy_WindStressVOcn = xy_WindStressV
+       
        xy_SfcHFlx0_ns    = (xy_LUwRFlx - xy_LDwRFlx) + xy_LatHFlx + xy_SenHFlx
        xy_SfcHFlx0_sr    = (xy_SUwRFlx - xy_SDwRFlx)
        xy_DSfcHFlxDTsOcn = xy_DSfcHFlxDTs + 4d0*StB*xy_SeaSfcTemp0**3
@@ -476,6 +488,8 @@ contains
 !!$    stop
 !!$    
 
+    call MessageNotify('M', module_name, 'The setting of initial condition has been finished.')
+    
   end subroutine DOGCM_Exp_SetInitCond
 
   subroutine DOGCM_Exp_Do()

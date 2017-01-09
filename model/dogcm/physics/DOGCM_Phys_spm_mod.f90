@@ -83,8 +83,8 @@ module DOGCM_Phys_spm_mod
   public :: DOGCM_Phys_spm_VMixMOMRHS
   public :: DOGCM_Phys_spm_VMixTRCRHS
 
-  public :: DOGCM_Phys_spm_VImplUV
-  public :: DOGCM_Phys_spm_VImplTRC
+  public :: DOGCM_Phys_spm_ImplUV
+  public :: DOGCM_Phys_spm_ImplTRC
   
   ! 公開変数
   ! Public variable
@@ -165,27 +165,27 @@ contains
     
     ! 宣言文; Declaration statement
     !          
-    real(DP), intent(inout) :: xyz_U_RHS_phy(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyz_V_RHS_phy(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyza_TRC_RHS_phy(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(inout) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xy_BtmFrictCoef(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)    
-    real(DP), intent(in) :: xy_SSH(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyza_TRC(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xy_TOPO(0:iMax-1,jMax)
+    real(DP), intent(inout) :: xyz_U_RHS_phy(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_V_RHS_phy(IA,JA,KA)
+    real(DP), intent(inout) :: xyza_TRC_RHS_phy(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(inout) :: xyz_VViscCoef(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_VDiffCoef(IA,JA,KA)
+    real(DP), intent(inout) :: xy_BtmFrictCoef(IA,JA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)    
+    real(DP), intent(in) :: xy_SSH(IA,JA)
+    real(DP), intent(in) :: xyza_TRC(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)
+    real(DP), intent(in) :: xy_TOPO(IA,JA)
     real(DP), intent(in) :: dt
 
 
     real(DP) :: avr_ptemp_RHS_phys
-
-    real(DP) :: xyz_UA(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_VA(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyza_TRCA(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
+    integer :: k
+!!$    real(DP) :: xyz_UA(IA,JA,KA)
+!!$    real(DP) :: xyz_VA(IA,JA,KA)
+!!$    real(DP) :: xyza_TRCA(IA,JA,KA,TRC_TOT_NUM)
     
     
     ! 実行文; Executable statements
@@ -203,7 +203,6 @@ contains
             & xyz_U, xyz_V, xyz_H, hViscCoef, hHyperViscCoef,            & ! (in)
             & dt                                                         & ! (in)
             & )
-
     end if
 
     if ( isPhysicsCompActivated( OCNGOVERNEQ_VPHYS_MIXMOM_NAME )  ) then
@@ -226,7 +225,7 @@ contains
             & xyza_TRC, xyz_H, hDiffCoef, hHyperDiffCoef,               & ! (in)
             & dt )                                                        ! (in)
 
-!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_SALT) ))
+!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE, TRCID_SALT) ))
 !!$       write(*,*) "->avr_ptemp_phys (+ LMixRHS): ", avr_ptemp_RHS_phys
     end if
 
@@ -235,7 +234,7 @@ contains
             & xyza_TRC_RHS_phy,                                         & ! (inout)
             & xyza_TRC, xyz_H, xyz_VDiffCoef                            & ! (in)
             & )
-!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_SALT) ))
+!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE, TRCID_SALT) ))
 !!$       write(*,*) "avr_ptemp_phys (+ VMixRHS): ",  avr_ptemp_RHS_phys
 !!$       write(*,*) "avr_ptemp_phys_local:", IntSig_BtmToTop(xyza_TRC_RHS_phy(0,jMax/2,:,TRCID_SALT))
     end if
@@ -249,7 +248,7 @@ contains
             & xyza_TRC(:,:,:,TRCID_PTEMP), xyza_TRC(:,:,:,TRCID_SALT),  & ! (in)
             & xyz_H, xyz_Z, xy_Topo                                     & ! (in)
             & )
-!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_SALT) ))
+!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE, TRCID_SALT) ))
 !!$       write(*,*) "avr_ptemp_phys (+ RediGMRHS): ",  avr_ptemp_RHS_phys
     end if
 
@@ -259,11 +258,11 @@ contains
        call DOGCM_VPhys_ConvAdjust_AddMixingTerm( &
             & xyza_TRC_RHS_phy(:,:,:,TRCID_PTEMP),                      & ! (inout)
             & xyza_TRC_RHS_phy(:,:,:,TRCID_SALT),                       & ! (inout)
-            & xyz_ConvIndex(IS:IE,JS:JE,KS:KE),                         & ! (inout)
+            & xyz_ConvIndex,                                            & ! (inout)
             & xyza_TRC(:,:,:,TRCID_PTEMP), xyza_TRC(:,:,:,TRCID_SALT),  & ! (in)
-            & xyz_Z, z_KAXIS_Weight(KS:KE), dt                          & ! (in)
+            & xyz_Z, z_KAXIS_Weight, dt                                 & ! (in)
             & )
-!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(:,:,:, TRCID_SALT) ))
+!!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE, TRCID_SALT) ))
 !!$       write(*,*) "avr_ptemp_phys (+ ConvAdjustRHS): ",  avr_ptemp_RHS_phys       
     end if
 
@@ -278,27 +277,30 @@ contains
     
     ! 宣言文; Declaration statement
     !          
-    real(DP), intent(inout) :: xyz_U_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(inout) :: xyz_V_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xyz_U_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_V_RHS(IA,JA,KA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_VViscCoef(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
-    !    
+    !
     integer :: n
 
     ! 実行文; Executable statements
     !
 
-    xyz_U_RHS(:,:,:) = xyz_U_RHS + &
-         & xyz_DSig_xyz( xyz_VViscCoef/xyz_H * xyz_DSig_xyz(xyz_U) )/xyz_H
+    xyz_U_RHS(IS:IE,JS:JE,KS:KE) = xyz_U_RHS(IS:IE,JS:JE,KS:KE) + &
+         & xyz_DSig_xyz(   xyz_VViscCoef(IS:IE,JS:JE,KS:KE)/xyz_H(IS:IE,JS:JE,KS:KE) &
+         &               * xyz_DSig_xyz(xyz_U(IS:IE,JS:JE,KS:KE))                    &
+         & )/xyz_H(IS:IE,JS:JE,KS:KE)
 
-    xyz_V_RHS(:,:,:) = xyz_V_RHS + &
-         & xyz_DSig_xyz( xyz_VViscCoef/xyz_H * xyz_DSig_xyz(xyz_V) )/xyz_H
-    
+    xyz_V_RHS(IS:IE,JS:JE,KS:KE) = xyz_V_RHS(IS:IE,JS:JE,KS:KE) + &
+         & xyz_DSig_xyz(   xyz_VViscCoef(IS:IE,JS:JE,KS:KE)/xyz_H(IS:IE,JS:JE,KS:KE) &
+         &               * xyz_DSig_xyz(xyz_V(IS:IE,JS:JE,KS:KE))                    &
+         & )/xyz_H(IS:IE,JS:JE,KS:KE)
     
   end subroutine DOGCM_Phys_spm_VMixMOMRHS
 
@@ -314,10 +316,10 @@ contains
     
     ! 宣言文; Declaration statement
     !          
-    real(DP), intent(inout) :: xyza_TRC_RHS(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyza_TRC(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(inout) :: xyza_TRC_RHS(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyza_TRC(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_VDiffCoef(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
@@ -328,15 +330,17 @@ contains
     !
 
     do n = 1, TRC_TOT_NUM
-       xyza_TRC_RHS(:,:,:,n) = xyza_TRC_RHS(:,:,:,n) + &
-            & xyz_DSig_xyz( xyz_VDiffCoef/xyz_H * xyz_DSig_xyz(xyza_TRC(:,:,:,n)) )/xyz_H
+       xyza_TRC_RHS(IS:IE,JS:JE,KS:KE,n) = xyza_TRC_RHS(IS:IE,JS:JE,KS:KE,n) +          &
+            & xyz_DSig_xyz(   xyz_VDiffCoef(IS:IE,JS:JE,KS:KE)/xyz_H(IS:IE,JS:JE,KS:KE) &
+            &               * xyz_DSig_xyz(xyza_TRC(IS:IE,JS:JE,KS:KE,n)) )             &
+            & /xyz_H(IS:IE,JS:JE,KS:KE)
     end do
     
   end subroutine DOGCM_Phys_spm_VMixTRCRHS
 
   !-----------------------------------------------------------------------
   
-  subroutine DOGCM_Phys_spm_VImplTRC( xyza_TRCA,         & ! (out)
+  subroutine DOGCM_Phys_spm_ImplTRC( xyza_TRCA,         & ! (out)
        & xyza_TRC0, xyza_HTRC_RHS,                       & ! (in)
        & xyz_HA, xyz_H0, xyz_VDiffCoef, dt, alpha        & ! (in)
        & )
@@ -355,28 +359,28 @@ contains
     ! 宣言文; Declaration statement
     !      
 
-    real(DP), intent(out) :: xyza_TRCA(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyza_TRC0(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)    
-    real(DP), intent(in) :: xyza_HTRC_RHS(0:iMax-1,jMax,0:kMax,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_HA(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_H0(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(out) :: xyza_TRCA(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyza_TRC0(IA,JA,KA,TRC_TOT_NUM)    
+    real(DP), intent(in) :: xyza_HTRC_RHS(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_HA(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H0(IA,JA,KA)
+    real(DP), intent(in) :: xyz_VDiffCoef(IA,JA,KA)
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: alpha
 
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xya_PTemp_VBCRHS(0:iMax-1,jMax,2)
-    real(DP) :: xya_Salt_VBCRHS(0:iMax-1,jMax,2)
-    real(DP) :: xyza_DHTRC(0:iMax-1,jMax,TRC_TOT_NUM)
+    real(DP) :: xya_PTemp_VBCRHS(IA,JA,2)
+    real(DP) :: xya_Salt_VBCRHS(IA,JA,2)
+    real(DP) :: xyza_DHTRC(IA,JA,TRC_TOT_NUM)
     integer :: n
     integer :: k
     
     real(DP) :: avr_RHS
     real(DP) :: avr_TRC0_phys
     real(DP) :: avr_TRCA_phys
-    real(DP) :: xyz_DzSalt(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_DzSalt(IA,JA,KA)
 
     
     ! 実行文; Executable statements
@@ -397,7 +401,7 @@ contains
          & "PTemp"                                                          & ! (in)
          & )
 
-    
+
     call calc_VDiffEq( xyza_TRCA(:,:,:,TRCID_SALT),                        & ! (out)
          & xyza_TRC0(:,:,:,TRCID_SALT),                                    & ! (in)
          & xyza_HTRC_RHS(:,:,:,TRCID_SALT)/xyz_H0,                         & ! (in)
@@ -414,16 +418,16 @@ contains
     
     
 !!$    xyz_DzSalt = xyz_DSig_xyz(xyza_TRCA(:,:,:,TRCID_SALT))
-!!$    avr_RHS = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_HTRC_RHS(:,:,:,TRCID_SALT)/xyz_H0 ))
-!!$    avr_TRC0_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC0(:,:,:, TRCID_SALT) ))    
-!!$    avr_TRCA_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRCA(:,:,:, TRCID_SALT) ))
-!!$    write(*,*) "avr_dsalt (+ VIMPLTRC): ",  (avr_TRCA_phys - avr_TRC0_phys)/dt*dt, avr_RHS*dt 
+!!$    avr_RHS = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_SALT)/xyz_H0(IS:IE,JS:JE,KS:KE) ))
+!!$    avr_TRC0_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC0(IS:IE,JS:JE,KS:KE, TRCID_SALT) ))    
+!!$    avr_TRCA_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRCA(IS:IE,JS:JE,KS:KE, TRCID_SALT) ))
+!!$    write(*,*) "avr_dsalt (+ VIMPLTRC): ",  (avr_TRCA_phys - avr_TRC0_phys)/dt*dt, avr_RHS*dt
     
-  end subroutine DOGCM_Phys_spm_VImplTRC
+  end subroutine DOGCM_Phys_spm_ImplTRC
 
   !-----------------------------------------------------------------------
   
-  subroutine DOGCM_Phys_spm_VImplUV( xyz_UA, xyz_VA,    & ! (out)
+  subroutine DOGCM_Phys_spm_ImplUV( xyz_UA, xyz_VA,    & ! (out)
        & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,          & ! (in)
        & xyz_H, xyz_VViscCoef, xy_BtmFrictCoef,         & ! (in)
        & dt, alpha                                      & ! (in)
@@ -442,15 +446,15 @@ contains
     ! 宣言文; Declaration statement
     !      
 
-    real(DP), intent(out) :: xyz_UA(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(out) :: xyz_VA(0:iMax-1,jMax,0:kMax)        
-    real(DP), intent(in) :: xyz_U0(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_V0(0:iMax-1,jMax,0:kMax)    
-    real(DP), intent(in) :: xyz_U_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_V_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xy_BtmFrictCoef(0:iMax-1,jMax)    
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(out) :: xyz_UA(IA,JA,KA)
+    real(DP), intent(out) :: xyz_VA(IA,JA,KA)        
+    real(DP), intent(in) :: xyz_U0(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V0(IA,JA,KA)    
+    real(DP), intent(in) :: xyz_U_RHS(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V_RHS(IA,JA,KA)
+    real(DP), intent(in) :: xyz_VViscCoef(IA,JA,KA)
+    real(DP), intent(in) :: xy_BtmFrictCoef(IA,JA)    
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: alpha
 
@@ -458,38 +462,47 @@ contains
     ! Local variables
     !
 
-    real(DP) :: xya_U_VBCRHS(0:iMax-1,jMax,2)
-    real(DP) :: xya_V_VBCRHS(0:iMax-1,jMax,2)
-
+    real(DP) :: xya_U_VBCRHS(IA,JA,2)
+    real(DP) :: xya_V_VBCRHS(IA,JA,2)
     real(DP) :: w_Vor(lMax)
-    real(DP) :: w_Div(lMax)    
+    real(DP) :: w_Div(lMax)
     integer :: k
 
     ! 実行文; Executable statements
     !
-    
-    call DOGCM_Boundary_spm_InqVBCRHS_UV( &
-         & xya_U_VBCRHS, xya_V_VBCRHS,                                     & ! (out)
-         & xyz_U0, xyz_V0, xyz_H, xyz_VViscCoef                            & ! (in)
-         & )
-    
 
-    call calc_VDiffEq( xyz_UA,                                             & ! (out)
-         & xyz_U0, xyz_U_RHS, xyz_VViscCoef, xyz_H, dt, alpha,             & ! (in)
-         & inquire_VBCSpecType(DynBC_Surface), xya_U_VBCRHS(:,:,1),        & ! (in)
-         & inquire_VBCSpecType(DynBC_Bottom),  xya_U_VBCRHS(:,:,2),        & ! (in)
-         & "U"                                                             & ! (in)
-         & )
+    if (alpha > 0d0) then
+       call DOGCM_Boundary_spm_InqVBCRHS_UV( &
+            & xya_U_VBCRHS, xya_V_VBCRHS,                                     & ! (out)
+            & xyz_U0, xyz_V0, xyz_H, xyz_VViscCoef                            & ! (in)
+            & )
 
-    call calc_VDiffEq( xyz_VA,                                             & ! (out)
-         & xyz_V0, xyz_V_RHS, xyz_VViscCoef, xyz_H, dt, alpha,             & ! (in)
-         & inquire_VBCSpecType(DynBC_Surface), xya_V_VBCRHS(:,:,1),        & ! (in)
-         & inquire_VBCSpecType(DynBC_Bottom),  xya_V_VBCRHS(:,:,2),        & ! (in)
-         & "V"                                                             & ! (in)
-         & )
+       call calc_VDiffEq( xyz_UA,                                             & ! (out)
+            & xyz_U0, xyz_U_RHS, xyz_VViscCoef, xyz_H, dt, alpha,             & ! (in)
+            & inquire_VBCSpecType(DynBC_Surface), xya_U_VBCRHS(:,:,1),        & ! (in)
+            & inquire_VBCSpecType(DynBC_Bottom),  xya_U_VBCRHS(:,:,2),        & ! (in)
+            & "U"                                                             & ! (in)
+            & )
 
+       call calc_VDiffEq( xyz_VA,                                             & ! (out)
+            & xyz_V0, xyz_V_RHS, xyz_VViscCoef, xyz_H, dt, alpha,             & ! (in)
+            & inquire_VBCSpecType(DynBC_Surface), xya_V_VBCRHS(:,:,1),        & ! (in)
+            & inquire_VBCSpecType(DynBC_Bottom),  xya_V_VBCRHS(:,:,2),        & ! (in)
+            & "V"                                                             & ! (in)
+            & )
+    end if
     
-  end subroutine DOGCM_Phys_spm_VImplUV
+    !$omp parallel do private(w_Vor, w_Div)
+    do k=KS, KE
+       call calc_UVCosLat2VorDiv( &
+            & xyz_UA(IS:IE,JS:JE,k)*xy_CosLat, xyz_VA(IS:IE,JS:JE,k)*xy_CosLat, &
+            & w_Vor, w_Div                                                      &
+            & )
+       call calc_VorDiv2UV( w_Vor, w_Div,                                       &
+            & xyz_UA(IS:IE,JS:JE,k), xyz_VA(IS:IE,JS:JE,k) )
+    end do
+    
+  end subroutine DOGCM_Phys_spm_ImplUV
 
   !-----------------------------------------------------------------------
 
@@ -507,30 +520,30 @@ contains
     
     ! 宣言文; Declaration statement
     !      
-    real(DP), intent(out) :: xyz_qA(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_q0(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_q_RHS(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Kv(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
+    real(DP), intent(out) :: xyz_qA(IA,JA,KA)
+    real(DP), intent(in) :: xyz_q0(IA,JA,KA)
+    real(DP), intent(in) :: xyz_q_RHS(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Kv(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: alpha
     character, intent(in) :: SeaSfcBCType
-    real(DP), intent(in) :: xy_SeaSfcBCVal(0:iMax-1,jMax)
+    real(DP), intent(in) :: xy_SeaSfcBCVal(IA,JA)
     character, intent(in) :: SeaBtmBCType
-    real(DP), intent(in) :: xy_SeaBtmBCVal(0:iMax-1,jMax)
+    real(DP), intent(in) :: xy_SeaBtmBCVal(IA,JA)
     character(*), intent(in) :: qname
 
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: AMat(0:kMax,0:kMax)
-    real(DP) :: z_Kv(0:KMax)
-    real(DP) :: z_e3(0:kMax)
+    real(DP) :: AMat(KS:KE,KS:KE)
+    real(DP) :: z_Kv(KS:KE)
+    real(DP) :: z_e3(KS:KE)
 
-    real(DP) :: DSigMat(0:kMax,0:kMax)
-    real(DP) :: IMat(0:kMax,0:kMax)
-    real(DP) :: b(0:kMax)
-    integer :: IPiv(0:kMax)
+    real(DP) :: DSigMat(KS:KE,KS:KE)
+    real(DP) :: IMat(KS:KE,KS:KE)
+    real(DP) :: b(KS:KE)
+    integer :: IPiv(KS:KE)
     integer :: info
 
     integer :: i
@@ -545,18 +558,18 @@ contains
     ! 実行文; Executable statements
     !
 
-    N = size(IMat,1)
+    N = KE - KS + 1
     IMat(:,:) = 0d0
-    forAll(k=0:kMax) IMat(k,k) = 1d0
-    do k = 0, kMax
+    forAll(k=KS:KE) IMat(k,k) = 1d0
+    do k = KS, KE
        DSigMat(:,k) = z_DSig_z(IMat(:,k))
     end do
 
     DSigMat(:,:) = transpose(DMat1)
 
     !$omp parallel do collapse(2) private(z_Kv, z_e3, AMat, b, IPiv, info, i, k, l)
-    do j = 1, jMax
-       do i = 0, iMax-1
+    do j = JS, JE
+       do i = IS, IE
 
           ! Solve a linear equation system, 
           ! [ e3*I/dt - DSig [ Kv/e3 DSig ] ] ( q^n+1 - q^0 ) =  e3 * RHS. 
@@ -564,10 +577,10 @@ contains
           ! Set coefficient matrix A 
           !
 
-          z_Kv(:) = xyz_Kv(i,j,:)
-          z_e3(:) = xyz_H(i,j,:)
+          z_Kv(:) = xyz_Kv(i,j,KS:KE)
+          z_e3(:) = xyz_H(i,j,KS:KE)
           
-          do k=0, kMax
+          do k=KS, KE
                 AMat(k,:) =  IMat(k,:) &
                      &      -  alpha*dt/z_e3(k) * matmul( DSigMat(k,:) * z_Kv/z_e3, DSigMat(:,:) )
                 
@@ -579,25 +592,25 @@ contains
 
           select case(SeaSfcBCType)
           case('D')
-             AMat(0,:) = IMat(0,:)
-             b(0) = xy_SeaSfcBCVal(i,j) - xyz_q0(i,j,0)
+             AMat(KS,:) = IMat(KS,:)
+             b(KS) = xy_SeaSfcBCVal(i,j) - xyz_q0(i,j,KS)
           case('N')
-                AMat(0,:) = DSigMat(0,:)
-                b(0) = xy_SeaSfcBCVal(i,j) - sum(DSigMat(0,:)*xyz_q0(i,j,:))
+                AMat(KS,:) = DSigMat(KS,:)
+                b(KS) = xy_SeaSfcBCVal(i,j) - sum(DSigMat(KS,:)*xyz_q0(i,j,KS:KE))
           end select
 
           select case(SeaBtmBCType)
           case('D')
-             AMat(kMax,:) = IMat(kMax,:)
-             b(kMax) = xy_SeaBtmBCVal(i,j) - xyz_q0(i,j,kMax)
+             AMat(KE,:) = IMat(KE,:)
+             b(KE) = xy_SeaBtmBCVal(i,j) - xyz_q0(i,j,KE)
           case('N')
-                AMat(kMax,:) = DSigMat(kMax,:)
-                b(kMax) = xy_SeaBtmBCVal(i,j) - sum(DSigMat(kMax,:)*xyz_q0(i,j,:))
+                AMat(KE,KS:KE) = DSigMat(KE,KS:KE)
+                b(KE) = xy_SeaBtmBCVal(i,j) - sum(DSigMat(KE,:)*xyz_q0(i,j,KS:KE))
           end select
           
           call DGESV(N, 1, AMat, N, IPIV, b, N, info)
 
-          xyz_qA(i,j,:) = xyz_q0(i,j,:) + b(:)
+          xyz_qA(i,j,KS:KE) = xyz_q0(i,j,KS:KE) + b(:)
 
        end do
     end do

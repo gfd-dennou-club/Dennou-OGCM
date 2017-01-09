@@ -85,6 +85,7 @@ module DSIce_main_mod
        & DSIce_TInt_driver_Final,          &
        & DSIce_TInt_driver_Do
   
+  use ProfUtil_mod
   
   ! 宣言文; Declareration statements
   !
@@ -173,6 +174,7 @@ contains
        loop_end_flag = .false.
     end if
 
+    call ProfUtil_RapStart('SIceComp', 1)
     
     if(tstep == 0) then
        call DSIce_IO_Restart_Input()
@@ -180,9 +182,8 @@ contains
           call DSIce_Admin_Variable_HistGet()
        end if
     else
-
        !-  Advace one time step ----------------------------------------------------
-
+       
        call DSIce_Boundary_driver_UpdateBeforeTstep( &
             & xya_SIceCon(:,:,TLN), xya_IceThick(:,:,TLN), xya_SnowThick(:,:,TLN), & ! (in)
             & xya_SIceSfcTemp(:,:,TLN), xyza_SIceTemp(:,:,:,TLN)                   & ! (in)
@@ -198,6 +199,7 @@ contains
 
        call DSIce_Admin_TInteg_AdvanceLongTStep()
        call DSIce_Admin_Variable_AdvanceTStep()
+
     end if
 
     call DSIce_Boundary_driver_UpdateAfterTstep( &
@@ -205,6 +207,7 @@ contains
          & xya_SIceSfcTemp(:,:,TLN), xyza_SIceTemp(:,:,:,TLN)                   & ! (in)
          & )    
     
+    call ProfUtil_RapEnd('SIceComp', 1)       
 
     !- Output  --------------------------------------------------------------
     !

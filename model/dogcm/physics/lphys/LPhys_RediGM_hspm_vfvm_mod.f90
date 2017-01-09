@@ -23,6 +23,8 @@ module LPhys_RediGM_hspm_vfvm_mod
 
   !* Dennou-OGCM
 
+  use ProfUtil_mod
+  
   use DOGCM_Admin_Constants_mod, only: &
        & PI,                           &
        & RPlanet, Omega, Grav,         &
@@ -42,12 +44,14 @@ module LPhys_RediGM_hspm_vfvm_mod
        & EOSDriver_alpha_beta
 
   use DOGCM_Admin_Grid_mod, only: &
-       & IS, IE, JS, JE, KS, KE, KA,   &
-       & iMax, jMax, kMax, lMax, tMax, &
-       & xyz_Lat, xyz_Lon,             &
-       & x_CI, y_CJ, z_CK,             &
+       & IS, IE, IA, JS, JE, JA, KS, KE, KA,   &
+       & IBLOCK, JBLOCK, KBLOCK,               &
+       & iMax, jMax, kMax, lMax, tMax,         &
+       & xyz_Lat, xyz_Lon,                     &
+       & x_CI, y_CJ, z_CK,                     &
        & z_CDK, z_RCDK, z_FDK, z_RFDK
-
+#include "../../admin/DOGCM_Admin_GaussSpmGridIndexDef.h"
+  
   use DOGCM_Admin_TInteg_mod, only: &
        & CurrentTime
   
@@ -106,6 +110,7 @@ module LPhys_RediGM_hspm_vfvm_mod
   integer, parameter :: LAT = 2
   integer, parameter :: PTEMP = 1
   integer, parameter :: SALT  = 2
+
   
 contains
   
@@ -167,6 +172,7 @@ contains
     
   end subroutine LPhys_RediGM_hspm_vfvm_Init
 
+  !-------------------------------------------------------------------
   
   !>
   !!
@@ -218,33 +224,33 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: xyz_PTemp_RHS(0:iMax-1,jMax,KA)
-    real(DP), intent(inout) :: xyz_Salt_RHS(0:iMax-1,jMax,KA)
-    real(DP), intent(inout) :: xyz_VDiffCoef(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xy_Topo(0:iMax-1,jMax)
+    real(DP), intent(inout) :: xyz_PTemp_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_Salt_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_VDiffCoef(IA,JA,KA)
+    real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)
+    real(DP), intent(in) :: xy_Topo(IA,JA)
     
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_DensPot(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_RefPress(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_DensPot(IA,JA,KA)
+    real(DP) :: xy_RefPress(IA,JA)
 
     ! Slopes for tracer iso-neutral mixing
-    real(DP) :: xyz_SLon(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_SLat(0:iMax-1,jMax,KA)
-    real(DP) :: xyr_SLon(0:iMax-1,jMax,KA)
-    real(DP) :: xyr_SLat(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_SLon(IA,JA,KA)
+    real(DP) :: xyz_SLat(IA,JA,KA)
+    real(DP) :: xyr_SLon(IA,JA,KA)
+    real(DP) :: xyr_SLat(IA,JA,KA)
 
     ! Coeffecient for the slope  tapering 
-    real(DP) :: xyz_T(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_T(IA,JA,KA)
 
     !
-    real(DP) :: xyzaa_HGradTRC(0:iMax-1,jMax,KA,2,2)
-    real(DP) :: xyra_DSigTRC(0:iMax-1,jMax,KA,2)
+    real(DP) :: xyzaa_HGradTRC(IA,JA,KA,2,2)
+    real(DP) :: xyra_DSigTRC(IA,JA,KA,2)
     
     integer :: k
     
@@ -253,11 +259,14 @@ contains
     
     ! Calculate the potential density.
     !
-    xyz_RefPress = 0d0
-    call EOSDriver_Eval( xyz_DensPot, &                ! (out)
-         & xyz_PTemp, xyz_Salt, xyz_RefPress )         ! (in)
 
-    
+    !$omp parallel do private(xy_RefPress)
+    do k=KS,KE
+       xy_RefPress(:,:) = 0d0
+       call EOSDriver_Eval( xyz_DensPot(IS:IE,JS:JE,k),                                    & ! (out)
+            & xyz_PTemp(IS:IE,JS:JE,k), xyz_Salt(IS:IE,JS:JE,k), xy_RefPress(IS:IE,JS:JE) )  ! (in)
+    end do
+
     ! Calculate the components of the isoneutral slope. 
     !
 
@@ -265,16 +274,15 @@ contains
        & xyzaa_HGradTRC, xyra_DSigTRC,            & ! (out)
        & xyz_PTemp, xyz_Salt                      & ! (in)
        & )    
-    
+
     call calc_IsoNeutralSlope_new( &
          & xyz_SLon, xyz_SLat, xyr_SLon, xyr_SLat,            & ! (out)
          & xyz_PTemp, xyz_Salt, xyzaa_HGradTRC, xyra_DSigTRC, & ! (in)
          & xyz_H, xyz_Z )                                       !(in)
 
-    call prepare_SlopeTapering( xyz_T(:,:,KS:KE), xyz_SLon(:,:,KS:KE), xyz_SLat(:,:,KS:KE), & ! (inout)
-         & xyz_DensPot(:,:,KS:KE), xyz_Z(:,:,KS:KE)                                         & ! (in)
+    call prepare_SlopeTapering( xyz_T, xyz_SLon, xyz_SLat, & ! (inout)
+         & xyz_DensPot, xyz_Z                              & ! (in)
          & )
-
 !!$    !$omp parallel do
 !!$    do k = KS, KE
 !!$       xyz_VDiffCoef(:,:,k) = xyz_VDiffCoef(:,:,k) +                             &
@@ -286,34 +294,37 @@ contains
     
     ! Calculate the tendency due to Gent-McWilliams and Redi flux
     !
-    
+
     call append_Redi_GM_RHS( xyz_PTemp_RHS,    & ! (inout)
          & xyz_PTemp, PTEMP )                    ! (in)    
 
     call append_Redi_GM_RHS( xyz_Salt_RHS,     & ! (inout)
          & xyz_Salt, SALT )                      ! (in)    
-
+    
   contains
 
-    subroutine append_Redi_GM_RHS( xyz_RHS, xyz_TRC, TRCID )
+    subroutine append_Redi_GM_RHS( xyz_RHS, & ! (inout)
+         xyz_TRC, TRCID )                     ! (in)
 
       ! 宣言文; Declaration statement
       !
-      real(DP), intent(inout) :: xyz_RHS(0:iMax-1,jMax,KA)
-      real(DP), intent(in) :: xyz_TRC(0:iMax-1,jMax,KA)
+      real(DP), intent(inout) :: xyz_RHS(IA,JA,KA)
+      real(DP), intent(in) :: xyz_TRC(IA,JA,KA)
       integer, intent(in) :: TRCID
       
       ! 局所変数
       ! Local variables
       !
-      real(DP) :: xyz_FLonRedi(0:iMax-1,jMax,KA)
-      real(DP) :: xyz_FLatRedi(0:iMax-1,jMax,KA)
-      real(DP) :: xyr_FSigRedi(0:iMax-1,jMax,KA)
+      real(DP) :: xyz_FLonRedi(IA,JA,KA)
+      real(DP) :: xyz_FLatRedi(IA,JA,KA)
+      real(DP) :: xyr_FSigRedi(IA,JA,KA)
 
-      real(DP) :: xyz_FLonGM(0:iMax-1,jMax,KA)
-      real(DP) :: xyz_FLatGM(0:iMax-1,jMax,KA)
-      real(DP) :: xyr_FSigGM(0:iMax-1,jMax,KA)
+      real(DP) :: xyz_FLonGM(IA,JA,KA)
+      real(DP) :: xyz_FLatGM(IA,JA,KA)
+      real(DP) :: xyr_FSigGM(IA,JA,KA)
 
+      integer :: i
+      integer :: j
       integer :: k
       
       ! 実行文; Executable statement
@@ -332,71 +343,117 @@ contains
            & xyz_SLon, xyz_SLat, xyr_SLon, xyr_SLat, xyz_T,                &  ! (in)
            & xyzaa_HGradTRC(:,:,:,:,TRCID), xyra_DSigTRC(:,:,:,TRCID)      &  ! (in)
            & )
+      
+      !$omp parallel private(i,j,k)
+      !$omp do
+      do k=KS, KE
+         xyz_RHS(IS:IE,JS:JE,k) = xyz_RHS(IS:IE,JS:JE,k) &
+              & + xy_w( w_AlphaOptr_xy(                                                  &
+              &     (xyz_FLonRedi(IS:IE,JS:JE,k) + xyz_FLonGM(IS:IE,JS:JE,k))*xy_CosLat, &
+              &     (xyz_FLatRedi(IS:IE,JS:JE,k) + xyz_FLatGM(IS:IE,JS:JE,k))*xy_CosLat  &
+              &    ) )                                                                   
 
-      !$omp parallel do
-      do k = KS, KE
-         xyz_RHS(:,:,k) = xyz_RHS(:,:,k)  &
-              & + xy_w( w_AlphaOptr_xy(                                        &
-              &     (xyz_FLonRedi(:,:,k) + xyz_FLonGM(:,:,k))*xy_CosLat,       &
-              &     (xyz_FLatRedi(:,:,k) + xyz_FLatGM(:,:,k))*xy_CosLat        &
-              &    ) )                                                         &
-              & + (   (xyr_FSigRedi(:,:,k-1) + xyr_FSigGM(:,:,k-1))            &
-              &     - (xyr_FSigRedi(:,:,k  ) + xyr_FSigGM(:,:,k  ))            & 
-              &   )*z_RCDK(k)/xyz_H(:,:,k)
+         !$omp simd
+         do j=JS, JE
+         do i=IS, IS+_IM_-1
+            xyz_RHS(i,j,k) = xyz_RHS(i,j,k)  &
+                 & + (   (xyr_FSigRedi(i,j,k-1) + xyr_FSigGM(i,j,k-1))            &
+                 &     - (xyr_FSigRedi(i,j,k  ) + xyr_FSigGM(i,j,k  ))            & 
+                 &   )*z_RCDK(k)/xyz_H(i,j,k)
+         end do
+         end do
       end do
+      !$omp end parallel
       
     end subroutine append_Redi_GM_RHS
 
   end subroutine LPhys_RediGM_hspm_vfvm_AddMixingTerm
 
+  !-------------------------------------------------------------------
+  
   subroutine calc_GradTRC( &
        & xyzaa_HGradTRC, xyra_DSigTRC,            & ! (out)
        & xyz_PTemp, xyz_Salt                      & ! (in)
        & )
 
-    real(DP), intent(out) :: xyzaa_HGradTRC(0:iMax-1,jMax,KA,2,2)
-    real(DP), intent(out) :: xyra_DSigTRC(0:iMax-1,jMax,KA,2)
-    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,KA)
-    
-    integer :: k
+    ! 宣言文; Declaration statement
+    !    
+    real(DP), intent(out) :: xyzaa_HGradTRC(IA,JA,KA,2,2)
+    real(DP), intent(out) :: xyra_DSigTRC(IA,JA,KA,2)
+    real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
 
+    ! 局所変数
+    ! Local variables
+    !
+    integer :: i
+    integer :: j
+    integer :: jj
+    integer :: k
+    integer :: n
+    integer :: l
+    
     real(DP) :: m1
     real(DP) :: m2
 
     real(DP) :: w_TRC(lMax)
     
-    !$omp parallel
-    !$omp do
-    do k=KS, KE-1
-       xyra_DSigTRC(:,:,k,PTEMP) = (xyz_PTemp(:,:,k) - xyz_PTemp(:,:,k+1))*z_RFDK(k)
-       xyra_DSigTRC(:,:,k,SALT ) = (xyz_Salt (:,:,k) - xyz_Salt (:,:,k+1))*z_RFDK(k)       
+    ! 実行文; Executable statement
+    !
+    
+    !$omp parallel private(i,j,jj,k,n)
+
+    !$omp do collapse(2)
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyra_DSigTRC(i,j,k,PTEMP) = (xyz_PTemp(i,j,k) - xyz_PTemp(i,j,k+1))*z_RFDK(k)
+       xyra_DSigTRC(i,j,k,SALT ) = (xyz_Salt (i,j,k) - xyz_Salt (i,j,k+1))*z_RFDK(k)       
     end do
-    !$omp workshare
-    xyra_DSigTRC(:,:,KS-1,:) = xyra_DSigTRC(:,:,KS  ,:)
-    xyra_DSigTRC(:,:,KE  ,:) = xyra_DSigTRC(:,:,KE-1,:)
-    !$omp end workshare
+    end do
+    end do
+
+    !$omp do collapse(2)
+    do n=1, 2
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyra_DSigTRC(i,j,KS-1,n) = xyra_DSigTRC(i,j,KS  ,n)
+       xyra_DSigTRC(i,j,KE  ,n) = xyra_DSigTRC(i,j,KE-1,n)
+    end do
+    end do
+    end do
     !$omp end parallel
 
-    !$omp parallel private(w_TRC)
+    !$omp parallel private(w_TRC,i,j,k,l,n)
     !$omp do
     do k=KS, KE
-       w_TRC(:) = w_xy(xyz_PTemp(:,:,k))
-       xyzaa_HGradTRC(:,:,k,LON,PTEMP) = xy_GradLon_w(w_TRC)/RPlanet
-       xyzaa_HGradTRC(:,:,k,LAT,PTEMP) = xy_GradLat_w(w_TRC)/RPlanet
-
-       w_TRC(:) = w_xy(xyz_Salt(:,:,k))
-       xyzaa_HGradTRC(:,:,k,LON,SALT) = xy_GradLon_w(w_TRC)/RPlanet
-       xyzaa_HGradTRC(:,:,k,LAT,SALT) = xy_GradLat_w(w_TRC)/RPlanet
+       w_TRC(:) = w_xy(xyz_PTemp(IS:IE,JS:JE,k))
+       xyzaa_HGradTRC(IS:IE,JS:JE,k,LON,PTEMP) = xy_GradLon_w(w_TRC)/RPlanet
+       xyzaa_HGradTRC(IS:IE,JS:JE,k,LAT,PTEMP) = xy_GradLat_w(w_TRC)/RPlanet
     end do
-    !$omp workshare
-    xyzaa_HGradTRC(:,:,KS-1,:,:) = xyzaa_HGradTRC(:,:,KS,:,:)
-    xyzaa_HGradTRC(:,:,KE+1,:,:) = xyzaa_HGradTRC(:,:,KE,:,:)
-    !$omp end workshare
+    !$omp do
+    do k=KS, KE
+       w_TRC(:) = w_xy(xyz_Salt(IS:IE,JS:JE,k))
+       xyzaa_HGradTRC(IS:IE,JS:JE,k,LON,SALT) = xy_GradLon_w(w_TRC)/RPlanet
+       xyzaa_HGradTRC(IS:IE,JS:JE,k,LAT,SALT) = xy_GradLat_w(w_TRC)/RPlanet
+    end do
+
+    !$omp do collapse(3)
+    do n=1, 2
+    do l=1, 2
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyzaa_HGradTRC(i,j,KS-1,l,n) = xyzaa_HGradTRC(i,j,KS,l,n)
+       xyzaa_HGradTRC(i,j,KE+1,l,n) = xyzaa_HGradTRC(i,j,KE,l,n)
+    end do
+    end do
+    end do
+    end do
     !$omp end parallel
     
   end subroutine calc_GradTRC
 
+  !-------------------------------------------------------------------
   
   subroutine calc_IsopycDiffFlux( &
        & xyz_FLon, xyz_FLat, xyr_FSig,            &  ! (out)
@@ -409,96 +466,95 @@ contains
     ! 宣言文; Declaration statement
     !
 
-    real(DP), intent(out) :: xyz_FLon(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyz_FLat(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyr_FSig(0:iMax-1,jMax,KA)
-    real(DP), intent(in)  :: xyz_TRC(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)    
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,KA)    
-    real(DP), intent(in) :: xyz_SLon(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_SLat(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyr_SLon(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyr_SLat(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_T(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyza_HGradTRC(0:iMax-1,jMax,KA,2)
-    real(DP), intent(in) :: xyr_DSigTRC(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_FLon(IA,JA,KA)
+    real(DP), intent(out) :: xyz_FLat(IA,JA,KA)
+    real(DP), intent(out) :: xyr_FSig(IA,JA,KA)
+    real(DP), intent(in)  :: xyz_TRC(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)    
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)    
+    real(DP), intent(in) :: xyz_SLon(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLat(IA,JA,KA)
+    real(DP), intent(in) :: xyr_SLon(IA,JA,KA)
+    real(DP), intent(in) :: xyr_SLat(IA,JA,KA)
+    real(DP), intent(in) :: xyz_T(IA,JA,KA)
+    real(DP), intent(in) :: xyza_HGradTRC(IA,JA,KA,2)
+    real(DP), intent(in) :: xyr_DSigTRC(IA,JA,KA)
     
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_C(0:iMax-1,jMax,KA)
-    real(DP) :: xy_DzTRC(0:iMax-1,jMax)
-    real(DP) :: m1
-    real(DP) :: m2
+    real(DP) :: xy_DzTRC(IA,JA)
+    real(DP) :: DzTRC
+    real(DP) :: r_m1(KA)
+    real(DP) :: r_m2(KA)
+    real(DP) :: SLon
+    real(DP) :: SLat
 
-    real(DP) :: xy_SLon(0:iMax-1,jMax)
-    real(DP) :: xy_SLat(0:iMax-1,jMax)
-    
+    integer :: i
+    integer :: j
+    integer :: jj
     integer :: k
 
+    
     ! 実行文; Executable statement
     !
 
+    
     ! Calculate the components of diffusive flux along isopycnal surface.
     !
 
-    !$omp parallel private(xy_DzTRC, m1, m2, xy_SLon, xy_SLat)
-
-    !$omp do
-    do k = KS, KE
-       xy_DzTRC(:,:) = 0.5d0*(xyr_DSigTRC(:,:,k-1) + xyr_DSigTRC(:,:,k))/xyz_H(:,:,k)
-
-       xyz_FLon(:,:,k) = Kappa_Redi*(                                                      &
-            &   xyza_HGradTRC(:,:,k,LON) + xyz_T(:,:,k)*xyz_SLon(:,:,k)*xy_DzTRC(:,:) )  
-
-       xyz_FLat(:,:,k) = Kappa_Redi*(                                                      &
-            &   xyza_HGradTRC(:,:,k,LAT) + xyz_T(:,:,k)*xyz_SLat(:,:,k)*xy_DzTRC(:,:) )  
-    end do
-
-    !$omp do
     do k=KS, KE-1
-       m1 = z_CDK(k+1)/(z_CDK(k) + z_CDK(k+1))
-       m2 = z_CDK(k  )/(z_CDK(k) + z_CDK(k+1))
-       
-!!$       xyr_FSig(:,:,k) = Kappa_Redi*(m1*xyz_T(:,:,k) + m2*xyz_T(:,:,k+1)) * ( &
-!!$            &    xyr_SLon(:,:,k)*(m1*xyza_HGradTRC(:,:,k,LON) + m2*xyza_HGradTRC(:,:,k+1,LON))                        &
-!!$            &  + xyr_SLat(:,:,k)*(m1*xyza_HGradTRC(:,:,k,LAT) + m2*xyza_HGradTRC(:,:,k+1,LAT))                        &
-!!$            &  + (xyr_SLon(:,:,k)**2 + xyr_SLat(:,:,k)**2)*xyr_DSigTRC(:,:,k)/(m1*xyz_H(:,:,k) + m2*xyz_H(:,:,k+1))   &
-!!$            &  )
-
-       xy_SLon(:,:) = m1*xyz_T(:,:,k)*xyz_SLon(:,:,k) + m2*xyz_T(:,:,k)*xyz_SLon(:,:,k)
-       xy_SLat(:,:) = m1*xyz_T(:,:,k)*xyz_SLat(:,:,k) + m2*xyz_T(:,:,k)*xyz_SLat(:,:,k)
-
-       xyr_FSig(:,:,k) = Kappa_Redi*( &
-            &     xy_SLon(:,:)*(m1*xyza_HGradTRC(:,:,k,LON) + m2*xyza_HGradTRC(:,:,k+1,LON))                     &
-            &   + xy_SLat(:,:)*(m1*xyza_HGradTRC(:,:,k,LAT) + m2*xyza_HGradTRC(:,:,k+1,LAT))                     &
-            &   + (xy_SLon(:,:)**2 + xy_SLat(:,:)**2)*xyr_DSigTRC(:,:,k)/(m1*xyz_H(:,:,k) + m2*xyz_H(:,:,k+1))   &
-            & )       
+       r_m1(k) = z_CDK(k+1)/(z_CDK(k) + z_CDK(k+1))
+       r_m2(k) = z_CDK(k  )/(z_CDK(k) + z_CDK(k+1))
     end do
-    !$omp workshare
-    xyr_FSig(:,:,KS-1) = 0d0
-    xyr_FSig(:,:,KE  ) = 0d0
-    !$omp end workshare
+
+    !$omp parallel private(DzTRC,SLon,SLat,i,j,jj,k)
+
+    !$omp do collapse(2)
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       DzTRC = 0.5d0*(xyr_DSigTRC(i,j,k-1) + xyr_DSigTRC(i,j,k))/xyz_H(i,j,k)
+
+       xyz_FLon(i,j,k) = Kappa_Redi*(                                                      &
+            &   xyza_HGradTRC(i,j,k,LON) + xyz_T(i,j,k)*xyz_SLon(i,j,k)*DzTRC )  
+
+       xyz_FLat(i,j,k) = Kappa_Redi*(                                                      &
+            &   xyza_HGradTRC(i,j,k,LAT) + xyz_T(i,j,k)*xyz_SLat(i,j,k)*DzTRC )  
+    end do
+    end do
+    end do
+
+    !$omp do collapse(2)
+    do k=KS, KE-1
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       SLon = r_m1(k)*xyz_T(i,j,k)*xyz_SLon(i,j,k) + r_m2(k)*xyz_T(i,j,k+1)*xyz_SLon(i,j,k+1)
+       SLat = r_m1(k)*xyz_T(i,j,k)*xyz_SLat(i,j,k) + r_m2(k)*xyz_T(i,j,k+1)*xyz_SLat(i,j,k+1)
+
+       xyr_FSig(i,j,k) = Kappa_Redi*( &
+            &     SLon*(r_m1(k)*xyza_HGradTRC(i,j,k,LON) + r_m2(k)*xyza_HGradTRC(i,j,k+1,LON))                     &
+            &   + SLat*(r_m1(k)*xyza_HGradTRC(i,j,k,LAT) + r_m2(k)*xyza_HGradTRC(i,j,k+1,LAT))                     &
+            &   + (SLon**2 + SLat**2)*xyr_DSigTRC(i,j,k)/(r_m1(k)*xyz_H(i,j,k) + r_m2(k)*xyz_H(i,j,k+1))           &
+            & ) 
+    end do
+    end do
+    end do
+
+    !$omp do
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyr_FSig(i,j,KS-1) = 0d0
+       xyr_FSig(i,j,KE  ) = 0d0
+    end do
+    end do
+
     !$omp end parallel
-    
-!!$    if(DFM08Flag) then
-!!$       call TaperingDFM08_IDIFF(xyz_C, &
-!!$            & DFM08Info%xy_BLD, DFM08Info%xy_TLT, xyz_Z )
-!!$
-!!$       !$omp parallel do private(xy_GradLonTRC, xy_GradLatTRC)
-!!$       do k = 0, kMax
-!!$          xy_GradLonTRC(:,:) = xy_GradLon_w(wz_TRC(:,k))/RPlanet
-!!$          xy_GradLatTRC(:,:) = xy_GradLat_w(wz_TRC(:,k))/RPlanet
-!!$          
-!!$          xyz_FLon(:,:,k) = xyz_C(:,:,k)*Kappa_Redi*xyz_T(:,:,k)*xy_GradLonTRC &
-!!$               & + (1d0 - xyz_C(:,:,k))*xyz_FLon(:,:,k)
-!!$          xyz_FLat(:,:,k) = xyz_C(:,:,k)*Kappa_Redi*xyz_T(:,:,k)*xy_GradLatTRC &
-!!$               & + (1d0 - xyz_C(:,:,k))*xyz_FLat(:,:,k)
-!!$       end do
-!!$    end if
     
   end subroutine calc_IsopycDiffFlux
 
+  !-------------------------------------------------------------------
+  
   subroutine calc_SkewFlux( &
        & xyz_FLon, xyz_FLat, xyr_FSig,            &  ! (out)
        & xyz_TRC, xyz_H, xyz_Z,                   &  ! (in)
@@ -510,80 +566,105 @@ contains
     ! 宣言文; Declaration statement
     !
 
-    real(DP), intent(out) :: xyz_FLon(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyz_FLat(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyr_FSig(0:iMax-1,jMax,KA)
-    real(DP), intent(in)  :: xyz_TRC(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)    
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,KA)    
-    real(DP), intent(in) :: xyz_SLon(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_SLat(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyr_SLon(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyr_SLat(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_T(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyza_HGradTRC(0:iMax-1,jMax,KA,2)
-    real(DP), intent(in) :: xyr_DSigTRC(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_FLon(IA,JA,KA)
+    real(DP), intent(out) :: xyz_FLat(IA,JA,KA)
+    real(DP), intent(out) :: xyr_FSig(IA,JA,KA)
+    real(DP), intent(in)  :: xyz_TRC(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)    
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)    
+    real(DP), intent(in) :: xyz_SLon(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLat(IA,JA,KA)
+    real(DP), intent(in) :: xyr_SLon(IA,JA,KA)
+    real(DP), intent(in) :: xyr_SLat(IA,JA,KA)
+    real(DP), intent(in) :: xyz_T(IA,JA,KA)
+    real(DP), intent(in) :: xyza_HGradTRC(IA,JA,KA,2)
+    real(DP), intent(in) :: xyr_DSigTRC(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
     !
 
-    real(DP) :: xyza_Psi(0:iMax-1,jMax,KA,2)
-    real(DP) :: xy_DzTRC(0:iMax-1,jMax)
-    real(DP) :: xya_Psi(0:iMax-1,jMax,2)
-    real(DP) :: m1
-    real(DP) :: m2
-    
-    integer :: k
+    real(DP) :: xyza_Psi(IA,JA,KA,2)
+    real(DP) :: xy_DzTRC(IA,JA)
+    real(DP) :: xya_Psi(IA,JA,2)
 
+    real(DP) :: DzTRC
+    real(DP) :: PsiLat
+    real(DP) :: PsiLon    
+    real(DP) :: r_m1(KA)
+    real(DP) :: r_m2(KA)
+
+    integer :: i
+    integer :: j
+    integer :: jj
+    integer :: k
+    integer :: l
+    
     ! 実行文; Executable statement
     !
 
-    !$omp parallel private(m1 ,m2, xya_Psi, xy_DzTRC)
+    do k=KS, KE-1
+       r_m1(k) = z_CDK(k+1)/(z_CDK(k) + z_CDK(k+1))
+       r_m2(k) = z_CDK(k  )/(z_CDK(k) + z_CDK(k+1))
+    end do
 
-    !$omp do
+    !$omp parallel private(PsiLon,PsiLat,DzTRC,i,j,jj,k,l)
+    !$omp do collapse(2)
     do k=KS, KE
-       xyza_Psi(:,:,k,LON) = - Kappa_GM*xyz_T(:,:,k)*xyz_SLat(:,:,k)
-       xyza_Psi(:,:,k,LAT) =   Kappa_GM*xyz_T(:,:,k)*xyz_SLon(:,:,k)       
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyza_Psi(i,j,k,LON) = - Kappa_GM*xyz_T(i,j,k)*xyz_SLat(i,j,k)
+       xyza_Psi(i,j,k,LAT) =   Kappa_GM*xyz_T(i,j,k)*xyz_SLon(i,j,k)       
     end do
-    !$omp workshare
-    xyza_Psi(:,:,KS-1,:) = - xyza_Psi(:,:,KS,:)
-    xyza_Psi(:,:,KE+1,:) = - xyza_Psi(:,:,KE,:)
-    !$omp end workshare
-
-
-!!$    if(DFM08Flag) then
-!!$       call TaperingDFM08_GM(xyza_Psi(:,:,:,LON), xyza_Psi(:,:,:,LAT), &
-!!$            & DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb, xyz_Z )
-!!$    end if
-
-    !$omp do
-    do k = KS, KE
-       xy_DzTRC(:,:) = 0.5d0*(xyr_DSigTRC(:,:,k-1) + xyr_DSigTRC(:,:,k))/xyz_H(:,:,k)
-       xyz_FLon(:,:,k) = - xyza_Psi(:,:,k,LAT)*xy_DzTRC(:,:)
-       xyz_FLat(:,:,k) =   xyza_Psi(:,:,k,LON)*xy_DzTRC(:,:)       
+    end do
+    end do
+    !$omp do collapse(2)
+    do l=1, 2
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyza_Psi(i,j,KS-1,l) = - xyza_Psi(i,j,KS,l)
+       xyza_Psi(i,j,KE+1,l) = - xyza_Psi(i,j,KE,l)
+    end do
+    end do
+    end do
+    
+    !$omp do collapse(2)
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       DzTRC = 0.5d0*(xyr_DSigTRC(i,j,k-1) + xyr_DSigTRC(i,j,k))/xyz_H(i,j,k)
+       xyz_FLon(i,j,k) = - xyza_Psi(i,j,k,LAT)*DzTRC
+       xyz_FLat(i,j,k) =   xyza_Psi(i,j,k,LON)*DzTRC
+    end do
+    end do
     end do
 
-    !$omp do
-    do k = KS, KE-1
-       m1 = z_CDK(k+1)/(z_CDK(k) + z_CDK(k+1))
-       m2 = z_CDK(k  )/(z_CDK(k) + z_CDK(k+1))
-
-       xya_Psi(:,:,:) = m1*xyza_Psi(:,:,k,:) + m2*xyza_Psi(:,:,k+1,:)
-       xyr_FSig(:,:,k) = ( &
-            &   xya_Psi(:,:,LAT)*(m1*xyza_HGradTRC(:,:,k,LON) + m2*xyza_HGradTRC(:,:,k,LON)) &
-            & - xya_Psi(:,:,LON)*(m1*xyza_HGradTRC(:,:,k,LAT) + m2*xyza_HGradTRC(:,:,k,LAT)) &
+    !$omp do collapse(2)
+    do k=KS, KE-1
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       PsiLon = r_m1(k)*xyza_Psi(i,j,k,LON) + r_m2(k)*xyza_Psi(i,j,k+1,LON)
+       PsiLat = r_m1(k)*xyza_Psi(i,j,k,LAT) + r_m2(k)*xyza_Psi(i,j,k+1,LAT)
+       xyr_FSig(i,j,k) = ( &
+            &   PsiLat*(r_m1(k)*xyza_HGradTRC(i,j,k,LON) + r_m2(k)*xyza_HGradTRC(i,j,k+1,LON)) &
+            & - PsiLon*(r_m1(k)*xyza_HGradTRC(i,j,k,LAT) + r_m2(k)*xyza_HGradTRC(i,j,k+1,LAT)) &
             & )
     end do
-    !$omp workshare
-    xyr_FSig(:,:,KS-1) = 0d0
-    xyr_FSig(:,:,KE  ) = 0d0
-    !$omp end workshare
-
+    end do
+    end do
+    !$omp do
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyr_FSig(i,j,KS-1) = 0d0
+       xyr_FSig(i,j,KE  ) = 0d0
+    end do
+    end do
     !$omp end parallel
 
   end subroutine calc_SkewFlux
 
+  !-------------------------------------------------------------------
+  
   subroutine calc_IsoNeutralSlope_new( xyz_SLon, xyz_SLat, xyr_SLon, xyr_SLat,  &  ! (out)
        & xyz_PTemp, xyz_Salt, xyzaa_HGradTRC, xyra_DSigTRC, xyz_H, xyz_Z        &  ! (in)
        & )
@@ -591,69 +672,87 @@ contains
     ! 宣言文; Declaration statement
     !
 
-    real(DP), intent(out) :: xyz_SLon(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyz_SLat(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyr_SLon(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyr_SLat(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyzaa_HGradTRC(0:iMax-1,jMax,KA,2,2)
-    real(DP), intent(in) :: xyra_DSigTRC(0:iMax-1,jMax,KA,2)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_SLon(IA,JA,KA)
+    real(DP), intent(out) :: xyz_SLat(IA,JA,KA)
+    real(DP), intent(out) :: xyr_SLon(IA,JA,KA)
+    real(DP), intent(out) :: xyr_SLat(IA,JA,KA)
+    real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
+    real(DP), intent(in) :: xyzaa_HGradTRC(IA,JA,KA,2,2)
+    real(DP), intent(in) :: xyra_DSigTRC(IA,JA,KA,2)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xy_Tmp(0:iMax-1,jMax)    
-    real(DP) :: xyz_alpha(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_beta(0:iMax-1,jMax,KA)
-    real(DP) :: xy_alpha(0:iMax-1,jMax)
-    real(DP) :: xy_beta(0:iMax-1,jMax)
-    
+    real(DP) :: fac
+    real(DP) :: xyz_alpha(IA,JA,KA)
+    real(DP) :: xyz_beta(IA,JA,KA)
+
+    integer :: i
+    integer :: j
+    integer :: jj
     integer :: k
 
-    real(DP) :: m1
-    real(DP) :: m2
+    real(DP) :: r_m1(KA)
+    real(DP) :: r_m2(KA)
 
     real(DP), parameter :: EPS = 1d-10
     
     ! 実行文; Executable statement
     !
 
-!!$    xyr_SLon = 1d100
-!!$    xyr_SLat = 1d100
-!!$    xyz_SLon = 1d100
-!!$    xyz_SLat = 1d100
     
-    !$omp parallel do private(xy_Tmp)
-    do k = KS, KE
+    !* Preparation
+    !
+
+    do k=KS, KE-1
+       r_m1(k) = z_CDK(k+1)/(z_CDK(k) + z_CDK(k+1))
+       r_m2(k) = z_CDK(k  )/(z_CDK(k) + z_CDK(k+1))
+    end do
+
+    !$omp parallel private(fac,i,j,jj,k)
+
+    !$omp do
+    do k=KS, KE
        call EOSDriver_alpha_beta( alpha=xyz_alpha(:,:,k), beta=xyz_beta(:,:,k),   & ! (out)
             & theta=xyz_PTemp(:,:,k), S=xyz_Salt(:,:,k),                          & ! (in)
             & p=-RefDens*Grav*xyz_Z(:,:,k) )                                        ! (in)
-
-       !--------------------
-       
-       xy_Tmp(:,:) = -  xyz_H(:,:,k) / ( EPS +                                                     &
-            &   xyz_alpha(:,:,k) *0.5d0*(xyra_DSigTRC(:,:,k-1,PTEMP) + xyra_DSigTRC(:,:,k,PTEMP))  &
-            & - xyz_beta (:,:,k) *0.5d0*(xyra_DSigTRC(:,:,k-1,SALT ) + xyra_DSigTRC(:,:,k,SALT ))  &
-            & )
-       
-       xyz_SLon(:,:,k) =   xy_Tmp(:,:)*( &
-            &   xyz_alpha(:,:,k)*xyzaa_HGradTRC(:,:,k,LON,PTEMP)   &
-            & - xyz_beta (:,:,k)*xyzaa_HGradTRC(:,:,k,LON,SALT ) )
-
-       xyz_SLat(:,:,k) =   xy_Tmp(:,:)*( &
-            &   xyz_alpha(:,:,k)*xyzaa_HGradTRC(:,:,k,LAT,PTEMP)   &
-            & - xyz_beta (:,:,k)*xyzaa_HGradTRC(:,:,k,LAT,SALT ) )
     end do
-
     
-    !$omp parallel private(xy_Tmp, m1, m2, xy_alpha, xy_beta)
-    !$omp do
-    do k = KS, KE-1
-       m1 = z_CDK(k+1)/(z_CDK(k) + z_CDK(k+1))
-       m2 = z_CDK(k  )/(z_CDK(k) + z_CDK(k+1))
+    !* Calculate the iso-netural slopes
+    !
+
+    !$omp do collapse(2)
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       fac = -  xyz_H(i,j,k) / ( EPS +                                                            &
+            &   xyz_alpha(i,j,k) *0.5d0*(xyra_DSigTRC(i,j,k-1,PTEMP) + xyra_DSigTRC(i,j,k,PTEMP))  &
+            & - xyz_beta (i,j,k) *0.5d0*(xyra_DSigTRC(i,j,k-1,SALT ) + xyra_DSigTRC(i,j,k,SALT ))  &
+            & )
+!!$
+!!$       xy_Tmp(:,:) = -  xyz_H(:,:,k) / ( EPS +                                                     &
+!!$            &   xyz_alpha(:,:,k) *0.5d0*(xyra_DSigTRC(:,:,k-1,PTEMP) + xyra_DSigTRC(:,:,k,PTEMP))  &
+!!$            & - xyz_beta (:,:,k) *0.5d0*(xyra_DSigTRC(:,:,k-1,SALT ) + xyra_DSigTRC(:,:,k,SALT ))  &
+!!$            & )
+       
+       xyz_SLon(i,j,k) =   fac*( &
+            &   xyz_alpha(i,j,k)*xyzaa_HGradTRC(i,j,k,LON,PTEMP)   &
+            & - xyz_beta (i,j,k)*xyzaa_HGradTRC(i,j,k,LON,SALT ) )
+
+       xyz_SLat(i,j,k) =   fac*( &
+            &   xyz_alpha(i,j,k)*xyzaa_HGradTRC(i,j,k,LAT,PTEMP)   &
+            & - xyz_beta (i,j,k)*xyzaa_HGradTRC(i,j,k,LAT,SALT ) )
+    end do
+    end do
+    end do
+    
+    !$omp do collapse(2)
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
 
 !!$       xy_alpha(:,:) = m1*xyz_alpha(:,:,k) + m2*xyz_alpha(:,:,k+1)
 !!$       xy_beta (:,:) = m1*xyz_beta (:,:,k) + m2*xyz_beta (:,:,k+1)
@@ -663,8 +762,8 @@ contains
 !!$       xy_Tmp(:,:) = - (m1*xyz_H(:,:,k) + m2*xyz_H(:,:,k+1)) / (EPS +                                   &
 !!$            &   xy_alpha(:,:)*xyra_DSigTRC(:,:,k,PTEMP) - xy_beta(:,:)*xyra_DSigTRC(:,:,k,SALT ) )
 
-       xyr_SLon(:,:,k) = m1*xyz_SLon(:,:,k) + m2*xyz_SLon(:,:,k+1)
-       xyr_SLat(:,:,k) = m1*xyz_SLat(:,:,k) + m2*xyz_SLat(:,:,k+1)
+       xyr_SLon(i,j,k) = r_m1(k)*xyz_SLon(i,j,k) + r_m2(k)*xyz_SLon(i,j,k+1)
+       xyr_SLat(i,j,k) = r_m1(k)*xyz_SLat(i,j,k) + r_m2(k)*xyz_SLat(i,j,k+1)
 !!$       
 !!$       xyr_SLon(:,:,k) = xy_Tmp(:,:)*( &
 !!$            &   xy_alpha(:,:)*(m1*xyzaa_HGradTRC(:,:,k,LON,PTEMP) + m2*xyzaa_HGradTRC(:,:,k+1,LON,PTEMP))   &
@@ -674,12 +773,19 @@ contains
 !!$            &   xy_alpha(:,:)*(m1*xyzaa_HGradTRC(:,:,k,LAT,PTEMP) + m2*xyzaa_HGradTRC(:,:,k+1,LAT,PTEMP))   &
 !!$            & - xy_beta (:,:)*(m1*xyzaa_HGradTRC(:,:,k,LAT,SALT ) + m2*xyzaa_HGradTRC(:,:,k+1,LAT,SALT )) )
     end do
-    !$omp workshare
-    xyr_SLon(:,:,KS-1) = xyr_SLon(:,:,KS  )
-    xyr_SLon(:,:,KE  ) = xyr_SLon(:,:,KE-1)
-    xyr_SLat(:,:,KS-1) = xyr_SLat(:,:,KS  )
-    xyr_SLat(:,:,KE  ) = xyr_SLat(:,:,KE-1)
-    !$omp end workshare
+    end do
+    end do
+
+    !$omp do
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyr_SLon(i,j,KS-1) = xyr_SLon(i,j,KS  )
+       xyr_SLon(i,j,KE  ) = xyr_SLon(i,j,KE-1)
+       xyr_SLat(i,j,KS-1) = xyr_SLat(i,j,KS  )
+       xyr_SLat(i,j,KE  ) = xyr_SLat(i,j,KE-1)
+    end do
+    end do
+
     !$omp end parallel
 
   end subroutine calc_IsoNeutralSlope_new
@@ -693,53 +799,53 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(out) :: xyz_BolusU(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyz_BolusV(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyz_BolusW(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_SLon(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_SLat(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_T(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_BolusU(IA,JA,KA)
+    real(DP), intent(out) :: xyz_BolusV(IA,JA,KA)
+    real(DP), intent(out) :: xyz_BolusW(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLon(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLat(IA,JA,KA)
+    real(DP), intent(in) :: xyz_T(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_PsiLon(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_PsiLat(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_PsiLon(IA,JA,KA)
+    real(DP) :: xyz_PsiLat(IA,JA,KA)
     integer :: k
 
     ! 実行文; Executable statement
     !
-
-    !$omp parallel
-    !$omp do
-    do k=1, kMax-1
-       xyz_PsiLon(:,:,k) = - Kappa_GM*xyz_T(:,:,k)*xyz_SLat(:,:,k)
-       xyz_PsiLat(:,:,k) =   Kappa_GM*xyz_T(:,:,k)*xyz_SLon(:,:,k)       
-    end do
-
-    !$omp workshare
-    xyz_PsiLon(:,:,0) = 0d0; xyz_PsiLat(:,:,0) = 0d0    
-    xyz_PsiLon(:,:,kMax) = 0d0; xyz_PsiLat(:,:,kMax) = 0d0
-    !$omp end workshare
-    !$omp end parallel
-    
-    if(DFM08Flag) then
-       call TaperingDFM08_GM(xyz_PsiLon, xyz_PsiLat, &
-            & DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb, xyz_Z )
-    end if
-
-    xyz_BolusU(:,:,:) = - xyz_DSig_xyz(xyz_PsiLat)/xyz_H !-xyz_Dz_xyz(xyz_PsiLat, xyz_H)
-    xyz_BolusV(:,:,:) =   xyz_DSig_xyz(xyz_PsiLon)/xyz_H ! xyz_Dz_xyz(xyz_PsiLon, xyz_H)
-                                                         ! xyz_Dz_xyz(xyz_PsiLon*xyz_CosLat, xyz_H)/xyz_CosLat
-                                                         ! = xyz_Dz_xyz(xyz_PsiLon, xyz_H)
-    !$omp parallel do
-    do k = 0, kMax
-       xyz_BolusW(:,:,k) = xy_w( &
-            & w_AlphaOptr_xy(xyz_PsiLat(:,:,k)*xy_CosLat, -xyz_PsiLon(:,:,k)*xy_CosLat) &
-            & )
-    end do
+!!$
+!!$    !$omp parallel
+!!$    !$omp do
+!!$    do k=1, kMax-1
+!!$       xyz_PsiLon(:,:,k) = - Kappa_GM*xyz_T(:,:,k)*xyz_SLat(:,:,k)
+!!$       xyz_PsiLat(:,:,k) =   Kappa_GM*xyz_T(:,:,k)*xyz_SLon(:,:,k)       
+!!$    end do
+!!$
+!!$    !$omp workshare
+!!$    xyz_PsiLon(:,:,KS) = 0d0; xyz_PsiLat(:,:,0) = 0d0    
+!!$    xyz_PsiLon(:,:,k) = 0d0; xyz_PsiLat(:,:,kMax) = 0d0
+!!$    !$omp end workshare
+!!$    !$omp end parallel
+!!$    
+!!$    if(DFM08Flag) then
+!!$       call TaperingDFM08_GM(xyz_PsiLon, xyz_PsiLat, &
+!!$            & DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb, xyz_Z )
+!!$    end if
+!!$
+!!$    xyz_BolusU(:,:,:) = - xyz_DSig_xyz(xyz_PsiLat)/xyz_H !-xyz_Dz_xyz(xyz_PsiLat, xyz_H)
+!!$    xyz_BolusV(:,:,:) =   xyz_DSig_xyz(xyz_PsiLon)/xyz_H ! xyz_Dz_xyz(xyz_PsiLon, xyz_H)
+!!$                                                         ! xyz_Dz_xyz(xyz_PsiLon*xyz_CosLat, xyz_H)/xyz_CosLat
+!!$                                                         ! = xyz_Dz_xyz(xyz_PsiLon, xyz_H)
+!!$    !$omp parallel do
+!!$    do k = 0, kMax
+!!$       xyz_BolusW(:,:,k) = xy_w( &
+!!$            & w_AlphaOptr_xy(xyz_PsiLat(:,:,k)*xy_CosLat, -xyz_PsiLon(:,:,k)*xy_CosLat) &
+!!$            & )
+!!$    end do
 
   end subroutine calc_BolusVelocity
 
@@ -878,37 +984,37 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_PTemp(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_Salt(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_H(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_PTemp(IA,JA,KA)
+    real(DP) :: xyz_Salt(IA,JA,KA)
+    real(DP) :: xyz_H(IA,JA,KA)
 
-    real(DP) :: xyz_RefPress(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_RefPress(IA,JA,KA)
 
-    real(DP) :: xyz_DensPot(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_DensPot(IA,JA,KA)
     ! Slopes for tracer iso-neutral mixing
-    real(DP) :: xyz_SLon(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_SLat(0:iMax-1,jMax,KA)
-    real(DP) :: xyr_SLon(0:iMax-1,jMax,KA)
-    real(DP) :: xyr_SLat(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_SLon(IA,JA,KA)
+    real(DP) :: xyz_SLat(IA,JA,KA)
+    real(DP) :: xyr_SLon(IA,JA,KA)
+    real(DP) :: xyr_SLat(IA,JA,KA)
 
     ! Coeffecient for the slope  tapering 
-    real(DP) :: xyz_T(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_T(IA,JA,KA)
 
     !
-    real(DP) :: xyzaa_HGradTRC(0:iMax-1,jMax,KA,2,2)
-    real(DP) :: xyra_DSigTRC(0:iMax-1,jMax,KA,2)
+    real(DP) :: xyzaa_HGradTRC(IA,JA,KA,2,2)
+    real(DP) :: xyra_DSigTRC(IA,JA,KA,2)
     
-    real(DP) :: xyz_FLon(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_FLat(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_FSig(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_FLon(IA,JA,KA)
+    real(DP) :: xyz_FLat(IA,JA,KA)
+    real(DP) :: xyz_FSig(IA,JA,KA)
 
-    real(DP) :: xyz_BolusU(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_BolusV(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_BolusW(0:iMax-1,jMax,KA)
+    real(DP) :: xyz_BolusU(IA,JA,KA)
+    real(DP) :: xyz_BolusV(IA,JA,KA)
+    real(DP) :: xyz_BolusW(IA,JA,KA)
 
-    real(DP) :: xyz_G(0:iMax-1,jMax,KA)
-    real(DP) :: xyz_C(0:iMax-1,jMax,KA)
-    real(DP) :: xy_BLD(0:iMax-1,jMax)
+    real(DP) :: xyz_G(IA,JA,KA)
+    real(DP) :: xyz_C(IA,JA,KA)
+    real(DP) :: xy_BLD(IA,JA)
     
     integer :: k
 
@@ -918,9 +1024,9 @@ contains
     if( .not. DOGCM_IO_History_isOutputTiming(CurrentTime) ) return
     if( .not. OutputFlag) return 
 
-    xyz_PTemp(:,:,:) = xyzaa_TRC(IS:IE,JS:JE,KS:KE, TRCID_PTEMP,TL_N)
-    xyz_Salt(:,:,:) = xyzaa_TRC(IS:IE,JS:JE,KS:KE, TRCID_SALT,TL_N)
-    xyz_H(:,:,:) = xyza_H(IS:IE,JS:JE,KS:KE, TL_N)
+    xyz_PTemp(:,:,:) = xyzaa_TRC(:,:,:, TRCID_PTEMP,TL_N)
+    xyz_Salt(:,:,:) = xyzaa_TRC(:,:,:, TRCID_SALT,TL_N)
+    xyz_H(:,:,:) = xyza_H(:,:,:, TL_N)
     
     ! Calculate the potential density. 
     xyz_RefPress = 0d0
@@ -953,12 +1059,12 @@ contains
 !!$         & xyz_SLon, xyz_SLat, xyz_T                       &  ! (in)
 !!$         & )
     
-    call HistoryPut('DensPot', xyz_DensPot(:,:,KS:KE), hst_SGSEddyMix)
+    call HistoryPut('DensPot', xyz_DensPot(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
 !!$    call HistoryPut('MixLyrDepth', xy_BLD, hst_SGSEddyMix)
 
-    call HistoryPut('SlopeLon', xyz_SLon(:,:,KS:KE), hst_SGSEddyMix)
-    call HistoryPut('SlopeLat', xyz_T(:,:,KS:KE)*xyz_SLat(:,:,KS:KE), hst_SGSEddyMix)
-    call HistoryPut('diffCoefEff', xyz_T(:,:,KS:KE), hst_SGSEddyMix)
+    call HistoryPut('SlopeLon', xyz_SLon(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
+    call HistoryPut('SlopeLat', xyz_T(IS:IE,JS:JE,KS:KE)*xyz_SLat(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
+    call HistoryPut('diffCoefEff', xyz_T(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
 
 !!$    !
 !!$    call calc_BolusVelocity( &

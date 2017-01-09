@@ -21,9 +21,13 @@ module HBEBarot_hspm_vfvm_mod
   !* Dennou-OGCM
 
   use DOGCM_Admin_Constants_mod
-  
+
   use DOGCM_Admin_Grid_mod, only: &
-       & iMax, jMax, kMax, lMax
+       & iMax, jMax, lMax,                      &
+       & IS, IE, IA, JS, JE, JA, KS, KE, KA,    &
+       & z_CDK, z_RCDK, z_FDK, z_RFDK,          &
+       & JBLOCK
+#include "../../admin/DOGCM_Admin_GaussSpmGridIndexDef.h"
 
   use SpmlUtil_mod, only: &
        & w_xy, xy_w,                            &
@@ -84,18 +88,18 @@ contains
 
   !- RHS of sea surface height equation ------------------------------------
 
-  subroutine HBEBarot_SSHRHS_LinFreeSfc( w_SSH_RHS,                              &  ! (out)
+  subroutine HBEBarot_SSHRHS_LinFreeSfc( xy_SSH_RHS,                        &  ! (out)
        & xy_SSH, xy_TotDepBasic, xy_UCosBarot, xy_VCosBarot, xy_FreshWtFlx )   ! (in)
 
     ! 宣言文; Declaration statement
     !
     
-    real(DP), intent(out) :: w_SSH_RHS(lMax)
-    real(DP), intent(in)  :: xy_SSH(0:iMax-1,jMax)
-    real(DP), intent(in)  :: xy_TotDepBasic(0:iMax-1,jMax)    
-    real(DP), intent(in)  :: xy_UCosBarot(0:iMax-1,jMax)
-    real(DP), intent(in)  :: xy_VCosBarot(0:iMax-1,jMax)
-    real(DP), intent(in)  :: xy_FreshWtFlx(0:iMax-1,jMax)
+    real(DP), intent(out) :: xy_SSH_RHS(IA,JA)
+    real(DP), intent(in)  :: xy_SSH(IA,JA)
+    real(DP), intent(in)  :: xy_TotDepBasic(IA,JA)    
+    real(DP), intent(in)  :: xy_UCosBarot(IA,JA)
+    real(DP), intent(in)  :: xy_VCosBarot(IA,JA)
+    real(DP), intent(in)  :: xy_FreshWtFlx(IA,JA)
 
     ! 作業変数
     ! Work variables
@@ -104,9 +108,12 @@ contains
     ! 実行文; Executable statements
     !
 
-    w_SSH_RHS(:) = &
-         & - w_AlphaOptr_xy( xy_TotDepBasic*xy_UCosBarot, xy_TotDepBasic*xy_VCosBarot ) &
-         & + w_xy( xy_FreshWtFlx )
+    xy_SSH_RHS(IS:IE,JS:JE) = xy_w( &
+         & - w_AlphaOptr_xy( &
+         &      xy_TotDepBasic(IS:IE,JS:JE)*xy_UCosBarot(IS:IE,JS:JE),   &
+         &      xy_TotDepBasic(IS:IE,JS:JE)*xy_VCosBarot(IS:IE,JS:JE)  ) &
+         & + w_xy( xy_FreshWtFlx(IS:IE,JS:JE)                          ) &
+         & )
 
   end subroutine HBEBarot_SSHRHS_LinFreeSfc
 
@@ -149,17 +156,19 @@ contains
     ! 宣言文; Declaration statement
     !    
 
-    real(DP), intent(out) :: xy_UBarot_RHS(0:iMax-1,jMax)
-    real(DP), intent(out) :: xy_VBarot_RHS(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_CoriUBarot(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_CoriVBarot(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_SfcPres(0:iMax-1,jMax)    
-    real(DP), intent(in) :: xy_UBarocForce(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_VBarocForce(0:iMax-1,jMax)
+    real(DP), intent(out) :: xy_UBarot_RHS(IA,JA)
+    real(DP), intent(out) :: xy_VBarot_RHS(IA,JA)
+    real(DP), intent(in) :: xy_CoriUBarot(IA,JA)
+    real(DP), intent(in) :: xy_CoriVBarot(IA,JA)
+    real(DP), intent(in) :: xy_SfcPres(IA,JA)    
+    real(DP), intent(in) :: xy_UBarocForce(IA,JA)
+    real(DP), intent(in) :: xy_VBarocForce(IA,JA)
 
     ! 作業変数
     ! Work variables
-    
+
+    integer :: j
+    integer :: j_
     real(DP) :: xy_A(0:iMax-1,jMax)
     real(DP) :: xy_B(0:iMax-1,jMax)
     real(DP) :: w_Vor_RHS(lMax)
@@ -167,17 +176,22 @@ contains
 
     ! 実行文; Executable statements
     !
+
+    !$omp parallel do private(j_)
+    do j=1, jMax
+       j_ = JS + j -1
+       xy_A(:,j) = xy_CosLat(:,j)*(xy_CoriUBarot(IS:IE,j_) - xy_VBarocForce(IS:IE,j_))
+       xy_B(:,j) = xy_CosLat(:,j)*(xy_CoriVBarot(IS:IE,j_) + xy_UBarocForce(IS:IE,j_))
+    end do
     
-    xy_A(:,:) = xy_CosLat*(xy_CoriUBarot - xy_VBarocForce)
-    xy_B(:,:) = xy_CosLat*(xy_CoriVBarot + xy_UBarocForce)
+    w_Vor_RHS(:) = - w_AlphaOptr_xy(xy_A, xy_B)
+    
+    w_Div_RHS(:) =   w_AlphaOptr_xy(xy_B, - xy_A)        &
+         &         - w_Lapla_w(w_xy(xy_SfcPres(IS:IE,JS:JE)))/(RefDens*RPlanet**2)
 
-    w_Vor_RHS(:) = - w_AlphaOptr_xy(xy_A,   xy_B)
-    w_Div_RHS(:) =   w_AlphaOptr_xy(xy_B, - xy_A)                     &
-         &          - w_Lapla_w(w_xy(xy_SfcPres))/(RefDens*RPlanet**2)
-
-    call calc_VorDiv2UV( w_Vor_RHS, w_Div_RHS, & ! (in)
-         & xy_UBarot_RHS, xy_VBarot_RHS )        ! (out)
-
+    call calc_VorDiv2UV( w_Vor_RHS, w_Div_RHS,                        & ! (in)
+         & xy_UBarot_RHS(IS:IE,JS:JE), xy_VBarot_RHS(IS:IE,JS:JE) )     ! (out)
+    
   end subroutine HBEBarot_MOMRHS
 
   !-------------------------------------
@@ -190,11 +204,11 @@ contains
     ! 宣言文; Declaration statement
     !
     
-    real(DP), intent(inout) :: xy_UBarotA(0:iMax-1,jMax)
-    real(DP), intent(inout) :: xy_VBarotA(0:iMax-1,jMax)
-    real(DP), intent(inout) :: xy_SfcPresA(0:iMax-1,jMax)
-    real(DP), intent(inout) :: xy_SSHA(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_Cori(0:iMax-1,jMax)
+    real(DP), intent(inout) :: xy_UBarotA(IA,JA)
+    real(DP), intent(inout) :: xy_VBarotA(IA,JA)
+    real(DP), intent(inout) :: xy_SfcPresA(IA,JA)
+    real(DP), intent(inout) :: xy_SSHA(IA,JA)
+    real(DP), intent(in) :: xy_Cori(IA,JA)
     real(DP), intent(in) :: DelTime
     real(DP), intent(in) :: DelTimeSSH
     real(DP), intent(in) :: PresTAvgCoefA
@@ -207,22 +221,27 @@ contains
     real(DP) :: w_Vor(lMax)
     real(DP) :: w_Div(lMax)
     
-    real(DP) :: xy_DUBarot(0:iMax-1,jMax)
-    real(DP) :: xy_DVBarot(0:iMax-1,jMax)
-    real(DP) :: xy_DSfcPres(0:iMax-1,jMax)
+    real(DP) :: xy_DUBarot(IA,JA)
+    real(DP) :: xy_DVBarot(IA,JA)
+    real(DP) :: xy_DSfcPres(IA,JA)
 
     integer :: itr
 
+    integer :: i
+    integer :: j
+    
     ! 実行文; Executable statements
     !
 
-    call calc_UVCosLat2VorDiv( xy_UBarotA*xy_CosLat, xy_VBarotA*xy_CosLat, & ! (in)
-         & w_Vor, w_Div )                                                    ! (out)
-    
-    w_DDiv(:) = - w_Div; w_DVor(:) = 0d0
-    call calc_VorDiv2UV( w_DVor, w_DDiv,   &  ! (in)
-         & xy_DUBarot, xy_DVBarot )           ! (out)
+    call calc_UVCosLat2VorDiv( &
+         & xy_UBarotA(IS:IE,JS:JE)*xy_CosLat, xy_VBarotA(IS:IE,JS:JE)*xy_CosLat, & ! (in)
+         & w_Vor, w_Div )                                                          ! (out)
 
+    w_DDiv(:) = - w_Div
+    w_DVor(:) = 0d0
+    call calc_VorDiv2UV( w_DVor, w_DDiv,                                        &  ! (in)
+         & xy_DUBarot(IS:IE,JS:JE), xy_DVBarot(IS:IE,JS:JE) )                      ! (out)
+    
 !!$    do itr = 1, 2
 !!$       w_DVor(:) = - w_xy( &
 !!$            & 1d0*DelTime*( &
@@ -233,19 +252,18 @@ contains
 !!$            & xy_DUBarot, xy_DVBarot )        ! (out)
 !!$    end do
     
-    xy_DSfcPres(:,:) = RefDens * xy_w( RPlanet**2 * w_LaplaInv_w(     &
-         & w_Div/(PresTAvgCoefA*DelTimeSSH)                           &
+    xy_DSfcPres(IS:IE,JS:JE) = RefDens * xy_w( RPlanet**2 * w_LaplaInv_w(     &
+         & w_Div/(PresTAvgCoefA*DelTimeSSH)                                   &
          & ))
 
-    !$omp parallel
-    !$omp workshare
-    xy_SfcPresA(:,:) = xy_SfcPresA + xy_DSfcPres
-    xy_SSHA(:,:) = 0d0 !xy_SfcPresA/(RefDens*Grav)
-    xy_UBarotA(:,:) = xy_UBarotA + xy_DUBarot
-    xy_VBarotA(:,:) = xy_VBarotA + xy_DVBarot
-    !$omp end workshare
-    !$omp end parallel
-    
+    !$omp parallel do
+    do j=JS, JE
+       xy_SfcPresA(:,j) = xy_SfcPresA(:,j) + xy_DSfcPres(:,j)
+       xy_SSHA(:,j)     = 0d0                               !xy_SfcPresA/(RefDens*Grav)
+       xy_UBarotA(:,j)  = xy_UBarotA(:,j) + xy_DUBarot(:,j)
+       xy_VBarotA(:,j)  = xy_VBarotA(:,j) + xy_DVBarot(:,j)
+    end do
+
   end subroutine HBEBarot_Update_LinFreeSfc
        
 end module HBEBarot_hspm_vfvm_mod

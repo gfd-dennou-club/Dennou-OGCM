@@ -42,9 +42,9 @@ module LPhys_RediGM_spm_mod
        & EOSDriver_alpha_beta
 
   use DOGCM_Admin_Grid_mod, only: &
-       & IS, IE, JS, JE, KS, kE,       &
-       & iMax, jMax, kMax, lMax, tMax, &
-       & xyz_Lat, xyz_Lon,             &
+       & IS, IE, IA, JS, JE, JA, KS, KE, KA,    &
+       & iMax, jMax, kMax, lMax, tMax,          &
+       & xyz_Lat, xyz_Lon,                      &
        & x_CI, y_CJ, z_CK
 
   use DOGCM_Admin_TInteg_mod, only: &
@@ -208,25 +208,25 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: xyz_PTemp_RHS(0:iMax-1,jMax, 0:kMax)
-    real(DP), intent(inout) :: xyz_Salt_RHS(0:iMax-1,jMax, 0:kMax)
-    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,0:kMax)
-    real(DP), intent(in) :: xy_Topo(0:iMax-1,jMax)
+    real(DP), intent(inout) :: xyz_PTemp_RHS(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_Salt_RHS(IA,JA,KA)
+    real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)
+    real(DP), intent(in) :: xy_Topo(IA,JA)
     
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_DensPot(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_RefPress(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_DensPot(IA,JA,KA)
+    real(DP) :: xyz_RefPress(IA,JA,KA)
 
     ! Slopes for tracer iso-neutral mixing
-    real(DP) :: xyz_SLon(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_SLat(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_SLon(IA,JA,KA)
+    real(DP) :: xyz_SLat(IA,JA,KA)
     ! Coeffecient for the slope  tapering 
-    real(DP) :: xyz_T(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_T(IA,JA,KA)
 
     integer :: k
     
@@ -246,34 +246,47 @@ contains
 !!$    call calc_IsoNeutralSlope( xyz_SLon, xyz_SLat, &   !(out)
 !!$         & xyz_DensPot, xyz_H )                            !(in)
 
-    call calc_IsoNeutralSlope_new( xyz_SLon, xyz_SLat, &   !(out)
-         & xyz_PTemp, xyz_Salt, xyz_H, xyz_Z )         !(in)
+    call calc_IsoNeutralSlope_new( &
+         & xyz_SLon(IS:IE,JS:JE,KS:KE), xyz_SLat(IS:IE,JS:JE,KS:KE),   & ! (out)
+         & xyz_PTemp(IS:IE,JS:JE,KS:KE), xyz_Salt(IS:IE,JS:JE,KS:KE),  & ! (in)
+         & xyz_H(IS:IE,JS:JE,KS:KE), xyz_Z(IS:IE,JS:JE,KS:KE) )          ! (in)
 
     call prepare_SlopeTapering( xyz_T, xyz_SLon, xyz_SLat, & ! (inout)
          & xyz_DensPot, xyz_Z                              & ! (in)
          & )
 
-    
 !    call check_StaticStability(xyz_T, xyz_DensPot)
 
     
     ! Calculate the tendency due to Gent-McWilliams and Redi flux
     !
     
-    call append_Redi_GM_RHS( xyz_PTemp_RHS,    & ! (inout)
-         & xyz_PTemp )                           ! (in)    
+    call append_Redi_GM_RHS( xyz_PTemp_RHS(IS:IE,JS:JE,KS:KE),                            & ! (inout)
+         & xyz_PTemp(IS:IE,JS:JE,KS:KE),                                                  & ! (in)
+         & xyz_SLon(IS:IE,JS:JE,KS:KE), xyz_SLat(IS:IE,JS:JE,KS:KE),                      & ! (in)
+         & xyz_H(IS:IE,JS:JE,KS:KE), xyz_Z(IS:IE,JS:JE,KS:KE), xyz_T(IS:IE,JS:JE,KS:KE) )   ! (in)    
+    
+    call append_Redi_GM_RHS( xyz_Salt_RHS(IS:IE,JS:JE,KS:KE),                             & ! (inout)
+         & xyz_Salt(IS:IE,JS:JE,KS:KE),                                                   & ! (in)    
+         & xyz_SLon(IS:IE,JS:JE,KS:KE), xyz_SLat(IS:IE,JS:JE,KS:KE),                      & ! (in)
+         & xyz_H(IS:IE,JS:JE,KS:KE), xyz_Z(IS:IE,JS:JE,KS:KE), xyz_T(IS:IE,JS:JE,KS:KE) )   ! (in)    
 
-    call append_Redi_GM_RHS( xyz_Salt_RHS,     & ! (inout)
-         & xyz_Salt )                            ! (in)    
 
   contains
 
-    subroutine append_Redi_GM_RHS( xyz_RHS, xyz_TRC )
+    subroutine append_Redi_GM_RHS( xyz_RHS, &
+         & xyz_TRC, xyz_SLon, xyz_SLat,     &
+         & xyz_H, xyz_Z, xyz_T )
 
       ! 宣言文; Declaration statement
       !
       real(DP), intent(inout) :: xyz_RHS(0:iMax-1,jMax,0:kMax)
       real(DP), intent(in) :: xyz_TRC(0:iMax-1,jMax,0:kMax)
+      real(DP), intent(in) :: xyz_SLon(0:iMax-1,jMax,0:kMax)
+      real(DP), intent(in) :: xyz_SLat(0:iMax-1,jMax,0:kMax)
+      real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,0:kMax)
+      real(DP), intent(in) :: xyz_Z(0:iMax-1,jMax,0:kMax)
+      real(DP), intent(in) :: xyz_T(0:iMax-1,jMax,0:kMax)
 
       ! 局所変数
       ! Local variables
@@ -586,7 +599,7 @@ contains
        xyz_SLon(:,:,k) =  - (xy_alpha*xy_GradLon_w(w_PTemp) - xy_beta*xy_GradLon_w(w_Salt)) * xy_Tmp 
        xyz_SLat(:,:,k) =  - (xy_alpha*xy_GradLat_w(w_PTemp) - xy_beta*xy_GradLat_w(w_Salt)) * xy_Tmp 
     end do
-    
+
   end subroutine calc_IsoNeutralSlope_new
 
   !-----------------------------------------------------------

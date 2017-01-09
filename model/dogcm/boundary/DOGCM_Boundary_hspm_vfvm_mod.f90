@@ -133,21 +133,21 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(inout) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(inout) :: xyz_V(0:iMax-1,jMax,KA)
-    real(DP), intent(inout) :: xyza_TRC(0:iMax-1,jMax,KA,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)    
-    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,KA)
+    real(DP), intent(inout) :: xyz_U(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_V(IA,JA,KA)
+    real(DP), intent(inout) :: xyza_TRC(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)    
+    real(DP), intent(in) :: xyz_VViscCoef(IA,JA,KA)
+    real(DP), intent(in) :: xyz_VDiffCoef(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
     !
     
-    real(DP) :: xya_U_VBCRHS(0:iMax-1,jMax,2)
-    real(DP) :: xya_V_VBCRHS(0:iMax-1,jMax,2)
-    real(DP) :: xya_PTemp_VBCRHS(0:iMax-1,jMax,2)
-    real(DP) :: xya_Salt_VBCRHS(0:iMax-1,jMax,2)
+    real(DP) :: xya_U_VBCRHS(IA,JA,2)
+    real(DP) :: xya_V_VBCRHS(IA,JA,2)
+    real(DP) :: xya_PTemp_VBCRHS(IA,JA,2)
+    real(DP) :: xya_Salt_VBCRHS(IA,JA,2)
     real(DP) :: avr_salt
     
     ! 実行文; Executable statements
@@ -199,12 +199,12 @@ contains
     ! 宣言文; Declaration statement
     !
 
-    real(DP), intent(out) :: xya_PTemp_VBCRHS(0:iMax-1,jMax,2)
-    real(DP), intent(out) :: xya_Salt_VBCRHS(0:iMax-1,jMax,2)
-    real(DP), intent(in) :: xyz_PTemp(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Salt(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_VDiffCoef(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xya_PTemp_VBCRHS(IA,JA,2)
+    real(DP), intent(out) :: xya_Salt_VBCRHS(IA,JA,2)
+    real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_VDiffCoef(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
@@ -217,7 +217,7 @@ contains
     select case(ThermBC_Surface)
     case(  ThermBCTYPE_PrescTemp                              &
          & )
-       xya_PTemp_VBCRHS(:,:,1) = xy_SeaSfcTemp(IS:IE,JS:JE)
+       xya_PTemp_VBCRHS(:,:,1) = xy_SeaSfcTemp(:,:)
        
     case(  ThermBCTYPE_PrescFixedFlux, ThermBCTYPE_PrescFlux, &
          & ThermBCTYPE_Adiabat, ThermBCTYPE_TempRelaxed,      &
@@ -227,7 +227,7 @@ contains
        !$omp workshare
        xya_PTemp_VBCRHS(:,:,1) = &
             & - xyz_H(:,:,KS)/(RefDens*Cp0*xyz_vDiffCoef(:,:,KS))*( &
-            &      xy_SfcHFlx_sr(IS:IE,JS:JE) + xy_SfcHFlx_ns(IS:IE,JS:JE) &
+            &      xy_SfcHFlx_sr(:,:) + xy_SfcHFlx_ns(:,:) &
             & )
        !$omp end workshare
        !$omp end parallel
@@ -250,7 +250,7 @@ contains
     select case(SaltBC_Surface)
     case(  SaltBCTYPE_PrescSalt                             &
          & )
-       xya_Salt_VBCRHS(:,:,1) = xy_SeaSfcSalt(IS:IE,JS:JE)
+       xya_Salt_VBCRHS(:,:,1) = xy_SeaSfcSalt(:,:)
 
     case( SaltBCTYPE_Adiabat )
        xya_Salt_VBCRHS(:,:,1) = 0d0
@@ -259,7 +259,7 @@ contains
          & SaltBCTYPE_SaltRelaxed                           &
          & )
        xya_Salt_VBCRHS(:,:,1) = - xyz_H(:,:,KS)/xyz_VDiffCoef(:,:,KS)*( &
-            & xy_FreshWtFlxS(IS:IE,JS:JE) * RefSalt_VBC )
+            & xy_FreshWtFlxS(:,:) * RefSalt_VBC )
     case default 
        call throw_UnImplementVBCError('SaltBC_Surface', SaltBC_Surface)       
     end select
@@ -285,18 +285,17 @@ contains
     ! 宣言文; Declaration statement
     !
 
-    real(DP), intent(out) :: xya_U_VBCRHS(0:iMax-1,jMax,2)
-    real(DP), intent(out) :: xya_V_VBCRHS(0:iMax-1,jMax,2)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_VViscCoef(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xya_U_VBCRHS(IA,JA,2)
+    real(DP), intent(out) :: xya_V_VBCRHS(IA,JA,2)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_VViscCoef(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
     !
     integer :: k
-    real(DP) :: xy_Coef(0:iMax-1,jMax)
     
     ! 実行文; Executable statement
     !
@@ -309,8 +308,8 @@ contains
          & )
        !$omp parallel
        !$omp workshare
-       xya_U_VBCRHS(:,:,1) = xyz_H(:,:,KS)/(RefDens*xyz_VViscCoef(:,:,KS))*xy_WindStressU(IS:IE,JS:JE)
-       xya_V_VBCRHS(:,:,1) = xyz_H(:,:,KS)/(RefDens*xyz_VViscCoef(:,:,KS))*xy_WindStressV(IS:IE,JS:JE)
+       xya_U_VBCRHS(:,:,1) = xyz_H(:,:,KS)/(RefDens*xyz_VViscCoef(:,:,KS))*xy_WindStressU(:,:)
+       xya_V_VBCRHS(:,:,1) = xyz_H(:,:,KS)/(RefDens*xyz_VViscCoef(:,:,KS))*xy_WindStressV(:,:)
        !$omp end workshare
        !$omp end parallel
        
@@ -320,8 +319,6 @@ contains
     case default
        call throw_UnImplementVBCError('DynBC_Surface', DynBC_Surface)              
     end select
-    
-    xy_Coef(:,:) = xyz_H(:,:,kMax)/(RefDens*xyz_VViscCoef(:,:,kMax))    
 
     select case(DynBC_Bottom)
     case(DynBCTYPE_NoSlip)
@@ -351,10 +348,10 @@ contains
   subroutine solve_VBCEq( xyz,                       & ! (inout)
        & SurfBoundaryID, BtmBoundaryID, xya_VBCRHS   & ! (in)
        & )
-    real(DP), intent(inout) :: xyz(0:iMax-1,jMax,KA)
+    real(DP), intent(inout) :: xyz(IA,JA,KA)
     integer, intent(in) :: SurfBoundaryID
     integer, intent(in) :: BtmBoundaryID
-    real(DP), intent(in) :: xya_VBCRHS(0:iMax-1,jMax,2)
+    real(DP), intent(in) :: xya_VBCRHS(IA,JA,2)
 
     character :: SurfVBCType
     character :: BtmVBCType

@@ -1,7 +1,7 @@
 !-------------------------------------------------------------
-! Copyright (c) 2015-2016 Yuta Kawai. All rights reserved.
+! Copyright (c) 2015-2017 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
-!> @brief a template module
+!> @brief A module providing a few subroutines to run Dennou-OGCM. 
 !! 
 !! @author Yuta Kawai
 !!
@@ -93,8 +93,11 @@ module DOGCM_main_mod
 
   use LPhys_RediGM_spm_mod, only: &
        & LPhys_RediGM_spm_Output
+
   use LPhys_RediGM_hspm_vfvm_mod, only: &
        & LPhys_RediGM_hspm_vfvm_Output
+
+  use ProfUtil_mod
   
   ! 宣言文; Declareration statements
   !
@@ -154,7 +157,7 @@ contains
 
     ! 実行文; Executable statements
     !
-
+    
   end subroutine DOGCM_main_Final
 
 !-------------------------------------------------------------------------------------------------
@@ -168,9 +171,12 @@ contains
        & skip_flag                        & ! (in)
        & )
     
-    use DOGCM_Admin_Constants_mod
-    use DOGCM_Admin_Grid_mod
-    use DOGCM_Admin_Variable_mod
+    ! モジュール引用; Use statements
+    !    
+!!$    use DOGCM_Admin_Constants_mod
+!!$    use DOGCM_Admin_Grid_mod
+    use DOGCM_Admin_Variable_mod, only: &
+         & xyza_U, xyza_V, xyzaa_TRC, xyza_H, xya_SSH
 
     ! 宣言文; Declaration statement
     !
@@ -190,7 +196,8 @@ contains
     else
        loop_end_flag = .false.
     end if
-
+    
+    call ProfUtil_RapStart('OcnComp', 1)
     
     if(tstep == 0) then
        call DOGCM_IO_Restart_Input()
@@ -199,13 +206,13 @@ contains
        end if
     else
        !-  Advace one time step ----------------------------------------------------
-       
-       
+!!$       write(*,*) "Boundary UpdateBeforetstep"
        call DOGCM_Boundary_driver_UpdateBeforeTstep( &
             & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),  & ! (in)
             & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN)                            & ! (in)
             & )    
 
+!!$       write(*,*) "TIntegMain"              
        if ( .not. skip_flag ) then
           if(CurrentTimeStep == 1 .and. (.not. RestartFlag)) then
              call DOGCM_TInt_driver_Do( isSelfStartSchemeUsed=.true. )
@@ -213,17 +220,24 @@ contains
              call DOGCM_TInt_driver_Do( isSelfStartSchemeUsed=.false. )
           end if
        end if
-       
+
+!!$       write(*,*) "TIntegAdvance"       
        call DOGCM_Admin_TInteg_AdvanceLongTStep()
        call DOGCM_Admin_Variable_AdvanceTStep()
 
+!!$       write(*,*) "Boundary UpdateAftertstep"
        call DOGCM_Boundary_driver_UpdateAfterTstep( &
             & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),  & ! (in)
             & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN)                            & ! (in)
             & )
     end if
+
+    call ProfUtil_RapEnd('OcnComp', 1)
+    
     !- Output  --------------------------------------------------------------------
 
+    call ProfUtil_RapStart('OcnIO', 1)
+    
     ! history
     call DOGCM_Admin_Variable_HistPut()
     call DOGCM_Boundary_vars_HistPut()
@@ -234,9 +248,11 @@ contains
     call DOGCM_IO_Restart_Output()
     call DOGCM_Admin_Variable_RestartPut()
 
+    call ProfUtil_RapEnd('OcnIO', 1)
+    
   end subroutine DOGCM_main_advance_timestep
 
-!-------------------------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------------------------
   
   !> @brief 
   !!
@@ -245,7 +261,9 @@ contains
 
     ! モジュール引用; Use statements
     !
-    use OptionParser_mod
+    use OptionParser_mod, only: &
+         & OptionParser_Init, OptionParser_Final, &
+         & OptionParser_GetInfo
          
     use DOGCM_Admin_Grid_mod, only: &
          & iMax, jMax, kMax,           &
@@ -285,13 +303,14 @@ contains
     else
        configNmlFile = configNmlFileArg
     end if
-
+    
     ! Initialize administrative modules 
     !
     
     call DOGCM_Admin_Constants_Init( configNmlFile )
     call DOGCM_Admin_GovernEq_Init( configNmlFile )  
     call DOGCM_Admin_Grid_Init( configNmlFile )
+
 
     ! Initialize some helper modules to solve oceanic flow
     !
@@ -367,7 +386,7 @@ contains
 
     use VFvmUtil_mod, only: &
          & VFvmUtil_Final
-    
+
     ! 宣言文; Declaration statement
     !
 
@@ -393,7 +412,7 @@ contains
     call DOGCM_Admin_TInteg_Final()
     call DOGCM_Admin_Constants_Final()
 
-    !
+    !    
     call SpmlUtil_Final()
     select case ( SolverType )
     case( OCNGOVERNEQ_SOLVER_HSPM_VFVM )
@@ -405,11 +424,13 @@ contains
   !-------------------------------------------------------------------------------------------------
   
   subroutine DOGCM_main_update_SIceField( &
-       & xy_SIceMaskRecv,                                    &
-       & xy_SIceConRecv, xy_SfcHFlxNsRecv, xy_SfcHFlxSrRecv, &
-       & xy_FreshWtFlxSRecv                                  & 
+       & xy_SIceMaskRecv,                                    &   ! (in)
+       & xy_SIceConRecv, xy_SfcHFlxNsRecv, xy_SfcHFlxSrRecv, &   ! (in)
+       & xy_FreshWtFlxSRecv                                  &   ! (in)
        & )
 
+    ! モジュール引用; Use statements
+    !    
     use DOGCM_Admin_Grid_mod, only: &
          & IS, IE, JS, JE, &
          & KS, IA, JA
@@ -420,13 +441,16 @@ contains
          & xy_SfcHFlxIO_ns, xy_SfcHFlxIO_sr,        &
          & xy_FreshWtFlxSIO, xy_FreshWtFlxIO
 
-    
+    ! 宣言文; Declaration statement
+    !    
     logical, intent(in) :: xy_SIceMaskRecv(IA,JA)
     real(DP), intent(in) :: xy_SIceConRecv(IA,JA)
     real(DP), intent(in) :: xy_SfcHFlxNsRecv(IA,JA)    
     real(DP), intent(in) :: xy_SfcHFlxSrRecv(IA,JA)
     real(DP), intent(in) :: xy_FreshWtFlxSRecv(IA,JA)
 
+    ! 実行文; Executable statement
+    !
 
     !$omp parallel
     !$omp workshare

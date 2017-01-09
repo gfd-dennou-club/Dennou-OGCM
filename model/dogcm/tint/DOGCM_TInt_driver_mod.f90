@@ -76,6 +76,8 @@ module DOGCM_TInt_driver_mod
        & DOGCM_TInt_common_Init, DOGCM_TInt_common_Final, &
        & DOGCM_TInt_common_advance_Dyn,                   &
        & DOGCM_TInt_common_advance_Phys
+
+  use ProfUtil_mod
   
   ! 宣言文; Declareration statements
   !
@@ -85,17 +87,13 @@ module DOGCM_TInt_driver_mod
   ! 公開手続き
   ! Public procedure
   !
-
+  public :: DOGCM_TInt_driver_Init, DOGCM_TInt_driver_Final
+  public :: DOGCM_TInt_driver_Do
   
   ! 非公開変数
   ! Private variable
   !
   character(*), parameter:: module_name = 'DOGCM_TInt_driver_mod' !< Module Name
-
-
-  public :: DOGCM_TInt_driver_Init, DOGCM_TInt_driver_Final
-  public :: DOGCM_TInt_driver_Do
-
 
 contains
 
@@ -157,6 +155,7 @@ contains
     ! 実行文; Executable statements
     !
 
+!!$    call MessageNotify('M', module_name, "Do ..")
 
     !-- Advance time step ---------------------------------------------------------
     
@@ -201,12 +200,13 @@ contains
     TLA = TIMELV_ID_A
     TLN = TIMELV_ID_N    
 
-
+!!$    call MessageNotify('M', module_name, "OCN_BC  ..")    
     call DOGCM_Boundary_driver_ApplyBC( &
          & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),    & ! (inout)
          & xyza_H(:,:,:,TLN), xyz_VViscCoef, xyz_VDiffCoef                  & ! (in)
          & )
 
+!!$    call MessageNotify('M', module_name, "OCN_Phys  ..")
     call DOGCM_TInt_common_advance_Phys( &
        & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                  & ! (out)
        & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                   & ! (out)
@@ -216,6 +216,7 @@ contains
        & DelTime                                                          & ! (in)
        & )
 
+!!$    call MessageNotify('M', module_name, "OCN_Dyn  ..")    
     call DOGCM_TInt_common_advance_Dyn(  &
          ! ------ Time lelve A ------------------------------------------------- 
          & xyza_U(:,:,:,TLA), xyza_V(:,:,:,TLA), xyza_OMG(:,:,:,TLA),      & ! (out)
@@ -374,6 +375,11 @@ contains
     real(DP) :: avr_ptempA
     real(DP) :: avr_SfcHFlx
     real(DP) :: avr_ptemp_RHS_phys
+
+    integer :: i
+    integer :: j
+    integer :: k
+    integer :: n
     
     ! 実行文; Executable statement
     !
@@ -384,6 +390,9 @@ contains
     TLN = TIMELV_ID_N
     TLB = TIMELV_ID_B
 
+    !
+    !
+    
 !!$    call DOGCM_Boundary_driver_ApplyBC( &
 !!$         & xyza_U(:,:,:,TLB), xyza_V(:,:,:,TLB), xyzaa_TRC(:,:,:,:,TLB),   & ! (inout)
 !!$         & xyza_H(:,:,:,TLB), xyz_VViscCoef, xyz_VDiffCoef                 & ! (in)
@@ -423,21 +432,49 @@ contains
          & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                 & ! (in)
          & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                  & ! (in)
          & 2d0*DelTime,                                                    & ! (in)
-         & alpha=0.5d0, gamma=0d0, lambda=VDiffTermACoef                   & ! (in)    
-!!$         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef & ! (in)    
+!!$         & alpha=0.5d0, gamma=0d0, lambda=VDiffTermACoef                   & ! (in)    
+         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef & ! (in)    
          & )    
 
-    !$omp parallel
-    !$omp workshare
-    xyz_U(:,:,:) = (5d0*xyza_U(:,:,:,TLA) + 8d0*xyza_U(:,:,:,TLN) - xyza_U(:,:,:,TLB))/12d0
-    xyz_V(:,:,:) = (5d0*xyza_V(:,:,:,TLA) + 8d0*xyza_V(:,:,:,TLN) - xyza_V(:,:,:,TLB))/12d0
-    xyz_H(:,:,:) = (5d0*xyza_H(:,:,:,TLA) + 8d0*xyza_H(:,:,:,TLN) - xyza_H(:,:,:,TLB))/12d0
-    xyza_TRC(:,:,:,:) = (5d0*xyzaa_TRC(:,:,:,:,TLA) + 8d0*xyzaa_TRC(:,:,:,:,TLN) - xyzaa_TRC(:,:,:,:,TLB))/12d0
-    xy_SSH(:,:) = (5d0*xya_SSH(:,:,TLA) + 8d0*xya_SSH(:,:,TLN) - xya_SSH(:,:,TLB))/12d0
-    xy_SfcPres(:,:) = (5d0*xya_SfcPres(:,:,TLA) + 8d0*xya_SfcPres(:,:,TLN) - xya_SfcPres(:,:,TLB))/12d0    
-    !$omp end workshare
+    ! Calculate the values interpolated with 3rd-order Adams-Moulton formula.
+    !
+    
+    call ProfUtil_RapStart('OcnAM3', 1)
+
+    !$omp parallel private(i,j,k,n)
+    !$omp do collapse(2)
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IE
+       xyz_U(i,j,k) = (5d0*xyza_U(i,j,k,TLA) + 8d0*xyza_U(i,j,k,TLN) - xyza_U(i,j,k,TLB))/12d0
+       xyz_V(i,j,k) = (5d0*xyza_V(i,j,k,TLA) + 8d0*xyza_V(i,j,k,TLN) - xyza_V(i,j,k,TLB))/12d0
+       xyz_H(i,j,k) = (5d0*xyza_H(i,j,k,TLA) + 8d0*xyza_H(i,j,k,TLN) - xyza_H(i,j,k,TLB))/12d0
+    end do
+    end do
+    end do
+    !$omp do collapse(3)
+    do n=1, TRC_TOT_NUM
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IE
+       xyza_TRC(i,j,k,n) = (5d0*xyzaa_TRC(i,j,k,n,TLA) + 8d0*xyzaa_TRC(i,j,k,n,TLN) - xyzaa_TRC(i,j,k,n,TLB))/12d0
+    end do
+    end do
+    end do
+    end do
+    !$omp do collapse(1)
+    do j=JS, JE
+    do i=IS, IE
+       xy_SSH(i,j)     = (5d0*xya_SSH(i,j,TLA) + 8d0*xya_SSH(i,j,TLN) - xya_SSH(i,j,TLB))/12d0
+       xy_SfcPres(i,j) = (5d0*xya_SfcPres(i,j,TLA) + 8d0*xya_SfcPres(i,j,TLN) - xya_SfcPres(i,j,TLB))/12d0    
+    end do
+    end do
     !$omp end parallel
     
+    call ProfUtil_RapEnd('OcnAM3', 1)
+
+    !
+    !
 !!$    call MessageNotify('M', module_name, "OCN_Phys [2/2] ..")
 
     call DOGCM_TInt_common_advance_Phys( &
@@ -467,8 +504,8 @@ contains
          & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,                 & ! (in)
          & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,                  & ! (in)
          & DelTime,                                                        & ! (in)
-         & alpha=0.5d0, gamma=0d0, lambda=VDiffTermACoef,                  & ! (in)    
-!!$         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef, & ! (in)    
+!!$         & alpha=0.5d0, gamma=0d0, lambda=VDiffTermACoef,                  & ! (in)    
+         & alpha=CoriolisTermACoef, gamma=1d0-2d0*CoriolisTermACoef, lambda=VDiffTermACoef, & ! (in)    
          & lhst_tend=.true. )    
     
 !!$    avr_ptempN = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz(xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_SALT,TLN)) )    

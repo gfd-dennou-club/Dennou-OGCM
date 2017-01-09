@@ -12,6 +12,9 @@ module DOGCM_VPhys_driver_mod
        & MessageNotify
 
   !* Dennou-OGCM
+
+  use ProfUtil_mod
+  
   use DOGCM_Admin_Grid_mod, only: &
        & IA, IS, IE, IM,          &
        & JA, JS, JE, JM,          &
@@ -139,6 +142,8 @@ contains
     ! 実行文; Executable statements
     !
 
+    call ProfUtil_RapStart('OcnPhys_VViscDiffCoef', 3)
+    
     select case (VMixCoef_scheme)
     case (VMIXCOEF_SCHEME_CONST)
        xyz_VViscCoef(:,:,:) = Av0Mom
@@ -158,6 +163,8 @@ contains
 
 
     xy_BtmFrictCoef(:,:) = 2d0*xyz_VViscCoef(:,:,KE)/(z_FDK(KE)*xyz_H(:,:,KE))
+
+    call ProfUtil_RapEnd('OcnPhys_VViscDiffCoef', 3)
     
   end subroutine DOGCM_VPhys_driver_UpdateVViscDiffCoef
 
@@ -168,11 +175,16 @@ contains
        & xyz_Depth, xy_Topo                      & ! (in)
        & )
 
+    ! 宣言文; Declaration statement
+    !    
     real(DP), intent(inout) :: xyz_VViscCoef(IA,JA,KA)
     real(DP), intent(inout) :: xyz_VDiffCoef(IA,JA,KA)
     real(DP), intent(in)    :: xyz_Depth(IA,JA,KA)
     real(DP), intent(in)    :: xy_Topo(IA,JA)
-    
+
+    ! 局所変数
+    ! Local variables
+    !        
     real(DP), parameter :: MixLyrDepth  = 40d0
     real(DP), parameter :: LInv         = 1d0/(0.1d0*MixLyrDepth)
     real(DP), parameter :: ViscCoefMax  = 5d-3
@@ -181,6 +193,9 @@ contains
     real(DP) :: xyz_Func(IA,JA,KA)
     integer :: k
 
+    ! 実行文; Executable statements
+    !
+    
     !$omp parallel do
     do k = KS, KE
        xyz_Func(:,:,k) =  &
@@ -190,6 +205,7 @@ contains
        xyz_VViscCoef(:,:,k) = Av0Mom + ViscCoefMax*xyz_Func(:,:,k)
        xyz_VDiffCoef(:,:,k) = Av0TRc + DiffCoefMax*xyz_Func(:,:,k)
     end do
+    
 !!$    xyz_VDiffCoef(:,:,:) =   ( 0.8d0 + 1.05d0/PI*atan((abs(xyz_Depth) - 2500d0)/222.2d0) ) &
 !!$         &                 * 1d-4 + DiffCoefMax*xyz_Func
 
@@ -202,7 +218,9 @@ contains
 
     use EOSDriver_mod, only: &
          & EOSDriver_Eval
-    
+
+    ! 宣言文; Declaration statement
+    !    
     real(DP), intent(inout) :: xyz_VDiffCoef(IA,JA,KA)
     real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
     real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
@@ -217,6 +235,9 @@ contains
     logical :: xyz_UnstaleFlag(IA,JA,KA)
     real(DP) :: xyz_EVDiffCoef(IA,JA,KA)
 
+    ! 実行文; Executable statements
+    !
+    
     xyz_EVDiffCoef = 0d0
     xyz_UnstaleFlag(:,:,:) = .false.
     do k = KS, KE-1

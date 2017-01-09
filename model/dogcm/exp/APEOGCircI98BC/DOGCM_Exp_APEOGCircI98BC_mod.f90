@@ -6,7 +6,7 @@
 !! @author Kawai Yuta
 !!
 !!
-module DOGCM_Exp_APEOGCircI98BC_mod 
+module DOGCM_Exp_APEOGCircI98BC_mod
   
   ! モジュール引用; Use statements
   !

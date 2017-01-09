@@ -58,9 +58,9 @@ module DOGCM_Admin_Grid_mod
   ! Public variables
   !
 
-  integer, public :: IA, IS, IE, IM, IHALO
-  integer, public :: JA, JS, JE, JM, JHALO
-  integer, public :: KA, KS, KE, KM, KHALO
+  integer, public :: IA, IS, IE, IM, IHALO, IBLOCK
+  integer, public :: JA, JS, JE, JM, JHALO, JBLOCK
+  integer, public :: KA, KS, KE, KM, KHALO, KBLOCK
   
   integer, parameter, public :: VHaloSize = 1
 
@@ -405,7 +405,8 @@ contains
     ! NAMELIST group name
     !
     namelist /grid_nml/ &
-         & IM, JM, KM
+         & IM, JM, KM,             &
+         & IBLOCK, JBLOCK, KBLOCK
 
     ! 実行文; Executable statements
 
@@ -415,7 +416,11 @@ contains
     IM = 1
     JM = 64
     KM = 61
-   
+    
+    IBLOCK = -1
+    JBLOCK = -1
+    KBLOCK = -1
+
     ! NAMELIST からの入力
     ! Input from NAMELIST
     !
@@ -430,10 +435,16 @@ contains
             & iostat = iostat_nml )   ! (out)
        close( unit_nml )
     end if
+
+    if(IBLOCK == -1) IBLOCK = IM
+    if(JBLOCK == -1) JBLOCK = JM
+    if(KBLOCK == -1) KBLOCK = KM
     
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, ' (IM,JM,KM) = (%d,%d,%d) ', i = (/ IM,JM,KM /) )
+    call MessageNotify( 'M', module_name, ' (IBLCOK,JBLOCK,KBLOCK) = (%d,%d,%d) ', &
+         &                                                 i = (/ IBLOCK,JBLOCK,KBLOCK /) )
     
   end subroutine read_nmlData
 

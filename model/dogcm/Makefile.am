@@ -82,8 +82,8 @@ bin_PROGRAMS += dogcm_axisym
 dogcm_axisym_SOURCES =\
 	ogcm_main.f90
 dogcm_axisym_LDADD = \
-	$(srcdir)/seaice/libDSIce.la              \
-	libDOGCM.la \
+	libDOGCM.la                          \
+	$(srcdir)/seaice/libDSIce.la         \
 	$(LDADD)
 endif
 
@@ -116,7 +116,7 @@ DOGCM_main_mod.f90 : \
 
 ######################################################################
 
-libDOGCMExp_la_SOURCES = \
+dist_libDOGCMExp_la_SOURCES = \
 	exp/$(exp_name)/DOGCM_Exp_$(exp_name)_mod.f90 \
 	exp/DOGCM_Exp_driver_mod.f90
 

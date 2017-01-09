@@ -21,6 +21,8 @@ module DOGCM_Phys_driver_mod
 
   !* Dennou-OGCM
 
+  use ProfUtil_mod
+  
   use DOGCM_Admin_Grid_mod, only: &
        & IA, IS, IE, IM,       &
        & JA, JS, JE, JM,       &
@@ -55,8 +57,8 @@ module DOGCM_Phys_driver_mod
   public :: DOGCM_Phys_driver_Init, DOGCM_Phys_driver_Final
   public :: DOGCM_Phys_driver_Do
 
-  public :: DOGCM_Phys_driver_VImplUV
-  public :: DOGCM_Phys_driver_VImplTRC
+  public :: DOGCM_Phys_driver_ImplUV
+  public :: DOGCM_Phys_driver_ImplTRC
 
 contains
 
@@ -167,6 +169,8 @@ contains
 
     ! 実行文; Executable statements
     !
+
+    call ProfUtil_RapStart('OcnPhys_Do', 3)
     
     call DOGCM_VPhys_driver_UpdateVViscDiffCoef(   &
          & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,  & ! (out)
@@ -177,55 +181,38 @@ contains
     select case(SolverType)
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
        call DOGCM_Phys_spm_Do(     &
-            & xyz_U_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (inout)
-            & xyz_V_RHS_phy(IS:IE,JS:JE,KS:KE),           & ! (inout)
-            & xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,:),      & ! (inout)
-            & xyz_VViscCoef(IS:IE,JS:JE,KS:KE),           & ! (out)
-            & xyz_VDiffCoef(IS:IE,JS:JE,KS:KE),           & ! (out)
-            & xy_BtmFrictCoef(IS:IE,JS:JE),               & ! (out)
-            & xyz_U(IS:IE,JS:JE,KS:KE),                   & ! (in)
-            & xyz_V(IS:IE,JS:JE,KS:KE),                   & ! (in)
-            & xyz_H(IS:IE,JS:JE,KS:KE),                   & ! (in)
-            & xy_SSH(IS:IE,JS:JE),                        & ! (in)
-            & xyza_TRC(IS:IE,JS:JE,KS:KE,:),              & ! (in)
-            & xyz_Z(IS:IE,JS:JE,KS:KE),                   & ! (in)
-            & xy_Topo(IS:IE,JS:JE),                       & ! (in)
-            & dt                                          & ! (in)
+            & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,  & ! (inout)
+            & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,   & ! (out)
+            & xyz_U, xyz_V, xyz_H, xy_SSH, xyza_TRC,           & ! (in)
+            & xyz_Z, xy_Topo,                                  & ! (in)
+            & dt                                               & ! (in)
             & )    
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
        call DOGCM_Phys_hspm_vfvm_Do(     &
-            & xyz_U_RHS_phy(IS:IE,JS:JE,:),           & ! (inout)
-            & xyz_V_RHS_phy(IS:IE,JS:JE,:),           & ! (inout)
-            & xyza_TRC_RHS_phy(IS:IE,JS:JE,:,:),      & ! (inout)
-            & xyz_VViscCoef(IS:IE,JS:JE,:),           & ! (out)
-            & xyz_VDiffCoef(IS:IE,JS:JE,:),           & ! (out)
-            & xy_BtmFrictCoef(IS:IE,JS:JE),           & ! (out)
-            & xyz_U(IS:IE,JS:JE,:),                   & ! (in)
-            & xyz_V(IS:IE,JS:JE,:),                   & ! (in)
-            & xyz_H(IS:IE,JS:JE,:),                   & ! (in)
-            & xy_SSH(IS:IE,JS:JE),                    & ! (in)
-            & xyza_TRC(IS:IE,JS:JE,:,:),              & ! (in)
-            & xyz_Z(IS:IE,JS:JE,:),                   & ! (in)
-            & xy_Topo(IS:IE,JS:JE),                   & ! (in)
-            & dt                                      & ! (in)
+            & xyz_U_RHS_phy, xyz_V_RHS_phy, xyza_TRC_RHS_phy,  & ! (inout)
+            & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,   & ! (out)
+            & xyz_U, xyz_V, xyz_H, xy_SSH, xyza_TRC,           & ! (in)
+            & xyz_Z, xy_Topo,                                  & ! (in)
+            & dt                                               & ! (in)
             & )    
     end select
     
+    call ProfUtil_RapEnd('OcnPhys_Do', 3)
     
   end subroutine DOGCM_Phys_driver_Do
 
   !------------------------------------------------------------
   
-  subroutine DOGCM_Phys_driver_VImplTRC( xyza_TRCA,    & ! (out)
+  subroutine DOGCM_Phys_driver_ImplTRC( xyza_TRCA,    & ! (out)
        & xyza_TRC0, xyza_HTRC_RHS,                     & ! (in)
        & xyz_HA, xyz_H0, xyz_VDiffCoef, dt, alpha      & ! (in)
        & )
 
     use DOGCM_Phys_spm_mod, only: &
-         & DOGCM_Phys_spm_VImplTRC
+         & DOGCM_Phys_spm_ImplTRC
 
     use DOGCM_Phys_hspm_vfvm_mod, only: &
-         & DOGCM_Phys_hspm_vfvm_VImplTRC
+         & DOGCM_Phys_hspm_vfvm_ImplTRC
 
 
     ! 宣言文; Declareration statements
@@ -244,37 +231,33 @@ contains
 
     select case(SolverType)
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Phys_spm_VImplTRC( xyza_TRCA(IS:IE,JS:JE,KS:KE,:),                & ! (out)
-            & xyza_TRC0(IS:IE,JS:JE,KS:KE,:), xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,:),   & ! (in)
-            & xyz_HA(IS:IE,JS:JE,KS:KE), xyz_H0(IS:IE,JS:JE,KS:KE),                 & ! (in)
-            & xyz_VDiffCoef(IS:IE,JS:JE,KS:KE),                                     & ! (in)
-            & dt,  alpha                                                            & ! (in)
+       call DOGCM_Phys_spm_ImplTRC( xyza_TRCA,                                 & ! (out)
+            & xyza_TRC0, xyza_HTRC_RHS, xyz_HA, xyz_H0, xyz_VDiffCoef,          & ! (in)
+            & dt,  alpha                                                        & ! (in)
             & )
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Phys_hspm_vfvm_VImplTRC( xyza_TRCA(IS:IE,JS:JE,:,:),          & ! (out)
-            & xyza_TRC0(IS:IE,JS:JE,:,:), xyza_HTRC_RHS(IS:IE,JS:JE,:,:),       & ! (in)
-            & xyz_HA(IS:IE,JS:JE,:), xyz_H0(IS:IE,JS:JE,:),                     & ! (in)
-            & xyz_VDiffCoef(IS:IE,JS:JE,:),                                     & ! (in)
+       call DOGCM_Phys_hspm_vfvm_ImplTRC( xyza_TRCA,                           & ! (out)
+            & xyza_TRC0, xyza_HTRC_RHS, xyz_HA, xyz_H0, xyz_VDiffCoef,          & ! (in)
             & dt,  alpha                                                        & ! (in)
             & )
     end select
     
 
-  end subroutine DOGCM_Phys_driver_VImplTRC
+  end subroutine DOGCM_Phys_driver_ImplTRC
 
   !--------------------------------------------------
   
-  subroutine DOGCM_Phys_driver_VImplUV( xyz_UA, xyz_VA,    & ! (out)
+  subroutine DOGCM_Phys_driver_ImplUV( xyz_UA, xyz_VA,    & ! (out)
        & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,             & ! (in)
        & xyz_H, xyz_VViscCoef, xy_BtmFrictCoef,            & ! (in)
        & dt,  alpha                                        & ! (in)
        & )
 
     use DOGCM_Phys_spm_mod, only: &
-         & DOGCM_Phys_spm_VImplUV
+         & DOGCM_Phys_spm_ImplUV
 
     use DOGCM_Phys_hspm_vfvm_mod, only: &
-         & DOGCM_Phys_hspm_vfvm_VImplUV
+         & DOGCM_Phys_hspm_vfvm_ImplUV
     
     ! 宣言文; Declaration statement
     !          
@@ -296,25 +279,22 @@ contains
 
     select case(SolverType)
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Phys_spm_VImplUV( &
-            & xyz_UA(IS:IE,JS:JE,KS:KE), xyz_VA(IS:IE,JS:JE,KS:KE),       & ! (out)
-            & xyz_U0(IS:IE,JS:JE,KS:KE), xyz_V0(IS:IE,JS:JE,KS:KE),       & ! (in)
-            & xyz_U_RHS(IS:IE,JS:JE,KS:KE), xyz_V_RHS(IS:IE,JS:JE,KS:KE), & ! (in)
-            & xyz_H(IS:IE,JS:JE,KS:KE), xyz_VViscCoef(IS:IE,JS:JE,KS:KE), & ! (in)
-            & xy_BtmFrictCoef(IS:IE,JS:JE),                               & ! (in)
+       call DOGCM_Phys_spm_ImplUV( &
+            & xyz_UA, xyz_VA,                                             & ! (out)
+            & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,                       & ! (in)
+            & xyz_H, xyz_VViscCoef,  xy_BtmFrictCoef,                     & ! (in)            
             & dt, alpha )
+
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Phys_hspm_vfvm_VImplUV( &
-            & xyz_UA(IS:IE,JS:JE,:), xyz_VA(IS:IE,JS:JE,:),       & ! (out)
-            & xyz_U0(IS:IE,JS:JE,:), xyz_V0(IS:IE,JS:JE,:),       & ! (in)
-            & xyz_U_RHS(IS:IE,JS:JE,:), xyz_V_RHS(IS:IE,JS:JE,:), & ! (in)
-            & xyz_H(IS:IE,JS:JE,:), xyz_VViscCoef(IS:IE,JS:JE,:), & ! (in)
-            & xy_BtmFrictCoef(IS:IE,JS:JE),                       & ! (in)            
+       call DOGCM_Phys_hspm_vfvm_ImplUV( &
+            & xyz_UA, xyz_VA,                                             & ! (out)
+            & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,                       & ! (in)
+            & xyz_H, xyz_VViscCoef,  xy_BtmFrictCoef,                     & ! (in)            
             & dt, alpha )
     end select
     
     
-  end subroutine DOGCM_Phys_driver_VImplUV
+  end subroutine DOGCM_Phys_driver_ImplUV
 
   
 end module DOGCM_Phys_driver_mod

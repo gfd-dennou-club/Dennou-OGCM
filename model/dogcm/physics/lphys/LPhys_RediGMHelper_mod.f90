@@ -25,10 +25,12 @@ module LPhys_RediGMHelper_mod
        & PI, RPlanet, Omega
 
   use DOGCM_Admin_Grid_mod, only: &
-       & iMax, jMax, kMax, lMax, tMax, &
-       & IS, IE, JS, JE, KS, KE,       &
-       & xyz_Lat, xyz_Lon,             &
-       & KS, KE, z_CK           
+       & iMax, jMax, kMax, lMax, tMax,        &
+       & IS, IE, IA, JS, JE, JA, KS, KE, KA,  &
+       & xyz_Lat, xyz_Lon,                    &
+       & KS, KE, z_CK,                        &
+       & JBLOCK
+#include "../../admin/DOGCM_Admin_GaussSpmGridIndexDef.h"
 
  
   ! 宣言文; Declareration statements
@@ -178,19 +180,22 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(out) :: xyz_T(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(inout) :: xyz_SLon(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(inout) :: xyz_SLat(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_DensPot(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_Depth(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(out), optional :: xy_BLD(0:iMax-1,jMax)
+    real(DP), intent(out) :: xyz_T(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_SLon(IA,JA,KA)
+    real(DP), intent(inout) :: xyz_SLat(IA,JA,KA)
+    real(DP), intent(in) :: xyz_DensPot(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Depth(IA,JA,KA)
+    real(DP), intent(out), optional :: xy_BLD(IA,JA)
 
     ! 局所変数
     ! Local variables
     !    
-    real(DP) :: xyz_T1(0:iMax-1,jMax,KS:KE)
-    real(DP) :: xyz_T2(0:iMax-1,jMax,KS:KE)
+    real(DP) :: xyz_T1(IA,JA,KA)
+    real(DP) :: xyz_T2(IA,JA,KA)
 
+    integer :: i
+    integer :: j
+    integer :: k
     
     ! 実行文; Executable statement
     !
@@ -215,8 +220,9 @@ contains
 
     select case(PBLTaperingType)
     case(TAPERINGTYPE_LDD95_ID)
-       call TaperingFunc_LDD95( xyz_T2,              & ! (out)
-            xyz_SLon, xyz_SLat, xyz_Depth, xyz_T1    & ! (in)
+       call TaperingFunc_LDD95( xyz_T2,                        & ! (out)
+            & xyz_SLon, xyz_SLat, xyz_Depth, xyz_Lat(:,:,KS),  & ! (in)
+            & xyz_T1                                           & ! (inout)
             & )
     end select
     
@@ -235,9 +241,9 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(out) :: xyz_f(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_SLon(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_SLat(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(out) :: xyz_f(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLon(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLat(IA,JA,KA)
 
     ! 実行文; Executable statement
     !
@@ -256,61 +262,76 @@ contains
 
     ! 宣言文; Declaration statement
     !
-    real(DP), intent(out) :: xyz_f(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_SLon(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_SLat(0:iMax-1,jMax,KS:KE)
-
-    ! 実行文; Executable statement
-    !
-
-    !$omp parallel
-    !$omp workshare
-    xyz_f(:,:,:) = 0.5d0*(1d0 + tanh((SlopeMaxVal - sqrt(xyz_SLon**2 + xyz_SLat**2))/DM95_Sd))
-    !$omp end workshare
-    !$omp end parallel
-    
-  end subroutine TaperingFunc_DM95
-  
-  subroutine TaperingFunc_LDD95( xyz_f,             & ! (out)
-       & xyz_SLon, xyz_SLat, xyz_Depth, xyz_fDM95   & ! (in)
-       & )
-    
-    ! 宣言文; Declaration statement
-    !
-    real(DP), intent(out) :: xyz_f(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_SLon(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_SLat(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(in) :: xyz_Depth(0:iMax-1,jMax,KS:KE)
-    real(DP), intent(inout) :: xyz_fDM95(0:iMax-1,jMax,KS:KE)
+    real(DP), intent(out) :: xyz_f(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLon(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLat(IA,JA,KA)
 
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_r(0:iMax-1,jMax,KS:KE)    
+    integer :: i
+    integer :: j
+    integer :: jj
+    integer :: k
+    
+    ! 実行文; Executable statement
+    !
+
+    !$omp parallel do private(i,j,jj,k) collapse(2)
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyz_f(i,j,k) = 0.5d0*(1d0 + tanh((SlopeMaxVal - sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2))/DM95_Sd))
+    end do
+    end do
+    end do
+    
+  end subroutine TaperingFunc_DM95
+  
+  subroutine TaperingFunc_LDD95( xyz_f,                      & ! (out)
+       & xyz_SLon, xyz_SLat, xyz_Depth, xy_Lat, xyz_fDM95    & ! (in)
+       & )
+    
+    ! 宣言文; Declaration statement
+    !
+    real(DP), intent(out) :: xyz_f(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLon(IA,JA,KA)
+    real(DP), intent(in) :: xyz_SLat(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Depth(IA,JA,KA)
+    real(DP), intent(in) :: xy_Lat(IA,JA)
+    real(DP), intent(inout) :: xyz_fDM95(IA,JA,KA)
+
+    ! 局所変数
+    ! Local variables
+    !
+    real(DP) :: z_r(KA)
+    real(DP) :: z_Depth(KA)
     real(DP) :: r
-    real(DP) :: xy_BarocEddyDispZ(0:iMax-1,jMax)
+    real(DP) :: xy_BarocEddyDispZ(IA,JA)
     real(DP) :: tmpBarocEddyDispZ
-    real(DP) :: xy_BarocEddDispH(0:iMax-1,jMax)    
+    real(DP) :: xy_BarocEddDispH(IA,JA)    
     real(DP) :: SlopeABS
     real(DP) :: SlopeABSMax
-    real(DP), parameter :: c = 2d0
+
+    real(DP), parameter :: c   = 2d0
     real(DP), parameter :: EPS = 1d-13
 
     integer :: i
     integer :: j
+    integer :: jj
     integer :: k
     integer :: kStart(1)
     
     ! 実行文; Executable statement
     !
 
-    !$omp parallel
-    !$omp workshare
-    xy_BarocEddDispH(:,:) = c/(2d0*Omega*abs(sin(xyz_Lat(IS:IE,JS:JE,KS))))
-    xy_BarocEddyDispZ(:,:) = SlopeMaxVal*min(max(15d3,xy_BarocEddDispH(:,:)), 100d3)
-    !$omp end workshare
-    !$omp end parallel
-
+    !$omp parallel do private(i,j) collapse(2)
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xy_BarocEddDispH(i,j) = c/(2d0*Omega*abs(sin(xy_Lat(i,j))))
+       xy_BarocEddyDispZ(i,j) = SlopeMaxVal*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)       
+    end do
+    end do
     
 !!$    do k=KS, KE
 !!$       do j=1,jMax
@@ -331,15 +352,16 @@ contains
 !!$
 
 
-    !$omp parallel do private(i, k, kStart, SlopeABSMax, SlopeABS, tmpBarocEddyDispZ)
-    do j=1,jMax
-       do i=0, iMax-1
-
-          xyz_r(i,j,KS:KE) = 1d0
+    !$omp parallel do private(i, j, k, kStart, SlopeABSMax, SlopeABS, tmpBarocEddyDispZ, z_r, z_Depth) collapse(2)
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+          
+          z_r(:) = 1d0
+          z_Depth(:) = xyz_Depth(i,j,:)
           
           !
           SlopeABSMax = 0d0
-          kStart = min(KE, minloc(abs(xy_BarocEddyDispZ(i,j)-(0d0-xyz_Depth(i,j,KS:KE))))+1)
+          kStart = min(KE, minloc(abs(xy_BarocEddyDispZ(i,j)-(0d0-z_Depth(KS:KE))))+1)
 
           do k=kStart(1), KS, -1
              SlopeABS = xyz_fDM95(i,j,k)*sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
@@ -347,14 +369,14 @@ contains
           end do
           tmpBarocEddyDispZ = SlopeABSMax*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
           do k=KS, KE
-             xyz_r(i,j,k) = (0d0 - xyz_Depth(i,j,k))/(tmpBarocEddyDispZ + EPS)
-             if(xyz_r(i,j,k) > 1d0) then
-                xyz_r(i,j,k) = 1d0; exit
+             z_r(k) = (0d0 - z_Depth(k))/(tmpBarocEddyDispZ + EPS)
+             if(z_r(k) > 1d0) then
+                z_r(k) = 1d0; exit
              end if
           end do
           
           SlopeABSMax = 0d0          
-          kStart = minloc(abs(xy_BarocEddyDispZ(i,j)-(xyz_Depth(i,j,KS:KE)-xyz_Depth(i,j,KE))))
+          kStart = minloc(abs(xy_BarocEddyDispZ(i,j)-(z_Depth(KS:KE)-z_Depth(KE))))
 
           do k=kStart(1), KE, +1
              SlopeABS = xyz_fDM95(i,j,k)*sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
@@ -362,16 +384,18 @@ contains
           end do
           tmpBarocEddyDispZ = SlopeABSMax*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
           do k=KE, KS, -1
-             xyz_r(i,j,k) = (xyz_Depth(i,j,k) - xyz_Depth(i,j,KE))/(tmpBarocEddyDispZ + EPS)
-             if(xyz_r(i,j,k) > 1d0) then
-                xyz_r(i,j,k) = 1d0; exit
+             z_r(k) = (z_Depth(k) - z_Depth(KE))/(tmpBarocEddyDispZ + EPS)
+             if(z_r(k) > 1d0) then
+                z_r(k) = 1d0; exit
              end if
           end do
 
+          !
+          !
+          xyz_f(i,j,:) = 0.5d0*(1d0 + sin(PI*(z_r(:) - 0.5d0)))
+
        end do
     end do
-
-    xyz_f(:,:,:) = 0.5d0*(1d0 + sin(PI*(xyz_r - 0.5d0)))
 
     !where(xyz_f /= 1d0)
     !   xyz_fDM95 = 1d0

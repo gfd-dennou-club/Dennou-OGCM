@@ -115,12 +115,12 @@ contains
   subroutine DOGCM_Dyn_hspm_vfvm_SSHRHS( xy_SSH_RHS,                   &  ! (out)
        & xy_SSH, xy_TotDepBasic, xyz_U, xyz_V, xy_FreshWtFlx   )    ! (in)
     
-    real(DP), intent(out) :: xy_SSH_RHS(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_SSH(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_TotDepBasic(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xy_FreshWtFlx(0:iMax-1,jMax)    
+    real(DP), intent(out) :: xy_SSH_RHS(IA,JA)
+    real(DP), intent(in) :: xy_SSH(IA,JA)
+    real(DP), intent(in) :: xy_TotDepBasic(IA,JA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xy_FreshWtFlx(IA,JA)    
 
     select case( KinBC_Surface )
     case (KinBCTYPE_RigidLid)
@@ -134,37 +134,65 @@ contains
 
   !-------------------------------------
 
+!!$  subroutine DOGCM_Dyn_hspm_vfvm_HTRCRHS( xyza_HTRC_RHS,                             &  ! (out)
+!!$       & xyza_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H, xyza_HTRC_RHS_phys   )  ! (in)
+!!$
+!!$    use ProfUtil_mod
+!!$    
+!!$    real(DP), intent(out) :: xyza_HTRC_RHS(0:iMax-1,jMax,KA,TRC_TOT_NUM)
+!!$    real(DP), intent(in) :: xyza_TRC(0:iMax-1,jMax,KA,TRC_TOT_NUM)
+!!$    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
+!!$    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
+!!$    real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,KA)
+!!$    real(DP), intent(in) :: xyz_OMG(0:iMax-1,jMax,KA)
+!!$    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
+!!$    real(DP), intent(in) :: xyza_HTRC_RHS_phys(0:iMax-1,jMax,KA,TRC_TOT_NUM)
+!!$
+!!$    real(DP) :: xyz_HTRC_RHS(0:iMax-1,jMax,KA)
+!!$    integer :: n
+!!$    
+!!$!    call MessageNotify('M', module_name, "HTRCRHS..")
+!!$
+!!$    call ProfUtil_RapStart('HTRCRHS_driver', 3)
+!!$    
+!!$    do n = 1, TRC_TOT_NUM 
+!!$       call HBEBaroc_HTRCRHS( xyz_HTRC_RHS,                               &  ! (out)
+!!$            & xyza_TRC(:,:,:,n), xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H,   &  ! (in)
+!!$            & xyza_HTRC_RHS_phys(:,:,:,n)   )                               ! (in)
+!!$
+!!$       xyza_HTRC_RHS(:,:,:,n) = xyz_HTRC_RHS
+!!$    end do
+!!$
+!!$    call ProfUtil_RapEnd('HTRCRHS_driver', 3)
+!!$    
+!!$  end subroutine DOGCM_Dyn_hspm_vfvm_HTRCRHS
+!!$
   subroutine DOGCM_Dyn_hspm_vfvm_HTRCRHS( xyza_HTRC_RHS,                             &  ! (out)
        & xyza_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H, xyza_HTRC_RHS_phys   )  ! (in)
 
-    real(DP), intent(out) :: xyza_HTRC_RHS(0:iMax-1,jMax,KA,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyza_TRC(0:iMax-1,jMax,KA,TRC_TOT_NUM)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_OMG(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyza_HTRC_RHS_phys(0:iMax-1,jMax,KA,TRC_TOT_NUM)
+    use ProfUtil_mod
+    
+    real(DP), intent(out) :: xyza_HTRC_RHS(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyza_TRC(IA,JA,KA,TRC_TOT_NUM)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Div(IA,JA,KA)
+    real(DP), intent(in) :: xyz_OMG(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyza_HTRC_RHS_phys(IA,JA,KA,TRC_TOT_NUM)
 
-    real(DP) :: xyz_HTRC_RHS(0:iMax-1,jMax,KA)
-    real(DP) :: wz_HTRC_RHS(lMax,KA)
     integer :: n
     
 !    call MessageNotify('M', module_name, "HTRCRHS..")
 
     do n = 1, TRC_TOT_NUM 
-!!$       call HBEBaroc_HTRCRHS( wz_HTRC_RHS,                               &  ! (out)
-       call HBEBaroc_HTRCRHS( xyz_HTRC_RHS,                               &  ! (out)
-            & xyza_TRC(:,:,:,n), xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H,  &  ! (in)
-            & xyza_HTRC_RHS_phys(:,:,:,n)   )                               ! (in)
-
-       xyza_HTRC_RHS(:,:,:,n) = xyz_HTRC_RHS
-!!$       xyza_HTRC_RHS(:,:,:,n) = xya_wa(wz_HTRC_RHS)
-       
+       call HBEBaroc_HTRCRHS( xyza_HTRC_RHS(:,:,:,n),                     &  ! (out)
+            & xyza_TRC(:,:,:,n), xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H,   &  ! (in)
+            & xyza_HTRC_RHS_phys(:,:,:,n)   )                                ! (in)
     end do
     
   end subroutine DOGCM_Dyn_hspm_vfvm_HTRCRHS
-
+  
   !--------------------------------------------------------------
   
   subroutine DOGCM_Dyn_hspm_vfvm_MOMBarocRHS( xyz_U_RHS, xyz_V_RHS,               &  ! (out)
@@ -173,33 +201,27 @@ contains
        & xyz_GeoPot, xyz_CoriU, xyz_CoriV, xyz_URHS_phys, xyz_VRHS_phys     &  ! (in)
        & )
 
-    real(DP), intent(out) :: xyz_U_RHS(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyz_V_RHS(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Vor(0:iMax-1,jMax,KA)    
-    real(DP), intent(in) :: xyz_OMG(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Pres(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_GeoPot(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_CoriU(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_CoriV(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_URHS_phys(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_VRHS_phys(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_U_RHS(IA,JA,KA)
+    real(DP), intent(out) :: xyz_V_RHS(IA,JA,KA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Div(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Vor(IA,JA,KA)    
+    real(DP), intent(in) :: xyz_OMG(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Pres(IA,JA,KA)
+    real(DP), intent(in) :: xyz_DensEdd(IA,JA,KA)
+    real(DP), intent(in) :: xyz_GeoPot(IA,JA,KA)
+    real(DP), intent(in) :: xyz_CoriU(IA,JA,KA)
+    real(DP), intent(in) :: xyz_CoriV(IA,JA,KA)
+    real(DP), intent(in) :: xyz_URHS_phys(IA,JA,KA)
+    real(DP), intent(in) :: xyz_VRHS_phys(IA,JA,KA)
 
-    real(DP) :: wz_Vor_RHS(lMax,KA)
-    real(DP) :: wz_Div_RHS(lMax,KA)
-
-    call HBEBaroc_MOMRHS_VorDivForm( wz_Vor_RHS, wz_Div_RHS,              & ! (out)
+    call HBEBaroc_MOMRHS_VorDivForm( xyz_U_RHS, xyz_V_RHS,                & ! (out)
          & xyz_U, xyz_V, xyz_OMG, xyz_Vor, xyz_Div,                       & ! (in)
          & xyz_H, xyz_Pres, xyz_DensEdd, xyz_GeoPot,                      & ! (in)
          & xyz_CoriU, xyz_CoriV, xyz_URHS_phys, xyz_VRHS_phys             & ! (in)
          & )
-
-    call calc_VorDiv2UV( wz_Vor_RHS, wz_Div_RHS, & ! (in)
-         & xyz_U_RHS, xyz_V_RHS )                  ! (out)
          
   end subroutine DOGCM_Dyn_hspm_vfvm_MOMBarocRHS
 
@@ -210,13 +232,13 @@ contains
        & xy_UBarocForce, xy_VBarocForce )                                       ! (in)
 
 
-    real(DP), intent(out) :: xy_UBarot_RHS(0:iMax-1,jMax)
-    real(DP), intent(out) :: xy_VBarot_RHS(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_CoriUBarot(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_CoriVBarot(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_SfcPres(0:iMax-1,jMax)    
-    real(DP), intent(in) :: xy_UBarocForce(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_VBarocForce(0:iMax-1,jMax)
+    real(DP), intent(out) :: xy_UBarot_RHS(IA,JA)
+    real(DP), intent(out) :: xy_VBarot_RHS(IA,JA)
+    real(DP), intent(in) :: xy_CoriUBarot(IA,JA)
+    real(DP), intent(in) :: xy_CoriVBarot(IA,JA)
+    real(DP), intent(in) :: xy_SfcPres(IA,JA)    
+    real(DP), intent(in) :: xy_UBarocForce(IA,JA)
+    real(DP), intent(in) :: xy_VBarocForce(IA,JA)
 
     call HBEBarot_MOMRHS( xy_UBarot_RHS, xy_VBarot_RHS,  &  ! (out)
        & xy_CoriUBarot, xy_CoriVBarot, xy_SfcPres,       &  ! (in)
@@ -231,11 +253,11 @@ contains
        & xy_Cori, DelTime, DelTimeSSH, PresTAvgCoefA                       & ! (in)
        & )
     
-    real(DP), intent(inout) :: xy_UBarotA(0:iMax-1,jMax)
-    real(DP), intent(inout) :: xy_VBarotA(0:iMax-1,jMax)
-    real(DP), intent(inout) :: xy_SfcPresA(0:iMax-1,jMax)
-    real(DP), intent(inout) :: xy_SSHA(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_Cori(0:iMax-1,jMax)
+    real(DP), intent(inout) :: xy_UBarotA(IA,JA)
+    real(DP), intent(inout) :: xy_VBarotA(IA,JA)
+    real(DP), intent(inout) :: xy_SfcPresA(IA,JA)
+    real(DP), intent(inout) :: xy_SSHA(IA,JA)
+    real(DP), intent(in) :: xy_Cori(IA,JA)
     real(DP), intent(in) :: DelTime
     real(DP), intent(in) :: DelTimeSSH
     real(DP), intent(in) :: PresTAvgCoefA
@@ -261,10 +283,10 @@ contains
   subroutine DOGCM_Dyn_hspm_vfvm_OMGDiag( xyz_OMG,         & ! (out)
        & xyz_Div, xyz_H, xyz_HA, DelTime )                   ! (in)
 
-    real(DP), intent(out) :: xyz_OMG(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_Div(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_HA(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_OMG(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Div(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xyz_HA(IA,JA,KA)
     real(DP), intent(in) :: DelTime
 
     call HBEDiagnose_OMG( xyz_OMG,          & ! (out)
@@ -292,10 +314,10 @@ contains
   subroutine DOGCM_Dyn_hspm_vfvm_VorDivDiag( xyz_Vor, xyz_Div,    & ! (out)
        & xyz_U, xyz_V )                                             ! (in)
 
-    real(DP), intent(out) :: xyz_Vor(0:iMax-1,jMax,KA)
-    real(DP), intent(out) :: xyz_Div(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_Vor(IA,JA,KA)
+    real(DP), intent(out) :: xyz_Div(IA,JA,KA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
 
     call HBEDiagnose_VorDiv( xyz_Vor,  xyz_Div,   & ! (out)
          & xyz_U, xyz_V                           & ! (in)
@@ -308,9 +330,9 @@ contains
   subroutine DOGCM_Dyn_hspm_vfvm_HydPresDiag( xyz_HydPres,    & ! (out)
        & xyz_DensEdd, xyz_H )                                   ! (in)
 
-    real(DP), intent(out) :: xyz_HydPres(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_DensEdd(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
+    real(DP), intent(out) :: xyz_HydPres(IA,JA,KA)
+    real(DP), intent(in) :: xyz_DensEdd(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
 
     call HBEDiagnose_HydPres( xyz_HydPres,     & ! (out)
        & xyz_DensEdd, xyz_H )                    ! (in)
@@ -322,13 +344,13 @@ contains
   subroutine DOGCM_Dyn_hspm_vfvm_UVBarotDiag( xy_UBarot, xy_VBarot,       & ! (out)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xy_Topo )                             ! (in)
 
-    real(DP), intent(out) :: xy_UBarot(0:iMax-1,jMax)
-    real(DP), intent(out) :: xy_VBarot(0:iMax-1,jMax)
-    real(DP), intent(in) :: xyz_U(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_V(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xyz_H(0:iMax-1,jMax,KA)
-    real(DP), intent(in) :: xy_SSH(0:iMax-1,jMax)
-    real(DP), intent(in) :: xy_Topo(0:iMax-1,jMax)
+    real(DP), intent(out) :: xy_UBarot(IA,JA)
+    real(DP), intent(out) :: xy_VBarot(IA,JA)
+    real(DP), intent(in) :: xyz_U(IA,JA,KA)
+    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
+    real(DP), intent(in) :: xy_SSH(IA,JA)
+    real(DP), intent(in) :: xy_Topo(IA,JA)
 
     call HBEDiagnose_UVBarot( xy_UBarot, xy_VBarot,       & ! (out)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xy_Topo )             ! (in)

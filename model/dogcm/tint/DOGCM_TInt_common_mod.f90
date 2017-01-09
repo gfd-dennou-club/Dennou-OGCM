@@ -29,12 +29,13 @@ module DOGCM_TInt_common_mod
 
   use DOGCM_Admin_Grid_mod, only: &
        & IA, IS, IE, IM,               &
-       & JA, JS, JE, JM,               &
+       & JA, JS, JE, JM, JBLOCK,       &
        & KA, KS, KE, KM,               &
        & xyz_Z, xy_Topo,               &
        & xyz_Lat,                      &
        & z_CDK,                        &
        & DOGCM_Admin_Grid_UpdateVCoord
+#include "../admin/DOGCM_Admin_GaussSpmGridIndexDef.h"
 
   use DOGCM_Admin_Constants_mod, only: &
        & Grav, RefDens, Omega
@@ -70,15 +71,17 @@ module DOGCM_TInt_common_mod
 
   use DOGCM_Phys_driver_mod, only:    &
        & DOGCM_Phys_driver_Do,        &
-       & DOGCM_Phys_driver_VImplUV,   &
-       & DOGCM_Phys_driver_VImplTRC
+       & DOGCM_Phys_driver_ImplUV,   &
+       & DOGCM_Phys_driver_ImplTRC
        
   use DOGCM_IO_History_mod, only: &
        & DOGCM_IO_History_RegistVar, &
        & DOGCM_IO_History_HistPut
-
+  
   use SpmlUtil_mod    
   use VFvmUtil_mod
+
+  use ProfUtil_mod
   
   ! 宣言文; Declareration statements
   !
@@ -123,6 +126,7 @@ contains
     call DOGCM_IO_History_RegistVar( 'SaltRHS_dyn', 'T', 'global mean of Salt', 'psu/s' )
     call DOGCM_IO_History_RegistVar( 'SaltRHS_phy', 'T', 'global mean of Salt', 'psu/s' )
     call DOGCM_IO_History_RegistVar( 'SaltRHS_impl', 'T', 'global mean of Salt', 'psu/s' )    
+    call DOGCM_IO_History_RegistVar( 'Div', 'IJKT', 'horizontal divergence', 's-1' )    
     
   end subroutine DOGCM_TInt_common_Init
 
@@ -168,21 +172,34 @@ contains
     real(DP), intent(in) :: xy_TOPO(IA,JA)
     real(DP), intent(in) :: dt
     logical, intent(in), optional :: lhst_tend
-    
-    ! 実行文; Executable statements
-    !
 
+    ! 作業変数
+    ! Work variables
+    !
+    integer :: k
+    integer :: n
     real(DP) :: PTempRHS_phy_tend
     real(DP) :: SaltRHS_phy_tend
     
+    ! 実行文; Executable statements
+    !
+    
     != Physical process ======================================================
 
+    call ProfUtil_RapStart('OcnPhys', 2)
+
     !$omp parallel
-    !$omp workshare
-    xyz_U_RHS_phy(:,:,:) = 0d0
-    xyz_V_RHS_phy(:,:,:) = 0d0
-    xyza_TRC_RHS_phy(:,:,:,:) = 0d0
-    !$omp end workshare
+    !$omp do
+    do k=KS, KE
+       xyz_U_RHS_phy(:,:,k) = 0d0
+       xyz_V_RHS_phy(:,:,k) = 0d0
+    end do
+    !$omp do collapse(2)
+    do n=1, TRC_TOT_NUM
+    do k=KS, KE
+       xyza_TRC_RHS_phy(:,:,k,n) = 0d0
+    end do
+    end do
     !$omp end parallel
 
     call DOGCM_Phys_driver_Do( &
@@ -193,22 +210,24 @@ contains
        & dt                                                    & ! (in)
        & )
     
-    if (present(lhst_tend)) then
-       if (lhst_tend) then
+!!$    if (present(lhst_tend)) then
+!!$       if (lhst_tend) then
+!!$
+!!$          select case(SolverType)
+!!$          case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+!!$             PTempRHS_phy_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,TRCID_PTEMP)))
+!!$             SaltRHS_phy_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,TRCID_Salt)))
+!!$          case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+!!$             PTempRHS_phy_tend = AvrLonLat_xy(VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(IS:IE,JS:JE,:,TRCID_PTEMP), xyz_H))
+!!$             SaltRHS_phy_tend = AvrLonLat_xy(VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(IS:IE,JS:JE,:,TRCID_Salt), xyz_H))
+!!$          end select
+!!$          call DOGCM_IO_History_HistPut( 'PTempRHS_phy', PTempRHS_phy_tend)
+!!$          call DOGCM_IO_History_HistPut( 'SaltRHS_phy', SaltRHS_phy_tend )
+!!$          
+!!$       end if
+!!$    end if
 
-          select case(SolverType)
-          case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-             PTempRHS_phy_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,TRCID_PTEMP)))
-             SaltRHS_phy_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz(xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,TRCID_Salt)))
-          case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-             PTempRHS_phy_tend = AvrLonLat_xy(VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(IS:IE,JS:JE,:,TRCID_PTEMP), xyz_H))
-             SaltRHS_phy_tend = AvrLonLat_xy(VFvm_Int_BtmToTop(xyza_TRC_RHS_phy(IS:IE,JS:JE,:,TRCID_Salt), xyz_H))
-          end select
-          call DOGCM_IO_History_HistPut( 'PTempRHS_phy', PTempRHS_phy_tend)
-          call DOGCM_IO_History_HistPut( 'SaltRHS_phy', SaltRHS_phy_tend )
-          
-       end if
-    end if
+    call ProfUtil_RapEnd('OcnPhys', 2)
     
   end subroutine DOGCM_TInt_common_advance_Phys
 
@@ -271,10 +290,10 @@ contains
     real(DP), intent(in) :: lambda
     
     logical, intent(in), optional :: lhst_tend
-
     
     ! 作業変数
     ! Work variables
+    !
     
     real(DP) :: xy_SSH_RHS(IA,JA)
     real(DP) :: xyz_H_RHS(IA,JA,KA)
@@ -308,6 +327,7 @@ contains
 
     integer :: i
     integer :: j
+    integer :: jj
     integer :: k
     integer :: n
 
@@ -328,6 +348,8 @@ contains
     ! 実行文; Executable statements
     !
 
+    call ProfUtil_RapStart('OcnDyn', 2)
+    
     != Preparation ===========================================================
     
     xyz_GeoPot(:,:,:) = Grav*xyz_Z(:,:,:)
@@ -336,7 +358,7 @@ contains
     dtTRC = dt
     dtMom = dt 
     dtSSH = dt 
-    
+
     != Dynamical process ====================================================
 
     !** Update sea surface height --------------------------------------------
@@ -344,7 +366,7 @@ contains
     call DOGCM_Dyn_driver_SSHRHS( xy_SSH_RHS,              & ! (out)
          & xy_SSH, xy_Topo, xyz_U, xyz_V, xy_FreshWtFlx    & ! (in)
          & )
-    xy_SSHA = xy_SSH0 + dtSSH * xy_SSH_RHS
+    xy_SSHA(:,:) = xy_SSH0 + dtSSH * xy_SSH_RHS
     
     !** Update vertical coordinate -------------------------------------------
 
@@ -357,6 +379,7 @@ contains
     call DOGCM_Dyn_driver_VorDivDiag( xyz_Vor, xyz_Div, &  ! (out)
          & xyz_U, xyz_V                                 &  ! (in)
          & )
+    call DOGCM_IO_History_HistPut( 'Div', xyz_Div(IS:IE,JS:JE,KS:KE))
     
     !** Diagnose vertical velocity -------------------------------------------
 
@@ -370,71 +393,79 @@ contains
     
     !** Update tracers -------------------------------------------------------
 
+    call ProfUtil_RapStart('OcnDyn_TRC', 3)
+    
+    call ProfUtil_RapStart('OcnDyn_HTRCRHS', 3)
     call DOGCM_Dyn_driver_HTRCRHS( xyza_HTRC_RHS,                              & ! (out)
          & xyza_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H, xyza_TRC_RHS_phy   & ! (in)
          & )
-    
+    call ProfUtil_RapEnd('OcnDyn_HTRCRHS', 3)
+
 !!$    xyza_HTRC_RHS(:,:,:,TRCID_PTEMP) = xyza_TRC_RHS_phy(:,:,:,TRCID_PTEMP)*xyz_H    
 !!$    xyza_HTRC_RHS(:,:,:,TRCID_SALT) = xyza_TRC_RHS_phy(:,:,:,TRCID_SALT)*xyz_H
 !!$    write(*,*) "After Dyn:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_SALT)/xyz_H(IS:IE,JS:JE,KS:KE)))
 
-    if (present(lhst_tend)) then
-       if (lhst_tend) then
-
-          select case(SolverType)
-          case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-             PTempRHS_dyn_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
-                  &   xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_PTEMP)/xyz_H(IS:IE,JS:JE,KS:KE)      &
-                  & - xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,TRCID_PTEMP) )) 
-
-             SaltRHS_dyn_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
-                  &   xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_SALT)/xyz_H(IS:IE,JS:JE,KS:KE)      &
-                  & - xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,TRCID_SALT) )) 
-          case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-          
-             PTempRHS_dyn_tend = AvrLonLat_xy(VFvm_Int_BtmToTop( &
-                  &   xyza_HTRC_RHS(IS:IE,JS:JE,:,TRCID_PTEMP)/xyz_H(IS:IE,JS:JE,:)      &
-                  & - xyza_TRC_RHS_phy(IS:IE,JS:JE,:,TRCID_PTEMP), xyz_H(IS:IE,JS:JE,:) ))
-
-             SaltRHS_dyn_tend = AvrLonLat_xy(VFvm_Int_BtmToTop( &
-                  &   xyza_HTRC_RHS(IS:IE,JS:JE,:,TRCID_SALT)/xyz_H(IS:IE,JS:JE,:)      &
-                  & - xyza_TRC_RHS_phy(IS:IE,JS:JE,:,TRCID_SALT), xyz_H(IS:IE,JS:JE,:) ))
-          end select
-          call DOGCM_IO_History_HistPut( 'PTempRHS_dyn', PTempRHS_dyn_tend)
-          call DOGCM_IO_History_HistPut( 'SaltRHS_dyn', SaltRHS_dyn_tend)
-       end if
-    end if
+!!$    if (present(lhst_tend)) then
+!!$       if (lhst_tend) then
+!!$
+!!$          select case(SolverType)
+!!$          case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+!!$             PTempRHS_dyn_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
+!!$                  &   xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_PTEMP)/xyz_H(IS:IE,JS:JE,KS:KE)      &
+!!$                  & - xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,TRCID_PTEMP) )) 
+!!$
+!!$             SaltRHS_dyn_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
+!!$                  &   xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_SALT)/xyz_H(IS:IE,JS:JE,KS:KE)      &
+!!$                  & - xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE,TRCID_SALT) )) 
+!!$          case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+!!$          
+!!$             PTempRHS_dyn_tend = AvrLonLat_xy(VFvm_Int_BtmToTop( &
+!!$                  &   xyza_HTRC_RHS(IS:IE,JS:JE,:,TRCID_PTEMP)/xyz_H(IS:IE,JS:JE,:)      &
+!!$                  & - xyza_TRC_RHS_phy(IS:IE,JS:JE,:,TRCID_PTEMP), xyz_H(IS:IE,JS:JE,:) ))
+!!$
+!!$             SaltRHS_dyn_tend = AvrLonLat_xy(VFvm_Int_BtmToTop( &
+!!$                  &   xyza_HTRC_RHS(IS:IE,JS:JE,:,TRCID_SALT)/xyz_H(IS:IE,JS:JE,:)      &
+!!$                  & - xyza_TRC_RHS_phy(IS:IE,JS:JE,:,TRCID_SALT), xyz_H(IS:IE,JS:JE,:) ))
+!!$          end select
+!!$          call DOGCM_IO_History_HistPut( 'PTempRHS_dyn', PTempRHS_dyn_tend)
+!!$          call DOGCM_IO_History_HistPut( 'SaltRHS_dyn', SaltRHS_dyn_tend)
+!!$       end if
+!!$    end if
     
     if (lambda > 0d0) then
-       call DOGCM_Phys_driver_VImplTRC( xyza_TRCA,                  & ! (out)
+       call ProfUtil_RapStart('-OcnImpl_TRC', 3)
+       
+       call DOGCM_Phys_driver_ImplTRC( xyza_TRCA,                  & ! (out)
             & xyza_TRC0, xyza_HTRC_RHS,                             & ! (in)
             & xyz_HA, xyz_H0, xyz_VDiffCoef, dtTRC, lambda          & ! (in)
             & )
 
-       if (present(lhst_tend)) then
-          if (lhst_tend) then
-             select case(SolverType)
-             case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-                PTempRHS_impl_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
-                     &   xyza_TRCA(IS:IE,JS:JE,KS:KE,TRCID_PTEMP)                             &
-                     & - xyza_TRC0(IS:IE,JS:JE,KS:KE,TRCID_PTEMP) ))/dtTRC 
-                SaltRHS_impl_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
-                     &   xyza_TRCA(IS:IE,JS:JE,KS:KE,TRCID_SALT)                              &
-                     & - xyza_TRC0(IS:IE,JS:JE,KS:KE,TRCID_SALT) ))/dtTRC 
-             case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-
-                PTempRHS_impl_tend = AvrLonLat_xy(VFvm_Int_BtmToTop( &
-                     &   xyza_TRCA(IS:IE,JS:JE,KS:KE,TRCID_PTEMP)                               &
-                     & - xyza_TRC0(IS:IE,JS:JE,KS:KE,TRCID_PTEMP), xyz_H(IS:IE,JS:JE,:)))/dtTRC 
-                SaltRHS_impl_tend = AvrLonLat_xy(VFvm_Int_BtmToTop( &
-                     &   xyza_TRCA(IS:IE,JS:JE,KS:KE,TRCID_SALT)                               &
-                     & - xyza_TRC0(IS:IE,JS:JE,KS:KE,TRCID_SALT), xyz_H(IS:IE,JS:JE,:)))/dtTRC 
-             end select
-
-             call DOGCM_IO_History_HistPut( 'PTempRHS_impl', PTempRHS_impl_tend)
-             call DOGCM_IO_History_HistPut( 'SaltRHS_impl', SaltRHS_impl_tend)
-          end if
-       end if
+       call ProfUtil_RapEnd('-OcnImpl_TRC', 3)
+       
+!!$       if (present(lhst_tend)) then
+!!$          if (lhst_tend) then
+!!$             select case(SolverType)
+!!$             case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+!!$                PTempRHS_impl_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
+!!$                     &   xyza_TRCA(IS:IE,JS:JE,KS:KE,TRCID_PTEMP)                             &
+!!$                     & - xyza_TRC0(IS:IE,JS:JE,KS:KE,TRCID_PTEMP) ))/dtTRC 
+!!$                SaltRHS_impl_tend = AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( &
+!!$                     &   xyza_TRCA(IS:IE,JS:JE,KS:KE,TRCID_SALT)                              &
+!!$                     & - xyza_TRC0(IS:IE,JS:JE,KS:KE,TRCID_SALT) ))/dtTRC 
+!!$             case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+!!$
+!!$                PTempRHS_impl_tend = AvrLonLat_xy(VFvm_Int_BtmToTop( &
+!!$                     &   xyza_TRCA(IS:IE,JS:JE,KS:KE,TRCID_PTEMP)                               &
+!!$                     & - xyza_TRC0(IS:IE,JS:JE,KS:KE,TRCID_PTEMP), xyz_H(IS:IE,JS:JE,:)))/dtTRC 
+!!$                SaltRHS_impl_tend = AvrLonLat_xy(VFvm_Int_BtmToTop( &
+!!$                     &   xyza_TRCA(IS:IE,JS:JE,KS:KE,TRCID_SALT)                               &
+!!$                     & - xyza_TRC0(IS:IE,JS:JE,KS:KE,TRCID_SALT), xyz_H(IS:IE,JS:JE,:)))/dtTRC 
+!!$             end select
+!!$
+!!$             call DOGCM_IO_History_HistPut( 'PTempRHS_impl', PTempRHS_impl_tend)
+!!$             call DOGCM_IO_History_HistPut( 'SaltRHS_impl', SaltRHS_impl_tend)
+!!$          end if
+!!$       end if
 
     else
        do n = 1, TRC_TOT_NUM
@@ -447,8 +478,11 @@ contains
        end do
     end if
 
+    call ProfUtil_RapEnd('OcnDyn_TRC', 3)
     
     !** Update momentum -----------------------------------------------------
+
+    call ProfUtil_RapStart('OcnDyn_MOMBaroc', 3)
     
     ! - Calculate density and Diagnose hydrostatic pressure 
 
@@ -479,22 +513,25 @@ contains
     
     !- Baroclinic mode
 
-    !$omp parallel
-    !$omp workshare
-    xy_CoriUBarot(:,:)   =   xy_Cori*(gamma*xy_UBarot + (1d0 - gamma)*xy_UBarot0)
-    xy_CoriVBarot(:,:)   =   xy_Cori*(gamma*xy_VBarot + (1d0 - gamma)*xy_VBarot0)
-    xy_SfcPresMomEq(:,:) =   gamma*xy_SfcPres + (1d0 - gamma)*xy_SfcPres0               &
-         &                 - xy_SfcPres0
-    !$omp end workshare
-
+    !$omp parallel private(i,j,k)
     !$omp do
-    do k = KS, KE
+    do j = JS, JE
+       xy_CoriUBarot(:,j)   =   xy_Cori(:,j)*(gamma*xy_UBarot(:,j) + (1d0 - gamma)*xy_UBarot0(:,j))
+       xy_CoriVBarot(:,j)   =   xy_Cori(:,j)*(gamma*xy_VBarot(:,j) + (1d0 - gamma)*xy_VBarot0(:,j))
+       xy_SfcPresMomEq(:,j) =   gamma*xy_SfcPres(:,j) + (1d0 - gamma)*xy_SfcPres0(:,j)               &
+            &                 - xy_SfcPres0(:,j)
+    end do
+    !$omp do collapse(2)
+    do k=KS, KE
+    do j=JS, JE
        ! Note: The surface pressure and colioris terms are not added
        ! if the splitting of baroclinic and barotropic modes is used.
-       xyz_CoriU(:,:,k) = xy_Cori*(gamma*xyz_U(:,:,k) + (1d0 - gamma)*xyz_U0(:,:,k))
-       xyz_CoriV(:,:,k) = xy_Cori*(gamma*xyz_V(:,:,k) + (1d0 - gamma)*xyz_V0(:,:,k))
-       xyz_Pres(:,:,k)  = xyz_HydPres(:,:,k) + xy_SfcPres0
+       xyz_CoriU(:,j,k) = xy_Cori(:,j)*(gamma*xyz_U(:,j,k) + (1d0 - gamma)*xyz_U0(:,j,k))
+       xyz_CoriV(:,j,k) = xy_Cori(:,j)*(gamma*xyz_V(:,j,k) + (1d0 - gamma)*xyz_V0(:,j,k))
+       xyz_Pres(:,j,k)  = xyz_HydPres(:,j,k) + xy_SfcPres0(:,j)
     end do
+    end do
+
     !$omp end parallel
     
     call DOGCM_Dyn_driver_MOMBarocRHS( &
@@ -504,39 +541,41 @@ contains
          & xyz_CoriU, xyz_CoriV,                      & ! (in)
          & xyz_U_RHS_phy, xyz_V_RHS_phy               & ! (in)
          & )
-
     
-    if (lambda > 0d0) then
-       call DOGCM_Phys_driver_VImplUV( xyz_UA, xyz_VA,          & ! (out)
+
+    !-------
+    call ProfUtil_RapStart('-OcnImpl_Mom', 3)
+    call DOGCM_Phys_driver_ImplUV( xyz_UA, xyz_VA,          & ! (out)
             & xyz_U0, xyz_V0, xyz_U_RHS, xyz_V_RHS,             & ! (in)
             & xyz_H, xyz_VViscCoef, xy_BtmFrictCoef,            & ! (in)
             & dtMom, lambda                                     & ! (in)
             & )
-       !$omp parallel
-       !$omp workshare
-       xyz_U_RHS(:,:,:) = (xyz_UA - xyz_U0)/dtMom
-       xyz_V_RHS(:,:,:) = (xyz_VA - xyz_V0)/dtMom
-       !$omp end workshare
-       !$omp end parallel
-    end if
+    !$omp parallel do
+    do k=KS,KE
+       xyz_U_RHS(:,:,k) = (xyz_UA(:,:,k) - xyz_U0(:,:,k))/dtMom
+       xyz_V_RHS(:,:,k) = (xyz_VA(:,:,k) - xyz_V0(:,:,k))/dtMom
+    end do
+    call ProfUtil_RapEnd('-OcnImpl_Mom', 3)       
 
+    !--------
 
     call DOGCM_Dyn_driver_UVBarotDiag( &
          & xy_UBarocForce, xy_VBarocForce,                      & ! (out)
          & xyz_U_RHS, xyz_V_RHS, xyz_H, xya_SSH, xy_Topo        & ! (in)
          & )
-    xy_UBarocForce(:,:) = xy_UBarocForce - xy_CoriVBarot
-    xy_VBarocForce(:,:) = xy_VBarocForce + xy_CoriUBarot
-
+    !$omp parallel do
+    do j=JS, JE
+       xy_UBarocForce(:,j) = xy_UBarocForce(:,j) - xy_CoriVBarot(:,j)
+       xy_VBarocForce(:,j) = xy_VBarocForce(:,j) + xy_CoriUBarot(:,j)
+    end do
     
     if ( alpha > 0d0 ) then
-       !$omp parallel do private(U_RHSTmp, CoriImplFac) 
+       !$omp parallel do private(i,j,k,CoriImplFac,U_RHSTmp) collapse(2)
        do k = KS, KE
        do j = JS, JE
        do i = IS, IE
           CoriImplFac      = alpha*dtMom*xy_Cori(i,j)
           U_RHSTmp         = xyz_U_RHS(i,j,k)
-          xyz_V_RHS(i,j,k) = xyz_V_RHS(i,j,k)
 
           xyz_U_RHS(i,j,k) = (U_RHSTmp + CoriImplFac*xyz_V_RHS(i,j,k))/(1d0 + CoriImplFac**2)
           xyz_V_RHS(i,j,k) = (xyz_V_RHS(i,j,k) - CoriImplFac*U_RHSTmp)/(1d0 + CoriImplFac**2)
@@ -553,9 +592,12 @@ contains
           xyz_VA(:,:,k) = xyz_V0(:,:,k) + dtMom*xyz_V_RHS(:,:,k)
        end do       
     end if
-    
-    !- Barotropic mode
 
+    call ProfUtil_RapEnd('OcnDyn_MOMBaroc', 3)
+    
+    !- Barotropic mode ----------------------------------------------------------------------------
+
+    call ProfUtil_RapStart('OcnDyn_MOMBarot', 3)
     
     call DOGCM_Dyn_driver_MOMBarotRHS( &
        & xy_UBarot_RHS, xy_VBarot_RHS,                      & ! (out)
@@ -564,7 +606,7 @@ contains
        & )
 
     if (alpha > 0d0) then
-
+       
        !$omp parallel do private(CoriImplFac) 
        do j = JS, JE
        do i = IS, IE
@@ -578,7 +620,7 @@ contains
           xy_SfcPresA(i,j) = xy_SfcPres0(i,j)
        end do
        end do
-
+       
     else
        !$omp parallel
        !$omp workshare
@@ -600,21 +642,24 @@ contains
          & xy_Cori, dtMom, dtSSH, PresTAvgCoefA         & ! (in)
          & )
 
-
+    
     !- Update full velocity    
 
     call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot, xy_VBarot,           & ! (out)
          & xyz_UA, xyz_VA, xyz_H, xy_SSH, xy_TOPO                      & ! (in)
          & )
     
-    !$omp parallel
-    !$omp do
+    !$omp parallel do collapse(2) private(j,k)
     do k = KS, KE
-       xyz_UA(:,:,k) =   xyz_UA(:,:,k) - xy_UBarot + xy_UBarotA  
-       xyz_VA(:,:,k) =   xyz_VA(:,:,k) - xy_VBarot + xy_VBarotA 
+    do j = JS, JE
+       xyz_UA(:,j,k) =   xyz_UA(:,j,k) - xy_UBarot(:,j) + xy_UBarotA(:,j)  
+       xyz_VA(:,j,k) =   xyz_VA(:,j,k) - xy_VBarot(:,j) + xy_VBarotA(:,j)
     end do
-    !$omp end parallel
+    end do
 
+    call ProfUtil_RapEnd('OcnDyn_MOMBarot', 3)    
+    call ProfUtil_RapEnd('OcnDyn', 2)
+    
   end subroutine DOGCM_TInt_common_advance_Dyn
 
 end module DOGCM_TInt_common_mod
