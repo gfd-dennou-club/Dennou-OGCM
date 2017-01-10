@@ -21,22 +21,29 @@ module DOGCM_Admin_Grid_mod
 
   !* Dennou-OGCM
 
+  use GridIndex_mod, only: &
+       & IS, IE, IM, IA, IHALO, IBLOCK,    &
+       & JS, JE, JM, JA, JHALO, JBLOCK,    &
+       & KS, KE, KM, KA, KHALO, KBLOCK,    &
+       & iMax, jMax, jMaxGlobal, kMax,     &
+       & lMax, nMax, tMax
+  
   use DOGCM_Admin_GovernEq_mod, only: &
        & SolverType,                   &
        & OCNGOVERNEQ_SOLVER_HSPM_VSPM, &
        & OCNGOVERNEQ_SOLVER_HSPM_VFVM       
   
-  use DOGCM_Admin_GaussSpmGrid_mod, only: &
-       & DOGCM_Admin_GaussSpmGrid_Init,               &
-       & DOGCM_Admin_GaussSpmGrid_Final,              &
-       & DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo,  &
-       & DOGCM_Admin_GaussSpmGrid_ConstructGrid
+  use DOGCM_GaussSpmGrid_mod, only: &
+       & DOGCM_GaussSpmGrid_Init,                    &
+       & DOGCM_GaussSpmGrid_Final,                   &
+       & DOGCM_GaussSpmGrid_ConstructAxisInfo,       &
+       & DOGCM_GaussSpmGrid_ConstructGrid
 
-  use DOGCM_Admin_GaussSpmVFvmGrid_mod, only: &
-       & DOGCM_Admin_GaussSpmVFvmGrid_Init,               &
-       & DOGCM_Admin_GaussSpmVFvmGrid_Final,              &
-       & DOGCM_Admin_GaussSpmVFvmGrid_ConstructAxisInfo,  &
-       & DOGCM_Admin_GaussSpmVFvmGrid_ConstructGrid
+  use DOGCM_GaussSpmVFvmGrid_mod, only: &
+       & DOGCM_GaussSpmVFvmGrid_Init,               &
+       & DOGCM_GaussSpmVFvmGrid_Final,              &
+       & DOGCM_GaussSpmVFvmGrid_ConstructAxisInfo,  &
+       & DOGCM_GaussSpmVFvmGrid_ConstructGrid
   
   ! 宣言文 ; Declaration statements  
   !
@@ -58,11 +65,6 @@ module DOGCM_Admin_Grid_mod
   ! Public variables
   !
 
-  integer, public :: IA, IS, IE, IM, IHALO, IBLOCK
-  integer, public :: JA, JS, JE, JM, JHALO, JBLOCK
-  integer, public :: KA, KS, KE, KM, KHALO, KBLOCK
-  
-  integer, parameter, public :: VHaloSize = 1
 
   real(DP), public, allocatable :: xy_Lon(:,:)
   real(DP), public, allocatable :: xy_Lat(:,:)
@@ -118,17 +120,14 @@ module DOGCM_Admin_Grid_mod
   real(DP), public, allocatable :: SCALEF_E2(:,:,:)
   real(DP), public, allocatable :: SCALEF_E3(:,:,:)
 
-  integer, public :: iMax
-  integer, public :: jMax
-  integer, public :: jMaxGlobal
-  integer, public :: kMax
-  integer, public :: lMax
-  integer, public :: nMax
-  integer, public :: tMax
-  
-  
   ! Cascade
 
+  public :: IA, IS, IE, IM, IHALO, IBLOCK
+  public :: JA, JS, JE, JM, JHALO, JBLOCK
+  public :: KA, KS, KE, KM, KHALO, KBLOCK  
+  
+  public :: iMax, jMax, jMaxGlobal, kMax
+  public :: lMax, nMax, tMax
   
   ! 非公開変数
   ! Private variables
@@ -145,12 +144,12 @@ contains
     !
     use DOGCM_Admin_Constants_mod, only: RPlanet
 
-    use DOGCM_Admin_GaussSpmGrid_mod, only: &
+    use DOGCM_GaussSpmGrid_mod, only: &
          & hsvs_im => iMax, hsvs_jm => jMax, hsvs_km => kMax, &
          & hsvs_nm => nMax, hsvs_lm => lMax, hsvs_tm => tMax, &
          & hsvs_jmGl => jMaxGlobe
 
-    use DOGCM_Admin_GaussSpmVFvmGrid_mod, only: &
+    use DOGCM_GaussSpmVFvmGrid_mod, only: &
          & hsvf_im => iMax, hsvf_jm => jMax, hsvf_km => kMax, &
          & hsvf_nm => nMax, hsvf_lm => lMax, hsvf_tm => tMax, &
          & hsvf_jmGl => jMaxGlobe
@@ -166,14 +165,11 @@ contains
     ! 実行文; Executable statement
     !
 
-    ! Read the path to grid data file from namelist.
-    call read_nmlData(configNmlFileName)
-
     !---------------------------------------
 
     select case(SolverType)
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Admin_GaussSpmGrid_ConstructAxisInfo( &
+       call DOGCM_GaussSpmGrid_ConstructAxisInfo( &
             & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
             & IS, IE, IA, IHALO,                                                                   & ! (out)
             & JAXIS_info%name, JAXIS_info%long_name, JAXIS_info%units, JAXIS_info%weight_units,    & ! (out)
@@ -188,7 +184,7 @@ contains
        jMaxGlobal = hsvs_jmGl
 
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Admin_GaussSpmVFvmGrid_ConstructAxisInfo( &
+       call DOGCM_GaussSpmVFvmGrid_ConstructAxisInfo( &
             & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
             & IS, IE, IA, IHALO,                                                                   & ! (out)
             & JAXIS_info%name, JAXIS_info%long_name, JAXIS_info%units, JAXIS_info%weight_units,    & ! (out)
@@ -270,7 +266,7 @@ contains
 
     select case(SolverType)
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)    
-       call DOGCM_Admin_GaussSpmGrid_ConstructGrid( &
+       call DOGCM_GaussSpmGrid_ConstructGrid( &
             & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
             & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
             & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
@@ -282,7 +278,7 @@ contains
             & )
        
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Admin_GaussSpmVFvmGrid_ConstructGrid( &
+       call DOGCM_GaussSpmVFvmGrid_ConstructGrid( &
             & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
             & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
             & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
@@ -369,84 +365,4 @@ contains
     
   end subroutine DOGCM_Admin_Grid_UpdateVCoord
   
-!--------------------------------------------------------
-    
-  subroutine read_nmlData( configNmlFileName )
-
-    ! モジュール引用; Use statement
-    !
-
-    ! ファイル入出力補助
-    ! File I/O support
-    !
-    use dc_iounit, only: FileOpen
-
-    ! 種別型パラメタ
-    ! Kind type parameter
-    !
-    use dc_types, only: STDOUT ! 標準出力の装置番号. Unit number of standard output
-
-    ! 宣言文; Declaration statement
-    !
-    character(*), intent(in) :: configNmlFileName
-
-    ! 局所変数
-    ! Local variables
-    !
-    integer:: unit_nml        ! NAMELIST ファイルオープン用装置番号. 
-    ! Unit number for NAMELIST file open
-
-    integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
-    ! IOSTAT of NAMELIST read
-
-    integer :: nLat, nLon, nZ
-
-    ! NAMELIST 変数群
-    ! NAMELIST group name
-    !
-    namelist /grid_nml/ &
-         & IM, JM, KM,             &
-         & IBLOCK, JBLOCK, KBLOCK
-
-    ! 実行文; Executable statements
-
-    ! デフォルト値の設定
-    ! Default values settings
-    !
-    IM = 1
-    JM = 64
-    KM = 61
-    
-    IBLOCK = -1
-    JBLOCK = -1
-    KBLOCK = -1
-
-    ! NAMELIST からの入力
-    ! Input from NAMELIST
-    !
-    if ( trim(configNmlFileName) /= '' ) then
-       call MessageNotify( 'M', module_name, "reading namelist '%a'", ca=(/ configNmlFileName /))
-       call FileOpen( unit_nml, &          ! (out)
-            & configNmlFileName, mode = 'r' ) ! (in)
-
-       rewind( unit_nml )
-       read( unit_nml, &           ! (in)
-            & nml = grid_nml, &  ! (out)
-            & iostat = iostat_nml )   ! (out)
-       close( unit_nml )
-    end if
-
-    if(IBLOCK == -1) IBLOCK = IM
-    if(JBLOCK == -1) JBLOCK = JM
-    if(KBLOCK == -1) KBLOCK = KM
-    
-    ! 印字 ; Print
-    !
-    call MessageNotify( 'M', module_name, ' (IM,JM,KM) = (%d,%d,%d) ', i = (/ IM,JM,KM /) )
-    call MessageNotify( 'M', module_name, ' (IBLCOK,JBLOCK,KBLOCK) = (%d,%d,%d) ', &
-         &                                                 i = (/ IBLOCK,JBLOCK,KBLOCK /) )
-    
-  end subroutine read_nmlData
-
-
 end module DOGCM_Admin_Grid_mod

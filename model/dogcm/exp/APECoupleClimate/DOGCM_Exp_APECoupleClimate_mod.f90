@@ -40,6 +40,9 @@ module DOGCM_Exp_APECoupleClimate_mod
        & xyz_Lat, xyz_Lon, xy_Topo,            &
        & DOGCM_Admin_Grid_UpdateVCoord, xyz_Z
 
+  use CalculusDriver_mod, only: &
+       & Calculus_IntBtmToTop
+  
   use DOGCM_IO_History_mod, only: &
        & DOGCM_IO_History_RegistVar, &
        & DOGCM_IO_History_HistPut
@@ -172,9 +175,6 @@ contains
     
     use SpmlUtil_mod, only: &
          & AvrLonLat_xy, calc_UVCosLat2VorDiv, calc_VorDiv2UV, xy_CosLat
-
-    use VFvmUtil_mod, only: &
-         & VFvm_Int_BtmToTop
 
     use dc_iounit, only: FileOpen
     
@@ -431,12 +431,9 @@ contains
        InitMass = AvrLonLat_xy( &
             & DensSnow*xy_SnowThick0(IS:IE,JS:JE) +  DensIce*xy_IceThick0(IS:IE,JS:JE) )
 
-       xy_Tmp(:,:) = 0d0
-       do k=KS, KE
-          xy_Tmp(:,:) = xy_Tmp(:,:) + &
-               & (xyz_Salt0(:,:,k) - RefSalt)/RefSalt * 1d3 * xyz_H0(:,:,k) * z_KAXIS_Weight(k)
-       end do
-       InitMass = InitMass - AvrLonLat_xy( xy_Tmp(IS:IE,JS:JE) )
+       InitMass = InitMass - AvrLonLat_xy( Calculus_IntBtmToTop( &
+            & (xyz_Salt0(IS:IE,JS:JE,:) - RefSalt)/RefSalt * 1d3,  xyz_H0(IS:IE,JS:JE,:) ) &
+            & )
        
        !* Store input data 
 
@@ -513,12 +510,7 @@ contains
     use DSIce_Boundary_vars_mod, only:   &
          & xy_RainFall, xy_SnowFall, xy_Evap
     
-    use DOGCM_Admin_Grid_mod, only: &
-         & z_KAXIS_Weight
-    
-
     use SpmlUtil_mod, only: AvrLonLat_xy
-    use VFvmUtil_mod, only: VFvm_Int_BtmToTop
     
     ! 局所変数
     ! Local variables
@@ -545,7 +537,7 @@ contains
 
     !-------------------------------------------------------------
 
-    return
+!!$    return
     
     TID_A = TIMELV_ID_N
     TID_N = TIMELV_ID_B
@@ -569,8 +561,8 @@ contains
     NowMass = AvrLonLat_xy( &
             & DensSnow*xya_SnowThick(IS:IE,JS:JE,TID_A) +  DensIce*xya_IceThick(IS:IE,JS:JE,TID_A) )
     NowMass = NowMass - AvrLonLat_xy( &
-         & VFvm_Int_BtmToTop( (xyzaa_TRC(IS:IE,JS:JE,:,TRCID_SALT,TID_A) - 35d0)/35d0*1d3, &
-         &                    xyza_H(IS:IE,JS:JE,:,TID_N) ))
+         & Calculus_IntBtmToTop( (xyzaa_TRC(IS:IE,JS:JE,:,TRCID_SALT,TID_A) - 35d0)/35d0*1d3, &
+         &                       xyza_H(IS:IE,JS:JE,:,TID_N) ))
 
     
     write(*,*) "Check net budget: ", &
@@ -594,7 +586,7 @@ contains
       end if
       
       if( present(xyz) ) then
-         avgVal = AvrLonLat_xy( VFvm_Int_BtmToTop(xyz(IS:IE,JS:JE,:), xyza_H(IS:IE,JS:JE,:,TID_N)) )
+         avgVal = AvrLonLat_xy( Calculus_IntBtmToTop(xyz(IS:IE,JS:JE,:), xyza_H(IS:IE,JS:JE,:,TID_N)) )
       end if
 
       if (len(lbl)>0) then

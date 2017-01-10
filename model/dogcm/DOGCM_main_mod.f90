@@ -264,7 +264,10 @@ contains
     use OptionParser_mod, only: &
          & OptionParser_Init, OptionParser_Final, &
          & OptionParser_GetInfo
-         
+
+    use GridIndex_mod, only: &
+         & GridIndex_Init
+    
     use DOGCM_Admin_Grid_mod, only: &
          & iMax, jMax, kMax,           &
          & nMax, tMax,                 &
@@ -277,6 +280,9 @@ contains
 
     use VFvmUtil_mod, only: &
          & VFvmUtil_Init
+
+    use CalculusDriver_mod, only: &
+         & CalculusDriver_Init
     
 #ifdef _OPENMP
     use omp_lib
@@ -306,6 +312,8 @@ contains
     
     ! Initialize administrative modules 
     !
+
+    call GridIndex_Init( configNmlFile )
     
     call DOGCM_Admin_Constants_Init( configNmlFile )
     call DOGCM_Admin_GovernEq_Init( configNmlFile )  
@@ -337,8 +345,11 @@ contains
     !-- Solver -----------------------------------------
 
     select case ( SolverType )
+    case( OCNGOVERNEQ_SOLVER_HSPM_VSPM )
+       call CalculusDriver_Init('hspm_vspm')
     case( OCNGOVERNEQ_SOLVER_HSPM_VFVM )
        call VFvmUtil_Init(KS, KE, KA, z_CDK, IA, JA)
+       call CalculusDriver_Init('hspm_vfvm')       
     end select
     
     call DOGCM_Admin_TInteg_Init( configNmlFile )
@@ -381,6 +392,9 @@ contains
 
     ! モジュール引用; Use statements
     !
+    use GridIndex_mod, only: &
+         & GridIndex_Final
+
     use SpmlUtil_mod, only: &
          SpmlUtil_Final
 
@@ -418,6 +432,8 @@ contains
     case( OCNGOVERNEQ_SOLVER_HSPM_VFVM )
        call VFvmUtil_Final()
     end select
+
+    call GridIndex_Final()
     
   end subroutine DOGCM_main_shutdown
 
