@@ -46,9 +46,9 @@ module DOGCM_Admin_Variable_mod
 
   public :: DOGCM_Admin_Variable_AdvanceTStep
 
+  public :: DOGCM_Admin_Variable_regist_OuputVars
   public :: DOGCM_Admin_Variable_HistPut
   public :: DOGCM_Admin_Variable_RestartPut
-
   public :: DOGCM_Admin_Variable_HistGet
   
   ! 公開変数
@@ -122,12 +122,6 @@ contains
     allocate( xyz_VViscCoef(IA,JA,KA), xyz_VDiffCoef(IA,JA,KA) )
     allocate( xy_BtmFrictCoef(IA,JA) )
     allocate( xyz_ConvIndex(IA,JA,KA) )
-
-    !- Regist output variables for history and restart --------------
-
-    call MessageNotify('M', module_name, "Regist output variables  ..")
-    call regist_OuputVariable()
-
 
     !------------------------------------
     
@@ -346,9 +340,7 @@ contains
     
   end subroutine DOGCM_Admin_Variable_HistGet
 
-  !-------- Private subroutines -------------------------------------
-
-  subroutine regist_OuputVariable()
+  subroutine DOGCM_Admin_Variable_regist_OuputVars()
 
     use DOGCM_IO_History_mod, only: &
        & DOGCM_IO_History_RegistVar
@@ -357,6 +349,8 @@ contains
        & DOGCM_IO_Restart_RegistVar
 
 
+    call MessageNotify('M', module_name, "Regist output variables  ..")
+    
     !- Regist variables for history
     
     call DOGCM_IO_History_RegistVar( 'U', "IJKT", "velocity (i axis)", "m/s"   )
@@ -407,7 +401,7 @@ contains
     
     !-------------------------------------------------------------
     
-  end subroutine regist_OuputVariable
+  end subroutine DOGCM_Admin_Variable_regist_OuputVars
   
 end module DOGCM_Admin_Variable_mod
 

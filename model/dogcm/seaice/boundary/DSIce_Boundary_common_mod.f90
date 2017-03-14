@@ -1,5 +1,5 @@
 !-------------------------------------------------------------
-! Copyright (c) 2015-2016 Yuta Kawai. All rights reserved.
+! Copyright (c) 2015-2017 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
 !> @brief A module to set some variables (e.g., surface and bottom flux) in order to satisfy boundary conditions
 !! 
@@ -46,7 +46,7 @@ module DSIce_Boundary_common_mod
 
   use DSIce_Admin_TInteg_mod, only: &
        & DelTimeOcn
-  
+
   use DSIce_Admin_Variable_mod, only: &
        & xy_Wice
 
@@ -68,7 +68,13 @@ module DSIce_Boundary_common_mod
        & xy_SIceSfcTemp0,                                     &
        & xy_SeaSfcU, xy_SeaSfcV,                              &
        & xy_OcnFrzTemp, xy_OcnMixLyrDepth
-       
+
+  use DSIce_Boundary_SfcAlbedo_mod, only: &
+       & DSIce_Boundary_SfcAlbedo_Init, DSIce_Boundary_SfcAlbedo_Final, &
+       & DSIce_Boundary_SfcAlbedo_Get
+
+#include "../DSIceDef.h"
+
   ! 宣言文; Declareration statements
   !
   implicit none
@@ -85,8 +91,6 @@ module DSIce_Boundary_common_mod
   
   public :: DSIce_Boundary_common_CalcSfcHFlx
   public :: DSIce_Boundary_common_CalcBtmHFlx
-
-  public :: DSIce_Boundary_common_CalcSfcAlbedo
   
   ! 公開変数
   ! Public variable
@@ -98,6 +102,7 @@ module DSIce_Boundary_common_mod
   
   character(*), parameter:: module_name = 'DSIce_Boundary_common_mod' !< Module Name
 
+  integer :: j_dbg
   
 contains
 
@@ -115,7 +120,13 @@ contains
 
 
 !    call read_nmlData(configNmlName)
+    call DSIce_Boundary_SfcAlbedo_Init( configNmlName )
 
+#ifdef DEBUG_SEAICE    
+    j_dbg = DEBUG_SEAICE_j_dbg 
+#else
+    j_dbg = JS - 1
+#endif
     
   end subroutine DSIce_Boundary_common_Init
 
@@ -127,6 +138,8 @@ contains
     ! 実行文; Executable statements
     !
 
+    call DSIce_Boundary_SfcAlbedo_Final()
+    
   end subroutine DSIce_Boundary_common_Final
 
   !-----------------------------------------
@@ -170,7 +183,8 @@ contains
          & xy_DSfcHFlxAIDTs, xy_SfcAlbedoAI,                               & ! (out)
          & xy_SDwRFlx, xy_LDwRFlx, xy_LatHFlx, xy_SenHFlx,                 & ! (in)
          & xy_DLatSenHFlxDTs,                                              & ! (in)
-         & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp, xy_SeaSfcTemp         & ! (in)
+         & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp, xy_SeaSfcTemp,        & ! (in)
+         & xy_SfcAlbedoAI                                                  & ! (in)
          & )
 
 
@@ -211,58 +225,14 @@ contains
          &                - xy_Wice / DensFreshWater
 
     !----------------------
-    
-    call DSIce_Boundary_common_CalcSfcAlbedo( &
-       & xy_SfcAlbedoAI,                          & ! (out)
-       & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp & ! (in)
-       & )    
+
+    call DSIce_Boundary_SfcAlbedo_Get( &
+         & xy_SfcAlbedoAI,                          & ! (out)
+         & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp & ! (in)
+         & )
     
   end subroutine DSIce_Boundary_common_UpdateAfterTstep
   
-  !-----------------------------------------  
-
-  subroutine DSIce_Boundary_common_CalcSfcAlbedo( &
-       & xy_SIceAlbedoAI,                         & ! (out)
-       & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp & ! (in)
-       & )
-
-    ! 宣言文; Declaration statement
-    !    
-    real(DP), intent(out) :: xy_SIceAlbedoAI(IA,JA)
-    real(DP), intent(in) :: xy_SIceCon(IA,JA)
-    real(DP), intent(in) :: xy_SnowThick(IA,JA)
-    real(DP), intent(in) :: xy_SIceSfcTemp(IA,JA)
-
-    ! 局所変数
-    ! Local variables
-    !        
-    integer :: i
-    integer :: j
-    real(DP) :: SIceSfcTempK
-
-    ! 実行文; Executable statements
-    !
-    
-    !$omp parallel do private(SIceSfcTempK) collapse(2)
-    do j = JS, JE
-       do i = IS, IE
-          if ( xy_SIceCon(i,j) > IceMaskMin ) then
-             SIceSfcTempK = degC2K( xy_SIceSfcTemp(i,j) )             
-             if ( xy_SnowThick(i,j) <= 0d0 ) then
-                xy_SfcAlbedoAI(i,j) = AlbedoIce
-             elseif( xy_SIceSfcTemp(i,j) >= FreezeTempWater ) then
-                xy_SfcAlbedoAI(i,j) = AlbedoMeltSnow
-             else
-                xy_SfcAlbedoAI(i,j) = AlbedoSnow
-             end if
-          else ! grid cell not covered by sea ice
-             xy_SfcAlbedoAI(i,j) = UNDEFVAL
-          end if
-       end do
-    end do
-    
-  end subroutine DSIce_Boundary_common_CalcSfcAlbedo
-
   !-----------------------------------------  
   
   subroutine DSIce_Boundary_common_CalcSfcHFlx( &
@@ -270,7 +240,8 @@ contains
        & xy_DSfcHFlxDTsAI, xy_SfcAlbedoAI,                         & ! (out)
        & xy_SDWRFlx, xy_LDWRFlx, xy_LatHFlx, xy_SenHFlx,           & ! (in)
        & xy_DLatSensHFlxDTs,                                       & ! (in)
-       & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp, xy_SeaSfcTemp   & ! (in)
+       & xy_SIceCon, xy_SnowThick, xy_SIceSfcTemp, xy_SeaSfcTemp,  & ! (in)
+       & xy_SIceAlbedoAI                                           & ! (in)
        & )
 
     ! 宣言文; Declaration statement
@@ -289,7 +260,8 @@ contains
     real(DP), intent(in) :: xy_SnowThick(IA,JA)
     real(DP), intent(in) :: xy_SIceSfcTemp(IA,JA)  !< degC
     real(DP), intent(in) :: xy_SeaSfcTemp(IA,JA)   !< K
-
+    real(DP), intent(in) :: xy_SIceAlbedoAI(IA,JA)
+    
     ! 局所変数
     ! Local variables
     !    
@@ -297,29 +269,31 @@ contains
     integer :: j
     real(DP) :: emisiv
     real(DP) :: SIceSfcTempK
-
+    real(DP) :: SIceSfcAlbedo
+    
     ! 実行文; Executable statements
     !
     
-    !$omp parallel do private(emisiv, SIceSfcTempK) collapse(2)
+    !$omp parallel do private(emisiv, SIceSfcTempK, SIceSfcAlbedo) collapse(2)
     do j = JS, JE
        do i = IS, IE
           
           if ( xy_SIceCon(i,j) > IceMaskMin ) then
 
+             SIceSfcAlbedo = xy_SIceAlbedoAI(i,j)
              !--
              if ( xy_SnowThick(i,j) <= 0d0 ) then
-                xy_SfcAlbedoAI(i,j) = AlbedoIce
+!!$                xy_SfcAlbedoAI(i,j) = AlbedoIce
                 emisiv = EmissivIce
-                xy_PenSWRFlxAI(i,j) = I0*(1d0 - AlbedoIce)*xy_SDWRFlx(i,j) ! Note: the sign is positive. 
+                xy_PenSWRFlxAI(i,j) = I0*(1d0 - SIceSfcAlbedo)*xy_SDWRFlx(i,j) ! Note: the sign is positive. 
 
              elseif( xy_SIceSfcTemp(i,j) >= FreezeTempWater ) then
-                xy_SfcAlbedoAI(i,j) = AlbedoMeltSnow
+!!$                xy_SfcAlbedoAI(i,j) = AlbedoMeltSnow
                 emisiv = EmissivSnow
                 xy_PenSWRFlxAI(i,j) = 0d0
 
              else
-                xy_SfcAlbedoAI(i,j) = AlbedoSnow
+!!$                xy_SfcAlbedoAI(i,j) = AlbedoSnow
                 emisiv = EmissivSnow
                 xy_PenSWRFlxAI(i,j) = 0d0
              end if
@@ -329,16 +303,23 @@ contains
              xy_SfcHFlxAI(i,j) = &
                   &   xy_LatHFlx(i,j) + xy_SenHFlx(i,j)            &
                   & - emisiv*xy_LDWRFlx(i,j)                       &
-                  & - (1d0 - xy_SfcAlbedoAI(i,j))*xy_SDWRFlx(i,j)  &
+                  & - (1d0 - SIceSfcAlbedo)*xy_SDWRFlx(i,j)        &
                   & + xy_PenSWRFlxAI(i,j)                          &
                   & + emisiv*(SBConst*SIceSfcTempK**4)
 
+#ifdef DEBUG_SEAICE
+             if(i==IS .and. j==j_dbg)then
+                write(*,*) "SfcHFlxAI(LatH,SensH,LDwR,SDwR,LUwR",         &
+                     & xy_LatHFlx(i,j), xy_SenHFlx(i,j), xy_LDwRFlx(i,j), &
+                     & xy_SDwRFlx(i,j),  emisiv*(SBConst*SIceSfcTempK**4), SIceSfcTempK
+             end if
+#endif             
              xy_DSfcHFlxDTsAI(i,j) = &
                   &   xy_DLatSensHFlxDTs(i,j)                      &
                   & + 4d0*emisiv*(SBConst*SIceSfcTempK**3)
              
           else ! grid cell not covered by sea ice
-             xy_SfcAlbedoAI(i,j) = UNDEFVAL
+             SIceSfcAlbedo       = UNDEFVAL
              xy_SfcHFlxAI(i,j)   = UNDEFVAL
           end if
 

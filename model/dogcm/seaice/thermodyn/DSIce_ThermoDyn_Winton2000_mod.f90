@@ -6,8 +6,8 @@
 !! @author Kawai Yuta
 !!
 !!
-module DSIce_ThermoDyn_Winton2000_mod 
-
+module DSIce_ThermoDyn_Winton2000_mod
+  
   ! モジュール引用; Use statements
   !
 

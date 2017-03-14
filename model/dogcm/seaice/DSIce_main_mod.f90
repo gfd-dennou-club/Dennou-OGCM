@@ -195,11 +195,11 @@ contains
           else
              call DSIce_TInt_driver_Do( isSelfStartSchemeUsed=.false. )
           end if
+          
+          call DSIce_Admin_Variable_AdvanceTStep()
        end if
 
        call DSIce_Admin_TInteg_AdvanceLongTStep()
-       call DSIce_Admin_Variable_AdvanceTStep()
-
     end if
 
     call DSIce_Boundary_driver_UpdateAfterTstep( &

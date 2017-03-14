@@ -249,6 +249,8 @@ contains
   end subroutine pass_field_sice2ocn
   
   !-----------------------------------------------------------
+
+  !-----------------------------------------------------------
   
   subroutine read_nmlData( configNmlFileName )
 
@@ -326,6 +328,6 @@ contains
     call MessageNotify( 'M', PROGRAM_NAME, '  - ocean         = %b', L = (/ OCN_do /)) 
     call MessageNotify( 'M', PROGRAM_NAME, '  - sea ice       = %b', L = (/ SICE_do /)) 
 
-  end subroutine read_nmlData
-  
+  end subroutine read_nmlData  
+
 end program ogcm_main

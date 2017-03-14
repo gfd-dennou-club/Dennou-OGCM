@@ -24,6 +24,7 @@ dist_libDSIce_la_SOURCES = \
 	io/DSIce_IO_History_mod.f90                  \
 	io/DSIce_IO_Restart_mod.f90                  \
 	boundary/DSIce_Boundary_Vars_mod.f90         \
+	boundary/DSIce_Boundary_SfcAlbedo_mod.f90    \
 	boundary/DSIce_Boundary_common_mod.f90       \
 	boundary/DSIce_Boundary_driver_mod.f90       \
 	thermodyn/DSIce_ThermoDyn_Winton2000_mod.f90 \

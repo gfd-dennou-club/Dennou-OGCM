@@ -332,6 +332,9 @@ contains
     case ('IJ')
        varDimsLen = 2
        varDims(1:varDimsLen) = (/ HstDimsList(HstDimsID_I),  HstDimsList(HstDimsID_J) /)
+    case ('JT')
+       varDimsLen = 2
+       varDims(1:varDimsLen) = (/  HstDimsList(HstDimsID_J), HstDimsList(HstDimsID_T) /)
     case ('IJK')
        varDimsLen = 3
        varDims(1:varDimsLen) = (/ HstDimsList(HstDimsID_I),  HstDimsList(HstDimsID_J), HstDimsList(HstDimsID_K) /)

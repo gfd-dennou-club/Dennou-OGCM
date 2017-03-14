@@ -10,6 +10,9 @@ module DOGCM_Admin_TInteg_mod
 
   ! モジュール引用; Use statements
   !
+
+  !* gtool5
+  
   use dc_types, only: &
        & DP, TOKEN
 
@@ -19,6 +22,8 @@ module DOGCM_Admin_TInteg_mod
   use dc_calendar, only: &
        & DC_CAL, DC_CAL_DATE
 
+  !* Dennou-OGCM
+  
   use TemporalIntegUtil_mod2, only: &
        & TimeIntMode_Euler, &
        & TemporalIntegUtil_getInfo

@@ -102,6 +102,9 @@ module DOGCM_Boundary_vars_mod
   integer, public, allocatable :: xy_OcnSfcCellMask(:,:)
   integer, public, allocatable :: xyz_OcnCellMask(:,:,:)
 
+  !
+  real(DP), public, allocatable :: xy_SfcAlbedoAO(:,:)
+  
   integer, public, parameter :: OCNCELLMASK_OCEAN = 0
   integer, public, parameter :: OCNCELLMASK_SICE  = 1
   integer, public, parameter :: OCNCELLMASK_LAND  = 2
@@ -151,8 +154,10 @@ contains
     allocate( xy_SeaSfcTemp(IA,JA), xy_SeaSfcSalt(IA,JA) )
     allocate( xy_SeaSfcTemp0(IA,JA), xy_SeaSfcSalt0(IA,JA) )
     allocate( xy_SeaSfcU(IA,JA), xy_SeaSfcV(IA,JA) )
-    
+
+    allocate( xy_SfcAlbedoAO(IA,JA) )
     allocate( xy_OcnSfcCellMask(IA,JA), xyz_OcnCellMask(IA,JA,KA) )
+
     
     !-------------------------------------------------------
 
@@ -216,6 +221,8 @@ contains
        deallocate( xy_SeaSfcTemp0, xy_SeaSfcSalt0 )
        deallocate( xy_SeaSfcU, xy_SeaSfcV )
 
+       deallocate( xy_SfcAlbedoAO )
+       
        deallocate( xy_OcnSfcCellMask, xyz_OcnCellMask )
     end if
 

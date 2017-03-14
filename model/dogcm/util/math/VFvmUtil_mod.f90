@@ -58,6 +58,9 @@ module VFvmUtil_mod
 contains
 
   subroutine VFvmUtil_Init(KS_, KE_, KA_, CDK_, IA_, JA_)
+
+    ! 宣言文; Declareration statements
+    !
     integer, intent(in) :: KS_
     integer, intent(in) :: KE_
     integer, intent(in) :: KA_
@@ -93,6 +96,9 @@ contains
   !------------------------------
 
   function VFvm_IntBtmToTop_xyz( xyz, xyz_e3 ) result(xy_Int_ret)
+
+    ! 宣言文; Declareration statements
+    !
     real(DP), intent(in) :: xyz(:,:,:)
     real(DP), intent(in) :: xyz_e3(:,:,:)
     real(DP) :: xy_Int_ret(size(xyz,1), size(xyz,2))

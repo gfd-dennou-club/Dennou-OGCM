@@ -50,14 +50,15 @@ module DOGCM_main_mod
        & OCNGOVERNEQ_SOLVER_HSPM_VSPM,       &
        & OCNGOVERNEQ_SOLVER_HSPM_VFVM
   
-  use DOGCM_Admin_Variable_mod, only:        &
-       & DOGCM_Admin_Variable_Init,          & 
-       & DOGCM_Admin_Variable_Final,         &
-       & DOGCM_Admin_Variable_AdvanceTStep,  &
-       & DOGCM_Admin_Variable_HistPut,       &
-       & DOGCM_Admin_Variable_HistGet,       &
-       & DOGCM_Admin_Variable_RestartPut,    &
-       & xyza_U, xyza_V, xyzaa_TRC, xya_SSH, &
+  use DOGCM_Admin_Variable_mod, only:           &
+       & DOGCM_Admin_Variable_Init,             & 
+       & DOGCM_Admin_Variable_Final,            &
+       & DOGCM_Admin_Variable_AdvanceTStep,     &
+       & DOGCM_Admin_Variable_regist_OuputVars, &
+       & DOGCM_Admin_Variable_HistPut,          &
+       & DOGCM_Admin_Variable_HistGet,          &
+       & DOGCM_Admin_Variable_RestartPut,       &
+       & xyza_U, xyza_V, xyzaa_TRC, xya_SSH,    &
        & xyza_H
 
   use DOGCM_IO_History_mod, only:               &
@@ -219,19 +220,19 @@ contains
           else
              call DOGCM_TInt_driver_Do( isSelfStartSchemeUsed=.false. )
           end if
+          call DOGCM_Admin_Variable_AdvanceTStep()
        end if
 
 !!$       write(*,*) "TIntegAdvance"       
        call DOGCM_Admin_TInteg_AdvanceLongTStep()
-       call DOGCM_Admin_Variable_AdvanceTStep()
-
 !!$       write(*,*) "Boundary UpdateAftertstep"
-       call DOGCM_Boundary_driver_UpdateAfterTstep( &
-            & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),  & ! (in)
-            & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN)                            & ! (in)
-            & )
     end if
 
+    call DOGCM_Boundary_driver_UpdateAfterTstep( &
+         & xyza_U(:,:,:,TLN), xyza_V(:,:,:,TLN), xyzaa_TRC(:,:,:,:,TLN),  & ! (in)
+         & xyza_H(:,:,:,TLN), xya_SSH(:,:,TLN)                            & ! (in)
+         & )
+    
     call ProfUtil_RapEnd('OcnComp', 1)
     
     !- Output  --------------------------------------------------------------------
@@ -291,7 +292,7 @@ contains
     ! 宣言文; Declaration statement
     !
     character(STRING), intent(in), optional :: configNmlFileArg
-
+    
 
     ! 局所変数
     ! Local variables
@@ -309,6 +310,7 @@ contains
     else
        configNmlFile = configNmlFileArg
     end if
+
     
     ! Initialize administrative modules 
     !
@@ -354,7 +356,6 @@ contains
     
     call DOGCM_Admin_TInteg_Init( configNmlFile )
     call DOGCM_Admin_BC_Init( configNmlFile )
-
     
     !-- IO ---------------------------------------------
     
@@ -363,10 +364,12 @@ contains
 
     call DOGCM_IO_Restart_Init( configNmlFile )
     call DOGCM_IO_Restart_Create()
-
+    
     !-- Variable (admin)  -----------------------------
     
     call DOGCM_Admin_Variable_Init()
+    call DOGCM_Admin_Variable_regist_OuputVars()
+
     
     !-- Boundary -------------------------------------
     

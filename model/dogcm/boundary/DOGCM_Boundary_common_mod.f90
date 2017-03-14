@@ -22,7 +22,9 @@ module DOGCM_Boundary_common_mod
   !* Dennou-OGCM
 
   use DOGCM_Admin_Constants_mod, only: &
-       & RefDens, Cp0
+       & RefDens, Cp0,                 &
+       & AlbedoOcean,                  &
+       & UNDEFVAL
     
 
   use DOGCM_Admin_Grid_mod, only: &
@@ -53,14 +55,15 @@ module DOGCM_Boundary_common_mod
        & xy_SfcHFlx_ns, xy_SfcHFlx_sr, xy_DSfcHFlxDTs,   &
        & xy_SfcHFlx0_ns, xy_SfcHFlx0_sr,                 &
        & xy_SfcHFlxIO_ns, xy_SfcHFlxIO_sr,               &
-       & xy_WindStressU, xy_WindStressV,      &
-       & xy_FreshWtFlx, xy_FreshWtFlxS,       &
-       & xy_FreshWtFlx0, xy_FreshWtFlxS0,     &       
-       & xy_FreshWtFlxIO, xy_FreshWtFlxSIO,     &       
-       & xy_SeaSfcTemp, xy_SeaSfcSalt,        &
-       & xy_SeaSfcTemp0, xy_SeaSfcSalt0,      &
-       & xy_SeaSfcU, xy_SeaSfcV,              &
-       & xy_OcnSfcCellMask, xyz_OcnCellMask,  &
+       & xy_WindStressU, xy_WindStressV,                 &
+       & xy_FreshWtFlx, xy_FreshWtFlxS,                  &
+       & xy_FreshWtFlx0, xy_FreshWtFlxS0,                &       
+       & xy_FreshWtFlxIO, xy_FreshWtFlxSIO,              &       
+       & xy_SeaSfcTemp, xy_SeaSfcSalt,                   &
+       & xy_SeaSfcTemp0, xy_SeaSfcSalt0,                 &
+       & xy_SeaSfcU, xy_SeaSfcV,                         &
+       & xy_SfcAlbedoAO,                                 &
+       & xy_OcnSfcCellMask, xyz_OcnCellMask,             &
        & OCNCELLMASK_SICE, OCNCELLMASK_OCEAN
   
   ! 宣言文; Declareration statements
@@ -238,7 +241,7 @@ contains
           xy_FreshWtFlxS(:,:) = xy_FreshWtFlxSIO(:,:)
        end where
     end select
-
+    
   end subroutine DOGCM_Boundary_common_UpdateBeforeTstep
 
   !-----------------------------------------
@@ -296,7 +299,46 @@ contains
     case ( SaltBCTYPE_Adiabat )
     case ( SaltBCTYPE_SaltRelaxed )
     end select
+
+    !-- Update the sea surface albedo 
+
+    call DOGCM_Boundary_common_UpdateSfcAlbedo( xy_SfcAlbedoAO,    & ! (out)
+         & xy_SeaSfcTemp, xy_OcnSfcCellMask )                        ! (in)
     
   end subroutine DOGCM_Boundary_common_UpdateAfterTstep
+
+  !------------------------------------------------------------
+
+  subroutine DOGCM_Boundary_common_UpdateSfcAlbedo( xy_SfcAlbedoAO, & ! (out)
+       & xy_SeaSfcTemp, xy_OcnSfcCellMask )                           ! (in)
+
+    ! 引用文; Use statement
+    !    
+    use DOGCM_Admin_Constants_mod, only: &
+         & AlbedoSIceSlabOcn, FreezeTempSlabOcn
+    
+    use DOGCM_Admin_GovernEq_mod, only: &
+         & DynEqType, OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR
+
+    ! 宣言文; Declaration statement
+    !    
+    real(DP), intent(out) :: xy_SfcAlbedoAO(IA,JA)
+    real(DP), intent(in)  :: xy_SeaSfcTemp(IA,JA)
+    integer, intent(in)   :: xy_OcnSfcCellMask(IA,JA)
+
+    ! 実行文; Executable statements
+    
+    select case( DynEqType )
+    case(OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR)
+       where( xy_SeaSfcTemp > FreezeTempSlabOcn )
+          xy_SfcAlbedoAO(:,:) = AlbedoOcean
+       elsewhere
+          xy_SfcAlbedoAO(:,:) = AlbedoSIceSlabOcn
+       end where
+    case default
+       xy_SfcAlbedoAO(:,:) = AlbedoOcean
+    end select
+    
+  end subroutine DOGCM_Boundary_common_UpdateSfcAlbedo
   
 end module DOGCM_Boundary_common_mod

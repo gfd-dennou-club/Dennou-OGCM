@@ -79,6 +79,10 @@ module DOGCM_Admin_Constants_mod
 
   !
   real(DP), public :: LatentHeat
+
+  real(DP), public :: AlbedoSIceSlabOcn
+  real(DP), public :: FreezeTempSlabOcn
+  
   
   ! 非公開手続き
   ! Private procedure
@@ -134,43 +138,47 @@ contains
     !
     namelist /constants_nml/ &
       & RefDens, RefTemp, ThermalExpanCoef, RefSoundSpeed, Cp0, &
-      & RPlanet, Omega, Grav, &
-      & hViscCoef, vViscCoef, &
-      & hHyperViscCoef, vHyperViscCoef, &
-      & hDiffCoef, vDiffCoef, &
-      & hHyperDiffCoef, vHyperDiffCoef, &
-      & RoughnessParamBottom, &
-      & emissivOcean, albedoOcean, &
-      & LatentHeat
+      & RPlanet, Omega, Grav,                    &
+      & hViscCoef, vViscCoef,                    &
+      & hHyperViscCoef, vHyperViscCoef,          &
+      & hDiffCoef, vDiffCoef,                    &
+      & hHyperDiffCoef, vHyperDiffCoef,          &
+      & RoughnessParamBottom,                    &
+      & emissivOcean, albedoOcean,               &
+      & LatentHeat,                              &
+      & AlbedoSIceSlabOcn, FreezeTempSlabOcn
 
     ! 実行文; Executable statements
 
     ! デフォルト値の設定
     ! Default values settings
     !
-    RPlanet          = 6.371e6_DP
-    Omega            = 2.0_DP * PI / ( 60.0_DP * 60.0_DP * 23.9345_DP )
-    Grav             = 9.8_DP
+    RPlanet           = 6.371e6_DP
+    Omega             = 2.0_DP * PI / ( 60.0_DP * 60.0_DP * 23.9345_DP )
+    Grav              = 9.8_DP
 
-    vViscCoef        = 0d0
-    hViscCoef        = 0d0
-    vHyperViscCoef   = 0d0
-    hHyperViscCoef   = 0d0
-    vDiffCoef        = 0d0
-    hDiffCoef        = 0d0
-    vHyperDiffCoef   = 0d0
-    hHyperDiffCoef   = 0d0
+    vViscCoef         = 0d0
+    hViscCoef         = 0d0
+    vHyperViscCoef    = 0d0
+    hHyperViscCoef    = 0d0
+    vDiffCoef         = 0d0
+    hDiffCoef         = 0d0
+    vHyperDiffCoef    = 0d0
+    hHyperDiffCoef    = 0d0
     
-    RefDens          = 1.027d03
-    RefTemp          = 283d0
-    Cp0              = 3986d0
-    RefSoundSpeed    = 1490d0
-    ThermalExpanCoef = 1.67d-04
+    RefDens           = 1.027d03
+    RefTemp           = 283d0
+    Cp0               = 3986d0
+    RefSoundSpeed     = 1490d0
+    ThermalExpanCoef  = 1.67d-04
     
-    AlbedoOcean = 0.1d0
-    EmissivOcean = 0.97d0
+    AlbedoOcean       = 0.1d0
+    EmissivOcean      = 0.97d0
 
-    LatentHeat = 2.501d6
+    LatentHeat        = 2.501d6
+
+    AlbedoSIceSlabOcn = AlbedoOcean
+    FreezeTempSlabOcn = 273.15d0 - 1.8d0
     
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -210,6 +218,8 @@ contains
     call MessageNotify( 'M', module_name, '  ThermalExpanCoef  = %f', d=(/ ThermalExpanCoef /) )
     call MessageNotify( 'M', module_name, '  AlbedoOcean       = %f', d=(/ AlbedoOcean /) )
     call MessageNotify( 'M', module_name, '  EmissivOcean      = %f', d=(/ EmissivOcean /) )
+    call MessageNotify( 'M', module_name, '  AlbedoSIceSlabOcn = %f', d=(/ AlbedoSIceSlabOcn /) )
+    call MessageNotify( 'M', module_name, '  FreezeTempSlabOcn = %f', d=(/ FreezeTempSlabOcn /) )
 
 end subroutine DOGCM_Admin_Constants_Init
 

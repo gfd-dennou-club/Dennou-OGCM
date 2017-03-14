@@ -79,8 +79,10 @@ module LPhys_RediGM_hspm_vfvm_mod
      module procedure calc_IsoNeutralSlope_new
   end interface
   public :: calc_IsoNeutralSlope
-  
+
+  public :: calc_GradTRC
   public :: calc_IsopycDiffFlux
+  public :: calc_SkewFlux
   public :: calc_BolusVelocity
   
   ! 公開変数
@@ -585,7 +587,6 @@ contains
     !
 
     real(DP) :: xyza_Psi(IA,JA,KA,2)
-    real(DP) :: xy_DzTRC(IA,JA)
     real(DP) :: xya_Psi(IA,JA,2)
 
     real(DP) :: DzTRC
@@ -627,7 +628,7 @@ contains
     end do
     end do
     end do
-    
+
     !$omp do collapse(2)
     do k=KS, KE
     do j=JS, JE
@@ -660,7 +661,7 @@ contains
     end do
     end do
     !$omp end parallel
-
+    
   end subroutine calc_SkewFlux
 
   !-------------------------------------------------------------------

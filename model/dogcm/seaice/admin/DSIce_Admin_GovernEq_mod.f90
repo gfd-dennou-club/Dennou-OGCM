@@ -43,7 +43,7 @@ module DSIce_Admin_GovernEq_mod
 
   character(*), public, parameter :: SICEGOVERNEQ_THMDYN_W00_NAME = "Winton2000"
   integer, public, parameter :: SICEGOVERNEQ_THMDYN_W00 = 1
-    
+
   !
   character(*), public, parameter :: SICEGOVERNEQ_TYPENOSPEC_NAME = "UnActivated"
   integer, public, parameter :: SICEGOVERNEQ_TYPENOSPEC = -1
@@ -147,7 +147,7 @@ contains
     ! NAMELIST group name
     !
     namelist /seaice_governEq_nml/ &
-         & ThermoDynName
+         & ThermoDynName          
 
 
     ! 実行文; Executable statements
@@ -157,7 +157,6 @@ contains
     !
 
     ThermoDynName = SICEGOVERNEQ_THMDYN_W00_NAME
-
     
     ! NAMELIST からの入力
     ! Input from NAMELIST

@@ -76,8 +76,13 @@ module DOGCM_Exp_APECoupleClimate_mod
   integer, parameter :: RUN_TYPE_STANDALONE = 2
 
   character(STRING) :: SfcBCDataDir
-  real(DP) :: MeanInitTime
-  real(DP) :: MeanEndTime
+  real(DP) :: SfcBCMeanInitTime
+  real(DP) :: SfcBCMeanEndTime
+
+  character(STRING) :: RestartDataDir
+  real(DP) :: RestartMeanInitTime
+  real(DP) :: RestartMeanEndTime
+
 
   real(DP) :: OcnMeanDepth
   real(DP), parameter :: DEF_OCN_MEAN_DEPTH = 5.2d3
@@ -106,8 +111,9 @@ contains
     !
 
     call read_expConfig( &
-         & CurrentRunCycle, CurrentRunType,               & ! (out)
-         & SfcBCDataDir, MeanInitTime, MeanEndTime,       & ! (out)
+         & CurrentRunCycle, CurrentRunType,                               & ! (out)
+         & SfcBCDataDir, SfcBCMeanInitTime, SfcBCMeanEndTime,             & ! (out)
+         & RestartDataDir, RestartMeanInitTime, RestartMeanEndTime,       & ! (out)
          & configNmlFile ) ! (in)
 
 
@@ -253,17 +259,18 @@ contains
     xyza_H(:,:,:,TIMELV_ID_B) = xyza_H(:,:,:,TIMELV_ID_N)
 
     !------------------------------------------------------------------------------
-
     ! Set initial condition 
+    !------------------------------------------------------------------------------
 
+    !* Set the inital value of ocean variables
+    
     if ( CurrentRunType == RUN_TYPE_COUPLED .and. CurrentRunCycle == 1 ) then
-       do k=KS, KE       
-          xyzaa_TRC(IS:IE,JS:JE,k,TRCID_PTEMP,:) = 280d0 
-          xyzaa_TRC(IS:IE,JS:JE,k,TRCID_SALT,:)  = 35d0   
-       end do
-       xy_SeaSfcTemp0(IS:IE,JS:JE) = 280d0
-       xy_SeaSfcSalt0(IS:IE,JS:JE) = 35d0
-
+       xyz_U0(:,:,:)     = 0d0
+       xyz_V0(:,:,:)     = 0d0
+       xyz_PTemp0(:,:,:) = 280d0
+       xyz_Salt0(:,:,:)  = 35d0
+       xy_SfcPres0(:,:)  = 0d0
+       xyz_H0(:,:,:)     = xyza_H(:,:,:,TIMELV_ID_N)
     else
 
        !
@@ -285,28 +292,44 @@ contains
 !!$       call get_Field4Standalone( SfcBCDataDir, "SfcPres.nc", "SfcPres", &
 !!$            & MeanInitTime, MeanEndTime, xy=xy_SfcPres0 )       
 
-       call get_Field4Standalone( SfcBCDataDir, "RestartOcnData.nc", "U",       &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xyz=xyz_U0 )
+       call get_Field4Standalone( RestartDataDir, "RestartOcnData.nc", "U",            &
+            & RestartMeanInitTime*Day2Sec, RestartMeanEndTime*Day2Sec, xyz=xyz_U0 )
 
-       call get_Field4Standalone( SfcBCDataDir, "RestartOcnData.nc", "V",       &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xyz=xyz_V0 )
+       call get_Field4Standalone( RestartDataDir, "RestartOcnData.nc", "V",            &
+            & RestartMeanInitTime*Day2Sec, RestartMeanEndTime*Day2Sec, xyz=xyz_V0 )
 
-       call get_Field4Standalone( SfcBCDataDir, "RestartOcnData.nc", "PTemp",   &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xyz=xyz_PTemp0 )
+       call get_Field4Standalone( RestartDataDir, "RestartOcnData.nc", "PTemp",        &
+            & RestartMeanInitTime*Day2Sec, RestartMeanEndTime*Day2Sec, xyz=xyz_PTemp0 )
 
-       call get_Field4Standalone( SfcBCDataDir, "RestartOcnData.nc", "Salt",    &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xyz=xyz_Salt0 )       
+       call get_Field4Standalone( RestartDataDir, "RestartOcnData.nc", "Salt",         &
+            & RestartMeanInitTime*Day2Sec, RestartMeanEndTime*Day2Sec, xyz=xyz_Salt0 )                 
 
-       call get_Field4Standalone( SfcBCDataDir, "RestartOcnData.nc", "H",       &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xyz=xyz_H0 )       
+       call get_Field4Standalone( RestartDataDir, "RestartOcnData.nc", "H",            &
+            & RestartMeanInitTime*Day2Sec, RestartMeanEndTime*Day2Sec, xyz=xyz_H0 )      
 
-       call get_Field4Standalone( SfcBCDataDir, "RestartOcnData.nc", "SfcPres", &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xy=xy_SfcPres0 )       
-       
-       xy_OcnMixLyrDepth(:,:) = xyz_H0(:,:,KS) * z_KAXIS_Weight(KS)
-       
-       !----------------------------
-       
+       call get_Field4Standalone( RestartDataDir, "RestartOcnData.nc", "SfcPres",      &
+            & RestartMeanInitTime*Day2Sec, RestartMeanEndTime*Day2Sec, xy=xy_SfcPres0 )      
+
+    end if
+
+    !$omp parallel
+    !$omp workshare
+    xyza_U(:,:,:,TIMELV_ID_N) = xyz_U0(:,:,:)
+    xyza_V(:,:,:,TIMELV_ID_N) = xyz_V0(:,:,:)
+    xyzaa_TRC(:,:,:,TRCID_PTEMP,TIMELV_ID_N) = xyz_PTemp0(:,:,:)
+    xyzaa_TRC(:,:,:,TRCID_SALT,TIMELV_ID_N) = xyz_Salt0(:,:,:)
+    xya_SfcPres(:,:,TIMELV_ID_N) = xy_SfcPres0(:,:)
+    !$omp end workshare
+    !$omp end parallel
+
+    xy_OcnMixLyrDepth(:,:) = xyz_H0(:,:,KS) * z_KAXIS_Weight(KS)
+    
+    !------------------------------------------------------------------
+
+    !* Set the inital value of sea-ice variables
+    
+    if ( CurrentRunType == RUN_TYPE_COUPLED .and. CurrentRunCycle == 1 ) then
+    else
 !!$       call get_Field4Standalone( SfcBCDataDir, "history_sice.nc", "IceThick",  &
 !!$            & MeanInitTime, MeanEndTime, xy=xy_IceThick0 )
 !!$
@@ -322,35 +345,24 @@ contains
 !!$            & xy_SIceCon0, xy_SnowThick0, xyz_PTemp0(:,:,KS), xyz_Salt0(:,:,KS), & ! (inout)
 !!$            & xy_OcnMixLyrDepth                                                  & ! (in)
 !!$            & )        
-
-       call get_Field4Standalone( SfcBCDataDir, "RestartSIceData.nc", "IceThick",  &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xy=xy_IceThick0 )
-
-       call get_Field4Standalone( SfcBCDataDir, "RestartSIceData.nc", "SnowThick", &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xy=xy_SnowThick0 )
-
-       call get_Field4Standalone( SfcBCDataDir, "RestartSIceData.nc", "SIceCon",   &
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec, xy=xy_SIceCon0 )
        
-       call get_IceFieldStandalone( SfcBCDataDir, "RestartSIceData.nc",          & ! (in)
-            & MeanEndTime*Day2Sec, MeanEndTime*Day2Sec,                          & ! (in)
-            & xy_IceThick0, xyz_SIceTemp0, xyz_SIceEn0, xy_SIceSfcTemp0,         & ! (out)
-            & xy_SIceCon0, xy_SnowThick0, xyz_PTemp0(:,:,KS), xyz_Salt0(:,:,KS), & ! (inout)
-            & xy_OcnMixLyrDepth                                                  & ! (in)
+       call get_Field4Standalone( RestartDataDir, "RestartSIceData.nc", "IceThick",     &
+            & RestartMeanEndTime*Day2Sec, RestartMeanEndTime*Day2Sec, xy=xy_IceThick0 )
+
+       call get_Field4Standalone( RestartDataDir, "RestartSIceData.nc", "SnowThick",    &
+            & RestartMeanEndTime*Day2Sec, RestartMeanEndTime*Day2Sec, xy=xy_SnowThick0 )
+
+       call get_Field4Standalone( RestartDataDir, "RestartSIceData.nc", "SIceCon",      &
+            & RestartMeanEndTime*Day2Sec, RestartMeanEndTime*Day2Sec, xy=xy_SIceCon0 )
+
+       call get_IceFieldStandalone( RestartDataDir, "RestartSIceData.nc",               & ! (in)
+            & RestartMeanEndTime*Day2Sec, RestartMeanEndTime*Day2Sec,                   & ! (in)
+            & xy_IceThick0, xyz_SIceTemp0, xyz_SIceEn0, xy_SIceSfcTemp0,                & ! (out)
+            & xy_SIceCon0, xy_SnowThick0, xyz_PTemp0(:,:,KS), xyz_Salt0(:,:,KS),        & ! (inout)
+            & xy_OcnMixLyrDepth                                                         & ! (in)
             & )        
-       
-       !----------------------------
-       
-       !$omp parallel
-       !$omp workshare
-       xyza_U(:,:,:,TIMELV_ID_N) = xyz_U0(:,:,:)
-       xyza_V(:,:,:,TIMELV_ID_N) = xyz_V0(:,:,:)
-       xyzaa_TRC(:,:,:,TRCID_PTEMP,TIMELV_ID_N) = xyz_PTemp0(:,:,:)
-       xyzaa_TRC(:,:,:,TRCID_SALT,TIMELV_ID_N) = xyz_Salt0(:,:,:)
-       xya_SfcPres(:,:,TIMELV_ID_N) = xy_SfcPres0(:,:)
-       !$omp end workshare
-       !$omp end parallel
-       
+
+    
        !$omp parallel
        !$omp workshare
        xya_IceThick(:,:,TIMELV_ID_N)    = xy_IceThick0(:,:)
@@ -360,57 +372,73 @@ contains
        xyza_SIceTemp(:,:,:,TIMELV_ID_N) = xyz_SIceTemp0(:,:,:)
        xyza_SIceEn(:,:,:,TIMELV_ID_N)   = xyz_SIceEn0(:,:,:)
        !$omp end workshare
-       !$omp end parallel
-
+       !$omp end parallel       
     end if
 
-    !--------------------------------------
+    !----------------------------------------------------------------------------
 
-    ! Set sea surface flux
+    !* Set sea surface flux
+    !
 
-    if ( CurrentRunType == RUN_TYPE_STANDALONE ) then
-    
+    if ( CurrentRunType == RUN_TYPE_COUPLED .and. CurrentRunCycle == 1 ) then
+       xy_WindStressU(:,:) = 0d0
+       xy_WindStressV(:,:) = 0d0
+
+       xy_SDwRFlx(:,:) = 0d0
+       xy_LDwRFlx(:,:) = 0d0
+       xy_SUwRFlx(:,:) = 0d0
+       xy_LUwRFlx(:,:) = 0d0
+       xy_LatHFlx(:,:) = 0d0
+       xy_SenHFlx(:,:) = 0d0
+
+       xy_RainFall(:,:) = 0d0
+       xy_SnowFall(:,:) = 0d0
+
+       xy_DSfcHFlxDTs(:,:) = 0d0
+    else
        ! Input sea surface wind Stress
-       
+    
        call get_Field4Standalone( SfcBCDataDir, "a2o_WindStressX.nc", "a2o_WindStressX", &
-            & MeanInitTime, MeanEndTime, xy=xy_WindStressU )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_WindStressU )
        call get_Field4Standalone( SfcBCDataDir, "a2o_WindStressY.nc", "a2o_WindStressY", &
-            & MeanInitTime, MeanEndTime, xy=xy_WindStressV )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_WindStressV )
 
 
        ! Input sea surface heat flux and fresh water flux (But, they wolud not be used.)
 
        call get_Field4Standalone( SfcBCDataDir, "a2o_SDwRFlx.nc", "a2o_SDwRFlx", &
-            & MeanInitTime, MeanEndTime, xy=xy_SDwRFlx )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SDwRFlx )
        call get_Field4Standalone( SfcBCDataDir, "a2o_LDwRFlx.nc", "a2o_LDwRFlx", &
-            & MeanInitTime, MeanEndTime, xy=xy_LDwRFlx )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LDwRFlx )
        call get_Field4Standalone( SfcBCDataDir, "a2o_SUwRFlx.nc", "a2o_SUwRFlx", &
-            & MeanInitTime, MeanEndTime, xy=xy_SUwRFlx )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SUwRFlx )
        call get_Field4Standalone( SfcBCDataDir, "a2o_LUwRFlx.nc", "a2o_LUwRFlx", &
-            & MeanInitTime, MeanEndTime, xy=xy_LUwRFlx )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LUwRFlx )
        call get_Field4Standalone( SfcBCDataDir, "a2o_LatHFlx.nc", "a2o_LatHFlx", &
-            & MeanInitTime, MeanEndTime, xy=xy_LatHFlx )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LatHFlx )
        call get_Field4Standalone( SfcBCDataDir, "a2o_SenHFlx.nc", "a2o_SenHFlx", &
-            & MeanInitTime, MeanEndTime, xy=xy_SenHFlx )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SenHFlx )
        call get_Field4Standalone( SfcBCDataDir, "a2o_DSfcHFlxDTs.nc", "a2o_DSfcHFlxDTs", &
-            & MeanInitTime, MeanEndTime, xy=xy_DSfcHFlxDTs )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_DSfcHFlxDTs )
 
        call get_Field4Standalone( SfcBCDataDir, "a2o_RainFall.nc", "a2o_RainFall", &
-            & MeanInitTime, MeanEndTime, xy=xy_RainFall )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_RainFall )
 
        call get_Field4Standalone( SfcBCDataDir, "a2o_SnowFall.nc", "a2o_SnowFall", &
-            & MeanInitTime, MeanEndTime, xy=xy_SnowFall )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SnowFall )
 
        call get_Field4Standalone( SfcBCDataDir, "PTemp.nc", "PTemp",   &
-            & MeanInitTime, MeanEndTime, xyz=xyz_PTemp0 )
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xyz=xyz_PTemp0 )
+    end if
 
-       xy_Evap(:,:) = xy_LatHFlx/LatentHeat
-       
+    xy_Evap(:,:)         = xy_LatHFlx/LatentHeat
+    xy_FreshWtFlxS0(:,:) = (xy_RainFall + xy_SnowFall - xy_Evap)/DensFreshWater       
+    
+    if ( CurrentRunType == RUN_TYPE_STANDALONE ) then
 
        ! Report the original input water mass from atmosphere to ocean and sea-ice components. 
        !
        call FileOpen( unit00, file='HydroCycInfo.txt', mode = 'w')
-       xy_FreshWtFlxS0   = (xy_RainFall + xy_SnowFall - xy_Evap)/DensFreshWater       
        write(unit00,*) "Atm -> Ocn, SIce [kg/(m2.s)]:", AvrLonLat_xy(xy_FreshWtFlxS0(IS:IE,JS:JE))*DensFreshWater
        write(unit00,*) "Rain             [kg/(m2.s)]:", AvrLonLat_xy( xy_RainFall(IS:IE,JS:JE) )
        write(unit00,*) "Snow             [kg/(m2.s)]:", AvrLonLat_xy( xy_SnowFall(IS:IE,JS:JE) )
@@ -434,44 +462,41 @@ contains
        InitMass = InitMass - AvrLonLat_xy( Calculus_IntBtmToTop( &
             & (xyz_Salt0(IS:IE,JS:JE,:) - RefSalt)/RefSalt * 1d3,  xyz_H0(IS:IE,JS:JE,:) ) &
             & )
-       
-       !* Store input data 
-
-       !$omp parallel
-       !$omp workshare
-       
-       ! Ocean -----
-       
-       xy_SeaSfcTemp0 = xyz_PTemp0(:,:,KS)
-       xy_SeaSfcSalt0 = xyz_Salt0(:,:,KS)
-
-       xy_WindStressUOcn = xy_WindStressU
-       xy_WindStressVOcn = xy_WindStressV
-       
-       xy_SfcHFlx0_ns    = (xy_LUwRFlx - xy_LDwRFlx) + xy_LatHFlx + xy_SenHFlx
-       xy_SfcHFlx0_sr    = (xy_SUwRFlx - xy_SDwRFlx)
-       xy_DSfcHFlxDTsOcn = xy_DSfcHFlxDTs + 4d0*StB*xy_SeaSfcTemp0**3
-       xy_FreshWtFlxS0   = (xy_RainFall + xy_SnowFall - xy_Evap)/DensFreshWater
-       xy_FreshWtFlx0    = xy_FreshWtFlxS0
-
-       ! Sea ice ----
-
-       xy_WindStressUAI = xy_WindStressU
-       xy_WindStressVAI = xy_WindStressV
-       xy_SDwRFlxSIce   = xy_SDwRFlx
-       xy_LDwRFlxSIce   = xy_LDwRFlx
-       xy_LatHFlxSIce   = xy_LatHFlx
-       xy_SenHFlxSIce   = xy_SenHFlx
-       xy_DLatSenHFlxDTsSIce = xy_DSfcHFlxDTs !+ 4d0*StB*xy_SeaSfcTemp0**3
-       xy_RainFallSIce = xy_RainFall 
-       xy_SnowFallSIce = xy_SnowFall
-       xy_EvapSIce     = xy_Evap
-       !$omp end workshare       
-       !$omp end parallel
-
-
-       
     end if
+    
+    !* Store input data 
+    
+    !$omp parallel
+    !$omp workshare
+    
+    ! Ocean -----
+    
+    xy_SeaSfcTemp0 = xyz_PTemp0(:,:,KS)
+    xy_SeaSfcSalt0 = xyz_Salt0(:,:,KS)
+
+    xy_WindStressUOcn = xy_WindStressU
+    xy_WindStressVOcn = xy_WindStressV
+
+    xy_SfcHFlx0_ns    = (xy_LUwRFlx - xy_LDwRFlx) + xy_LatHFlx + xy_SenHFlx
+    xy_SfcHFlx0_sr    = (xy_SUwRFlx - xy_SDwRFlx)
+    xy_DSfcHFlxDTsOcn = xy_DSfcHFlxDTs + 4d0*StB*xy_SeaSfcTemp0**3
+    xy_FreshWtFlxS0   = (xy_RainFall + xy_SnowFall - xy_Evap)/DensFreshWater
+    xy_FreshWtFlx0    = xy_FreshWtFlxS0
+
+    ! Sea ice ----
+
+    xy_WindStressUAI = xy_WindStressU
+    xy_WindStressVAI = xy_WindStressV
+    xy_SDwRFlxSIce   = xy_SDwRFlx
+    xy_LDwRFlxSIce   = xy_LDwRFlx
+    xy_LatHFlxSIce   = xy_LatHFlx
+    xy_SenHFlxSIce   = xy_SenHFlx
+    xy_DLatSenHFlxDTsSIce = xy_DSfcHFlxDTs !+ 4d0*StB*xy_SeaSfcTemp0**3
+    xy_RainFallSIce = xy_RainFall 
+    xy_SnowFallSIce = xy_SnowFall
+    xy_EvapSIce     = xy_Evap
+    !$omp end workshare       
+    !$omp end parallel
 
 !!$    where(xy_IceThick0 <= 0d0)
 !!$       xy_SnowFall = 0d0
@@ -537,7 +562,7 @@ contains
 
     !-------------------------------------------------------------
 
-!!$    return
+    return
     
     TID_A = TIMELV_ID_N
     TID_N = TIMELV_ID_B
@@ -938,8 +963,9 @@ contains
   !!
   !!
   subroutine read_expConfig( &
-       & RunCycle, RunType,                        & ! (out)
-       & SfcBCDataDir, MeanInitTime, MeanEndTime,  & ! (out)
+       & RunCycle, RunType,                                        & ! (out)
+       & SfcBCDataDir, SfcBCMeanInitTime, SfcBCMeanEndTime,        & ! (out)
+       & RestartDataDir, RestartMeanInitTime, RestartMeanEndTime,  & ! (out)
        & configNmlFileName )
 
     ! モジュール引用; Use statement
@@ -960,8 +986,11 @@ contains
     integer, intent(out) :: RunCycle
     integer, intent(out) :: RunType
     character(STRING), intent(out) :: SfcBCDataDir
-    real(DP), intent(out) :: MeanInitTime
-    real(DP), intent(out) :: MeanEndTime
+    real(DP), intent(out) :: SfcBCMeanInitTime
+    real(DP), intent(out) :: SfcBCMeanEndTime
+    character(STRING), intent(out) :: RestartDataDir
+    real(DP), intent(out) :: RestartMeanInitTime
+    real(DP), intent(out) :: RestartMeanEndTime
     character(*), intent(in) :: configNmlFileName
 
     ! 局所変数
@@ -978,9 +1007,10 @@ contains
     ! NAMELIST group name
     !
     namelist /Exp_APECoupleClimate_nml/ &
-         & OcnMeanDepth,                            &
-         & RunCycle, RunTypeName,                   &
-         & SfcBCDataDir, MeanInitTime, MeanEndTime
+         & OcnMeanDepth,                                           &
+         & RunCycle, RunTypeName,                                  &
+         & SfcBCDataDir, SfcBCMeanInitTime, SfcBCMeanEndTime,      &
+         & RestartDataDir, RestartMeanInitTime, RestartMeanEndTime
 
     ! 実行文; Executable statement
     !
@@ -990,8 +1020,11 @@ contains
     RunCycle     = 1
     RunTypeName  = "Coupled"
     SfcBCDataDir = "./SfcBC"
-    MeanInitTime = 0d0
-    MeanEndTime  = 0d0
+    SfcBCMeanInitTime = 0d0
+    SfcBCMeanEndTime  = 0d0
+    RestartDataDir = "./SfcBC"
+    RestartMeanInitTime = 0d0
+    RestartMeanEndTime  = 0d0
 
     ! NAMELIST からの入力
     ! Input from NAMELIST
@@ -1023,7 +1056,9 @@ contains
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, "RunCycle=%d, RunType=%a", i=(/RunCycle/), ca=(/RunTypeName/))
     call MessageNotify( 'M', module_name, "SfcBCDataDir=%a, Averaged time range %f:%f", &
-         & ca=(/SfcBCDataDir/), d=(/ MeanInitTime, MeanEndTime /) )
+         & ca=(/SfcBCDataDir/), d=(/ SfcBCMeanInitTime, SfcBCMeanEndTime /) )
+    call MessageNotify( 'M', module_name, "RestartDataDir=%a, Averaged time range %f:%f", &
+         & ca=(/RestartDataDir/), d=(/ RestartMeanInitTime, RestartMeanEndTime /) )
     call MessageNotify( 'M', module_name, "OcnMeanDepth=%f [m]", d=(/ OcnMeanDepth /) )
     
   end subroutine read_expConfig

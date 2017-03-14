@@ -27,8 +27,11 @@ module DOGCM_Dyn_driver_mod
        & TRCID_PTEMP, TRCID_SALT
 
   use DOGCM_Admin_GovernEq_mod, only: &
-       & SolverType,                   &
-       & OCNGOVERNEQ_SOLVER_HSPM_VSPM, &
+       & DynEqType,                       &
+       & OCNGOVERNEQ_DYN_HYDROBOUSSINESQ, &
+       & OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR, &
+       & SolverType,                      &
+       & OCNGOVERNEQ_SOLVER_HSPM_VSPM,    &
        & OCNGOVERNEQ_SOLVER_HSPM_VFVM       
 
   !- Dynamical core
@@ -124,18 +127,24 @@ contains
 
 !    call MessageNotify('M', module_name, "SSHRHS..")
 
-    select case(SolverType)
-    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Dyn_spm_SSHRHS( xy_SSH_RHS(IS:IE,JS:JE),        &  ! (out)
-            & xy_SSH(IS:IE,JS:JE), xy_TotDepBasic(IS:IE,JS:JE),   &  ! (in)
-            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), &  ! (in)
-            & xy_FreshWtFlx(IS:IE,JS:JE)   )                         ! (in)
-    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Dyn_hspm_vfvm_SSHRHS( xy_SSH_RHS,               &  ! (out)
-            & xy_SSH, xy_TotDepBasic, xyz_U, xyz_V,               &  ! (in)
-            & xy_FreshWtFlx   )                                      ! (in)
+    select case(DynEqType)
+    case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)
+       select case(SolverType)
+       case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+          call DOGCM_Dyn_spm_SSHRHS( xy_SSH_RHS(IS:IE,JS:JE),        &  ! (out)
+               & xy_SSH(IS:IE,JS:JE), xy_TotDepBasic(IS:IE,JS:JE),   &  ! (in)
+               & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), &  ! (in)
+               & xy_FreshWtFlx(IS:IE,JS:JE)   )                         ! (in)
+       case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+          call DOGCM_Dyn_hspm_vfvm_SSHRHS( xy_SSH_RHS,               &  ! (out)
+               & xy_SSH, xy_TotDepBasic, xyz_U, xyz_V,               &  ! (in)
+               & xy_FreshWtFlx   )                                      ! (in)
+       end select
+    case(OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR)
+       xy_SSH_RHS(:,:) = 0d0
+    case default
+       call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
-    
     
   end subroutine DOGCM_Dyn_driver_SSHRHS
 
@@ -156,21 +165,36 @@ contains
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xyza_HTRC_RHS_phys(IA,JA,KA,TRC_TOT_NUM)
 
+    integer :: n
+    integer :: k
+    
 !    call MessageNotify('M', module_name, "HTRCRHS..")
 
-    select case(SolverType)
-    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Dyn_spm_HTRCRHS( xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,:),      &  ! (out)
-            & xyza_TRC(IS:IE,JS:JE,KS:KE,:),                                                  &  ! (in)
-            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE), &  ! (in)
-            & xyz_OMG(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE),                           &  ! (in)
-            & xyza_HTRC_RHS_phys(IS:IE,JS:JE,KS:KE,:)                                         &  ! (in)
-            & )
-    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Dyn_hspm_vfvm_HTRCRHS( xyza_HTRC_RHS,                           &  ! (out)
-            & xyza_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H,                    &  ! (in)
-            & xyza_HTRC_RHS_phys                                                  &  ! (in)
-            & )
+    select case(DynEqType)
+    case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
+       select case(SolverType)
+       case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+          call DOGCM_Dyn_spm_HTRCRHS( xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,:),      &  ! (out)
+               & xyza_TRC(IS:IE,JS:JE,KS:KE,:),                                                  &  ! (in)
+               & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE), &  ! (in)
+               & xyz_OMG(IS:IE,JS:JE,KS:KE), xyz_H(IS:IE,JS:JE,KS:KE),                           &  ! (in)
+               & xyza_HTRC_RHS_phys(IS:IE,JS:JE,KS:KE,:)                                         &  ! (in)
+               & )
+       case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+          call DOGCM_Dyn_hspm_vfvm_HTRCRHS( xyza_HTRC_RHS,                           &  ! (out)
+               & xyza_TRC, xyz_U, xyz_V, xyz_Div, xyz_OMG, xyz_H,                    &  ! (in)
+               & xyza_HTRC_RHS_phys                                                  &  ! (in)
+               & )
+       end select
+    case(OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR)
+       !$omp parallel do collapse(2)
+       do n=1, TRC_TOT_NUM
+       do k=KS, KE
+          xyza_HTRC_RHS(:,:,k,n) = xyza_HTRC_RHS_phys(:,:,k,n)*xyz_H(:,:,k)
+       end do
+       end do
+    case default
+       call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
     
   end subroutine DOGCM_Dyn_driver_HTRCRHS
@@ -201,28 +225,35 @@ contains
     
 !    call MessageNotify('M', module_name, "MOMBarocRHS..")
 
-    select case(SolverType)
-    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Dyn_spm_MOMBarocRHS( &
-            & xyz_U_RHS(IS:IE,JS:JE,KS:KE), xyz_V_RHS(IS:IE,JS:JE,KS:KE),                     &  ! (out)
-            & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_OMG(IS:IE,JS:JE,KS:KE), &  ! (in)
-            & xyz_Vor(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE),                         &  ! (in)
-            & xyz_H(IS:IE,JS:JE,KS:KE),                                                       &  ! (in)
-            & xyz_Pres(IS:IE,JS:JE,KS:KE), xyz_DensEdd(IS:IE,JS:JE,KS:KE),                    &  ! (in)
-            & xyz_GeoPot(IS:IE,JS:JE,KS:KE),                                                  &  ! (in)
-            & xyz_CoriU(IS:IE,JS:JE,KS:KE), xyz_CoriV(IS:IE,JS:JE,KS:KE),                     &  ! (in)
-            & xyz_URHS_phys(IS:IE,JS:JE,KS:KE), xyz_VRHS_phys(IS:IE,JS:JE,KS:KE)              &  ! (in)
-            & )
-    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Dyn_hspm_vfvm_MOMBarocRHS( &
-            & xyz_U_RHS, xyz_V_RHS,                                &  ! (out)
-            & xyz_U, xyz_V, xyz_OMG, xyz_Vor, xyz_Div, xyz_H,      &  ! (in)
-            & xyz_Pres, xyz_DensEdd, xyz_GeoPot,                   &  ! (in)
-            & xyz_CoriU, xyz_CoriV,                                &  ! (in)
-            & xyz_URHS_phys, xyz_VRHS_phys                         &  ! (in)
-            & )
+    select case(DynEqType)
+    case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
+       select case(SolverType)
+       case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+          call DOGCM_Dyn_spm_MOMBarocRHS( &
+               & xyz_U_RHS(IS:IE,JS:JE,KS:KE), xyz_V_RHS(IS:IE,JS:JE,KS:KE),                     &  ! (out)
+               & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), xyz_OMG(IS:IE,JS:JE,KS:KE), &  ! (in)
+               & xyz_Vor(IS:IE,JS:JE,KS:KE), xyz_Div(IS:IE,JS:JE,KS:KE),                         &  ! (in)
+               & xyz_H(IS:IE,JS:JE,KS:KE),                                                       &  ! (in)
+               & xyz_Pres(IS:IE,JS:JE,KS:KE), xyz_DensEdd(IS:IE,JS:JE,KS:KE),                    &  ! (in)
+               & xyz_GeoPot(IS:IE,JS:JE,KS:KE),                                                  &  ! (in)
+               & xyz_CoriU(IS:IE,JS:JE,KS:KE), xyz_CoriV(IS:IE,JS:JE,KS:KE),                     &  ! (in)
+               & xyz_URHS_phys(IS:IE,JS:JE,KS:KE), xyz_VRHS_phys(IS:IE,JS:JE,KS:KE)              &  ! (in)
+               & )
+       case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+          call DOGCM_Dyn_hspm_vfvm_MOMBarocRHS( &
+               & xyz_U_RHS, xyz_V_RHS,                                &  ! (out)
+               & xyz_U, xyz_V, xyz_OMG, xyz_Vor, xyz_Div, xyz_H,      &  ! (in)
+               & xyz_Pres, xyz_DensEdd, xyz_GeoPot,                   &  ! (in)
+               & xyz_CoriU, xyz_CoriV,                                &  ! (in)
+               & xyz_URHS_phys, xyz_VRHS_phys                         &  ! (in)
+               & )
+       end select
+    case(OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR)
+       xyz_U_RHS(:,:,:) = 0d0
+       xyz_V_RHS(:,:,:) = 0d0
+    case default
+       call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
-    
     
   end subroutine DOGCM_Dyn_driver_MOMBarocRHS
 
@@ -241,20 +272,28 @@ contains
     real(DP), intent(in) :: xy_VBarocForce(IA,JA)
 
  !   call MessageNotify('M', module_name, "MOMBarotRHS..")
-    
-    select case(SolverType)
-    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Dyn_spm_MOMBarotRHS( &
-            & xy_UBarot_RHS(IS:IE,JS:JE), xy_VBarot_RHS(IS:IE,JS:JE),                             &  ! (out)
-            & xy_CoriUBarot(IS:IE,JS:JE), xy_CoriVBarot(IS:IE,JS:JE), xy_SfcPres(IS:IE,JS:JE),    &  ! (in)
-            & xy_UBarocForce(IS:IE,JS:JE), xy_VBarocForce(IS:IE,JS:JE)                            &  ! (in)
-            & )
-    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Dyn_hspm_vfvm_MOMBarotRHS( &
-            & xy_UBarot_RHS, xy_VBarot_RHS,                             &  ! (out)
-            & xy_CoriUBarot, xy_CoriVBarot, xy_SfcPres,                 &  ! (in)
-            & xy_UBarocForce, xy_VBarocForce                            &  ! (in)
-            & )
+
+    select case(DynEqType)
+    case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
+       select case(SolverType)
+       case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+          call DOGCM_Dyn_spm_MOMBarotRHS( &
+               & xy_UBarot_RHS(IS:IE,JS:JE), xy_VBarot_RHS(IS:IE,JS:JE),                             &  ! (out)
+               & xy_CoriUBarot(IS:IE,JS:JE), xy_CoriVBarot(IS:IE,JS:JE), xy_SfcPres(IS:IE,JS:JE),    &  ! (in)
+               & xy_UBarocForce(IS:IE,JS:JE), xy_VBarocForce(IS:IE,JS:JE)                            &  ! (in)
+               & )
+       case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+          call DOGCM_Dyn_hspm_vfvm_MOMBarotRHS( &
+               & xy_UBarot_RHS, xy_VBarot_RHS,                             &  ! (out)
+               & xy_CoriUBarot, xy_CoriVBarot, xy_SfcPres,                 &  ! (in)
+               & xy_UBarocForce, xy_VBarocForce                            &  ! (in)
+               & )
+       end select
+    case(OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR)
+       xy_UBarot_RHS(:,:) = 0d0
+       xy_VBarot_RHS(:,:) = 0d0
+    case default
+       call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
     
   end subroutine DOGCM_Dyn_Driver_MOMBarotRHS
@@ -275,21 +314,28 @@ contains
     real(DP), intent(in) :: DelTimeSSH
     real(DP), intent(in) :: PresTAvgCoefA
 
-    select case(SolverType)
-    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Dyn_spm_BarotUpdate( &
-            & xy_UBarotA(IS:IE,JS:JE), xy_VBarotA(IS:IE,JS:JE),               & ! (out)
-            & xy_SfcPresA(IS:IE,JS:JE), xy_SSHA(IS:IE,JS:JE),                 & ! (out)
-            & xy_Cori(IS:IE,JS:JE), DelTime, DelTimeSSH, PresTAvgCoefA        & ! (in)
-            & )
-    case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Dyn_hspm_vfvm_BarotUpdate( &
-            & xy_UBarotA, xy_VBarotA,                            & ! (out)
-            & xy_SfcPresA, xy_SSHA,                              & ! (out)
-            & xy_Cori, DelTime, DelTimeSSH, PresTAvgCoefA        & ! (in)
-            & )       
+    select case(DynEqType)
+    case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
+       select case(SolverType)
+       case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
+          call DOGCM_Dyn_spm_BarotUpdate( &
+               & xy_UBarotA(IS:IE,JS:JE), xy_VBarotA(IS:IE,JS:JE),               & ! (out)
+               & xy_SfcPresA(IS:IE,JS:JE), xy_SSHA(IS:IE,JS:JE),                 & ! (out)
+               & xy_Cori(IS:IE,JS:JE), DelTime, DelTimeSSH, PresTAvgCoefA        & ! (in)
+               & )
+       case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+          call DOGCM_Dyn_hspm_vfvm_BarotUpdate( &
+               & xy_UBarotA, xy_VBarotA,                            & ! (out)
+               & xy_SfcPresA, xy_SSHA,                              & ! (out)
+               & xy_Cori, DelTime, DelTimeSSH, PresTAvgCoefA        & ! (in)
+               & )       
+       end select
+    case(OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR)
+       xy_UBarotA(:,:) = 0d0
+       xy_VBarotA(:,:) = 0d0
+    case default
+       call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
-    
     
   end subroutine DOGCM_Dyn_driver_BarotUpdate
   

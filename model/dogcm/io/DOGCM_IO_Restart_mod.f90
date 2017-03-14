@@ -95,6 +95,7 @@ module DOGCM_IO_Restart_mod
   character(TOKEN) :: HstDimsList(5)
   
   character(STRING) :: InputTimeRange
+  logical :: isRestartFileOutput
   
 contains
 
@@ -112,6 +113,7 @@ contains
 
     !
     RestartFlag = .false.
+    isRestartFileOutput = .false.
     
     !
     call read_nmlData(configNmlFileName)
@@ -129,8 +131,10 @@ contains
     ! 実行文; Executable statements
     !
 
-    call HistoryClose(history=gthst_rst)
-
+    if (isRestartFileOutput) then
+       call HistoryClose(history=gthst_rst)
+    end if
+    
   end subroutine DOGCM_IO_Restart_Final
 
   !-----------------------------------------
@@ -301,7 +305,6 @@ contains
     
     call HistoryPut('datetime', dateStr, history=gthst_rst)
 
-    
   end subroutine DOGCM_IO_Restart_Output
 
   subroutine DOGCM_IO_Restart_HistGet1D(       &
@@ -570,6 +573,8 @@ contains
     call regist_axis(JAXIS_info, y_CJ(JS:JE), y_JAXIS_Weight(JS:JE))
     call regist_axis(KAXIS_info, z_CK(KS:KE), z_KAXIS_Weight(KS:KE))
 
+    isRestartFileOutput = .true.
+    
   contains
     subroutine regist_axis(axis, cell_pos, cell_weight)
       type(AXIS_INFO), intent(in) :: axis
