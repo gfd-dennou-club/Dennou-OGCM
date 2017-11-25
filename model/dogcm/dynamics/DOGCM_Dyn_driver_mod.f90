@@ -90,6 +90,7 @@ contains
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
        call DOGCM_Dyn_spm_Init( configNmlName )
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_Init( configNmlName )
     end select
     
   end subroutine DOGCM_Dyn_driver_Init
@@ -106,6 +107,7 @@ contains
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
        call DOGCM_Dyn_spm_Final()
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_Dyn_hspm_vfvm_Final()
     end select
     
     

@@ -34,8 +34,8 @@ program ocndiag_main
        & ogcm_main_Init => DOGCM_main_Init,    &
        & ogcm_main_Final => DOGCM_main_Final
 
-  use GridIndex_mod, only: &
-       & IS, IE, JS, JE, KS, KE
+!!$  use GridIndex_mod, only: &
+!!$       & IS, IE, JS, JE, KS, KE
 
   use DOGCM_Admin_Grid_mod, only: &
        & DOGCM_Admin_Grid_Init,        &
@@ -48,6 +48,12 @@ program ocndiag_main
        & z_CDK,                        &
        & DOGCM_Admin_Grid_UpdateVCoord
 
+  use DSIce_Admin_Grid_mod, only: &
+       & DSIce_Admin_Grid_Init,              &
+       & DSIce_Admin_Grid_Final,             &
+       & ISS=>IS, IES=>IE, JSS=>JS, JES=>JE, &
+       & KSS=>KS, KES=>KE
+       
   use DOGCM_Admin_Constants_mod
   use DOGCM_Admin_BC_mod
   use DOGCM_Admin_TInteg_mod
@@ -60,6 +66,12 @@ program ocndiag_main
   use DOGCM_TInt_driver_mod, only: &
        & DOGCM_TInt_driver_Init, DOGCM_TInt_driver_Final, &
        & CurrentTime
+
+  use DSIce_Admin_Constants_mod
+  use DSIce_Admin_GovernEq_mod
+  use DSIce_Admin_Variable_mod, only: &
+       & DSIce_Admin_Variable_Init,   &
+       & xya_IceThick, xya_SnowThick, xya_SIceU, xya_SIceV, xyza_SIceEn
   
   use DOGCM_Exp_driver_mod
   
@@ -68,7 +80,8 @@ program ocndiag_main
        & DiagUtil_GetDensPot
   
   use OcnDiag_HeatTransport_mod, only: &
-       & OcnDiag_HTDiagnose
+       & OcnDiag_HeatTransport_prepair_Output,      &
+       & OcnDiag_HTDiagnose, OcnDiag_SIceHTDiagnose
 
   ! 宣言文; Declareration statements
   !  
@@ -151,21 +164,27 @@ contains
     real(DP) :: y_EulerHT(JA)
     real(DP) :: y_BolusHT(JA)
     real(DP) :: y_IsoDiffHT(JA)
+    real(DP) :: y_OcnHT(JA)
+    real(DP) :: y_SIceHT(JA)
     real(DP) :: y_TotHT(JA)
-
+    real(DP) :: y_NumDiffTend(JA)
+    
     real(DP), parameter :: Unit2PWFac = 1d-15
 
     call OcnDiag_HTDiagnose( &
-         & y_EulerHT, y_BolusHT, y_IsoDiffHT,                                                 &  ! (out)
+         & y_EulerHT, y_BolusHT, y_IsoDiffHT, y_NumDiffTend,                                  &  ! (out)
          & xyza_U(:,:,:,TIMELV_ID_N), xyza_V(:,:,:,TIMELV_ID_N), xyza_OMG(:,:,:,TIMELV_ID_N), &  ! (in)
          & xyzaa_TRC(:,:,:,TRCID_PTEMP,TIMELV_ID_N), xyzaa_TRC(:,:,:,TRCID_SALT,TIMELV_ID_N), &  ! (in)
          & xyza_H(:,:,:,TIMELV_ID_N), xyz_Z, xy_Topo )                                           ! (in)
 
-    y_TotHT(:) = y_EulerHT + y_BolusHT + y_IsoDiffHT
-    
-    call DOGCM_IO_History_HistPut( 'EulerHT', y_EulerHT(JS:JE)*Unit2PWFac )
-    call DOGCM_IO_History_HistPut( 'BolusHT', y_BolusHT(JS:JE)*Unit2PWFac )
-    call DOGCM_IO_History_HistPut( 'IsoDiffHT', y_IsoDiffHT(JS:JE)*Unit2PWFac )
+    call OcnDiag_SIceHTDiagnose( &
+         & y_SIceHT,                                                      & ! (out)
+         & xya_SIceU(:,:,TIMELV_ID_N), xya_SIceV(:,:,TIMELV_ID_N),        & ! (in)
+         & xya_IceThick(:,:,TIMELV_ID_N), xya_SnowThick(:,:,TIMELV_ID_N), & ! (in)
+         & xyza_SIceEn(:,:,:,TIMELV_ID_N) )                                 ! (in)
+
+    y_OcnHT(:) = y_EulerHT + y_BolusHT + y_IsoDiffHT        
+    y_TotHT(:) = y_OcnHT + y_SIceHT
     call DOGCM_IO_History_HistPut( 'TotHT', y_TotHT(JS:JE)*Unit2PWFac )
 
   end subroutine diagnose_OcnHeatTransport
@@ -177,7 +196,8 @@ contains
 
     real(DP), intent(in) :: time
     character(STRING) :: trange
-
+    character(TOKEN), parameter :: SIceHistoryName = 'history_sice.nc'
+    
     trange = trim( 'time='//toChar(time) )
     call MessageNotify('M', PROGRAM_NAME, "get_ncdata..(%a [%a])",  &
          & ca=(/ trange, TimeUnits /) )
@@ -198,6 +218,15 @@ contains
     xya_SSH(:,:,TIMELV_ID_N) = 0d0
     xy_Topo(:,:)             = 5.2d3
     
+    call HistoryGet(SIceHistoryName, 'IceThick', range=trange, quiet=.true.,       &
+         & array=xya_IceThick(ISS:IES,JSS:JES,TIMELV_ID_N) )
+    call HistoryGet(SIceHistoryName, 'SnowThick', range=trange, quiet=.true.,      &
+         & array=xya_SnowThick(ISS:IES,JSS:JES,TIMELV_ID_N) )
+    call HistoryGet(SIceHistoryName, 'SIceEn', range=trange, quiet=.true.,         &
+         & array=xyza_SIceEn(ISS:IES,JSS:JES,KSS:KES,TIMELV_ID_N) )
+    call HistoryGet(SIceHistoryName, 'SIceV', range=trange, quiet=.true.,          &
+         & array=xya_SIceV(ISS:IES,JSS-1:JES,TIMELV_ID_N) )
+    
   end subroutine get_ncdata
 
   !--------------------------------------------------------------------------------
@@ -207,10 +236,8 @@ contains
     call DOGCM_IO_History_RegistVar( 'DensPot', 'IJKT', 'potential density', 'kg/m3' )
     call DOGCM_IO_History_RegistVar( 'BVFreq', 'IJKT', 'Brunt-Vaisala frequency', 's-1' )
 
-    call DOGCM_IO_History_RegistVar( 'EulerHT', 'JT', 'heat transport(eulerian contribution)', 'PW' )
-    call DOGCM_IO_History_RegistVar( 'BolusHT', 'JT', 'heat transport(bolus contribution)', 'PW' )
-    call DOGCM_IO_History_RegistVar( 'IsoDiffHT', 'JT', 'heat transport(isopycnal diffusion contribution)', 'PW' )
-    call DOGCM_IO_History_RegistVar( 'TotHT', 'JT', 'total heat transport', 'PW' )
+    call OcnDiag_HeatTransport_prepair_Output()
+    call DOGCM_IO_History_RegistVar( 'TotHT', 'JT', 'total heat transport(ocean and seaice)', 'PW' )
     
   end subroutine prepair_Output
   
@@ -233,6 +260,9 @@ contains
          & KS, KE, KA, z_CDK,          &
          & DOGCM_Admin_Grid_construct
 
+    use DSIce_Admin_Grid_mod, only: &
+         & DSIce_Admin_Grid_construct
+    
     use SpmlUtil_mod, only: &
          & SpmlUtil_Init
 
@@ -265,9 +295,13 @@ contains
     call GridIndex_Init( configNmlFileOGCM )
     
     call DOGCM_Admin_Constants_Init( configNmlFileOGCM )
-    call DOGCM_Admin_GovernEq_Init( configNmlFileOGCM )  
-    call DOGCM_Admin_Grid_Init( configNmlFileOGCM )
+    call DSIce_Admin_Constants_Init( configNmlFileOGCM )
 
+    call DOGCM_Admin_GovernEq_Init( configNmlFileOGCM )  
+    call DSIce_Admin_GovernEq_Init( configNmlFileOGCM )  
+
+    call DOGCM_Admin_Grid_Init( configNmlFileOGCM )
+    call DSIce_Admin_Grid_Init( configNmlFileOGCM )
 
     ! Initialize some helper modules to solve oceanic flow
     !
@@ -289,7 +323,7 @@ contains
     !-- Grid -------------------------------------------
     
     call DOGCM_Admin_Grid_construct()
-    
+    call DSIce_Admin_Grid_construct()
 
     !-- Solver -----------------------------------------
 
@@ -315,6 +349,7 @@ contains
     
     call DOGCM_Admin_Variable_Init()
 !!$    call DOGCM_Admin_Variable_regist_OuputVars()
+    call DSIce_Admin_Variable_Init()
 
     
     !-- Boundary -------------------------------------

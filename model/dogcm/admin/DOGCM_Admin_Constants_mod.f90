@@ -35,7 +35,7 @@ module DOGCM_Admin_Constants_mod
   real(DP), parameter, public:: GasRUniv = 8.314_DP
                               ! $ R^{*} $ [J K-1 mol-1].
                               ! 普遍気体定数.  Universal gas constant
-  real(DP), parameter, public:: StB = 5.67e-8_DP
+  real(DP), parameter, public:: StB = 5.670373e-8_DP
                               ! $ \sigma_{SB} $ . 
                               ! ステファンボルツマン定数. 
                               ! Stefan-Boltzmann constant
@@ -66,7 +66,8 @@ module DOGCM_Admin_Constants_mod
   real(DP), public, save :: RoughnessParamBottom
 
   real(DP), public, save :: RefDens    
-  real(DP), public, save :: RefTemp    
+  real(DP), public, save :: RefTemp
+  real(DP), public, save :: RefSalt
   real(DP), public, save :: Cp0         
   real(DP), public, save :: RefSoundSpeed
   real(DP), public, save :: ThermalExpanCoef 
@@ -137,7 +138,7 @@ contains
     ! NAMELIST group name
     !
     namelist /constants_nml/ &
-      & RefDens, RefTemp, ThermalExpanCoef, RefSoundSpeed, Cp0, &
+      & RefDens, RefTemp, RefSalt, ThermalExpanCoef, RefSoundSpeed, Cp0, &
       & RPlanet, Omega, Grav,                    &
       & hViscCoef, vViscCoef,                    &
       & hHyperViscCoef, vHyperViscCoef,          &
@@ -168,6 +169,7 @@ contains
     
     RefDens           = 1.027d03
     RefTemp           = 283d0
+    RefSalt           = 35d0
     Cp0               = 3986d0
     RefSoundSpeed     = 1490d0
     ThermalExpanCoef  = 1.67d-04
@@ -213,6 +215,8 @@ contains
     call MessageNotify( 'M', module_name, '  RoughnessParamBottom = %f', d = (/ RoughnessParamBottom  /) )
     call MessageNotify( 'M', module_name, '  RefDens           = %f', d=(/ RefDens /) )
     call MessageNotify( 'M', module_name, '  RefTemp           = %f', d=(/ RefTemp /) )
+    call MessageNotify( 'M', module_name, '  RefSalt           = %f', d=(/ RefSalt /) )
+    call MessageNotify( 'M', module_name, '  LatentHeat        = %f', d=(/ LatentHeat /) )
     call MessageNotify( 'M', module_name, '  Cp0               = %f', d=(/ Cp0 /) )
     call MessageNotify( 'M', module_name, '  RefSoundSpeed     = %f', d=(/ RefSoundSpeed /) )
     call MessageNotify( 'M', module_name, '  ThermalExpanCoef  = %f', d=(/ ThermalExpanCoef /) )

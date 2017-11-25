@@ -21,5 +21,6 @@ bin_PROGRAMS =
 noinst_LTLIBRARIES= libDOGCMTInt.la 
 dist_libDOGCMTInt_la_SOURCES= \
 	DOGCM_TInt_common_mod.f90 \
+	DOGCM_TInt_LFAM3_mod.f90 \
 	DOGCM_TInt_driver_mod.f90
 

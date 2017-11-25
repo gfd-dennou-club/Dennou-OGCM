@@ -127,6 +127,8 @@ contains
     call DOGCM_IO_History_RegistVar( 'SaltRHS_phy', 'T', 'global mean of Salt', 'psu/s' )
     call DOGCM_IO_History_RegistVar( 'SaltRHS_impl', 'T', 'global mean of Salt', 'psu/s' )    
     call DOGCM_IO_History_RegistVar( 'Div', 'IJKT', 'horizontal divergence', 's-1' )    
+    call DOGCM_IO_History_RegistVar( 'PTemp_t_dyn', 'IJKT', 'PTemp tendency of dynamics', 'K/s' )
+
     
   end subroutine DOGCM_TInt_common_Init
 
@@ -207,7 +209,7 @@ contains
        & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,        & ! (out)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xyza_TRC,                & ! (in)
        & xyz_Z, xy_Topo,                                       & ! (in)
-       & dt                                                    & ! (in)
+       & dt, lhst_tend                                         & ! (in)
        & )
     
 !!$    if (present(lhst_tend)) then
@@ -289,7 +291,7 @@ contains
     real(DP), intent(in) :: gamma
     real(DP), intent(in) :: lambda
     
-    logical, intent(in), optional :: lhst_tend
+    logical, intent(in)  :: lhst_tend
     
     ! 作業変数
     ! Work variables
@@ -344,6 +346,8 @@ contains
     real(DP) :: SaltRHS_dyn_tend
     real(DP) :: PTempRHS_impl_tend
     real(DP) :: SaltRHS_impl_tend
+
+    real(DP) :: xyz_Tmp(IA,JA,KA)
     
     ! 実行文; Executable statements
     !
@@ -401,6 +405,14 @@ contains
          & )
     call ProfUtil_RapEnd('OcnDyn_HTRCRHS', 3)
 
+    if (lhst_tend) then
+       do k=KS, KE
+          xyz_Tmp(IS:IE,JS:JE,k) = xyza_HTRC_RHS(IS:IE,JS:JE,k,TRCID_PTEMP)/xyz_H(IS:IE,JS:JE,k) &
+               & - xy_w(w_xy( xyza_TRC_RHS_phy(IS:IE,JS:JE,k,TRCID_PTEMP) ))
+       end do
+       call DOGCM_IO_History_HistPut( 'PTemp_t_dyn', &
+            &  xyz_Tmp(IS:IE,JS:JE,KS:KE) ) 
+    end if
 !!$    xyza_HTRC_RHS(:,:,:,TRCID_PTEMP) = xyza_TRC_RHS_phy(:,:,:,TRCID_PTEMP)*xyz_H    
 !!$    xyza_HTRC_RHS(:,:,:,TRCID_SALT) = xyza_TRC_RHS_phy(:,:,:,TRCID_SALT)*xyz_H
 !!$    write(*,*) "After Dyn:", AvrLonLat_xy(xy_IntSig_BtmToTop_xyz( xyza_HTRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_SALT)/xyz_H(IS:IE,JS:JE,KS:KE)))
@@ -435,10 +447,10 @@ contains
     if (lambda > 0d0) then
        call ProfUtil_RapStart('-OcnImpl_TRC', 3)
        
-       call DOGCM_Phys_driver_ImplTRC( xyza_TRCA,                  & ! (out)
-            & xyza_TRC0, xyza_HTRC_RHS,                             & ! (in)
-            & xyz_HA, xyz_H0, xyz_VDiffCoef, dtTRC, lambda          & ! (in)
-            & )
+       call DOGCM_Phys_driver_ImplTRC( xyza_TRCA,                    & ! (out)
+            & xyza_TRC0, xyza_HTRC_RHS,                              & ! (in)
+            & xyz_HA, xyz_H0, xyz_VDiffCoef, dtTRC, lambda,          & ! (in)
+            & lhst_tend )                                              ! (in)
 
        call ProfUtil_RapEnd('-OcnImpl_TRC', 3)
        

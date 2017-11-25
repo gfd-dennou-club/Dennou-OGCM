@@ -196,7 +196,7 @@ contains
     ! 実行文; Executable statements
     !
     
-    SBConst = 5.67d-8 !5.7948e-8!5.67d-8*1.0219d0
+    SBConst = 5.670373e-8_DP 
     DensFreshWater = 1d3
     DensIce = 905d0
     DensSnow = 330d0
@@ -255,6 +255,7 @@ contains
     call MessageNotify( 'M', module_name, 'DensIce      = %f [kg/m3]',     d=(/ DensIce /))
     call MessageNotify( 'M', module_name, 'DensFreshWater = %f [kg/m3]',     d=(/ DensFreshWater /))
     call MessageNotify( 'M', module_name, 'DensSeaWater = %f [kg/m3]',     d=(/ DensSeaWater /))
+    call MessageNotify( 'M', module_name, 'LFreeze = %f [J/kg]',           d=(/ LFreeze /))
     call MessageNotify( 'M', module_name, 'KSnow        = %f [W.m-1.degC-1]',     d=(/ KSnow /))    
     call MessageNotify( 'M', module_name, 'KIce         = %f [W.m-1.degC-1]',     d=(/ KIce /))    
     call MessageNotify( 'M', module_name, 'AlbedoSnow       = %f [(1)]  ',     d=(/ AlbedoSnow   /))

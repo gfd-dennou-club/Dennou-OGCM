@@ -138,7 +138,7 @@ contains
        & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,        & ! (out)
        & xyz_U, xyz_V, xyz_H, xy_SSH, xyza_TRC,                & ! (in)
        & xyz_Z, xy_Topo,                                       & ! (in)
-       & dt                                                    & ! (in)
+       & dt, lhst_tend                                         & ! (in)
        & )
 
     use DOGCM_VPhys_driver_mod, only: &
@@ -166,7 +166,8 @@ contains
     real(DP), intent(in) :: xyz_Z(IA,JA,KA)
     real(DP), intent(in) :: xy_TOPO(IA,JA)
     real(DP), intent(in) :: dt
-
+    logical, intent(in) :: lhst_tend
+    
     ! 実行文; Executable statements
     !
 
@@ -193,7 +194,7 @@ contains
             & xyz_VViscCoef, xyz_VDiffCoef, xy_BtmFrictCoef,   & ! (out)
             & xyz_U, xyz_V, xyz_H, xy_SSH, xyza_TRC,           & ! (in)
             & xyz_Z, xy_Topo,                                  & ! (in)
-            & dt                                               & ! (in)
+            & dt, lhst_tend                                    & ! (in)
             & )    
     end select
     
@@ -205,8 +206,8 @@ contains
   
   subroutine DOGCM_Phys_driver_ImplTRC( xyza_TRCA,    & ! (out)
        & xyza_TRC0, xyza_HTRC_RHS,                     & ! (in)
-       & xyz_HA, xyz_H0, xyz_VDiffCoef, dt, alpha      & ! (in)
-       & )
+       & xyz_HA, xyz_H0, xyz_VDiffCoef, dt, alpha,     & ! (in)
+       & lhst_tend )
 
     use DOGCM_Phys_spm_mod, only: &
          & DOGCM_Phys_spm_ImplTRC
@@ -225,20 +226,21 @@ contains
     real(DP), intent(in)  :: xyz_VDiffCoef(IA,JA,KA)
     real(DP), intent(in) :: dt
     real(DP), intent(in) :: alpha
+    logical, intent(in) :: lhst_tend
 
     ! 実行文; Executable statements
     !
 
     select case(SolverType)
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-       call DOGCM_Phys_spm_ImplTRC( xyza_TRCA,                                 & ! (out)
+       call DOGCM_Phys_spm_ImplTRC( xyza_TRCA,                                  & ! (out)
             & xyza_TRC0, xyza_HTRC_RHS, xyz_HA, xyz_H0, xyz_VDiffCoef,          & ! (in)
             & dt,  alpha                                                        & ! (in)
             & )
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_Phys_hspm_vfvm_ImplTRC( xyza_TRCA,                           & ! (out)
+       call DOGCM_Phys_hspm_vfvm_ImplTRC( xyza_TRCA,                            & ! (out)
             & xyza_TRC0, xyza_HTRC_RHS, xyz_HA, xyz_H0, xyz_VDiffCoef,          & ! (in)
-            & dt,  alpha                                                        & ! (in)
+            & dt,  alpha, lhst_tend                                             & ! (in)
             & )
     end select
     

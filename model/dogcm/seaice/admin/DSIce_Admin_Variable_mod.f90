@@ -60,6 +60,7 @@ module DSIce_Admin_Variable_mod
 
   public :: DSIce_Admin_Variable_AdvanceTStep
 
+  public :: DSIce_Admin_Variable_regist_OuputVars
   public :: DSIce_Admin_Variable_HistPut
   public :: DSIce_Admin_Variable_HistGet
   public :: DSIce_Admin_Variable_RestartPut
@@ -138,6 +139,18 @@ contains
     
     !----------------------------------------------
 
+    isInitialzed = .true.
+    
+  end subroutine DSIce_Admin_Variable_Init
+
+  !---------------------------------------------------------  
+  
+  subroutine DSIce_Admin_Variable_regist_OuputVars()
+
+    ! 実行文; Executable statements
+    !
+
+
     ! history
 
     call DSIce_IO_History_RegistVar('SIceCon', 'IJT', 'concentration of sea ice', '1')
@@ -149,7 +162,7 @@ contains
     call DSIce_IO_History_RegistVar('IceThick', 'IJT', 'ice-layer thickness', 'm')
     call DSIce_IO_History_RegistVar('SnowThick', 'IJT', 'snow-layer thickness', 'm')
     call DSIce_IO_History_RegistVar('SIceU', 'IJT', 'sea ice velocity (x component)', 'm/s')
-    call DSIce_IO_History_RegistVar('SIceV', 'IJT', 'sea ice velocity (y component)', 'm/s')
+    call DSIce_IO_History_RegistVar('SIceV', 'IJmT', 'sea ice velocity (y component)', 'm/s')
     call DSIce_IO_History_RegistVar('Wice', 'IJT', 'sea-ice formation/melting and snow melting', 'kg/(m2.s)')
     
     ! restart
@@ -172,12 +185,9 @@ contains
     call DSIce_IO_Restart_RegistVar('SnowThick', 'IJT', 'snow-layer thickness', 'm')
     call DSIce_IO_Restart_RegistVar('SnowThickB', 'IJT', 'snow-layer thickness', 'm')
     
-    !-----------------------------------------------
     
-    isInitialzed = .true.
-    
-  end subroutine DSIce_Admin_Variable_Init
-
+  end subroutine DSIce_Admin_Variable_regist_OuputVars
+  
   !> @brief 
   !!
   !!
@@ -285,7 +295,7 @@ contains
     ! 実行文; Executable statement
     !
     
-    if( .not. DSIce_IO_History_isOutputTiming(CurrentTime) ) return
+!!$    if( .not. DSIce_IO_History_isOutputTiming(CurrentTime) ) return
     
     call DSIce_IO_History_HistPut( 'SIceCon', xya_SIceCon(IS:IE,JS:JE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'SIceSfcTemp', xya_SIceSfcTemp(IS:IE,JS:JE, TIMELV_ID_N) )
@@ -294,7 +304,7 @@ contains
     call DSIce_IO_History_HistPut( 'IceThick', xya_IceThick(IS:IE,JS:JE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'SnowThick', xya_SnowThick(IS:IE,JS:JE, TIMELV_ID_N) )
     call DSIce_IO_History_HistPut( 'SIceU', xya_SIceU(IS:IE,JS:JE, TIMELV_ID_N) )
-    call DSIce_IO_History_HistPut( 'SIceV', xya_SIceV(IS:IE,JS:JE, TIMELV_ID_N) )    
+    call DSIce_IO_History_HistPut( 'SIceV', xya_SIceV(IS:IE,JS-1:JE, TIMELV_ID_N) )    
     call DSIce_IO_History_HistPut( 'Wice', xy_Wice(IS:IE,JS:JE) )
 
   end subroutine DSIce_Admin_Variable_HistPut

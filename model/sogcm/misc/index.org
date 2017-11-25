@@ -90,17 +90,19 @@
 ** 海洋海氷結合モデル
 
 - テスト計算
-
   
 ** 大気海洋海氷結合モデル
 
 - モデルの記述
 
 - テスト計算
-  - 大気海洋海氷結合モデルによる水惑星実験 
+  - 大気海洋海氷結合モデルによる水惑星実験
     - [[../experiment/exp_APECoupledAOGCMSeaice/Exp_APECoupledAOGCMSeaice.html][標準実験, 太陽定数依存性]]
 
-
+* INTH07 大気設定による水惑星の気候の太陽定数増減実験
+  - swamp ocean 実験
+  - slab ocean 実験
+  - dynamic ocean 実験
 
 * 発表資料
 

@@ -95,7 +95,7 @@ contains
        & xyz_PTemp_RHS, xyz_Salt_RHS,                     & ! (inout)
        & xyz_ConvIndex,                                   & ! (inout)       
        & xyz_PTemp, xyz_Salt,                             & ! (in)
-       & xyz_Z, z_LyrThickIntWt, dt                       & ! (in)
+       & xyz_H, xyz_Z, z_CDK, dt                          & ! (in)
        & )
 
     use SpmlUtil_mod
@@ -107,8 +107,9 @@ contains
     real(DP), intent(inout) :: xyz_ConvIndex(IA,JA,KA)    
     real(DP), intent(in) :: xyz_PTemp(IA,JA,KA)
     real(DP), intent(in) :: xyz_Salt(IA,JA,KA)
+    real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xyz_Z(IA,JA,KA)
-    real(DP), intent(in) :: z_LyrThickIntWt(KA)
+    real(DP), intent(in) :: z_CDK(KA)
     real(DP), intent(in) :: dt
     
     ! 局所変数
@@ -119,6 +120,7 @@ contains
     real(DP) :: z_PTempOri(KA)
     real(DP) :: z_Salt(KA)
     real(DP) :: z_Z(KA)
+    real(DP) :: z_LyrThickIntWt(KA)
     logical  :: z_isAdjustOccur(KA)
 
     real(DP) :: PTempVInt
@@ -126,13 +128,13 @@ contains
     ! 実行文; Executable statement
     !
     
-    !$omp parallel do private(i, PTempVInt, z_PTempOri, z_PTemp, z_Salt, z_Z, z_isAdjustOccur)
+    !$omp parallel do private(i, PTempVInt, z_PTempOri, z_PTemp, z_Salt, z_Z, z_LyrThickIntWt, z_isAdjustOccur)
     do j=JS,JE
        do i=IS,IE
           z_PTemp(:) = xyz_PTemp(i,j,:)
           z_Salt(:) = xyz_Salt(i,j,:)
           z_Z(:) = xyz_Z(i,j,:)
-
+          z_LyrThickIntWt(:) = xyz_H(i,j,:)*z_CDK(:)
           z_PTempOri = z_PTemp
           PTempVInt = sum(z_LyrThickIntWt(KS:KE)*z_PTemp(KS:KE))
           
@@ -189,6 +191,7 @@ contains
     ! 実行文; Executable statement
     !
 
+
     !
     !
     r_StaticStableFlag(:) = .true.
@@ -203,7 +206,7 @@ contains
           r_StaticStableFlag(k_) = .false.
        end if
     end do
-    
+
     !
     k_ = 0
     nItr = 0

@@ -45,13 +45,14 @@ module DSIce_main_mod
        & DSIce_Admin_GovernEq_Init,          &
        & DSIce_Admin_GovernEq_Final
   
-  use DSIce_Admin_Variable_mod, only:        &
-       & DSIce_Admin_Variable_Init,          & 
-       & DSIce_Admin_Variable_Final,         &
-       & DSIce_Admin_Variable_AdvanceTStep,  &
-       & DSIce_Admin_Variable_HistPut,       &
-       & DSIce_Admin_Variable_HistGet,       &
-       & DSIce_Admin_Variable_RestartPut,    &
+  use DSIce_Admin_Variable_mod, only:           &
+       & DSIce_Admin_Variable_Init,             & 
+       & DSIce_Admin_Variable_Final,            &
+       & DSIce_Admin_Variable_AdvanceTStep,     &
+       & DSIce_Admin_Variable_regist_OuputVars, &
+       & DSIce_Admin_Variable_HistPut,          &
+       & DSIce_Admin_Variable_HistGet,          &
+       & DSIce_Admin_Variable_RestartPut,          &
        & xya_SIceCon, xya_IceThick, xya_SnowThick, &
        & xya_SIceSfcTemp, xyza_SIceTemp
 
@@ -294,6 +295,7 @@ contains
     call MessageNotify( 'M', module_name, 'Set up the remainder part ..' ) 
     
     call DSIce_Admin_Variable_Init()
+    call DSIce_Admin_Variable_regist_OuputVars()
     
     call DSIce_Boundary_driver_Init( configNmlFile )        
     call DSIce_TInt_driver_Init( configNmlFile )

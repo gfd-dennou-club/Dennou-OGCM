@@ -1,10 +1,17 @@
+&DOGCM_nml
+  OCN_do  = .true.,
+  SICE_do = .false.,
+/
+&ProfUtil_nml
+ rap_level=1, 
+/
 &Grid_nml
  IM = 1,
  JM = 64,
- KM = 61, 
+ KM = 60, 
 /
 &TemporalInteg_nml
-  barocTimeIntModeName = 'TimeIntMode_LF', !
+  barocTimeIntModeName = 'TimeIntMode_LFAM3', !
                                            ! [LF / Euler]  
   DelTimeVal = 4.0,
   DelTimeUnit = 'hour',
@@ -32,16 +39,45 @@
   IntUnit = 'day',                  ! 出力間隔の単位 
   FilePrefix = '',
 /
-&RestartFile_nml
+&OGCM_IO_Restart_nml
  OutputFileName = 'Restart.nc', 
  InputFileName  = '', !InitData.nc', 
  IntValue = 200, 
  IntUnit = 'day'
 /
+&SeaIce_IO_History_nml
+  IntValue = 100.0,                  ! 出力間隔の数値
+  IntUnit = 'day',                  ! 出力間隔の単位 
+  FilePrefix = '',
+/
+&SeaIce_IO_Restart_nml
+ OutputFileName = 'Restart_SIce.nc', 
+ InputFileName  = '', !InitData.nc', 
+ IntValue = 100, 
+ IntUnit = 'day'
+/
 &GovernEq_nml
+  SolverTypeName   = 'HSPM-VFVM', 
   DynEqTypeName    = 'HydroBoussinesq', 
   EOSTypeName      = 'EOS_LINEAR',
-  SGSPhysicsNames  = '', 
+                                         ! For EOS Type, 
+					 ! 'EOS_LINEAR, EOS_SIMPLE_NONLINEAR, and EOS_JM95' 
+					 ! are available.
+					 !
+  LPhysNames       = 'LMixMOM, LMixTRC', 
+                                         ! In lateral oceanic physics, 
+					 ! 'LMixMOM, LMixTRC, and RediGM' 
+					 ! are available.
+					 !
+  VPhysNames        = 'VMixMOM, VMixTRC', 
+                                         ! In vertical oceanic physics,
+					 ! 'VMixMOM, VMixTRC, and Convection' are available
+					 !
+/
+&SGSPhys_VMixing_nml
+  VMixCoef_scheme_name = 'Const'         !
+					 ! 'Const or Simple' 
+					 ! are available.
 /
 &SemiImplicitScheme_nml
   VDiffTermACoef    = 0.5,

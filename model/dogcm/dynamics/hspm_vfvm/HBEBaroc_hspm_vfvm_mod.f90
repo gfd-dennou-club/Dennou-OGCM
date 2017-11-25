@@ -26,7 +26,7 @@ module HBEBaroc_hspm_vfvm_mod
        & RPlanet, RefDens
   
   use DOGCM_Admin_Grid_mod, only: &
-       & iMax, jMax, lMax,                      &
+       & iMax, jMax, lMax, nMax,                &
        & IS, IE, IA, JS, JE, JA, KS, KE, KA,    &
        & z_CDK, z_RCDK, z_FDK, z_RFDK,          &
        & JBLOCK
@@ -57,6 +57,9 @@ module HBEBaroc_hspm_vfvm_mod
   !
   character(*), parameter:: module_name = 'HBEBaroc_hspm_vfvm_mod' !< Module Name
 
+  real(DP), allocatable :: w_AdvFilter(:)
+  logical :: initializedFlag = .false.
+  
 contains
 
   !>
@@ -64,11 +67,34 @@ contains
   !!
   Subroutine HBEBaroc_Init()
 
+    ! モジュール引用; Use statements
+    !
+    use SpmlUtil_mod, only: nm_l
+    
     ! 宣言文; Declaration statement
     !
+    integer :: l
+    integer :: Nc
+    integer :: nm(2)
 
     ! 実行文; Executable statements
     !
+
+    allocate( w_AdvFilter(lMax) )
+    
+    Nc = 0.66d0*nMax
+    do l=1, lMax
+       nm(:) = nm_l(l)
+       if (nm(1) < Nc) then
+          w_AdvFilter(l) = 1d0
+       else
+          w_AdvFilter(l) = exp(- 1d0 * ((nm(1) - Nc)/dble(nMax - Nc))**4)
+       end if
+!!$       write(*,*) nm(1), w_AdvFilter(l)
+    end do
+!!$    w_AdvFilter = 1d0
+    
+    initializedFlag = .true.
 
   end subroutine HBEBaroc_Init
 
@@ -80,6 +106,10 @@ contains
     ! 実行文; Executable statements
     !
 
+    if (initializedFlag) then
+       deallocate( w_AdvFilter )
+    end if
+    
   end subroutine HBEBaroc_Final
 
 
@@ -90,7 +120,10 @@ contains
        & xyz_TRC, xyz_U, xyz_V, xyz_Div, xyr_OMG, xyz_H,    &  ! (in)
        & xyz_HTRCRHS_phys )                                    ! (in)
 
-    
+    ! モジュール引用; Use statements
+    !
+    use SpmlUtil_mod
+
     ! 宣言文; Declaration statement
     !
 !!$    real(DP), intent(out) :: wz_HTRC_RHS(lMax,KA)
@@ -108,6 +141,8 @@ contains
     !
     real(DP) :: xyr_ADVFlxZ(IA,JA,KA)
     real(DP) :: xy_Tmp(0:iMax-1,jMax)
+    real(DP) :: xy_Tmp2(IA,JA)
+    real(DP) :: xy_Tmp3(IA,JA)
     real(DP) :: wz_HTRC_RHS(lMax,KA)
     integer :: k
     
@@ -120,6 +155,7 @@ contains
     call calc_ADVFlxZ_QUICK( xyr_ADVFlxZ,   & ! (out)
          & xyr_OMG, xyz_TRC            )      ! (in)   
 
+    
     !$omp parallel private(xy_Tmp)
     !$omp do 
     do k=KS, KE
@@ -130,13 +166,38 @@ contains
     do k=KS, KE
        wz_HTRC_RHS(:,k) = wz_HTRC_RHS(:,k) +  w_xy( &
             &        - (xyr_ADVFlxZ(IS:IE,JS:JE,k-1) - xyr_ADVFlxZ(IS:IE,JS:JE,k))*z_RCDK(k)   &
-            &        +  xyz_H(IS:IE,JS:JE,k)*( + xyz_HTRCRHS_phys(IS:IE,JS:JE,k) )             &
             & )
-
-       xyz_HTRC_RHS(IS:IE,JS:JE,k) = xy_w(wz_HTRC_RHS(:,k))       
+       xyz_HTRC_RHS(IS:IE,JS:JE,k) = xy_w( w_AdvFilter(:) * wz_HTRC_RHS(:,k) )                 &
+            & +  xyz_H(IS:IE,JS:JE,k)*( + xyz_HTRCRHS_phys(IS:IE,JS:JE,k) ) 
     end do
     !$omp end parallel
 
+!!$    if(.true. .and. xyz_TRC(IS,JS,KS) > 50d0) then
+!!$       k = KS
+!!$       xy_Tmp(:,:) = xyz_H(IS:IE,JS:JE,k)*xy_CosLat(:,:)*xyz_TRC(IS:IE,JS:JE,k)
+!!$       xy_Tmp2(IS:IE,JS:JE) = - xy_w( w_AdvFilter*w_AlphaOptr_xy( xyz_U(IS:IE,JS:JE,k)*xy_Tmp, xyz_V(IS:IE,JS:JE,k)*xy_Tmp ) )/5.2d3
+!!$
+!!$       write(*,*) "PotTK1:", xyz_TRC(IS,JS+10:28,KS)
+!!$       write(*,*) "PotTK2:", xyz_TRC(IS,JS+10:28,KS+1)
+!!$       write(*,*) "OMG:", xyr_OMG(IS,JS+10:28,KS)
+!!$       write(*,*) "HFlx:", xy_Tmp2(IS,JS+10:28)*43200d0
+!!$       write(*,*) "VFlx:",( &
+!!$            - (xyr_ADVFlxZ(IS,JS+10:28,KS-1) - xyr_ADVFlxZ(IS,JS+10:28,KS))*z_RCDK(KS)/5.2d3 &
+!!$            ) * 43200d0
+!!$       xy_Tmp(:,:) = -(xyr_ADVFlxZ(IS:IE,JS:JE,KS-1) - xyr_ADVFlxZ(IS:IE,JS:JE,KS))*z_RCDK(KS)/5.2d3
+!!$       xy_Tmp3(IS:IE,JS:JE) = xy_w( w_AdvFilter(:)*w_xy( xy_Tmp(:,:) ))
+!!$!       write(*,*) "VFlxw:", xy_Tmp3(IS,JS+10:28)*43200d0
+!!$       write(*,*) "Dyn:", ( xy_Tmp3(IS,JS+10:28) + xy_Tmp2(IS,JS+10:28))*43200d0
+!!$
+!!$       xy_Tmp3(IS:IE,JS:JE) = xy_w(w_xy(xyz_HTRCRHS_phys(IS:IE,JS:JE,KS)))
+!!$       write(*,*) "Phys:", xyz_HTRCRHS_phys(IS,JS+10:28,KS)*43200d0
+!!$!        write(*,*) "Check:", AvrLonLat_xy(xyz_HTRCRHS_phys(IS:IE,JS:JE,KS)), &
+!!$!            & AvrLonLat_xy(xy_Tmp3(IS:IE,JS:JE))
+!!$!       write(*,*) "Phyys:", xy_Tmp3(IS,JS:JE)*43200d0
+!!$       write(*,*) "P+D:", xyz_HTRC_RHS(IS,JS+10:28,KS)/5.2d3*43200d0
+!!$       write(*,*) "PTemp:", xyz_TRC(IS,JS+10:28,KS)
+!!$    end if
+    
   end subroutine HBEBaroc_HTRCRHS
 
   subroutine calc_ADVFlxZ_Cen2( xyr_ADVFlxZ, & ! (out)
@@ -207,11 +268,12 @@ contains
     do i=IS, IS+_IMAX_-1
        xyz_Diff(i,j,k) =  (   (xyz_TRC(i,j,k-1) - xyz_TRC(i,j,k  ))*z_RFDK(k-1)     &
             &               - (xyz_TRC(i,j,k  ) - xyz_TRC(i,j,k+1))*z_RFDK(k  )     &
-            &             )*0.25d0*z_CDK(k)*(z_RFDK(k-1) + z_RFDK(k))
+!            &             )*0.25d0*z_CDK(k)*(z_RFDK(k-1) + z_RFDK(k))   ! Bug
+            &             )*(z_RFDK(k-1) + z_RFDK(k)) !*z_CDK(k)/z_CDK(k)
     end do
     end do
     end do
-    
+
     !$omp do collapse(2)
     do k=KS+1, KE-2
     do j=JS, JE

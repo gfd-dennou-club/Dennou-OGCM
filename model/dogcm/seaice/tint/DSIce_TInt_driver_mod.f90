@@ -52,6 +52,7 @@ module DSIce_TInt_driver_mod
        & DSIce_TInt_common_Init, DSIce_TInt_common_Final, &
        & DSIce_TInt_common_advance_Dyn,                   &
        & DSIce_TInt_common_advance_ThermoDyn,             &
+       & DSIce_TInt_common_advance_ThermoDyn2,            &
        & DSIce_TInt_common_advance_Phys
   
   ! 宣言文; Declareration statements
@@ -160,11 +161,13 @@ contains
     !
     integer :: TA
     integer :: TN
+    integer :: TB
 
     real(DP) :: xy_SIceCon_thm(IA,JA)
     real(DP) :: xy_IceThick_thm(IA,JA)
     real(DP) :: xy_SnowThick_thm(IA,JA)
     real(DP) :: xyz_SIceEn_thm(IA,JA,KA)
+    real(DP) :: xy_SIceSfcTemp_thm(IA,JA)
     
     ! 実行文; Executable statement
     !
@@ -173,21 +176,24 @@ contains
     TN = TIMELV_ID_N
     
 !    call MessageNotify('M', module_name, "TInt = Euler ..")
-
+ 
     xy_Wice(:,:) = 0d0
 
-    call DSIce_TInt_common_advance_ThermoDyn(  &
+!!$    call DSIce_TInt_common_advance_ThermoDyn(  &    
+    call DSIce_TInt_common_advance_ThermoDyn2(  &
          !----- Tendency due to thermodynamics process ------------------------
          & xy_SIceCon_thm, xy_IceThick_thm, xy_SnowThick_thm,                        & ! (out)
-         & xyz_SIceEn_thm, xya_SIceSfcTemp(:,:,TA),                                  & ! (out) 
+         & xyz_SIceEn_thm, xy_SIceSfcTemp_thm,                                       & ! (out) 
          & xy_Wice,                                                                  & ! (out)
          !----- Time level 0 --------------------------------------------------
          & xya_SIceCon(:,:,TN), xya_IceThick(:,:,TN), xya_SnowThick(:,:,TN),         & ! (in)
          & xya_SIceSfcTemp(:,:,TN), xyza_SIceTemp(:,:,:,TN), xyza_SIceEn(:,:,:,TN),  & ! (in)
+         !------Time level B -------------------------------------------------
          !---------------------------------------------------------------------
          & DelTime                                                                   & ! (in)
          & )
-
+ 
+    xya_SIceSfcTemp(:,:,TA) = xy_SIceSfcTemp_thm
     call DSIce_TInt_common_advance_Dyn(  &
          !----- Time level A --------------------------------------------------
          & xya_SIceCon(:,:,TA), xya_IceThick(:,:,TA), xya_SnowThick(:,:,TA),         & ! (out)
@@ -196,10 +202,9 @@ contains
          & xya_SIceU(:,:,TA), xya_SIceV(:,:,TA),                                     & ! (out)
          & xy_Wice,                                                                  & ! (inout)
          !----- Time level 0 --------------------------------------------------
-         & xya_SIceCon(:,:,TN), xya_IceThick(:,:,TN), xya_SnowThick(:,:,TN),         & ! (out)
-         & xya_SIceSfcTemp(:,:,TN), xyza_SIceTemp(:,:,:,TN), xyza_SIceEn(:,:,:,TN),  & ! (out)
+         & xy_SIceCon_thm, xy_IceThick_thm, xy_SnowThick_thm,                        & ! (out)
+         & xy_SIceSfcTemp_thm, xyz_SIceEn_thm,                                       & ! (out)
          !---------------------------------------------------------------------
-         & xy_SIceCon_thm, xy_IceThick_thm, xy_SnowThick_thm, xyz_SIceEn_thm,        & ! (in) 
          & DelTime                                                                   & ! (in)
          & )
 

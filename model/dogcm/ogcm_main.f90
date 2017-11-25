@@ -189,15 +189,45 @@ contains
          & xyzaa_TRC, TRCID_PTEMP, TRCID_SALT, &
          & xyza_H
 
+    use DSIce_Admin_Variable_mod, only: &
+         & xya_SIceCon, xya_IceThick, xya_SnowThick, &
+         & xya_SIceSfcTemp, xyza_SIceTemp
+
+    use DSIce_Boundary_driver_mod, only: &
+         & DSIce_Boundary_driver_UpdateAfterTstep
+    
+!!$    use DOGCM_Phys_hspm_vfvm_mod, only: &
+!!$         & reconstruct_sfctemp
+    
+!!$    use SpmlUtil_mod, only: w_xy, xy_w
+!!$    use LPhys_DIFF_spm_mod, only: &
+!!$         & w_Filter
+!!$    
+    real(DP) :: xy_SfcTemp(IA,JA)
+    
     ! 実行文; Executable statement
     !
 
+!!$    xy_SfcTemp(:,:) = xyzaa_TRC(:,:,KS,TRCID_PTEMP,TIMELV_ID_N)
+!!$    call reconstruct_sfctemp( xy_SfcTemp )    
+!!$    xy_SfcTemp(IS:IE,JS:JE) = xy_w(w_Filter*w_xy(xyzaa_TRC(IS:IE,JS:JE,KS,TRCID_PTEMP,TIMELV_ID_N)))
+    
     call DSIce_main_update_OcnField( &
          & xyzaa_TRC(:,:,KS,TRCID_PTEMP,TIMELV_ID_N),             & ! (in)
+!!$         & xy_SfcTemp, & ! (in)
          & xyzaa_TRC(:,:,KS,TRCID_SALT,TIMELV_ID_N),              & ! (in)
          & z_KAXIS_Weight(KS)*xyza_H(:,:,KS,TIMELV_ID_N),         & ! (in)
          & xyza_U(:,:,KS,TIMELV_ID_N), xyza_V(:,:,KS,TIMELV_ID_N) & ! (in)
          & )
+
+    if (tstep_sice == 1) then
+       !- Call a subroutine in sea-ice model again
+       ! in order to set surface albedo of sea-ice (and ocean) grid
+       call DSIce_Boundary_driver_UpdateAfterTstep( &
+            & xya_SIceCon(:,:,TIMELV_ID_N), xya_IceThick(:,:,TIMELV_ID_N), xya_SnowThick(:,:,TIMELV_ID_N), & ! (in)
+            & xya_SIceSfcTemp(:,:,TIMELV_ID_N), xyza_SIceTemp(:,:,:,TIMELV_ID_N)                           & ! (in)
+            & )
+    end if
     
   end subroutine pass_field_ocn2sice
 
@@ -229,6 +259,7 @@ contains
          & xy_WindStressUIO, xy_WindStressVIO, &
          & xy_BtmHFlxIO, xy_FreshWtFlxS
 
+    
     ! 局所変数
     ! Local variables
     !
@@ -245,7 +276,7 @@ contains
          & xy_BtmHFlxIO, xy_BtmHFlxIO_sr,                & ! (in)
          & xy_FreshWtFlxS                                & ! (in)
          & )
-
+    
   end subroutine pass_field_sice2ocn
   
   !-----------------------------------------------------------

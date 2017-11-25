@@ -341,6 +341,9 @@ contains
     case ('IJT')
        varDimsLen = 3
        varDims(1:varDimsLen) = (/ HstDimsList(HstDimsID_I),  HstDimsList(HstDimsID_J), HstDimsList(HstDimsID_T) /)
+    case ('JKT')
+       varDimsLen = 3
+       varDims(1:varDimsLen) = (/ HstDimsList(HstDimsID_J),  HstDimsList(HstDimsID_K), HstDimsList(HstDimsID_T) /)
     case ('IJKT')   
        varDimsLen = 4
        varDims(1:varDimsLen) = (/ HstDimsList(HstDimsID_I),  HstDimsList(HstDimsID_J), HstDimsList(HstDimsID_K), &

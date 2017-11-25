@@ -80,6 +80,7 @@ contains
        & IAXIS_name, IAXIS_long_name, IAXIS_units, IAXIS_Wt_units,    & ! (out)
        & IS, IE, IA, IHALO,                                           & ! (out)
        & JAXIS_name, JAXIS_long_name, JAXIS_units, JAXIS_Wt_units,    & ! (out)
+       & JAXIS_half_name, JAXIS_half_long_name, JAXIS_half_units, JAXIS_half_Wt_units,  & ! (out)
        & JS, JE, JA, JHALO,                                           & ! (out)
        & KAXIS_name, KAXIS_long_name, KAXIS_units, KAXIS_Wt_units,    & ! (out)
        & KS, KE, KA, KHALO,                                           & ! (out)
@@ -102,6 +103,10 @@ contains
     character(STRING), intent(out) :: JAXIS_long_name
     character(TOKEN), intent(out) :: JAXIS_units
     character(TOKEN), intent(out) :: JAXIS_Wt_units
+    character(TOKEN), intent(out) :: JAXIS_half_name
+    character(STRING), intent(out) :: JAXIS_half_long_name
+    character(TOKEN), intent(out) :: JAXIS_half_units
+    character(TOKEN), intent(out) :: JAXIS_half_Wt_units
     integer, intent(out) :: JS
     integer, intent(out) :: JE
     integer, intent(out) :: JA
@@ -150,6 +155,11 @@ contains
     JAXIS_units = 'degree_north'
     JAXIS_Wt_units = 'radian'
 
+    JAXIS_half_name = 'lat_half'
+    JAXIS_half_long_name = 'latitude(mid-point)'
+    JAXIS_half_units = 'degree_north'
+    JAXIS_half_Wt_units = 'radian'
+    
     ! k axis
     
     KHALO = 1
@@ -171,7 +181,7 @@ contains
   !!
   subroutine DSIce_Admin_GaussSpmGrid_ConstructGrid( &
        & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
-       & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
+       & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight, y_JAXIS_half_Weight, & ! (out)
        & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
        & xy_Lon, xy_Lat,                                & ! (out)
        & SCALEF_E1, SCALEF_E2,                          & ! (out)
@@ -218,6 +228,7 @@ contains
     real(DP), intent(out) :: y_FJ(JA)
     real(DP), intent(out) :: y_FDJ(JA)
     real(DP), intent(out) :: y_JAXIS_Weight(JA)
+    real(DP), intent(out) :: y_JAXIS_half_Weight(JA)
 
     real(DP), intent(out) :: z_CK(KA)
     real(DP), intent(out) :: z_CDK(KA)
@@ -348,6 +359,8 @@ contains
     end do
     
     !----------------------------------------------------------------------
+
+    y_JAXIS_half_Weight(:) = 0d0
     
 !!$    write(*,*) "-------------------"
 !!$    write(*,*) "x_CI=", x_CI(1:IA)

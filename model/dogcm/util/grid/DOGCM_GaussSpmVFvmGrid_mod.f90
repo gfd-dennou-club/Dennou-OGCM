@@ -83,7 +83,7 @@ contains
     !
 
     ! Read the path to grid data file from namelist.
-    ! call read_nmlData(configNmlFileName)
+    call read_nmlData(configNmlFileName)
 
     isInitialzed = .true.
     
@@ -202,14 +202,15 @@ contains
             & "The number of grid points in longitude must be 1 in DSOGCM_MODE_AXISYM")
     end if
 #endif
-    
+
 #ifdef DSOGCM_MODE_AXISYM
-    nMax = ( 2*jMaxGlobe - 1 )/ 3
+    if (nMax == -1) nMax = ( 2*jMaxGlobe - 1 )/ 3
     lMax = nMax + 1 
 #else
-    nMax = ( iMax - 1 )/ 3
+    if (nMax == -1) nMax = ( iMax - 1 )/ 3
     lMax = ( nMax + 1 )**2
 #endif
+
     
     ! 印字 ; Print
     !
@@ -389,6 +390,7 @@ contains
     
     !
     z_FK(KS-1:KE) = z_SigSpml(:)
+!    z_FK(:) = (/ ( - 1d0/dble(KE-KS+ 1)*dble(k-(KS-1)), k=KS-1, KE) /)
     do k = KS, KE
        z_CK(k)  = 0.5d0*(z_FK(k-1) + z_FK(k))
     end do
@@ -411,7 +413,7 @@ contains
 !!$    write(*,*) z_CDK(KS-1:KE+1)
 !!$    write(*,*) z_FDK(KS-1:KE)    
 !!$    stop
-    
+
     !-----------------------------------------------------------------------
 
     !$omp parallel do private(i, v_Lat)
@@ -445,5 +447,73 @@ contains
   end subroutine DOGCM_GaussSpmVFvmGrid_ConstructGrid
   
   !------------------------------------------------------
+
+!--------------------------------------------------------
+    
+  subroutine read_nmlData( configNmlFileName )
+
+    ! モジュール引用; Use statement
+    !
+
+    ! ファイル入出力補助
+    ! File I/O support
+    !
+    use dc_iounit, only: FileOpen
+
+    ! 種別型パラメタ
+    ! Kind type parameter
+    !
+    use dc_types, only: STDOUT ! 標準出力の装置番号. Unit number of standard output
+
+    ! 宣言文; Declaration statement
+    !
+    character(*), intent(in) :: configNmlFileName
+
+    ! 局所変数
+    ! Local variables
+    !
+    integer:: unit_nml        ! NAMELIST ファイルオープン用装置番号. 
+    ! Unit number for NAMELIST file open
+
+    integer:: iostat_nml      ! NAMELIST 読み込み時の IOSTAT. 
+    ! IOSTAT of NAMELIST read
+
+    integer :: NM
+
+    ! NAMELIST 変数群
+    ! NAMELIST group name
+    !
+    namelist /grid_spm_nml/ &
+         & NM
+
+    ! 実行文; Executable statements
+
+    ! デフォルト値の設定
+    ! Default values settings
+    !
+    
+    NM = -1
+    
+    ! NAMELIST からの入力
+    ! Input from NAMELIST
+    !
+    if ( trim(configNmlFileName) /= '' ) then
+       call MessageNotify( 'M', module_name, "reading namelist '%a'", ca=(/ configNmlFileName /))
+       call FileOpen( unit_nml, &          ! (out)
+            & configNmlFileName, mode = 'r' ) ! (in)
+
+       rewind( unit_nml )
+       read( unit_nml, &              ! (in)
+            & nml = grid_spm_nml, &   ! (out)
+            & iostat = iostat_nml )   ! (out)
+       close( unit_nml )
+    end if
+
+    nMax = NM
+    
+    ! 印字 ; Print
+    !
+    
+  end subroutine read_nmlData
   
 end module DOGCM_GaussSpmVFvmGrid_mod

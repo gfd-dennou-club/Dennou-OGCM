@@ -32,7 +32,7 @@ module LPhys_DIFF_spm_mod
        & w_Lapla_w,            &
        & calc_VorDiv2UV,       &
        & calc_UVCosLat2VorDiv, &
-       & xy_CosLat, rn
+       & xy_CosLat, rn, nm_l
   
   use DOGCM_Admin_Constants_mod, only: &
        & PI, RPlanet,               &
@@ -58,6 +58,8 @@ module LPhys_DIFF_spm_mod
   
   public :: LPhys_DIFF_spm_LMixTRCRHS
   public :: LPhys_DIFF_spm_LMixTRCRHSImpl
+
+  public :: LPhys_DIFF_AdaptiveFilter4SIce
   
   ! 公開変数
   ! Publicvariable
@@ -68,6 +70,7 @@ module LPhys_DIFF_spm_mod
   real(DP), public :: NumViscCoefH  
   real(DP), public :: NumDiffCoefH
   integer, public :: NumDiffOrdH
+  integer, public :: NumDiffCutWaveNum
 
   ! 非公開手続き
   ! Private procedure
@@ -79,9 +82,12 @@ module LPhys_DIFF_spm_mod
 
   real(DP), allocatable :: w_HDiffCoefH(:)
   real(DP), allocatable :: w_HViscCoefH(:)
-
+  real(DP), allocatable :: w_Filter(:)
+  
   character(*), parameter:: module_name = 'LPhys_DIFF_spm_mod' !< Module Name
   logical :: isInitialzed = .false.
+
+  public :: w_Filter, w_HDiffCoefH, w_HViscCoefH
   
 contains
 
@@ -106,6 +112,8 @@ contains
 
     integer :: l
     real(DP) :: w_LaplaEigVal(lMax)
+    integer :: nm(2)
+    integer :: Nc
     
     ! 実行文; Executable statements
     !
@@ -131,9 +139,14 @@ contains
 
     allocate(w_HViscCoefH(lMax))    
     allocate(w_HDiffCoefH(lMax))
-
+    allocate(w_Filter(lMax))
+    
     w_LaplaEigVal(:) = rn(:,1)/RPlanet**2
-    !$omp parallel do
+
+!!$    Nc = int( 0.5d0 * nMax )
+!!$    write(*,*) "Nc=",  Nc
+    
+    !    !$omp parallel do private(nm)
     do l = 1, lMax
        w_HDiffCoefH(l) = -(    DiffCoefH*(-w_LaplaEigVal(l))                              &
             &                + NumDiffCoefH*(-w_LaplaEigVal(l))**(NumDiffOrdH/2) )
@@ -142,8 +155,25 @@ contains
             &                +  NumDiffCoefH*(  (-w_LaplaEigVal(l))**(NumDiffOrdH/2)      &
             &                +                - (2d0/RPlanet**2)**(NumDiffOrdH/2) )        &
             &             )
+
+!!$       nm(:) = nm_l(l)
+!!$       write(*,*) nm(1), ":", (nm(1) - Nc)/dble(nMax - Nc)
+!!$       if (nm(1) < Nc) then
+!!$          w_Filter(l) = 1d0
+!!$       else
+!!$          w_Filter(l) = exp(- 0.18d0 * ((nm(1) - Nc)/dble(nMax - Nc))**4)
+!!$       end if
+       w_Filter(l) = 1d0
     end do
     
+    write(*,*) "Filter information (super spectral viscosity & dealiasing)"
+    write(*,*) "total wavenumber | SSVFilter(MOM) | SSVFilter(TRC) | Filter for dealiasing"
+    do l=1, lMax
+       nm(:) = nm_l(l)
+       write(*,'(i,3(ES15.7))') nm(1),  &
+            & 1d0/(1d0 - 43200d0*w_HViscCoefH(l)), 1d0/(1d0 - 43200d0*w_HDiffCoefH(l)), &
+            & w_Filter(l)
+    end do
     !----------------------------------------
     
     isInitialzed = .true.
@@ -159,7 +189,7 @@ contains
     !
 
     if( isInitialzed ) then
-       deallocate( w_HDiffCoefH, w_HViscCoefH )
+       deallocate( w_HDiffCoefH, w_HViscCoefH, w_Filter )
     end if
     
   end subroutine LPhys_DIFF_spm_Final
@@ -386,6 +416,134 @@ contains
     end do
     
   end subroutine LPhys_DIFF_spm_LMixTRCRHSImpl
+
+  subroutine LPhys_DIFF_AdaptiveFilter4SIce( &
+       & xyza_TRC, xy_OcnSfcCellMask )
+
+    use SpmlUtil_mod
+    use DOGCM_Admin_Grid_mod, only: &
+         & xy_Lon, xy_Lat, &
+         & x_IAXIS_Weight, y_JAXIS_Weight
+    use DOGCM_Admin_Variable_mod, only: &
+         & TRCID_PTEMP
+    use DOGCM_Boundary_Vars_mod, only: &
+         & OCNCELLMASK_OCEAN, OCNCELLMASK_SICE
+    
+    real(DP), intent(inout) :: xyza_TRC(IA,JA,KA,TRC_TOT_NUM)
+    integer, intent(in) :: xy_OcnSfcCellMask(IA,JA)
+
+    integer :: i
+    integer :: j
+    integer :: j2
+    integer :: k
+    integer :: p
+    integer :: l
+    real(DP) :: w_Filter_Sfc(lMax)
+    real(DP) :: xy_Mollifier(IA,JA)
+    integer :: nm(2)
+    real(DP) :: xi
+
+    real(DP) :: xy_Q(IA,JA)
+    real(DP) :: xy_QN(IA,JA)
+    real(DP) :: w_Q(lMax)
+
+    real(DP) :: a_SIceEdgeLat(10)
+    integer :: NSIceEdge
+    real(DP) :: dist
+    integer :: xy_filter_order(IA,JA)
+    real(DP) :: wy_Pn(lMax,JA)
+    real(DP) :: mu
+    real(DP) :: cp
+    real(DP) :: sigma_c
+
+    real(DP) :: xi_c
+    
+    xy_QN(:,:) = xyza_TRC(:,:,KS,TRCID_PTEMP)
+
+    p = 4d0 !max( 2d0, (sqrt(nMax*dist/(0.2d0*PI))) )
+    cp = 32d0!2**p * 0.75d0 * (9d0*p**2 + 3d0*p + 14d0)/(9d0*p**2 + 12d0*p + 4d0)
+    xi_c = 2d0/3d0
+    do l=1, lMax
+       nm(:) = nm_l(l)
+       xi = nm(1)/dble(nMax)
+       if (xi < xi_c ) then
+          w_Filter_Sfc(l) = 1d0
+       else if (xi >= xi_c) then
+          w_Filter_Sfc(l) = exp(-cp*((xi - xi_c)**p)) !exp(cp*xi**p/(xi**2 - 1d0))
+       end if
+       sigma_c = 0.5d0*(1d0 + cos(PI*xi))
+       !sigma_c**4*(35d0 - 84d0*sigma_c + 70d0*sigma_c**2 - 20d0*sigma_c**3)
+    end do
+
+    write(*,*) w_Filter_Sfc
+    xyza_TRC(IS:IE,JS:JE,KS,TRCID_PTEMP) = xy_w(w_xy(xy_QN(IS:IE,JS:JE))*w_Filter_Sfc)
+    return
+    
+    NSIceEdge = 0
+    i = IS
+    do j = JS, JE-1
+       if(     (     (xy_OcnSfcCellMask(i,j  ) == OCNCELLMASK_OCEAN)   &
+         &     .and. (xy_OcnSfcCellMask(i,j+1) == OCNCELLMASK_SICE ) ) &
+         & .or.(     (xy_OcnSfcCellMask(i,j  ) == OCNCELLMASK_SICE)   &
+         &     .and. (xy_OcnSfcCellMask(i,j+1) == OCNCELLMASK_OCEAN ) ) ) then
+          NSIceEdge = NSIceEdge + 1
+          if (NSIceEdge > size(a_SIceEdgeLat)) then
+             write(*,*) "The number of iceline exceed expectations. Check!"
+             stop
+          end if
+          a_SIceEdgeLat(NSIceEdge) = 0.5d0*(xy_Lat(i,j) + xy_Lat(i,j+1))
+       end if
+    end do
+    do j = JS, JE
+       mu = sin(xy_Lat(i,j))
+       wy_Pn(1,j) = 1d0
+       wy_Pn(2,j) = sqrt(3d0)*mu
+       do l=3, lMax
+          nm(:) = nm_l(l)          
+          wy_Pn(l,j) = &
+               &   sqrt((2*nm(1) - 1d0)*(2*nm(1) + 1d0))/dble(nm(1)) * mu * wy_Pn(l-1,j)      &
+               & - (nm(1) - 1)*sqrt(2*nm(1) + 1d0)/(nm(1)*sqrt(2*nm(1) - 3d0)) * wy_Pn(l-2,j)          
+       end do
+    end do
+    
+    do j = JS, JE
+    do i = IS, IE
+       xy_Q(:,:) = 0d0; xy_Q(i,j) = 1d0
+       w_Q(:) = w_xy(xy_Q(IS:IE,JS:JE))
+
+       dist = minval( abs(xy_Lat(i,j) - a_SIceEdgeLat(1:NSIceEdge)) )
+       p = 2d0 !max( 2d0, (sqrt(nMax*dist/(0.2d0*PI))) )
+       cp = 1d0!2**p * 0.75d0 * (9d0*p**2 + 3d0*p + 14d0)/(9d0*p**2 + 12d0*p + 4d0)
+       xy_filter_order(i,j) = p
+
+       do l=1, lMax
+          nm(:) = nm_l(l)
+
+          xi = nm(1)/dble(nMax)
+          if (xi < 1d0) then
+             w_Filter(l) = exp(cp*xi**p/(xi**2 - 1d0))
+          else
+             w_Filter(l) = 0d0
+          end if
+       end do
+
+       do j2=JS, JE
+          xy_Mollifier(IS,j2) = sum(w_Filter*w_Q*wy_Pn(:,j2)) / (x_IAXIS_Weight(i)*y_JAXIS_Weight(j))
+       end do
+       xy_QN(i,j) = IntLonLat_xy( xy_Mollifier(IS:IE,JS:JE) * xyza_TRC(IS:IE,JS:JE,KS,TRCID_PTEMP) )
+    end do
+    end do
+
+    
+!!$    write(*,*) "SIceLat", a_SIceEdgeLat(1:NSIceEdge)
+!!$    write(*,*) "FilterOrfer:", xy_filter_order(IS,JS:JE)
+!!$    write(*,*) "Before:", xyza_TRC(IS,JS:JE,KS,TRCID_PTEMP)
+!!$    write(*,*) "After:", xy_QN(IS,JS:JE)
+!!$    write(*,*) IntLonLat_xy(xy_QN(IS:IE,JS:JE)), IntLonLat_xy(xyza_TRC(IS:IE,JS:JE,KS,TRCID_PTEMP))
+!!$    stop
+    xyza_TRC(IS:IE,JS:JE,KS,TRCID_PTEMP) = xy_QN(IS:IE,JS:JE)
+    
+  end subroutine LPhys_DIFF_AdaptiveFilter4SIce
   
   !--------------------------------------------------------------------------------------------------
 
@@ -427,17 +585,17 @@ contains
     real(DP) :: NumDiffTimeValSec
     character(TOKEN) :: NumDiffTimeUnit
     
-    
     ! NAMELIST 変数群
     ! NAMELIST group name
     !
     namelist /LPhys_DIFF_nml/ &
-         & ViscCoefH,      &
-         & DiffCoefH,      &
-         & NumDiffOrdH,    &
-         & NumDiffCoefH,   &
-         & NumDiffTimeVal, &
-         & NumDiffTimeUnit
+         & ViscCoefH,        &
+         & DiffCoefH,        &
+         & NumDiffOrdH,      &
+         & NumDiffCoefH,     &
+         & NumDiffTimeVal,   &
+         & NumDiffTimeUnit,  &
+         & NumDiffCutWaveNum
 
     ! 実行文; Executable statements
 
@@ -451,6 +609,7 @@ contains
     NumDiffCoefH    = -1d0
     NumDiffTimeVal  = 1d100
     NumDiffTimeUnit = 'day'
+    NumDiffCutWaveNum = 0
     
     ! NAMELIST からの入力
     ! Input from NAMELIST

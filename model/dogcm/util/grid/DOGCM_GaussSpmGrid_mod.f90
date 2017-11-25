@@ -210,7 +210,7 @@ contains
     nMax = ( iMax - 1 )/ 3
     lMax = ( nMax + 1 )**2
 #endif
-    
+
     ! 印字 ; Print
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )

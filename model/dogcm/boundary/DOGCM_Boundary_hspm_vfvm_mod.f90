@@ -22,8 +22,7 @@ module DOGCM_Boundary_hspm_vfvm_mod
   !* Dennou-OGCM
 
   use DOGCM_Admin_Constants_mod, only: &
-       & RefDens, Cp0
-    
+       & RefDens, RefSalt, Cp0    
 
   use DOGCM_Admin_Grid_mod, only: &
        & IA, IS, IE, IM, &
@@ -83,8 +82,6 @@ module DOGCM_Boundary_hspm_vfvm_mod
   !< The depth of mixed layer near sea surface to specify Haney-type boundary condition.
   real(DP), parameter :: MixLyrDepthConst = 50d0
 
-  !< Reference salinity to calculate virtual salinity flux. 
-  real(DP), public, parameter :: RefSalt_VBC = 35d0
   
   ! 非公開変数
   ! Private variable
@@ -259,7 +256,7 @@ contains
          & SaltBCTYPE_SaltRelaxed                           &
          & )
        xya_Salt_VBCRHS(:,:,1) = - xyz_H(:,:,KS)/xyz_VDiffCoef(:,:,KS)*( &
-            & xy_FreshWtFlxS(:,:) * RefSalt_VBC )
+            & xy_FreshWtFlxS(:,:) * RefSalt )
     case default 
        call throw_UnImplementVBCError('SaltBC_Surface', SaltBC_Surface)       
     end select

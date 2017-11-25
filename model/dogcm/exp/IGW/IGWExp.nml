@@ -9,7 +9,7 @@
  IM = 1,
 ! IM = 128,
  JM = 64,
- KM = 61, 
+ KM = 60, 
 /
 &SeaIce_Grid_nml
  IM = 1,
@@ -17,7 +17,7 @@
 /
 &TemporalInteg_nml
 !  barocTimeIntModeName = 'TimeIntMode_Euler', 
-  barocTimeIntModeName = 'TimeIntMode_LF', 
+  barocTimeIntModeName = 'TimeIntMode_LFAM3', 
   DelTimeVal = 0.5,
   DelTimeUnit = 'hour',
   ReStartTimeVal = 0.0, 
@@ -62,6 +62,7 @@
  IntUnit = 'day'
 /
 &GovernEq_nml
+  SolverTypeName   = 'HSPM-VFVM', 
   DynEqTypeName    = 'HydroBoussinesq', 
   EOSTypeName      = 'EOS_LINEAR',
                                          ! For EOS Type, 
@@ -102,12 +103,12 @@
                               ! Gravitational acceleration
  AlbedoOcean = 0.1d0,
  EmissivOcean = 1d0, !0.97d0, 
- hViscCoef   = 0d0,
+ hViscCoef   = 3d5,
  vViscCoef   = 1d-02,
  hHyperViscCoef = 0d11, 
  vHyperViscCoef = 0d-7, 
- hDiffCoef   = 0d2,
- vDiffCoef   = 3d-05, 
+ hDiffCoef   = 0d5,
+ vDiffCoef   = 0d-05, 
  hHyperDiffCoef = 0d13, !5d13, 
  vHyperDiffCoef = 0d-7, 
  RoughnessParamBottom = 0.01,	

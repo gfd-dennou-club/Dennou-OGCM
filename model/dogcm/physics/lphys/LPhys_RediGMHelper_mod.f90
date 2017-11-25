@@ -29,7 +29,7 @@ module LPhys_RediGMHelper_mod
        & IS, IE, IA, JS, JE, JA, KS, KE, KA,  &
        & xyz_Lat, xyz_Lon,                    &
        & KS, KE, z_CK,                        &
-       & JBLOCK
+       & JBLOCK, xy_Topo
 #include "../../admin/DOGCM_Admin_GaussSpmGridIndexDef.h"
 
  
@@ -307,13 +307,15 @@ contains
     real(DP) :: z_r(KA)
     real(DP) :: z_Depth(KA)
     real(DP) :: r
-    real(DP) :: xy_BarocEddyDispZ(IA,JA)
+    real(DP) :: xy_BarocEddyDispZMax(IA,JA)
     real(DP) :: tmpBarocEddyDispZ
     real(DP) :: xy_BarocEddDispH(IA,JA)    
     real(DP) :: SlopeABS
+    real(DP) :: z_SlopeABS(KA)
     real(DP) :: SlopeABSMax
 
     real(DP), parameter :: c   = 2d0
+    real(DP), parameter :: SlopeSqrtCutOff = 4d-3
     real(DP), parameter :: EPS = 1d-13
 
     integer :: i
@@ -321,82 +323,121 @@ contains
     integer :: jj
     integer :: k
     integer :: kStart(1)
+    real(DP) :: xi
     
     ! 実行文; Executable statement
     !
 
-    !$omp parallel do private(i,j) collapse(2)
+    !$omp parallel private(i,j,k,SlopeABS,tmpBarocEddyDispZ,r, xi)
+    !$omp do 
     do j=JS, JE
     do i=IS, IS+_IM_-1
        xy_BarocEddDispH(i,j) = c/(2d0*Omega*abs(sin(xy_Lat(i,j))))
-       xy_BarocEddyDispZ(i,j) = SlopeMaxVal*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)       
+       xy_BarocEddDispH(i,j) = min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
+       xy_BarocEddyDispZMax(i,j) = SlopeMaxVal*xy_BarocEddDispH(i,j)
     end do
     end do
     
+!!$    !$omp do collapse(2)
 !!$    do k=KS, KE
-!!$       do j=1,jMax
-!!$          do i=0, iMax-1
-!!$             SlopeABS = sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
-!!$             tmpBarocEddyDispZ = min(max(15d3, xy_BarocEddDispH(i,j)), 100d3)*SlopeABS
-!!$             r =  min(0d0 - xyz_Depth(i,j,k), xyz_Depth(i,j,k) - xyz_Depth(i,j,KE))/tmpBarocEddyDispZ
-!!$             if(r < 1d0) then
-!!$                xyz_f(i,j,k) = 0.5d0*(1d0 + sin(PI*(r - 0.5d0)))
-!!$             else
-!!$                xyz_f(i,j,k) = 1d0
-!!$             end if
-!!$          end do
-!!$       end do
+!!$    do j=JS, JE
+!!$    do i=IS, IE+_IM_-1
+!!$       xi = min( 0d0 - xyz_Depth(i,j,k), xyz_Depth(i,j,k) - (-xy_Topo(i,j)) )
+!!$       xyz_f(i,j,k) = 1d0
+!!$       if (xi < xy_BarocEddyDispZMax(i,j)) then
+!!$          SlopeABS = sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
+!!$          tmpBarocEddyDispZ = min(SlopeABS, SlopeSqrtCutOff)*xy_BarocEddDispH(i,j) + EPS
+!!$          r =  xi/tmpBarocEddyDispZ
+!!$          if(r < 1d0) then
+!!$             xyz_f(i,j,k) = 0.5d0*(1d0 + sin(PI*(r - 0.5d0)))
+!!$          end if
+!!$       end if
 !!$    end do
+!!$    end do
+!!$    end do
+    !$omp end parallel
+
 !!$    return
-!!$    
-!!$
 
-
-    !$omp parallel do private(i, j, k, kStart, SlopeABSMax, SlopeABS, tmpBarocEddyDispZ, z_r, z_Depth) collapse(2)
+    !$omp parallel do private(i, j, k, kStart, SlopeABSMax, SlopeABS, tmpBarocEddyDispZ, z_r, z_Depth, z_SlopeABS) collapse(2)
     do j=JS, JE
     do i=IS, IS+_IM_-1
           
-          z_r(:) = 1d0
-          z_Depth(:) = xyz_Depth(i,j,:)
+!!$          z_r(:) = 1d0
+!!$          z_Depth(:) = xyz_Depth(i,j,:)
+!!$          z_SlopeABS(:) = sqrt(xyz_SLon(i,j,:)**2 + xyz_SLat(i,j,:)**2)          
+!!$          !
+!!$          SlopeABSMax = 0d0
+!!$          kStart = min(KE, minloc(abs(xy_BarocEddyDispZMax(i,j)-(0d0-z_Depth(KS:KE))))+1)
+!!$
+!!$          do k=kStart(1), KS, -1
+!!$             SlopeABS = xyz_fDM95(i,j,k)*sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
+!!$             if(SlopeABS > SlopeABSMax) SlopeABSMax = SlopeABS
+!!$          end do
+!!$          tmpBarocEddyDispZ = SlopeABSMax*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
+!!$          do k=KS, KE
+!!$             z_r(k) = (0d0 - z_Depth(k))/(tmpBarocEddyDispZ + EPS)
+!!$             if(z_r(k) > 1d0) then
+!!$                z_r(k) = 1d0; exit
+!!$             end if
+!!$          end do
+!!$          
+!!$          SlopeABSMax = 0d0          
+!!$          kStart = minloc(abs(xy_BarocEddyDispZMax(i,j)-(z_Depth(KS:KE)-z_Depth(KE))))
+!!$          do k=kStart(1), KE, +1
+!!$             SlopeABS = xyz_fDM95(i,j,k)*sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
+!!$             if(SlopeABS > SlopeABSMax) SlopeABSMax = SlopeABS
+!!$          end do
+!!$          tmpBarocEddyDispZ = SlopeABSMax*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
+!!$          do k=KE, KS, -1
+!!$             z_r(k) = (z_Depth(k) - z_Depth(KE))/(tmpBarocEddyDispZ + EPS)
+!!$             if(z_r(k) > 1d0) then
+!!$                z_r(k) = 1d0; exit
+!!$             end if
+!!$          end do
+
+       !----
+       
+       z_r(:) = 1d0
+       z_Depth(:) = xyz_Depth(i,j,:)
+       z_SlopeABS(:) = sqrt(xyz_SLon(i,j,:)**2 + xyz_SLat(i,j,:)**2)          
+
+       SlopeABSMax = 0d0          
+       do k=KS, KE
+          if ( z_SlopeABS(k) > SlopeABSMax ) SlopeABSMax = z_SlopeABS(k)
           
-          !
-          SlopeABSMax = 0d0
-          kStart = min(KE, minloc(abs(xy_BarocEddyDispZ(i,j)-(0d0-z_Depth(KS:KE))))+1)
-
-          do k=kStart(1), KS, -1
-             SlopeABS = xyz_fDM95(i,j,k)*sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
-             if(SlopeABS > SlopeABSMax) SlopeABSMax = SlopeABS
-          end do
-          tmpBarocEddyDispZ = SlopeABSMax*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
-          do k=KS, KE
-             z_r(k) = (0d0 - z_Depth(k))/(tmpBarocEddyDispZ + EPS)
-             if(z_r(k) > 1d0) then
-                z_r(k) = 1d0; exit
-             end if
-          end do
-          
-          SlopeABSMax = 0d0          
-          kStart = minloc(abs(xy_BarocEddyDispZ(i,j)-(z_Depth(KS:KE)-z_Depth(KE))))
-
-          do k=kStart(1), KE, +1
-             SlopeABS = xyz_fDM95(i,j,k)*sqrt(xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2)
-             if(SlopeABS > SlopeABSMax) SlopeABSMax = SlopeABS
-          end do
-          tmpBarocEddyDispZ = SlopeABSMax*min(max(15d3,xy_BarocEddDispH(i,j)), 100d3)
-          do k=KE, KS, -1
-             z_r(k) = (z_Depth(k) - z_Depth(KE))/(tmpBarocEddyDispZ + EPS)
-             if(z_r(k) > 1d0) then
-                z_r(k) = 1d0; exit
-             end if
-          end do
-
-          !
-          !
-          xyz_f(i,j,:) = 0.5d0*(1d0 + sin(PI*(z_r(:) - 0.5d0)))
-
+          if ( 0d0 - z_Depth(k) > xy_BarocEddyDispZMax(i,j) ) then
+             tmpBarocEddyDispZ = min(SlopeABSMax, SlopeMaxVal)*xy_BarocEddDispH(i,j)
+             z_r(KS:k) = min( (0d0 - z_Depth(KS:k))/(tmpBarocEddyDispZ + EPS), 1d0 )
+             exit
+          end if
        end do
+!!$       if(j == JS+20) then
+!!$          write(*,*) "tmpBaroceddydispz", tmpBarocEddyDispZ, "SlopeABSMax", SlopeABSMax, "EddDispH", xy_BarocEddDispH(i,j)
+!!$          write(*,*) "r", z_r(KS:KE)
+!!$       end if
+       
+       SlopeABSMax = 0d0
+       do k=KE, KS, -1
+          if ( z_SlopeABS(k) > SlopeABSMax ) SlopeABSMax = z_SlopeABS(k)
+
+          if ( z_Depth(k) - (-xy_Topo(i,j)) > xy_BarocEddyDispZMax(i,j) ) then
+             tmpBarocEddyDispZ = min(SlopeABSMax, SlopeMaxVal)*xy_BarocEddDispH(i,j)
+             z_r(k:KE) = min( (z_Depth(k:KE) - (-xy_Topo(i,j)))/(tmpBarocEddyDispZ + EPS), 1d0 )
+             exit
+          end if
+       end do
+
+       !
+       xyz_f(i,j,:) = 0.5d0*(1d0 + sin(PI*(z_r(:) - 0.5d0)))
+
+    end do
     end do
 
+!    write(*,*) "----------------"
+!    write(*,*) "f", xyz_f(IS,JS+20,KS:KE)
+!    write(*,*) "Dep", xyz_Depth(IS,JS+20,KS:KE)
+    
     !where(xyz_f /= 1d0)
     !   xyz_fDM95 = 1d0
     !end where

@@ -22,7 +22,7 @@ module DOGCM_Boundary_common_mod
   !* Dennou-OGCM
 
   use DOGCM_Admin_Constants_mod, only: &
-       & RefDens, Cp0,                 &
+       & RefDens, RefSalt, Cp0,        &
        & AlbedoOcean,                  &
        & UNDEFVAL
     
@@ -86,17 +86,13 @@ module DOGCM_Boundary_common_mod
 
   !< The depth of mixed layer near sea surface to specify Haney-type boundary condition.
   real(DP), parameter :: MixLyrDepthConst = 50d0
-
-  !< Reference salinity to calculate virtual salinity flux. 
-  real(DP), public, parameter :: RefSalt_VBC = 35d0
   
   ! 非公開変数
   ! Private variable
   !
   
   character(*), parameter:: module_name = 'DOGCM_Boundary_common_mod' !< Module Name
-
-  
+   
 contains
 
   !>
@@ -136,6 +132,8 @@ contains
        & xyz_U, xyz_V, xyza_TRC, xyz_H, xy_SSH           & ! (in)
        & )
 
+    use SpmlUtil_mod, only: w_xy, xy_w
+    
     ! 宣言文; Declaration statement
     !    
     real(DP), intent(in) :: xyz_U(IA,JA,KA)
@@ -158,7 +156,7 @@ contains
        xy_WindStressU(:,:) = 0d0
        xy_WindStressV(:,:) = 0d0
     end select
-    
+
     !-- Update variables associated with thermal boundary condition
 
     select case(ThermBC_Surface)
@@ -178,6 +176,7 @@ contains
        end where
        !$omp end workshare
        !$omp end parallel
+
     case ( ThermBCTYPE_PresFlux_Han1984Method )
        !$omp parallel
        !$omp workshare
@@ -193,6 +192,7 @@ contains
        end where
        !$omp end workshare
        !$omp end parallel
+
     case ( ThermBCTYPE_Adiabat )
        xy_SfcHFlx_ns(:,:) = 0d0
        xy_SfcHFlx_sr(:,:) = 0d0
@@ -234,7 +234,7 @@ contains
        xy_FreshWtFlxS(:,:) = 0d0
     case ( SaltBCTYPE_SaltRelaxed )
        where( xy_OcnSfcCellMask == OCNCELLMASK_OCEAN )
-          xy_FreshWtFlxS(:,:) = - MixLyrDepthConst/(RefSalt_VBC*SeaSfcSaltRelaxedTime) &
+          xy_FreshWtFlxS(:,:) = - MixLyrDepthConst/(RefSalt*SeaSfcSaltRelaxedTime)     &
                &                  *(xy_SeaSfcSalt0 - xyza_TRC(:,:,KS,TRCID_SALT))      &
                &                + xy_FreshWtFlxSIO(:,:)          
        elsewhere( xy_OcnSfcCellMask == OCNCELLMASK_SICE )

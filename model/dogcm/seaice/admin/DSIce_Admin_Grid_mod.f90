@@ -76,6 +76,7 @@ module DSIce_Admin_Grid_mod
 
   type(AXIS_INFO), public, save :: IAXIS_info
   type(AXIS_INFO), public, save :: JAXIS_info
+  type(AXIS_INFO), public, save :: JAXIS_half_info
   type(AXIS_INFO), public, save :: KAXIS_info
   type(AXIS_INFO), public, save :: TAXIS_info
 
@@ -93,6 +94,7 @@ module DSIce_Admin_Grid_mod
   real(DP), public, allocatable :: z_FDK(:)  
   real(DP), public, allocatable :: x_IAXIS_Weight(:)
   real(DP), public, allocatable :: y_JAXIS_Weight(:)
+  real(DP), public, allocatable :: y_JAXIS_half_Weight(:)
   real(DP), public, allocatable :: z_KAXIS_Weight(:)
   real(DP), public ,allocatable :: xy_CArea(:,:)
   real(DP), public, allocatable :: xy_Lon(:,:)
@@ -141,7 +143,7 @@ contains
        deallocate( x_CI, x_CDI, x_FI, x_FDI )
        deallocate( y_CJ, y_CDJ, y_FJ, y_FDJ )
        deallocate( z_CK, z_CDK, z_FK, z_FDK )
-       deallocate( x_IAXIS_Weight, y_JAXIS_Weight, z_KAXIS_Weight )
+       deallocate( x_IAXIS_Weight, y_JAXIS_Weight, y_JAXIS_half_Weight, z_KAXIS_Weight )
 
        deallocate( xy_Lon, xy_Lat )
        deallocate( SCALEF_E1, SCALEF_E2 )
@@ -174,13 +176,14 @@ contains
     !---------------------------------------
     
     call DSIce_Admin_GaussSpmGrid_ConstructAxisInfo( &
-       & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
-       & IS, IE, IA, IHALO,                                                                   & ! (out)
-       & JAXIS_info%name, JAXIS_info%long_name, JAXIS_info%units, JAXIS_info%weight_units,    & ! (out)
-       & JS, JE, JA, JHALO,                                                                   & ! (out)
-       & KAXIS_info%name, KAXIS_info%long_name, KAXIS_info%units, KAXIS_info%weight_units,    & ! (out)
-       & KS, KE, KA, KHALO,                                                                   & ! (out)
-       & IM, JM, KM                                                                           & ! (in)
+       & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,                     & ! (out)
+       & IS, IE, IA, IHALO,                                                                                    & ! (out)
+       & JAXIS_info%name, JAXIS_info%long_name, JAXIS_info%units, JAXIS_info%weight_units,                     & ! (out)
+       & JAXIS_half_info%name, JAXIS_half_info%long_name, JAXIS_half_info%units, JAXIS_half_info%weight_units, & ! (out)
+       & JS, JE, JA, JHALO,                                                                                    & ! (out)
+       & KAXIS_info%name, KAXIS_info%long_name, KAXIS_info%units, KAXIS_info%weight_units,                     & ! (out)
+       & KS, KE, KA, KHALO,                                                                                    & ! (out)
+       & IM, JM, KM                                                                                            & ! (in)
        & )
 
     call MessageNotify('M', module_name, "(IS,JS,KS)=(%d,%d,%d)", (/ IS, JS, KS /) )
@@ -192,7 +195,7 @@ contains
     TAXIS_info%units     = "sec"
     
     allocate( x_CI(IA), x_CDI(IA), x_FI(IA), x_FDI(IA), x_IAXIS_Weight(IA) )
-    allocate( y_CJ(JA), y_CDJ(JA), y_FJ(JA), y_FDJ(JA), y_JAXIS_Weight(JA) )
+    allocate( y_CJ(JA), y_CDJ(JA), y_FJ(JA), y_FDJ(JA), y_JAXIS_Weight(JA), y_JAXIS_half_Weight(JA) )
     allocate( z_CK(KA), z_CDK(KA), z_FK(KA), z_FDK(KA), z_KAXIS_Weight(KA) )
     
     allocate( xy_Lon(IA,JA), xy_Lat(IA,JA) )
@@ -200,7 +203,7 @@ contains
 
     call DSIce_Admin_GaussSpmGrid_ConstructGrid( &
          & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
-         & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
+         & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight, y_JAXIS_half_Weight, & ! (out)
          & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
          & xy_Lon, xy_Lat,                                & ! (out)
          & SCALEF_E1, SCALEF_E2,                          & ! (out)

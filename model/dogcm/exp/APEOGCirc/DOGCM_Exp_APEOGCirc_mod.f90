@@ -101,14 +101,14 @@ contains
          & xyzaa_TRC, xya_SSH, xyza_H, &
          & TRCID_PTEMP, TRCID_SALT
 
-    use DOGCM_Boundary_driver_mod, only: &
-         & DOGCM_Boundary_driver_UpdateBC
-
-    use DSIce_Boundary_driver_mod, only: &
-         & DSIce_Boundary_driver_UpdateBC
-    
     use DOGCM_Admin_Grid_mod, only: &
          & xy_Topo, xyz_Z, z_CK
+
+    use DOGCM_Boundary_vars_mod, only:     &
+         & xy_SeaSfcTemp0, xy_SeaSfcSalt0, &
+         & xy_WindStressU, xy_WindStressV, &
+         & xy_SfcHFlx0_ns, xy_SfcHFlx0_sr, &
+         & xy_FreshWtFlxS0
     
     use SpmlUtil_mod
 
@@ -127,11 +127,6 @@ contains
     real(DP) :: TempAvg
     real(DP) :: z_PTemp(KA)
     real(DP) :: z_Salt(KA)
-
-    real(DP) :: xy_WindStressU(IA,JA)  
-    real(DP) :: xy_WindStressV(IA,JA)
-    real(DP) :: xy_SeaSfcTemp(IA,JA)
-    real(DP) :: xy_SeaSfcSalt(IA,JA)
 
     ! 実行文; Executable statement
     !
@@ -160,15 +155,12 @@ contains
        xyzaa_TRC(IS:IE,JS:JE,k,TRCID_PTEMP,:)  = z_PTemp(k)
        xyzaa_TRC(IS:IE,JS:JE,k,TRCID_SALT,:)  = z_Salt(k)
     end do
-    xy_SeaSfcTemp(IS:IE,JS:JE) = eval_SSTref( xyz_Lat(IS:IE,JS:JE,KS) ) 
-    xy_SeaSfcSalt(IS:IE,JS:JE) = eval_SSSalref( xyz_Lat(IS:IE,JS:JE,KS) ) 
+    xy_SeaSfcTemp0(IS:IE,JS:JE) = eval_SSTref( xyz_Lat(IS:IE,JS:JE,KS) ) 
+    xy_SeaSfcSalt0(IS:IE,JS:JE) = eval_SSSalref( xyz_Lat(IS:IE,JS:JE,KS) ) 
     
 !    xyzaa_TRC(IS:IE,JS:JE,KS,TRCID_PTEMP,TIMELV_ID_N) = xy_SeaSfcTemp(IS:IE,JS:JE)
 !    xyzaa_TRC(IS:IE,JS:JE,KS,TRCID_SALT,TIMELV_ID_N) = xy_SeaSfcSalt(IS:IE,JS:JE)
 
-    call DOGCM_Boundary_driver_UpdateBC( &
-         & xy_NewSeaSfcTemp = xy_SeaSfcTemp, xy_NewSeaSfcSalt = xy_SeaSfcSalt    & ! (in)
-         & )
     
     !-----------------------------------------------------------------------------
     
@@ -177,13 +169,10 @@ contains
     xy_WindStressU(IS:IE,JS:JE) = construct_WindStressU_Marshall07_2(xyz_Lat(IS:IE,JS:JE,KS))
     xy_WindStressV(IS:IE,JS:JE) = 0d0
 
-    call DOGCM_Boundary_driver_UpdateBC( &
-         & xy_NewWindStressU = xy_WindStressU, xy_NewWindStressV = xy_WindStressV  & ! (in)
-         & )
     
     ! Surface heat flux and fresh water flux (But, they wolud not be used.)
-    xy_SfcHFlx_ns(IS:IE,JS:JE) = eval_SurfHeatFlux( xyz_Lat(IS:IE,JS:JE,KS) )
-    xy_FreshWtFlxS(IS:IE,JS:JE) = eval_SurfFreshWaterFluxx( xyz_Lat(IS:IE,JS:JE,KS) )
+    xy_SfcHFlx0_ns(IS:IE,JS:JE) = eval_SurfHeatFlux( xyz_Lat(IS:IE,JS:JE,KS) )
+    xy_FreshWtFlxS0(IS:IE,JS:JE) = eval_SurfFreshWaterFlux( xyz_Lat(IS:IE,JS:JE,KS) )
 
 !!$    write(*,*) 'total angular momentum=', &
 !!$         & AvrLonLat_xy( xy_WindStressU(IS:IE,JS:JE)*cos(xyz_Lat(IS:IE,JS:JE,KS)) )

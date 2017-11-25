@@ -27,6 +27,9 @@ module DOGCM_Admin_Grid_mod
        & KS, KE, KM, KA, KHALO, KBLOCK,    &
        & iMax, jMax, jMaxGlobal, kMax,     &
        & lMax, nMax, tMax
+
+  use DOGCM_Admin_Constants_mod, only: &
+       & PI
   
   use DOGCM_Admin_GovernEq_mod, only: &
        & SolverType,                   &
@@ -178,12 +181,13 @@ contains
             & KS, KE, KA, KHALO,                                                                   & ! (out)
             & IM, JM, KM                                                                           & ! (in)
             & )
-
+ 
        iMax = hsvs_im; jMax = hsvs_jm; kMax = hsvs_km
        nMax = hsvs_nm; lMax = hsvs_lm; tMax = hsvs_tm
        jMaxGlobal = hsvs_jmGl
 
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
+       call DOGCM_GaussSpmVFvmGrid_Init( confignmlFileName )
        call DOGCM_GaussSpmVFvmGrid_ConstructAxisInfo( &
             & IAXIS_info%name, IAXIS_info%long_name, IAXIS_info%units, IAXIS_info%weight_units,    & ! (out)
             & IS, IE, IA, IHALO,                                                                   & ! (out)
@@ -352,10 +356,22 @@ contains
 
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
 
+!!$       !$omp parallel do
+!!$       do k=KS, KE
+!!$          xyz_Z(:,:,k) = + xy_Topo(:,:) * &
+!!$               & (tanh(5d0*(z_CK(k)+0.5d0)) - tanh(0.5d0*5d0)) &
+!!$               & /(2d0*tanh(0.5d0*5d0))
+!!$          xyz_H(:,:,k) = + xy_Topo(:,:) * &
+!!$               & 5d0/(2d0*tanh(0.5d0*5d0)*cosh(5d0*(z_CK(k)+0.5d0))**2)
+!!$       end do
+
+       ! sigma-coordinate
+       !
+       
        !$omp parallel do
        do k=KS, KE
-          xyz_Z(:,:,k) = xy_Topo(:,:) * z_CK(k)
-          xyz_H(:,:,k) = xy_Topo(:,:) * (z_FK(k-1) - z_FK(k))/z_CDK(k)
+          xyz_Z(:,:,k) = xy_Topo(:,:) * z_CK(k) ! z = H * s
+          xyz_H(:,:,k) = xy_Topo(:,:)           ! dz/ds = H
        end do
        xyz_H(:,:,KS-1) = xyz_H(:,:,KS)
        xyz_H(:,:,KE+1) = xyz_H(:,:,KE)

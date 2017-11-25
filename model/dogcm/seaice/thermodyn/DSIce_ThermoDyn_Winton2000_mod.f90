@@ -7,10 +7,10 @@
 !!
 !!
 module DSIce_ThermoDyn_Winton2000_mod
-  
+     
   ! モジュール引用; Use statements
   !
-
+ 
   !* gtool5
   
   use dc_types, only: &
@@ -116,7 +116,7 @@ contains
     real(DP), intent(in) :: OcnFrzTemp
     real(DP), intent(in) :: dt
     logical, intent(in) :: debugFlag
-    
+       
     ! 局所変数
     ! Local variables
     !
@@ -131,17 +131,24 @@ contains
     real(DP) :: Work1
     real(DP) :: A
     real(DP) :: B
+    real(DP) :: SIceMeltTemp
     
+#ifdef DEBUG_SEAICE
+    real(DP) :: E1
+    real(DP) :: E2
+#endif
     
     ! 実行文; Executable statements
     !
 
+    SIceMeltTemp = - Mu*SaltSeaIce
+    
     K_12 = 4d0*KIce*KSnow/(KSnow*IceThickN + 4d0*KIce*SnowThickN)
     K_23 = 2d0*KIce/IceThickN
-    
+      
     HCIce = DensIce * IceThickN * CIce
     Work1 = 6d0 * dt * K_23 + HCIce
-
+ 
     B = DSfcHFlxDTs
     A = SfcHFlx - SfcTempN*DSfcHFlxDTs
 
@@ -151,35 +158,36 @@ contains
          & + K_23*(4d0*dt*K_23 + HCIce)/Work1
 
     B10 =  - DensIce*IceThickN/(2d0*dt) &
-         &      *(CIce*z_IceTempN(1) - LFreeze*Mu*SaltSeaIce/z_IceTempN(1))            &
-         & - PenSWRFlx                                                                 &
+         &      *(CIce*z_IceTempN(1) + LFreeze*SIceMeltTemp/z_IceTempN(1))            &
+         & - PenSWRFlx                                                                &
          & - K_23*(4d0*dt*K_23*OcnFrzTemp + HCIce*z_IceTempN(2))/Work1
 
     A1 =   A10 + K_12*B/(K_12 + B)
     B1 =   B10 + K_12*A/(K_12 + B) 
-    C1  = - DensIce*IceThickN/(2d0*dt)*LFreeze*Mu*SaltSeaIce
-    
+    C1  =  DensIce*IceThickN/(2d0*dt)*LFreeze*SIceMeltTemp
+     
     z_IceTempA(1) = -(B1 + sqrt(B1**2 - 4d0*A1*C1))/(2d0*A1)
     z_IceTempA(2) = (2d0*dt*K_23*(z_IceTempA(1) + 2d0*OcnFrzTemp) + HCIce*z_IceTempN(2))/Work1
     SfcTempA = (K_12*z_IceTempA(1) - A)/(K_12 + B)
 
     if (SfcTempA > SfcFrzTemp) then
        SfcTempA = SfcFrzTemp
-
+  
        A1 = A10 + K_12
        B1 = B10 - K_12*SfcTempA
        z_IceTempA(1) = -(B1 + sqrt(B1**2 - 4d0*A1*C1))/(2d0*A1)
        z_IceTempA(2) = (2d0*dt*K_23*(z_IceTempA(1) + 2d0*OcnFrzTemp) + HCIce*z_IceTempN(2))/Work1
     end if
-
+ 
     !
     SfcResHFlx = K_12*(z_IceTempA(1) - SfcTempA) - (A + B*SfcTempA)
     BtmResHFlx = BtmHFlx - 4d0*KIce*(OcnFrzTemp - z_IceTempA(2))/IceThickN
 
     !------------------------------------------
-    
-    
-!!$    if ( debugFlag ) then
+           
+
+#ifdef DEBUG_SEAICE
+    if ( debugFlag ) then
 !!$       write(*,*) "Lyr1: LHS=", DensIce*IceThickN/(2d0*dt)*(CIce + LFreeze*Mu*SaltSeaIce/(z_IceTempA(1)*z_IceTempN(1))) &
 !!$            & *(z_IceTempA(1) - z_IceTempN(1))
 !!$       write(*,*) "Lyr1: RHS=", K_12*(SfcTempA - z_IceTempA(1)) + K_23*(z_IceTempA(2) - z_IceTempA(1)) + PenSWRFlx
@@ -195,7 +203,15 @@ contains
 !!$            & dt*( - K_12*(z_IceTempA(1) - SfcTempA)                     &
 !!$            &      + 4d0*KIce*(OcnFrzTemp - z_IceTempA(2))/IceThickN     &
 !!$            & )
-!!$    end if
+       E1 = (calc_E_IceLyr1(z_IceTempA(1), SaltSeaIce) - calc_E_IceLyr1(z_IceTempN(1), SaltSeaIce))
+       E2 = (calc_E_IceLyr2(z_IceTempA(2), SaltSeaIce) - calc_E_IceLyr2(z_IceTempN(2), SaltSeaIce))
+       write(*,*) "CalcIceTemp check:",              &
+            & 0.5d0*IceThickN*DensIce*(E1 + E2),                  &
+            & - dt*(   ((A + B*SfcTempA) - PenSWRFlx - BtmHFlx)   &
+            &        + ( BtmResHFlx + SfcResHFlx  )               &
+            & )
+    end if
+#endif
 
   end subroutine DSIce_ThermoDyn_Winton2000_CalcIceTemp
 
@@ -248,11 +264,13 @@ contains
     real(DP) :: dhsMelt
     real(DP) :: dh1Melt
     real(DP) :: dh2Melt
-    
+    real(DP) :: DensQTmp
+       
     real(DP) :: dhsEvap
     real(DP) :: dh1Evap
     real(DP) :: dh2Evap
 
+    
     ! 実行文; Executable statements
     !
     
@@ -267,7 +285,7 @@ contains
     dIceThick2 = 0d0
     wice = 0d0
     excessMeltEn = 0d0
-
+    
     ! Freezing -----------------------------------------------------------------
     
     if ( BtmResHFlx < 0d0 ) then
@@ -276,102 +294,191 @@ contains
        wice = wice + DensIce*dh2Frz / dt
        z_IceTemp(2) = (dh2Frz*OcnFrzTemp + h2Old*z_IceTemp(2))/(h2Old + dh2Frz)
     end if
-
-    ! SnowFall -----------------------------------------------------------------
-    
-    dSnowThick = dSnowThick + SnowFall*dt/DensSnow
-
-    
+       
     ! Melting (added evaporation on the surface) -------------------------------
-
+ 
     E1 = calc_E_IceLyr1(z_IceTemp(1), SaltSeaIce)
     E2 = calc_E_IceLyr2(z_IceTemp(2), SaltSeaIce)
 
     if ( SfcResHFlx > 0d0 ) then
 
-       work = SfcResHFlx*dt 
-       dhsMelt = min(work/(DensSnow*LFreeze), hsOld+dSnowThick)
+       work = SfcResHFlx*dt
+       dhsMelt = 0d0
+       dh1Melt = 0d0
+       dh2Melt = 0d0
+
+       ! Melt the snow layer
+       DensQTmp = DensSnow*LFreeze
+       dhsMelt = min(work/DensQTmp, hsOld + dSnowThick)
        dSnowThick = dSnowThick - dhsMelt
+       work = work - DensQTmp*dhsMelt
 
-       work = work - DensSnow*LFreeze*dhsMelt
-       dh1Melt = min(max(-work/(DensIce*E1), 0d0), h1Old+dIceThick1)
-       dIceThick1 = dIceThick1 - dh1Melt
+       ! Melt the upper ice layer
+       if (work > 0d0) then
+          DensQTmp = - DensIce*E1
+          if (work < (h1Old + dIceThick1)*DensQTmp) then
+             dh1Melt = work/DensQTmp
+          else
+             dh1Melt = h1Old + dIceThick1
+          end if
+!!$       dh1Melt = min(max(-work/(DensIce*E1), 0d0), h1Old+dIceThick1)
+          dIceThick1 = dIceThick1 - dh1Melt          
+          work = work - DensQTmp*dh1Melt
+       end if
        
-       work = work + DensIce*E1*dh1Melt
-       dh2Melt = min( max(-work/(DensIce*E2), 0d0), h2Old+dIceThick2)
-       dIceThick2 = dIceThick2 - dh2Melt
+       ! Melt the lower ice layer
+       if (work > 0d0) then
+          DensQTmp = - DensIce*E2
+          if (work < (h2Old + dIceThick2)*DensQTmp) then
+             dh2Melt = work/DensQTmp
+          else
+             dh2Melt = h2Old + dIceThick2
+          end if
+!!$       dh2Melt = min( max(-work/(DensIce*E2), 0d0), h2Old+dIceThick2)
+          dIceThick2 = dIceThick2 - dh2Melt
+          work = work - DensQTmp*dh2Melt
+       end if
 
-       excessMeltEn =   excessMeltEn &
-            &         + max(work + DensIce*E2*dh2Melt, 0d0)
+       !
+       excessMeltEn =   excessMeltEn + work 
        wice =   wice &
             & - (DensSnow*dhsMelt + DensIce*(dh1Melt + dh2Melt)) / dt
-       
     end if
 
+#ifdef DEBUG_SEAICE
+    if (debugFlag) then
+       write(*,*) "(Surface) dhsMelt=", dhsMelt, ", dh1Melt=", dh1Melt, ", dh2Melt=", dh2Melt, &
+            & "melt excessMeltEn=", excessMeltEn
+       dhsMelt = 0d0; dh1Melt = 0d0; dh2Melt = 0d0
+    end if
+#endif ! <- DEBUG_SEAICE
     
     if ( BtmResHFlx > 0d0 ) then
-       work = BtmResHFlx*dt
-       dh2Melt = min(-work/(DensIce*E2), h2Old+dIceThick2)
-       dIceThick2 = dIceThick2 - dh2Melt
 
-       work = work + DensIce*E2*dh2Melt
-       dh1Melt = min( max(-work/(DensIce*E1), 0d0), h1Old+dIceThick1 )
+       work = BtmResHFlx*dt
+       dhsMelt = 0d0
+       dh1Melt = 0d0
+       dh2Melt = 0d0
+
+       ! Melt the lower ice layer
+       DensQTmp = - DensIce*E2
+       if (work < (h2Old + dIceThick2)*DensQTmp) then
+          dh2Melt = work/DensQTmp
+       else
+          dh2Melt = h2Old + dIceThick2
+       end if
+!!$       dh2Melt = min( max(-work/(DensIce*E2), 0d0), h2Old+dIceThick2)
+       dIceThick2 = dIceThick2 - dh2Melt
+       work = work - DensQTmp*dh2Melt
+
+       ! Melt the upper  ice layer
+       if (work > 0d0) then
+          DensQTmp = - DensIce*E1
+          if (work < (h1Old + dIceThick1)*DensQTmp) then
+             dh1Melt = work/DensQTmp
+          else
+             dh1Melt = h1Old+dIceThick1
+          end if
+       end if
+!!$       dh1Melt = min( max(-work/(DensIce*E1), 0d0), h1Old+dIceThick1)
        dIceThick1 = dIceThick1 - dh1Melt
-       
-       work = work + DensIce*E1*dh1Melt
-       dhsMelt = min( max(work/(DensSnow*LFreeze), 0d0), hsOld+dSnowThick)
+       work = work - DensQTmp*dh1Melt
+
+       ! Melt the snow layer
+       if (work > 0d0) then
+          DensQTmp = DensSnow*LFreeze
+          if (work < (hsOld + dSnowThick)*DensQTmp) then
+             dhsMelt = work/DensQTmp
+          else
+             dhsMelt = hsOld + dSnowThick
+          end if
+       end if
+!!$       dhsMelt = min( max(work/(DensSnow*LFreeze), 0d0), hsOld+dSnowThick)
        dSnowThick = dSnowThick - dhsMelt
-       
-       excessMeltEn =   excessMeltEn &
-            &         + max(work - DensSnow*LFreeze*dhsMelt, 0d0)
+       work = work - DensQTmp*dhsMelt
+  
+       excessMeltEn =   excessMeltEn + work
        wice =   wice &
             & - (DensSnow*dhsMelt + DensIce*(dh1Melt + dh2Melt)) / dt
     end if
+    
+#ifdef DEBUG_SEAICE
+    if (debugFlag) then
+       write(*,*) "(bottom) dhsMelt=", dhsMelt, ", dh1Melt=", dh1Melt, ", dh2Melt=", dh2Melt, &
+            & "melt excessMeltEn=", excessMeltEn
+    end if
+#endif ! <- DEBUG_SEAICE
 
-    !-- Evaporation ------------------------------------------------------
+    !-- SnowFall & Evaporation ------------------------------------------------------
 
-    work = Evap*dt
+    !* snowfall
+    if (SnowFall > 0d0) then
+       dSnowThick = dSnowThick + SnowFall*dt/DensSnow
+       work = 0d0
+    else
+       ! If the sign of snowfall is negative because of 2nd-order conservative interpolation scheme,
+       ! the negative snowfall is treated as the evaporation of snow-layer. 
+       work = -SnowFall*dt
+    end if
+#ifdef DEBUG_SEAICE
+    if (debugFlag) then
+       write(*,*) "(Surface) SnowFall [kg]:", SnowFall*dt
+    end if
+#endif ! <- DEBUG_SEAICE
+
+    !* evaporation
+    work = work + Evap*dt
     dhsEvap = min(work/DensSnow, hsOld+dSnowThick)
     dSnowThick = dSnowThick - dhsEvap
     
     work = work - DensSnow*dhsEvap
     dh1Evap = min(max(work/DensIce, 0d0), h1Old+dIceThick1)
     dIceThick1 = dIceThick1 - dh1Evap
-    if (h1Old + dIceThick1 > 0d0 ) then
+    if (h1Old + dIceThick1 > 0d0 .and. dh1Evap > 1d-20) then
        hEtmp = (h1Old + dIceThick1 + dh1Evap)*E1 + LFreeze*dh1Evap               ! E1 < 0
-       z_IceTemp(1) = calc_Temp_IceLyr1(hEtmp/(h1Old + dIceThick1), SaltSeaIce)
+       E1 = hEtmp/(h1Old + dIceThick1)
+       z_IceTemp(1) = calc_Temp_IceLyr1(E1, SaltSeaIce)
     end if
-    
+     
     work = work - DensIce*dh1Evap
     dh2Evap = min( max(work/DensIce, 0d0), h2Old+dIceThick2)
     dIceThick2 = dIceThick2 - dh2Evap
-    if (h2Old + dIceThick2 > 0d0 ) then
+    if (h2Old + dIceThick2 > 0d0 .and. dh2Evap > 1d-20) then
        hEtmp = (h2Old + dIceThick2 + dh2Evap)*E2 + LFreeze*dh2Evap                ! E2 < 0
-       z_IceTemp(2) = calc_Temp_IceLyr2(hEtmp/(h2Old + dIceThick2), SaltSeaIce)
+       E2 = hEtmp/(h2Old + dIceThick2)
+       z_IceTemp(2) = calc_Temp_IceLyr2(E2, SaltSeaIce)
     end if
-    
+        
     work = work - DensIce*dh2Evap
     if( work > 1d-20) then
-       excessMeltEn = excessMeltEn + LEvap*work
+       excessMeltEn = excessMeltEn + LFreeze*work
        wice =   wice + work/dt
     end if
-
+    
 #ifdef DEBUG_SEAICE
     if (debugFlag) then
-!!$       write(*,*) " (SfcResHFlx+BtmResHFlx)*dt=", (SfcResHFlx + BtmResHFlx)*dt
-!!$       write(*,*) " New - Old =", &
-!!$            &   DensSnow*LFreeze*dSnowThick                                        &
-!!$            & + DensIce*(E1*dIceThick1 + (E2*(h2Old + dIceThick2) - E2Old*h2Old))
-!!$       write(*,*) " ExcessMeltEn =", ExcessMeltEn
+
        write(*,*) "dhsEvap=", dhsEvap, ", dh1Evap=", dh1Evap, ", dh2Evap=", dh2Evap, &
-            & "evap excessMeltEn=", LEvap*work
+            & "evap excessMeltEn=", excessMeltEn, LEvap*work, ", evap [kg]:", Evap*dt
+
+       write(*,*) " (SfcResHFlx+BtmResHFlx)*dt=", (SfcResHFlx + BtmResHFlx)*dt
+       write(*,*) "Evap+Snow", -LFreeze*dt*(SnowFall - Evap)
+       write(*,*) " New - Old =", &
+            & - DensSnow*LFreeze*dSnowThick                                        &
+            & + DensIce*(E1*(h1Old + dIceThick1) - E1Old*h1Old + (E2*(h2Old + dIceThick2) - E2Old*h2Old))
+       write(*,*) "check:", - DensSnow*LFreeze*dSnowThick                          &
+            & + DensIce*(E1*(h1Old + dIceThick1) - E1Old*h1Old + (E2*(h2Old + dIceThick2) - E2Old*h2Old))  &
+            & - ((SfcResHFlx + BtmResHFlx - LFreeze*(SnowFall - Evap))*dt - excessMeltEn)
+       write(*,*) " ExcessMeltEn =", ExcessMeltEn
+       
     end if
 #endif ! <- DEBUG_SEAICE
 
+       
   end subroutine DSIce_ThermoDyn_Winton2000_CalcLyrMassChange
 
   !-----------------------------------------------
-  
+   
   subroutine DSIce_ThermoDyn_Winton2000_AdjustLyrInternal( &
        & SnowThick, IceThick,                                & ! (out)
        & z_IceTemp, Wice, excessMeltEn,                      & ! (inout)
@@ -421,9 +528,13 @@ contains
     h2 = 0.5d0*IceThick0 + dIceThick2
     IceThick = h1 + h2
 
-!!$    if (debugFlag) then
-!!$       write(*,*) "AdjustSIceLyr before: TotMass=", (DensSnow*SnowThick + DensIce*IceThick)
-!!$    end if
+#ifdef DEBUG_SEAICE
+    if (debugFlag) then
+       write(*,*) "AdjustLyr internal before:", &
+            & "SIceEn:", calc_SIceTotEn( SnowThick, h1, z_IceTemp(1), h2, z_IceTemp(2) )
+!!$       write(*,*) "AdjustSIceLyr IceLyrAdj: TotMass=", (DensSnow*SnowThick + DensIce*IceThick)
+    end if
+#endif
     
     IceMeltTemp = - Mu*SaltSeaIce
         
@@ -462,16 +573,25 @@ contains
 
        if ( z_IceTemp(2) > IceMeltTemp ) then
           ! Note: extraSHEn > 0          
-          extraSHEn = calc_E_IceLyr2(z_IceTemp(2),SaltSeaIce) ! When the temperature of lower ice layer equals to freezing point,
-                                                              ! the entalphy is defined to be zero in Winton(2002). 
+          extraSHEn = LFreeze + calc_E_IceLyr2(z_IceTemp(2),SaltSeaIce) ! When the temperature of lower ice layer equals to freezing point, 
+                                                                        ! the entalphy is defined to be -LFreeze in Winton(2002). 
+
+!!$          if (debugFlag) then
+!!$             write(*,*) "Temp of lower layer > -Mu*S: extraSHEn=",  extraSHEn, "Temp=",  z_IceTemp(1:2)
+!!$          end if
           z_IceTemp(2) = IceMeltTemp
           z_IceTemp(1) = calc_Temp_IceLyr1( calc_E_IceLyr1(z_IceTemp(1),SaltSeaIce) + extraSHEn, SaltSeaIce )
+          
        end if
     end if
 
-!!$    if (debugFlag) then
+#ifdef DEBUG_SEAICE
+    if (debugFlag) then
+       write(*,*) "AdjustLyr internal after:", &
+            & "SIceEn=", calc_SIceTotEn( SnowThick, 0.5d0*IceThick, z_IceTemp(1), 0.5d0*IceThick, z_IceTemp(2) )
 !!$       write(*,*) "AdjustSIceLyr IceLyrAdj: TotMass=", (DensSnow*SnowThick + DensIce*IceThick)
-!!$    end if
+    end if
+#endif
     
   contains
     subroutine calc_NewIceTemp( &
@@ -494,10 +614,9 @@ contains
            &  + (1d0 -f1)*T2
       
       T1New = 0.5d0*(T2New - sqrt(T2New**2 - 4d0*IceMeltTemp*LFreeze/CIce))
-
     end subroutine calc_NewIceTemp
   end subroutine DSIce_ThermoDyn_Winton2000_AdjustLyrInternal
-  
+     
   !--------------------------------------------------------------------------------
 
   elemental function calc_Temp_IceLyr1( &

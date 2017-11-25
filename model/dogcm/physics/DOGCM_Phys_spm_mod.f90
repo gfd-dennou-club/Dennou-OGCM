@@ -260,7 +260,7 @@ contains
             & xyza_TRC_RHS_phy(:,:,:,TRCID_SALT),                       & ! (inout)
             & xyz_ConvIndex,                                            & ! (inout)
             & xyza_TRC(:,:,:,TRCID_PTEMP), xyza_TRC(:,:,:,TRCID_SALT),  & ! (in)
-            & xyz_Z, z_KAXIS_Weight, dt                                 & ! (in)
+            & xyz_H, xyz_Z, z_KAXIS_Weight, dt                          & ! (in)
             & )
 !!$       avr_ptemp_RHS_phys = AvrLonLat_xy( xy_IntSig_BtmToTop_xyz( xyza_TRC_RHS_phy(IS:IE,JS:JE,KS:KE, TRCID_SALT) ))
 !!$       write(*,*) "avr_ptemp_phys (+ ConvAdjustRHS): ",  avr_ptemp_RHS_phys       

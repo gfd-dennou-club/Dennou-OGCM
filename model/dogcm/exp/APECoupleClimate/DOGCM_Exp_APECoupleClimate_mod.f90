@@ -18,6 +18,9 @@ module DOGCM_Exp_APECoupleClimate_mod
   use dc_message, only: &
        & MessageNotify
 
+  use dc_iounit, only: &
+       & FileOpen
+  
   !* Dennou-OGCM
 
   use SpmlUtil_mod, only: &
@@ -27,12 +30,14 @@ module DOGCM_Exp_APECoupleClimate_mod
        & degC2K
   
   use DOGCM_Admin_Constants_mod, only: &
-       & Grav, PI, RPlanet, Omega,     &
-       & RefDens, LatentHeat, StB,     &
+       & PI, StB,                      &
+       & Grav, RPlanet, Omega,         &
+       & RefDens, RefSalt, LatentHeat, &
+       & Cp0,                          &
        & UNDEFVAL
 
   use DSIce_Admin_Constants_mod, only: &
-       & DensSnow, DensIce, IceMaskMin
+       & DensSnow, DensIce, IceMaskMin, LFreeze
   
   use DOGCM_Admin_Grid_mod, only: &
        & iMax, jMax, kMax, nMax, lMax,         &
@@ -87,10 +92,14 @@ module DOGCM_Exp_APECoupleClimate_mod
   real(DP) :: OcnMeanDepth
   real(DP), parameter :: DEF_OCN_MEAN_DEPTH = 5.2d3
 
+  real(DP), save :: OcnInitSalt
+  
   real(DP), parameter :: DensFreshWater = 1d3
-  real(DP), parameter :: RefSalt        = 35d0
 
   real(DP) :: InitMass
+
+  character(*), parameter :: BudgetMonitorFileName = "budget_monitor"
+  integer :: BudgetMonitorOutUnit
   
 contains
 
@@ -117,7 +126,13 @@ contains
          & configNmlFile ) ! (in)
 
 
-    call DOGCM_IO_History_RegistVar( 'SIceMass', 'T', 'global mean of sea ice mass', 'kg/m2')
+    if (CurrentRunType == RUN_TYPE_STANDALONE ) then
+       call DOGCM_IO_History_RegistVar( 'SIceMass', 'T', 'global mean of sea ice mass', 'kg/m2')
+    end if
+
+    call FileOpen( BudgetMonitorOutUnit, BudgetMonitorFileName,  mode='w' )
+    write(BudgetMonitorOutUnit,'(a)') &
+         & "# time[sec] | SIceEn : DelSIceEn SIceNetHFlx SfcHFlxAI BtmHFlxIO | OcnEn : DelOcnEn SfcHFlxO"
     
   end subroutine DOGCM_Exp_Init
 
@@ -129,6 +144,8 @@ contains
     ! 実行文; Executable statements
     !
 
+    close( BudgetMonitorOutUnit )
+    
   end subroutine DOGCM_Exp_Final
 
   !> @brief 
@@ -161,7 +178,7 @@ contains
          & xy_WindStressUOcn => xy_WindStressU, &
          & xy_WindStressVOcn => xy_WindStressV, &
          & xy_FreshWtFlxS0, xy_FreshWtFlx0
-
+ 
     use DSIce_Admin_Grid_mod, only: &
          & IAS => IA, JAS => JA, KAS => KA
     
@@ -170,20 +187,24 @@ contains
          & xya_SIceSfcTemp, xyza_SIceTemp, xyza_SIceEn
     
     use DSIce_Boundary_vars_mod, only:   &
-         & xy_SDwRFlxSIce => xy_SDwRFlx, xy_LDwRFlxSIce => xy_LDwRFlx, &
+         & xy_SUwRFlxSIce => xy_SUwRFlx, xy_SDwRFlxSIce => xy_SDwRFlx, &
+         & xy_LUwRFlxSIce => xy_LUwRFlx, xy_LDwRFlxSIce => xy_LDwRFlx, &
          & xy_LatHFlxSIce => xy_LatHFlx, xy_SenHFlxSIce => xy_SenHFlx, &
          & xy_DLatSenHFlxDTsSIce => xy_DLatSenHFlxDTs,                 &
+         & xy_SfcHFlxAI0_ns, xy_SfcHFlxAI0_sr, xy_SfcHFlxAO0,          &
+         & xy_DSfcHFlxAODTs, xy_DSfcHFlxAIDTs,                         &
          & xy_SIceSfcTempIni => xy_SIceSfcTemp0,                       &
          & xy_WindStressUAI, xy_WindStressVAI,                         &
          & xy_RainFallSIce => xy_RainFall,                             &
          & xy_SnowFallSIce => xy_SnowFall,                             &
-         & xy_EvapSIce => xy_Evap
+         & xy_EvapSIce => xy_Evap,                                     &
+         & xy_EvapAO,                                                  &
+         & xy_SIceSfcTemp4SfcHFlx => xy_SIceSfcTemp0 
     
     use SpmlUtil_mod, only: &
          & AvrLonLat_xy, calc_UVCosLat2VorDiv, calc_VorDiv2UV, xy_CosLat
 
-    use dc_iounit, only: FileOpen
-    
+
     ! 宣言文; Declaration statement
     !
     
@@ -268,7 +289,7 @@ contains
        xyz_U0(:,:,:)     = 0d0
        xyz_V0(:,:,:)     = 0d0
        xyz_PTemp0(:,:,:) = 280d0
-       xyz_Salt0(:,:,:)  = 35d0
+       xyz_Salt0(:,:,:)  = OcnInitSalt
        xy_SfcPres0(:,:)  = 0d0
        xyz_H0(:,:,:)     = xyza_H(:,:,:,TIMELV_ID_N)
     else
@@ -396,6 +417,7 @@ contains
 
        xy_DSfcHFlxDTs(:,:) = 0d0
     else
+!!$    else if ( CurrentRunType == RUN_TYPE_STANDALONE ) then
        ! Input sea surface wind Stress
     
        call get_Field4Standalone( SfcBCDataDir, "a2o_WindStressX.nc", "a2o_WindStressX", &
@@ -405,33 +427,64 @@ contains
 
 
        ! Input sea surface heat flux and fresh water flux (But, they wolud not be used.)
+!!$
+!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_SDwRFlx.nc", "a2o_SDwRFlx", &
+!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SDwRFlx )
+!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_LDwRFlx.nc", "a2o_LDwRFlx", &
+!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LDwRFlx )
+!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_SUwRFlx.nc", "a2o_SUwRFlx", &
+!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SUwRFlx )
+!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_LUwRFlx.nc", "a2o_LUwRFlx", &
+!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LUwRFlx )
+!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_LatHFlx.nc", "a2o_LatHFlx", &
+!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LatHFlx )
+!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_SenHFlx.nc", "a2o_SenHFlx", &
+!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SenHFlx )
+!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_DSfcHFlxDTs.nc", "a2o_DSfcHFlxDTs", &
+!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_DSfcHFlxDTs )
 
-       call get_Field4Standalone( SfcBCDataDir, "a2o_SDwRFlx.nc", "a2o_SDwRFlx", &
-            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SDwRFlx )
-       call get_Field4Standalone( SfcBCDataDir, "a2o_LDwRFlx.nc", "a2o_LDwRFlx", &
-            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LDwRFlx )
-       call get_Field4Standalone( SfcBCDataDir, "a2o_SUwRFlx.nc", "a2o_SUwRFlx", &
-            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SUwRFlx )
-       call get_Field4Standalone( SfcBCDataDir, "a2o_LUwRFlx.nc", "a2o_LUwRFlx", &
-            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LUwRFlx )
-       call get_Field4Standalone( SfcBCDataDir, "a2o_LatHFlx.nc", "a2o_LatHFlx", &
-            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LatHFlx )
-       call get_Field4Standalone( SfcBCDataDir, "a2o_SenHFlx.nc", "a2o_SenHFlx", &
-            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SenHFlx )
-       call get_Field4Standalone( SfcBCDataDir, "a2o_DSfcHFlxDTs.nc", "a2o_DSfcHFlxDTs", &
+       !-------
+       call get_Field4Standalone( SfcBCDataDir, "SfcHFlx_ns.nc", "SfcHFlx_ns", &
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlx0_ns )
+
+       call get_Field4Standalone( SfcBCDataDir, "SfcHFlx_sr.nc", "SfcHFlx_sr", &
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlx0_sr )       
+       
+       call get_Field4Standalone( SfcBCDataDir, "DSfcHFlxDTs.nc", "DSfcHFlxDTs", &
             & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_DSfcHFlxDTs )
-
+       
        call get_Field4Standalone( SfcBCDataDir, "a2o_RainFall.nc", "a2o_RainFall", &
             & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_RainFall )
 
        call get_Field4Standalone( SfcBCDataDir, "a2o_SnowFall.nc", "a2o_SnowFall", &
             & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SnowFall )
 
+       call get_Field4Standalone( SfcBCDataDir, "a2s_Evap.nc", "a2s_Evap", &
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_EvapSIce )
+
+       call get_Field4Standalone( SfcBCDataDir, "a2o_Evap.nc", "a2o_Evap", &
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_EvapAO )
+       
        call get_Field4Standalone( SfcBCDataDir, "PTemp.nc", "PTemp",   &
             & SfcBCMeanInitTime, SfcBCMeanEndTime, xyz=xyz_PTemp0 )
+
+       call get_Field4Standalone( SfcBCDataDir, "history_sice.nc", "SfcHFlxAI0_ns", &
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlxAI0_ns )
+
+       call get_Field4Standalone( SfcBCDataDir, "history_sice.nc", "SfcHFlxAI0_sr", &
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlxAI0_sr )
+       
+!!$       call get_Field4Standalone( SfcBCDataDir, "history_sice.nc", "SfcHFlxAO", &
+!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlxAO0 )
+!!$
+       call get_Field4Standalone( SfcBCDataDir, "history_sice.nc", "DSfcHFlxAODTs", &
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_DSfcHFlxAODTs )
+
+       call get_Field4Standalone( SfcBCDataDir, "history_sice.nc", "DSfcHFlxAIDTs", &
+            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_DSfcHFlxAIDTs )
     end if
 
-    xy_Evap(:,:)         = xy_LatHFlx/LatentHeat
+    xy_Evap(:,:)         = (1d0 - xy_SIceCon0)*xy_EvapAO + xy_SIceCon0*xy_EvapSIce  !xy_LatHFlx/LatentHeat
     xy_FreshWtFlxS0(:,:) = (xy_RainFall + xy_SnowFall - xy_Evap)/DensFreshWater       
     
     if ( CurrentRunType == RUN_TYPE_STANDALONE ) then
@@ -451,7 +504,8 @@ contains
        call MessageNotify('M', module_name, 'Modify surface water budget..')
        InputWtMass = AvrLonLat_xy(xy_FreshWtFlxS0(IS:IE,JS:JE))*DensFreshWater
        if (InputWtMass > 0d0) then
-          xy_Evap = xy_Evap + InputWtMass
+          xy_EvapAO = xy_EvapAO + InputWtMass
+          xy_EvapSIce = xy_EvapSIce + InputWtMass
        else
           xy_RainFall = xy_RainFall - InputWtMass
        end if
@@ -462,6 +516,7 @@ contains
        InitMass = InitMass - AvrLonLat_xy( Calculus_IntBtmToTop( &
             & (xyz_Salt0(IS:IE,JS:JE,:) - RefSalt)/RefSalt * 1d3,  xyz_H0(IS:IE,JS:JE,:) ) &
             & )
+
     end if
     
     !* Store input data 
@@ -477,24 +532,36 @@ contains
     xy_WindStressUOcn = xy_WindStressU
     xy_WindStressVOcn = xy_WindStressV
 
-    xy_SfcHFlx0_ns    = (xy_LUwRFlx - xy_LDwRFlx) + xy_LatHFlx + xy_SenHFlx
-    xy_SfcHFlx0_sr    = (xy_SUwRFlx - xy_SDwRFlx)
-    xy_DSfcHFlxDTsOcn = xy_DSfcHFlxDTs + 4d0*StB*xy_SeaSfcTemp0**3
-    xy_FreshWtFlxS0   = (xy_RainFall + xy_SnowFall - xy_Evap)/DensFreshWater
+!!$    xy_SfcHFlx0_ns    = (xy_LUwRFlx - xy_LDwRFlx) + xy_LatHFlx + xy_SenHFlx
+!!$    xy_SfcHFlx0_sr    = (xy_SUwRFlx - xy_SDwRFlx)
+    xy_DSfcHFlxDTsOcn = xy_DSfcHFlxDTs !+ 4d0*StB*xy_SeaSfcTemp0**3
+    xy_FreshWtFlxS0   = (xy_RainFall + xy_SnowFall - xy_EvapAO)/DensFreshWater
     xy_FreshWtFlx0    = xy_FreshWtFlxS0
 
     ! Sea ice ----
 
     xy_WindStressUAI = xy_WindStressU
     xy_WindStressVAI = xy_WindStressV
+    xy_SUwRFlxSIce   = xy_SUwRFlx
     xy_SDwRFlxSIce   = xy_SDwRFlx
+    xy_LUwRFlxSIce   = xy_LUwRFlx
     xy_LDwRFlxSIce   = xy_LDwRFlx
     xy_LatHFlxSIce   = xy_LatHFlx
     xy_SenHFlxSIce   = xy_SenHFlx
     xy_DLatSenHFlxDTsSIce = xy_DSfcHFlxDTs !+ 4d0*StB*xy_SeaSfcTemp0**3
     xy_RainFallSIce = xy_RainFall 
     xy_SnowFallSIce = xy_SnowFall
-    xy_EvapSIce     = xy_Evap
+    xy_SfcHFlxAO0 = xy_SfcHFlx0_ns + xy_SfcHFlx0_sr
+!!$    xy_EvapSIce     = xy_Evap
+
+    where (xy_IceThick0 > 0d0 )
+       xy_SIceSfcTemp4SfcHFlx =  degC2K( xy_SIceSfcTemp0 )
+!!$            &    xy_SIceCon0*degC2K( xy_SIceSfcTemp0 ) &
+!!$            & + (1d0 - xy_SIceCon0)*xy_SeaSfcTemp0
+    elsewhere
+       xy_SIceSfcTemp4SfcHFlx = xy_SeaSfcTemp0
+    end where
+     
     !$omp end workshare       
     !$omp end parallel
 
@@ -508,10 +575,10 @@ contains
 !!$    write(*,*) "Rain:", AvrLonLat_xy(xy_RainFall(IS:IE,JS:JE))
 !!$    write(*,*) "Evap:", AvrLonLat_xy(xy_EvapSIce(IS:IE,JS:JE))
 !!$    stop
-!!$    
-
-    call MessageNotify('M', module_name, 'The setting of initial condition has been finished.')
+!!$        
     
+    call MessageNotify('M', module_name, 'The setting of initial condition has been finished.')
+
   end subroutine DOGCM_Exp_SetInitCond
 
   subroutine DOGCM_Exp_Do()
@@ -520,17 +587,33 @@ contains
     !
     use DOGCM_Admin_TInteg_mod, only: &
          & DelTime,                   &
-         & TIMELV_ID_N, TIMELV_ID_B
-    
-    use DOGCM_Admin_Variable_mod, only: &
-         & xyzaa_TRC, TRCID_SALT, xyza_H
+         & TIMELV_ID_N, TIMELV_ID_B,  &
+         & CurrentTime
 
+    use DOGCM_Admin_Variable_mod, only: &
+         & xyzaa_TRC, TRCID_PTEMP, TRCID_SALT, xyza_H
+
+    use DOGCM_IO_History_mod, only: &
+         & DOGCM_IO_History_isOutputTiming
+    
     use DOGCM_Boundary_vars_mod, only:  &
-         & xy_FreshWtFlxS
+         & xy_FreshWtFlxS,                       &
+         & xy_SfcHFlx_ns, xy_SfcHFlx_sr,         &
+         & xy_SfcHFlxIO_ns, xy_SfcHFlxIO_sr,     &
+         & xy_OcnSfcCellMask, OCNCELLMASK_OCEAN
+
+    use DSIce_Boundary_vars_mod, only: &
+         & xy_SfcHFlxAI, xy_DSfcHFlxAIDTs, xy_DelSfcHFlxAI, &
+         & xy_PenSWRFlxAI => xy_PenSDRFlx,                  &
+         & xy_BtmHFlxIO, xy_SfcHFlxAO
     
     use DSIce_Admin_Variable_mod, only: &
-         & xya_IceThick, xya_SnowThick, &
-         & xya_SIceCon
+         & xya_IceThick, xya_SnowThick,               &
+         & xya_SIceCon, xyza_SIceEn, xya_SIceSfcTemp
+
+    use DSIce_Admin_Grid_mod, only: &
+         & ISS => IS, IES => IE, JSS => JS, JES => JE, &
+         & KSS => KS, KES => KE
 
     use DSIce_Boundary_vars_mod, only:   &
          & xy_RainFall, xy_SnowFall, xy_Evap
@@ -556,46 +639,132 @@ contains
 
     integer :: i
     integer :: j
+
+    real(DP) :: SIceEnA
+    real(DP) :: DelSIceEn
+    real(DP) :: OcnEnA
+    real(DP) :: DelOcnEn
+    real(DP) :: SfcHFlxAI
+    real(DP) :: BtmHFlxIO
+    real(DP) :: SfcHFlxO
+    real(DP) :: SIceNetHFlx
     
     ! 実行文; Executable statement
     !
 
     !-------------------------------------------------------------
+ 
+!!$    return
 
-    return
-    
-    TID_A = TIMELV_ID_N
-    TID_N = TIMELV_ID_B
-    
-    xy_Tmp(:,:) = (xy_RainFall + xy_SnowFall - xy_Evap)*DelTime
-    call print_AverageInfo(InputMass1, "Input mass: ATM -> SIce,Ocn", xy=xy_Tmp)
+    if ( DOGCM_IO_History_isOutputTiming(CurrentTime-DelTime) ) then
+       TID_A = TIMELV_ID_N
+       TID_N = TIMELV_ID_B
+       
+!!$    xy_Tmp(:,:) = (xy_RainFall + xy_SnowFall - xy_Evap)*DelTime
+!!$    call print_AverageInfo(InputMass1, "Input mass: ATM -> SIce,Ocn", xy=xy_Tmp)
+!!$
+!!$    xy_Tmp(:,:) = xy_FreshWtFlxS*DelTime*1d3
+!!$    call print_AverageInfo(InputMass2, "Input mass: Atm,SIce -> Ocn", xy=xy_Tmp)
+!!$
+!!$    xy_Tmp(:,:) = &
+!!$         &   DensIce*(xya_IceThick(:,:,TID_A) - xya_IceThick(:,:,TID_N))            &
+!!$         & + DensSnow*(xya_SnowThick(:,:,TID_A) - xya_SnowThick(:,:,TID_N))
+!!$    call print_AverageInfo(DelSIceMass, "SIce mass change:", xy=xy_Tmp)
+!!$
+!!$    xyz_Tmp(:,:,:) = &
+!!$         & - (xyzaa_TRC(:,:,:,TRCID_SALT,TID_A) - xyzaa_TRC(:,:,:,TRCID_SALT,TID_N)) &
+!!$         & / RefSalt * 1d3
+!!$    call print_AverageInfo(DelOcnMass, "Ocn mass change:", xyz=xyz_Tmp)
+!!$
+!!$    NowMass = AvrLonLat_xy( &
+!!$            & DensSnow*xya_SnowThick(IS:IE,JS:JE,TID_A) +  DensIce*xya_IceThick(IS:IE,JS:JE,TID_A) )
+!!$    NowMass = NowMass - AvrLonLat_xy( &
+!!$         & Calculus_IntBtmToTop( (xyzaa_TRC(IS:IE,JS:JE,:,TRCID_SALT,TID_A) - 35d0)/35d0*1d3, &
+!!$         &                       xyza_H(IS:IE,JS:JE,:,TID_N) ))
+!!$
+!!$    
+!!$    write(*,*) "Check net budget: ", &
+!!$         & "(SIce)", (InputMass1-InputMass2) - DelSIceMass,   &
+!!$         & "(Ocn)",  InputMass2 - DelOcnMass,                 &
+!!$         & "(Tot)",  InputMass1 - (DelSIceMass + DelOcnMass), &
+!!$         & "(IniMass, NowMass)", InitMass, NowMass
+!!$    write(*,*) "--------------------------------------------------------------"
+       
 
-    xy_Tmp(:,:) = xy_FreshWtFlxS*DelTime*1d3
-    call print_AverageInfo(InputMass2, "Input mass: Atm,SIce -> Ocn", xy=xy_Tmp)
+       SIceEnA = AvrLonLat_xy(  xya_SIceCon(ISS:IES,JSS:JES,TID_A)*(                    &
+            &                   sum(xyza_SIceEn(ISS:IES,JSS:JES,KSS:KSS+1,TID_A), 3)    &
+            &                 - DensSnow*LFreeze*xya_SnowThick(ISS:IES,JSS:JES,TID_A) ) &
+            &    )
 
-    xy_Tmp(:,:) = &
-         &   DensIce*(xya_IceThick(:,:,TID_A) - xya_IceThick(:,:,TID_N))            &
-         & + DensSnow*(xya_SnowThick(:,:,TID_A) - xya_SnowThick(:,:,TID_N))
-    call print_AverageInfo(DelSIceMass, "SIce mass change:", xy=xy_Tmp)
+       DelSIceEn = SIceEnA - &
+            &    AvrLonLat_xy(  xya_SIceCon(ISS:IES,JSS:JES,TID_N)*(                    &
+            &                   sum(xyza_SIceEn(ISS:IES,JSS:JES,KSS:KSS+1,TID_N), 3)    &
+            &                 - DensSnow*LFreeze*xya_SnowThick(ISS:IES,JSS:JES,TID_N) ) &
+            &    )
+              
+!!$       where(xy_OcnSfcCellMask == OCNCELLMASK_OCEAN)
+!!$          xy_Tmp = 0d0
+!!$       elsewhere
+!!$          xy_Tmp = - LFreeze*(xy_SnowFall)*DelTime
+!!$       end where
+!!$       call print_AverageInfo(InputMass2, "SnowEnOnSIce:", xy=xy_Tmp)
+!!$
+!!$       where(xy_OcnSfcCellMask == OCNCELLMASK_OCEAN)
+!!$          xy_Tmp = 0d0
+!!$       elsewhere
+!!$          xy_Tmp = - LFreeze*( - xy_Evap)*DelTime
+!!$       end where
+!!$       call print_AverageInfo(InputMass2, "EvapEnOnSIce:", xy=xy_Tmp)
 
-    xyz_Tmp(:,:,:) = &
-         & - (xyzaa_TRC(:,:,:,TRCID_SALT,TID_A) - xyzaa_TRC(:,:,:,TRCID_SALT,TID_N)) &
-         & / RefSalt * 1d3
-    call print_AverageInfo(DelOcnMass, "Ocn mass change:", xyz=xyz_Tmp)
+       where(xy_OcnSfcCellMask == OCNCELLMASK_OCEAN)
+          xy_Tmp = 0d0
+       elsewhere
+          xy_Tmp = (xy_SfcHFlxAI + xy_DelSfcHFlxAI - xy_PenSWRFlxAI)*DelTime
+       end where
+       call print_AverageInfo(SfcHFlxAI, "", xy=xy_Tmp)
 
-    NowMass = AvrLonLat_xy( &
-            & DensSnow*xya_SnowThick(IS:IE,JS:JE,TID_A) +  DensIce*xya_IceThick(IS:IE,JS:JE,TID_A) )
-    NowMass = NowMass - AvrLonLat_xy( &
-         & Calculus_IntBtmToTop( (xyzaa_TRC(IS:IE,JS:JE,:,TRCID_SALT,TID_A) - 35d0)/35d0*1d3, &
-         &                       xyza_H(IS:IE,JS:JE,:,TID_N) ))
+       where(xy_OcnSfcCellMask == OCNCELLMASK_OCEAN)
+          xy_Tmp = xy_BtmHFlxIO - LFreeze*xy_SnowFall
+       elsewhere
+          xy_Tmp = xy_BtmHFlxIO
+       end where
+       call print_AverageInfo(BtmHFlxIO, "", xy=xy_Tmp*DelTime)
 
-    
-    write(*,*) "Check net budget: ", &
-         & "(SIce)", (InputMass1-InputMass2) - DelSIceMass,   &
-         & "(Ocn)",  InputMass2 - DelOcnMass,                 &
-         & "(Tot)",  InputMass1 - (DelSIceMass + DelOcnMass), &
-         & "(IniMass, NowMass)", InitMass, NowMass
-    write(*,*) "--------------------------------------------------------------"
+       where(xy_OcnSfcCellMask == OCNCELLMASK_OCEAN)
+          xy_Tmp = (xy_BtmHFlxIO - LFreeze*xy_SnowFall)
+       elsewhere
+          xy_Tmp = - xya_SIceCon(:,:,TID_N)*(xy_SfcHFlxAI + xy_DelSfcHFlxAI - xy_PenSWRFlxAI)   &
+               &   - xya_SIceCon(:,:,TID_N)*LFreeze*(xy_SnowFall - xy_Evap)                     &
+               &   + xy_BtmHFlxIO                                                               &
+               &   - (1d0 - xya_SIceCon(:,:,TID_N))*xy_SfcHFlxAO
+       end where
+       call print_AverageInfo(SIceNetHFlx, "", xy=xy_Tmp*DelTime)
+
+!!$       xy_Tmp(:,:) = (xy_SfcHFlxIO_ns + xy_SfcHFlxIO_sr)*DelTime
+!!$       call print_AverageInfo(InputMass2, "SfcHFlxIO:", xy=xy_Tmp)
+       
+       xy_Tmp(:,:) = (xy_SfcHFlx_ns + xy_SfcHFlx_sr)*DelTime
+       call print_AverageInfo(SfcHFlxO, "", xy=xy_Tmp)
+
+       OcnEnA = RefDens*Cp0*AvrLonLat_xy(Calculus_IntBtmToTop(                            &
+            & xyzaa_TRC(IS:IE,JS:JE,:,TRCID_PTEMP,TID_A), xyza_H(IS:IE,JS:JE,:,TID_A) ))
+
+       DelOcnEn = OcnEnA - RefDens*Cp0*AvrLonLat_xy(Calculus_IntBtmToTop(                &
+            & xyzaa_TRC(IS:IE,JS:JE,:,TRCID_PTEMP,TID_N), xyza_H(IS:IE,JS:JE,:,TID_N) ))
+       
+!!$       write(*,*) "DelOcnEn:", DelOcnEn
+!!$       write(*,*) "----------------------------------------------------"
+       write(BudgetMonitorOutUnit, '(e15.6e2,a, e15.6e2,a,4e15.6e2,a, e15.6e2,a,2e15.6e2)') &
+            & CurrentTime, " |",                                                 &
+            & SIceEnA, " :", DelSIceEn, SIceNetHFlx, SfcHFlxAI, BtmHFlxIO, " |", &
+            & OcnEnA,  " :", DelOcnEn, SfcHFlxO
+
+!!$       write(*, '(e15.6e2,a, e15.6e2,a,4e15.6e2,a, e15.6e2,a,2e15.6e2)') &
+!!$            & CurrentTime, " |",                                                 &
+!!$            & SIceEnA, " :", DelSIceEn, SIceNetHFlx, SfcHFlxAI, BtmHFlxIO, " |", &
+!!$            & OcnEnA,  " :", DelOcnEn, SfcHFlxO
+
+    end if
     
   contains
     
@@ -622,7 +791,7 @@ contains
   end subroutine DOGCM_Exp_Do  
   
   !------ private subroutines / functions -------------------------------------------------
-
+  
   subroutine get_Field4Standalone( dir, ncFileName, varName, & ! (in)
        & MeanInitTime, MeanEndTime,                          & ! (in)
        & xy, xyz                                             & ! (out)
@@ -671,14 +840,14 @@ contains
     call MessageNotify( 'M', module_name,  "get_Field4Standalone: varName=%a", ca=(/ varName /) )
     
     ncFilePath = trim(dir) // ncFileName
-    
+
     call HistoryGetPointer(ncFilePath, "time", timeSeries)
 !!$    write(*,*) "time: size=", size(timeSeries)
 !!$    write(*,*) "      range=", timeSeries
 
 
     TSeriesInitId = -1
-    TSeriesEndId  = -1    
+    TSeriesEndId  = -1   
     do n = 1, size(timeSeries)
        if (TSeriesInitId < 0 .and. MeanInitTime <= timeSeries(n)) then
           TSeriesInitId = n
@@ -897,7 +1066,7 @@ contains
     where ( xy_IceThick(:,:) > 0d0 ) 
        xyz_SIceTemp(:,:,KS)   = calc_Temp_IceLyr1( xyz_SIceEn(:,:,KS)/(0.5d0*DensIce*xy_IceThick(:,:)), SaltSeaIce )
        xyz_SIceTemp(:,:,KS+1) = calc_Temp_IceLyr2( xyz_SIceEn(:,:,KS+1)/(0.5d0*DensIce*xy_IceThick(:,:)), SaltSeaIce )
-       xy_SIceCon(:,:)        = 1d0
+!:old       xy_SIceCon(:,:)        = 1d0
     elsewhere
        xyz_SIceTemp(:,:,KS  ) = UNDEFVAL
        xyz_SIceTemp(:,:,KS+1) = UNDEFVAL
@@ -912,8 +1081,8 @@ contains
           SIceFrzTemp = - Mu*SaltSeaIce
       
           if (    (  xy_IceThick(i,j) >= IceThickMin .and.                                           &
-               &     (  xyz_SIceTemp(i,j,KS) >= 0d0 .or. xyz_SIceTemp(i,j,KS+1) >= SIceFrzTemp       &
-               &        .or. xy_SIceSfcTemp(i,j) >= 0d0                                        )     &
+               &     (  xyz_SIceTemp(i,j,KS) >  0d0 .or. xyz_SIceTemp(i,j,KS+1) >  SIceFrzTemp       &
+               &        .or. xy_SIceSfcTemp(i,j) > 0d0                                        )      &
                &  )                                                                                  &
                & .or. (xy_IceThick(i,j) > 0d0 .and. xy_IceThick(i,j) < IceThickMin)                  &
                & ) then
@@ -1008,6 +1177,7 @@ contains
     !
     namelist /Exp_APECoupleClimate_nml/ &
          & OcnMeanDepth,                                           &
+         & OcnInitSalt,                                            &
          & RunCycle, RunTypeName,                                  &
          & SfcBCDataDir, SfcBCMeanInitTime, SfcBCMeanEndTime,      &
          & RestartDataDir, RestartMeanInitTime, RestartMeanEndTime
@@ -1016,6 +1186,7 @@ contains
     !
 
     OcnMeanDepth = DEF_OCN_MEAN_DEPTH
+    OcnInitSalt  = 35d0
     
     RunCycle     = 1
     RunTypeName  = "Coupled"
@@ -1059,7 +1230,8 @@ contains
          & ca=(/SfcBCDataDir/), d=(/ SfcBCMeanInitTime, SfcBCMeanEndTime /) )
     call MessageNotify( 'M', module_name, "RestartDataDir=%a, Averaged time range %f:%f", &
          & ca=(/RestartDataDir/), d=(/ RestartMeanInitTime, RestartMeanEndTime /) )
-    call MessageNotify( 'M', module_name, "OcnMeanDepth=%f [m]", d=(/ OcnMeanDepth /) )
+    call MessageNotify( 'M', module_name, "OcnMeanDepth =%f [m]", d=(/ OcnMeanDepth /) )
+    call MessageNotify( 'M', module_name, "OcnInitSalt  =%f [psu]", d=(/ OcnInitSalt /) )
     
   end subroutine read_expConfig
 

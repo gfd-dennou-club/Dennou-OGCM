@@ -484,8 +484,7 @@ contains
     end where
     !$omp end workshare
     !$omp end parallel
-    
-    
+        
   end subroutine DOGCM_main_update_SIceField
 
   !- private subroutines ---------------------------------------------------------------------------

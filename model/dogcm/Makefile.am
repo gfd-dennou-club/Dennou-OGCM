@@ -91,8 +91,8 @@ endif
 
 bin_PROGRAMS += ocndiag
 ocndiag_SOURCES =\
-	tool/ocndiag/OcnDiag_DiagUtil_mod.f90         \
-	tool/ocndiag/OcnDiag_HeatTransport_mod.f90    \
+	tool/ocndiag/OcnDiag_DiagUtil_mod.f90            \
+	tool/ocndiag/OcnDiag_HeatTransport_mod.f90       \
 	tool/ocndiag/ocndiag_main.f90
 ocndiag_LDADD = \
 	libDOGCM.la                          \

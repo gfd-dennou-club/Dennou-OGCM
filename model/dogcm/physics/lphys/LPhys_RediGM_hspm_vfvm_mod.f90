@@ -37,7 +37,7 @@ module LPhys_RediGM_hspm_vfvm_mod
        & xy_GradLon_w,    &
        & xy_GradLat_w,    &
        & xyz_DSig_xyz,    &
-       & xy_CosLat
+       & xy_CosLat, nm_l
 
   use EOSDriver_mod, only: &
        & EOSDriver_Eval,      &
@@ -46,9 +46,9 @@ module LPhys_RediGM_hspm_vfvm_mod
   use DOGCM_Admin_Grid_mod, only: &
        & IS, IE, IA, JS, JE, JA, KS, KE, KA,   &
        & IBLOCK, JBLOCK, KBLOCK,               &
-       & iMax, jMax, kMax, lMax, tMax,         &
+       & iMax, jMax, kMax, lMax, nMax,         &
        & xyz_Lat, xyz_Lon,                     &
-       & x_CI, y_CJ, z_CK,                     &
+       & x_CI, y_CJ, z_CK, z_FK,               &
        & z_CDK, z_RCDK, z_FDK, z_RFDK
 #include "../../admin/DOGCM_Admin_GaussSpmGridIndexDef.h"
   
@@ -349,7 +349,7 @@ contains
       !$omp parallel private(i,j,k)
       !$omp do
       do k=KS, KE
-         xyz_RHS(IS:IE,JS:JE,k) = xyz_RHS(IS:IE,JS:JE,k) &
+         xyz_RHS(IS:IE,JS:JE,k) = xyz_RHS(IS:IE,JS:JE,k)  &
               & + xy_w( w_AlphaOptr_xy(                                                  &
               &     (xyz_FLonRedi(IS:IE,JS:JE,k) + xyz_FLonGM(IS:IE,JS:JE,k))*xy_CosLat, &
               &     (xyz_FLatRedi(IS:IE,JS:JE,k) + xyz_FLatGM(IS:IE,JS:JE,k))*xy_CosLat  &
@@ -600,6 +600,9 @@ contains
     integer :: jj
     integer :: k
     integer :: l
+
+    real(DP), parameter :: MixLyrDepthMin = 10d0
+    integer :: MixLyrBtm_k
     
     ! 実行文; Executable statement
     !
@@ -609,7 +612,7 @@ contains
        r_m2(k) = z_CDK(k  )/(z_CDK(k) + z_CDK(k+1))
     end do
 
-    !$omp parallel private(PsiLon,PsiLat,DzTRC,i,j,jj,k,l)
+    !$omp parallel private(PsiLon,PsiLat,DzTRC,i,j,jj,k,l,MixLyrBtm_k)
     !$omp do collapse(2)
     do k=KS, KE
     do j=JS, JE
@@ -619,13 +622,24 @@ contains
     end do
     end do
     end do
+
     !$omp do collapse(2)
-    do l=1, 2
     do j=JS, JE
     do i=IS, IS+_IM_-1
-       xyza_Psi(i,j,KS-1,l) = - xyza_Psi(i,j,KS,l)
-       xyza_Psi(i,j,KE+1,l) = - xyza_Psi(i,j,KE,l)
-    end do
+!!$       do k=KS, KE
+!!$          if (-z_CK(k)*xyz_H(i,j,k) > MixLyrDepthMin ) then
+!!$             MixLyrBtm_k = k; exit
+!!$          end if
+!!$       end do
+!!$       do k=MixLyrBtm_k, KE
+!!$          if ( xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2 <= 4d-3**2) then
+!!$             xyza_Psi(i,j,KS:k,LON) = (z_CK(KS:k)/z_CK(k))*(-Kappa_GM*xyz_SLat(i,j,k))
+!!$             xyza_Psi(i,j,KS:k,LAT) = (z_CK(KS:k)/z_CK(k))*( Kappa_GM*xyz_SLon(i,j,k))
+!!$             exit
+!!$          end if
+!!$       end do
+       xyza_Psi(i,j,KS-1,:) = - xyza_Psi(i,j,KS,:)
+       xyza_Psi(i,j,KE+1,:) = - xyza_Psi(i,j,KE,:)       
     end do
     end do
 
@@ -794,15 +808,16 @@ contains
   !-----------------------------------------------------------
   
   subroutine calc_BolusVelocity( &
-       & xyz_BolusU, xyz_BolusV, xyz_BolusW,                & ! (out)
-       & xyz_H, xyz_Z, xyz_SLon, xyz_SLat, xyz_T            & ! (in)
+       & xyz_BolusU, xyz_BolusV, xyr_BolusW, xy_MixLyrDepth,     & ! (out)
+       & xyz_H, xyz_Z, xyz_SLon, xyz_SLat, xyz_T                 & ! (in)
        & )
 
     ! 宣言文; Declaration statement
     !
     real(DP), intent(out) :: xyz_BolusU(IA,JA,KA)
     real(DP), intent(out) :: xyz_BolusV(IA,JA,KA)
-    real(DP), intent(out) :: xyz_BolusW(IA,JA,KA)
+    real(DP), intent(out) :: xyr_BolusW(IA,JA,KA)
+    real(DP), intent(out) :: xy_MixLyrDepth(IA,JA)    
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xyz_Z(IA,JA,KA)
     real(DP), intent(in) :: xyz_SLon(IA,JA,KA)
@@ -812,42 +827,98 @@ contains
     ! 局所変数
     ! Local variables
     !
-    real(DP) :: xyz_PsiLon(IA,JA,KA)
-    real(DP) :: xyz_PsiLat(IA,JA,KA)
+    real(DP) :: xyra_Psi(IA,JA,KA,2)
+    real(DP) :: r_m1(KA)
+    real(DP) :: r_m2(KA)
+    real(DP) :: PsiLon
+    real(DP) :: PsiLat
+    integer :: i
+    integer :: j
     integer :: k
+    integer :: l
 
+    real(DP), parameter :: MixLyrDepthMin = 10d0
+    integer :: MixLyrBtm_k
+    
     ! 実行文; Executable statement
     !
+
+    do k=KS, KE-1
+       r_m1(k) = z_CDK(k+1)/(z_CDK(k) + z_CDK(k+1))
+       r_m2(k) = z_CDK(k  )/(z_CDK(k) + z_CDK(k+1))
+    end do
+    
+    !$omp parallel private(i,j,k,l, MixLyrBtm_k)
+    !$omp do collapse(2)
+    do k=KS, KE-1
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyra_Psi(i,j,k,LON) = - Kappa_GM*( &
+            & r_m1(k)*xyz_T(i,j,k)*xyz_SLat(i,j,k) + r_m2(k)*xyz_T(i,j,k+1)*xyz_SLat(i,j,k+1) )
+       xyra_Psi(i,j,k,LAT) =   Kappa_GM*( &
+            & r_m1(k)*xyz_T(i,j,k)*xyz_SLon(i,j,k) + r_m2(k)*xyz_T(i,j,k+1)*xyz_SLon(i,j,k+1) )
+
+       
+    end do
+    end do
+    end do
+    !$omp do collapse(2)
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+
+!!$       MixLyrBtm_k = -1
+!!$       do k=KS, KE
+!!$          if (-z_CK(k)*xyz_H(i,j,k) > MixLyrDepthMin ) then
+!!$             MixLyrBtm_k = k; exit
+!!$          end if
+!!$       end do
 !!$
-!!$    !$omp parallel
-!!$    !$omp do
-!!$    do k=1, kMax-1
-!!$       xyz_PsiLon(:,:,k) = - Kappa_GM*xyz_T(:,:,k)*xyz_SLat(:,:,k)
-!!$       xyz_PsiLat(:,:,k) =   Kappa_GM*xyz_T(:,:,k)*xyz_SLon(:,:,k)       
-!!$    end do
-!!$
-!!$    !$omp workshare
-!!$    xyz_PsiLon(:,:,KS) = 0d0; xyz_PsiLat(:,:,0) = 0d0    
-!!$    xyz_PsiLon(:,:,k) = 0d0; xyz_PsiLat(:,:,kMax) = 0d0
-!!$    !$omp end workshare
-!!$    !$omp end parallel
-!!$    
+!!$       xy_MixLyrDepth(i,j) = MixLyrDepthMin
+!!$       do k=MixLyrBtm_k, KE
+!!$          if ( xyz_SLon(i,j,k)**2 + xyz_SLat(i,j,k)**2 <= 4d-3**2) then
+!!$             xyra_Psi(i,j,KS-1:k-1,LON) = (z_FK(KS-1:k-1)/z_CK(k))*(-Kappa_GM*xyz_SLat(i,j,k))
+!!$             xyra_Psi(i,j,KS-1:k-1,LAT) = (z_FK(KS-1:k-1)/z_CK(k))*( Kappa_GM*xyz_SLon(i,j,k))
+!!$             xy_MixLyrDepth(i,j) = -z_CK(k)*xyz_H(i,j,k)
+!!$             exit
+!!$          end if
+!!$       end do
+       xyra_Psi(i,j,KS-1,:) = 0d0
+       xyra_Psi(i,j,KE,:)   = 0d0
+       xy_MixLyrDepth(i,j) = 0d0
+    end do
+    end do
+    !$omp end parallel
+    
 !!$    if(DFM08Flag) then
 !!$       call TaperingDFM08_GM(xyz_PsiLon, xyz_PsiLat, &
 !!$            & DFM08Info%xy_BLD, DFM08Info%xy_TLT, DFM08Info%xy_Lamb, xyz_Z )
 !!$    end if
-!!$
-!!$    xyz_BolusU(:,:,:) = - xyz_DSig_xyz(xyz_PsiLat)/xyz_H !-xyz_Dz_xyz(xyz_PsiLat, xyz_H)
-!!$    xyz_BolusV(:,:,:) =   xyz_DSig_xyz(xyz_PsiLon)/xyz_H ! xyz_Dz_xyz(xyz_PsiLon, xyz_H)
-!!$                                                         ! xyz_Dz_xyz(xyz_PsiLon*xyz_CosLat, xyz_H)/xyz_CosLat
-!!$                                                         ! = xyz_Dz_xyz(xyz_PsiLon, xyz_H)
-!!$    !$omp parallel do
-!!$    do k = 0, kMax
-!!$       xyz_BolusW(:,:,k) = xy_w( &
-!!$            & w_AlphaOptr_xy(xyz_PsiLat(:,:,k)*xy_CosLat, -xyz_PsiLon(:,:,k)*xy_CosLat) &
-!!$            & )
-!!$    end do
 
+    !$omp parallel private(i,j,k)
+    !$omp do collapse(2)
+    do k=KS, KE
+    do j=JS, JE
+    do i=IS, IS+_IM_-1
+       xyz_BolusU(i,j,k) = - (xyra_Psi(i,j,k-1,LAT) - xyra_Psi(i,j,k,LAT))*z_RCDK(k)/xyz_H(i,j,k)
+                             !-xyz_Dz_xyz(xyz_PsiLat, xyz_H)
+
+       xyz_BolusV(i,j,k) =   (xyra_Psi(i,j,k-1,LON) - xyra_Psi(i,j,k,LON))*z_RCDK(k)/xyz_H(i,j,k)
+                             ! xyz_Dz_xyz(xyz_PsiLon, xyz_H)
+                             ! xyz_Dz_xyz(xyz_PsiLon*xyz_CosLat, xyz_H)/xyz_CosLat
+                             ! = xyz_Dz_xyz(xyz_PsiLon, xyz_H)       
+    end do
+    end do
+    end do
+    !$omp do
+    do k = KS, KE-1
+       xyr_BolusW(IS:IE,JS:JE,k) = xy_w( &
+            & w_AlphaOptr_xy(xyra_Psi(IS:IE,JS:JE,k,LAT)*xy_CosLat, -xyra_Psi(IS:IE,JS:JE,k,LON)*xy_CosLat) &
+            & )
+    end do
+    !$omp end parallel
+    xyr_BolusW(:,:,KS-1) = 0d0
+    xyr_BolusW(:,:,KE  ) = 0d0
+    
   end subroutine calc_BolusVelocity
 
   !--------------------------------------------------------------------------------------------------
@@ -1011,7 +1082,7 @@ contains
 
     real(DP) :: xyz_BolusU(IA,JA,KA)
     real(DP) :: xyz_BolusV(IA,JA,KA)
-    real(DP) :: xyz_BolusW(IA,JA,KA)
+    real(DP) :: xyr_BolusW(IA,JA,KA)
 
     real(DP) :: xyz_G(IA,JA,KA)
     real(DP) :: xyz_C(IA,JA,KA)
@@ -1046,8 +1117,8 @@ contains
          & xyz_PTemp, xyz_Salt, xyzaa_HGradTRC, xyra_DSigTRC, & ! (in)
          & xyz_H, xyz_Z )                                       !(in)
 
-    call prepare_SlopeTapering( xyz_T(:,:,KS:KE), xyz_SLon(:,:,KS:KE), xyz_SLat(:,:,KS:KE), & ! (inout)
-         & xyz_DensPot(:,:,KS:KE), xyz_Z(:,:,KS:KE)                                         & ! (in)
+    call prepare_SlopeTapering( xyz_T, xyz_SLon, xyz_SLat, & ! (inout)
+         & xyz_DensPot, xyz_Z                              & ! (in)
          & )
 !!$
 !!$    call calc_IsopycDiffFlux(xyz_FLon, xyz_FLat, xyz_FSig, &  ! (out)      
@@ -1061,21 +1132,22 @@ contains
 !!$         & )
     
     call HistoryPut('DensPot', xyz_DensPot(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
-!!$    call HistoryPut('MixLyrDepth', xy_BLD, hst_SGSEddyMix)
 
     call HistoryPut('SlopeLon', xyz_SLon(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
     call HistoryPut('SlopeLat', xyz_T(IS:IE,JS:JE,KS:KE)*xyz_SLat(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
+    call HistoryPut('SlopeLatOri', xyz_SLat(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
     call HistoryPut('diffCoefEff', xyz_T(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
 
 !!$    !
-!!$    call calc_BolusVelocity( &
-!!$         & xyz_BolusU, xyz_BolusV, xyz_BolusW,                & ! (out)
-!!$         & xyz_H, xyz_Z, xyz_SLon, xyz_SLat, xyz_T            & ! (in)
-!!$         & )
-!!$       
-!!$    call HistoryPut('BolusU', xyz_BolusU(:,:,KS:KE), hst_SGSEddyMix)
-!!$    call HistoryPut('BolusV', xyz_BolusV(:,:,KS:KE), hst_SGSEddyMix)
-!!$    call HistoryPut('BolusW', xyz_BolusW(:,:,KS:KE), hst_SGSEddyMix)
+    call calc_BolusVelocity( &
+         & xyz_BolusU, xyz_BolusV, xyr_BolusW, xy_BLD,        & ! (out)
+         & xyz_H, xyz_Z, xyz_SLon, xyz_SLat, xyz_T            & ! (in)
+         & )
+       
+    call HistoryPut('BolusU', xyz_BolusU(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
+    call HistoryPut('BolusV', xyz_BolusV(IS:IE,JS:JE,KS:KE), hst_SGSEddyMix)
+    call HistoryPut('BolusW', xyr_BolusW(IS:IE,JS:JE,KS-1:KE), hst_SGSEddyMix)
+    call HistoryPut('MixLyrDepth', xy_BLD(IS:IE,JS:JE), hst_SGSEddyMix)
 
   end subroutine LPhys_RediGM_hspm_vfvm_Output
 
@@ -1133,6 +1205,7 @@ contains
     call regist_XYZTVariable('DensPot', 'potential density', 'kg/m3')
     call regist_XYZTVariable('SlopeLon', 'the longitude component of slope of isoneutral', '1')
     call regist_XYZTVariable('SlopeLat', 'the latitude component of slope of isoneutral', '1')
+    call regist_XYZTVariable('SlopeLatOri', 'the latitude component of slope of isoneutral', '1')
     call regist_XYZTVariable('diffCoefEff', 'rescale factor of diffusivity', '1')
     call regist_XYTVariable('MixLyrDepth', 'depth of mixed layer used in linear tapering near the surface', 'm')
     
