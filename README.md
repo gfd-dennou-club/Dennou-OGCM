@@ -1,25 +1,32 @@
-Dennou-OGCM project (Dennou Oceanic General Circulation Models project)
+DCPOM project (Dennou-Club Planetary Oceanic Model project)
 
 =======================================================================================
 
 Target
 -----------------------------------------------------------------------------------------
-
+DCPOM project designs and develops ocean and sea ice models in order to explore climates on exoplanets.
 
 Models
 -----------------------------------------------------------------------------------------
 
-* Global oceanic general circulation model on aquaplanet with a spectral method (dsogcm)
+* Global oceanic general circulation model for ocean planet climates (dogcm)
   - Ocean component
-    - Dynamical core: hydrostatic Boussinesq equations with a spectral Eulerian method
+    - Dynamical core: hydrostatic Boussinesq equations
     - Parameterizations for sub-grid scale processes
       - Meso-scale eddy mixing
         - isopycnal diffusion scheme (Redi, 1982) 
         - GM scheme based on skew flux (Gent and McWilliams, 1990; Griffies et al, 1998)
       - Convective mixing
         - convective adjustment scheme (Marotzke, 1991)
-  - Sea ice
-    - Thermodynamic 3 layers sea ice model based on Winton(2000).
+    - Numerical method
+      - horizontal discretization: a spectral Eulerian method based spherical harmonics 
+      - vertical discretization: a finite volume method
+      - time discretization
+        - a LF-AM3 scheme (Shchepetkin and McWillams, 2005) for advective process
+	- a leapfrog scheme for fast wave process and vertical diffusive process,
+	  a backward Euler scheme for lateral diffusive process
+  - Sea ice component
+    - Thermodynamic 3 layers sea ice model based on a formulation by Winton(2000).
   - Note
     - This ocean-sea ice model can couple to an atmospheric general circulation model (DCPAM).
       For details, please see DCPCM project.
@@ -34,11 +41,10 @@ Models
     - The model mesh is spherical triangle mesh, and the governing equation are
       discritized with a DG method proposed by Läuter et al. (2008).
 
-
 Main developers
 -----------------------------------------------------------------------------------------
 
-  - Yuta Kawai (Kobe university and RIKEN AICS) and the collaborators in GFD-Dennou Club
+  - Yuta Kawai (Kobe university and RIKEN R-CCS) and the collaborators in GFD-Dennou Club
 
 
 Some informations
@@ -58,11 +64,11 @@ Some links associated with this project
   - https://www.gfd-dennou.org
 - DCPAM: Dennou-Club Planetary Atmospheric Model
   - https://www.gfd-dennou.org/arch/dcpam/index.htm.en
-- DCPCM: Dennou Club Planetary Climate simulation Model
-  - https://github.com/ywkawai/DCPCM
+- DCPCM: Dennou-Club Planetary Climate Model
+  - https://github.com/gfd-dennou-club/Dennou-CCM
 
 
 Acknowledgments
 -----------------------------------------------------------------------------------------
 
-- Y, Kawai is receiving partial support from the Junior Research Associate (JRA) program on RIKEN. 
+- Y, Kawai is receiving partial support from the Junior Research Associate (JRA) program on RIKEN (FY2015-FY2017). 

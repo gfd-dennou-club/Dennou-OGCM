@@ -1,0 +1,12 @@
+= intel コンパイラを用いる場合の注意点
+
+configure の実行後に生成される 「libtool」ファイルでは, 「-soname」の指定の仕方に問題がある.
+「libtool」ファイルの 1660 行周辺(Main の直前)に,  以下を追加すること. 
+  
+archive_cmds="\$CC -shared \$pic_flag \$libobjs \$deplibs \$compiler_flags -Xlinker -soname -Xlinker \$soname -o \$lib"
+archive_expsym_cmds="echo \\\"{ global:\\\" > \$output_objdir/\$libname.ver~
+            cat \$export_symbols | sed -e \\\"s/\\\\(.*\\\\)/\\\\1;/\\\" >> \$output_objdir/\$libname.ver~
+            echo \\\"local: *; };\\\" >> \$output_objdir/\$libname.ver~
+            \$CC -shared \$pic_flag \$libobjs \$deplibs \$compiler_flags -Xlinker -soname -Xlinker $soname -Xlinker -version-script -Xlinker \$output_objdir/\$libname.ver -o \$lib"
+hardcode_libdir_flag_spec="-Xlinker -rpath -Xlinker \$libdir"
+	    

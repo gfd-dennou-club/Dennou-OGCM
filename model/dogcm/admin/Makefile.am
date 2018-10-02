@@ -25,7 +25,8 @@ dist_libDOGCMAdmin_la_SOURCES= \
 
 
 DOGCM_Admin_Grid_mod.f90:                   \
-	DOGCM_Admin_GovernEq_mod.o
+	DOGCM_Admin_GovernEq_mod.o          \
+	DOGCM_Admin_BC_mod.o
 
 DOGCM_Admin_Variable_mod.f90:              \
 	DOGCM_Admin_TInteg_mod.o           \
