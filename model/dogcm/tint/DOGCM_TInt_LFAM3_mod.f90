@@ -38,7 +38,7 @@ module DOGCM_TInt_LFAM3_mod
 #include "../admin/DOGCM_Admin_GaussSpmGridIndexDef.h"
 
   use DOGCM_Admin_Constants_mod, only: &
-       & Grav, RefDens, Omega
+       & PI, Grav, RefDens, Omega
   
   use EOSDriver_mod, only: &
        & EOSDriver_Init, EOSDriver_Final, &
@@ -51,12 +51,18 @@ module DOGCM_TInt_LFAM3_mod
        & TRC_TOT_NUM, &
        & TRCID_PTEMP, TRCID_SALT
 
+  use DOGCM_Admin_BC_mod, only: &
+       & KinBC_Surface,         &
+       & KinBCTYPE_RigidLid,    &
+       & KinBCTYPE_LinFreeSurf, &
+       & KinBCTYPE_FreeSurf
+
+  use DOGCM_Admin_TInteg_mod, only: &
+       & BarotSubCycNum => SubCycleNum
+  
   use DOGCM_Boundary_vars_mod, only:   &
        & xy_FreshWtFlx, xy_FreshWtFlxS
-  
-  use DOGCM_Boundary_driver_mod, only: &
-       & DOGCM_Boundary_driver_ApplyBC
-  
+    
   use DOGCM_Dyn_driver_mod, only: &
        & DOGCM_Dyn_driver_SSHRHS,                 &
        & DOGCM_Dyn_driver_HTRCRHS,                &
@@ -103,6 +109,10 @@ module DOGCM_TInt_LFAM3_mod
   character(*), parameter:: module_name = 'DOGCM_TInt_LFAM3_mod' !< Module Name
 
 
+  real(DP), allocatable :: barot_tavg_coefA(:)
+  real(DP), allocatable :: barot_tavg_coefB(:)
+  integer :: BarotSubCycNumMax
+  
 contains
 
   !>
@@ -110,13 +120,19 @@ contains
   !!
   Subroutine DOGCM_TInt_LFAM3_Init(configNmlName)
 
+    
     ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlName
 
+    ! 作業変数
+    ! Work variables
+    !    
+    integer :: m
+    real(DP) :: tau
+    
     ! 実行文; Executable statements
     !
-
 
     !    call read_nmlData(configNmlName)
 
@@ -128,7 +144,30 @@ contains
 !!$    call DOGCM_IO_History_RegistVar( 'SaltRHS_impl', 'T', 'global mean of Salt', 'psu/s' )    
 !!$    call DOGCM_IO_History_RegistVar( 'Div', 'IJKT', 'horizontal divergence', 's-1' )    
 !!$    call DOGCM_IO_History_RegistVar( 'PTemp_t_dyn', 'IJKT', 'PTemp tendency of dynamics', 'K/s' )
+    if (KinBC_Surface == KinBCTYPE_FreeSurf) then
+       BarotSubCycNumMax = int(BarotSubCycNum*1.5d0) 
+       allocate( barot_tavg_coefA(BarotSubCycNumMax) )
+       allocate( barot_tavg_coefB(BarotSubCycNumMax) )
 
+       do m=1, BarotSubCycNumMax
+          tau = m/dble(BarotSubCycNum) 
+          if (  tau > 0.5d0 .and. tau < 1.5d0 ) then
+             barot_tavg_coefA(m) = 1d0 + cos(2d0*PI*(tau - 1d0))
+          else
+             barot_tavg_coefA(m) = 0d0
+          end if
+       end do
+       barot_tavg_coefA(:) = barot_tavg_coefA/sum(barot_tavg_coefA)
+
+       do m=1, BarotSubCycNumMax
+          barot_tavg_coefB(m) = sum(barot_tavg_coefA(m:BarotSubCycNumMax))/dble(BarotSubCycNum)
+       end do
+!!$       write(*,*) "am:", barot_tavg_coefA(:)
+!!$       write(*,*) "bm:", barot_tavg_coefB(:)
+!!$       stop
+    else
+       BarotSubCycNumMax = 1
+    end if
     
   end subroutine DOGCM_TInt_LFAM3_Init
 
@@ -143,6 +182,9 @@ contains
     ! 実行文; Executable statements
     !
 
+    if (KinBC_Surface == KinBCTYPE_FreeSurf) then
+       deallocate( barot_tavg_coefA, barot_tavg_coefB )
+    end if
 
   end subroutine DOGCM_TInt_LFAM3_Final
 
@@ -337,10 +379,12 @@ contains
     integer :: jj
     integer :: k
     integer :: n
+    integer :: m
 
     real(DP) :: dtTRC
     real(DP) :: dtMom
     real(DP) :: dtSSH
+    real(DP) :: dtSSH_s
     real(DP) :: PresTAvgCoefA
 
     real(DP) :: U_RHSTmp
@@ -367,6 +411,8 @@ contains
     real(DP) :: alpha_    
     real(DP) :: gamma_
     real(DP) :: CoriCoefN, CoriCoefB
+
+    integer :: nSubCyc_
     
     ! 実行文; Executable statements
     !
@@ -382,6 +428,14 @@ contains
     dtMom = dt 
     dtSSH = dt 
 
+    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarotN, xy_VBarotN,         & ! (out)
+         & xyz_UN, xyz_VN, xyz_HN, xy_SSHN, xy_TOPO                    & ! (in)
+         & )
+
+    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarotB, xy_VBarotB,       & ! (out)
+         & xyz_UB, xyz_VB, xyz_HB, xy_SSHB, xy_TOPO                  & ! (in)
+         & )
+    
     != Predictor ============================================================
 
     
@@ -395,8 +449,8 @@ contains
     !    & pseudo-compressible algorithm
 
     xyz_HA = xyz_HB
-    call DOGCM_Dyn_driver_OMGDiag( xyz_OMGN,      & ! (out)
-         & xyz_Div, xyz_HB, xyz_HA, dtSSH         & ! (in)
+    call DOGCM_Dyn_driver_OMGDiag( xyz_OMGN,                 & ! (out)
+         & xyz_Div, xyz_HB, xyz_HA, xyz_Z, xy_Topo, dtSSH    & ! (in)
          & )
     xyz_H  = xyz_HA
     
@@ -438,13 +492,13 @@ contains
          & xyz_CoriU, xyz_CoriV,                         & ! (in)
          & xyz_Zero, xyz_Zero                            & ! (in)
          & )
-        
+    
     if ( alpha > 0d0 ) then
        !$omp parallel do private(i,j,k,CoriImplFac,U_RHSTmp) collapse(2)
        do k = KS, KE
        do j = JS, JE
        do i = IS, IE
-          CoriImplFac      = 0.5d0*dtMom*xy_Cori(i,j)
+          CoriImplFac      = 0.5d0*(2d0*dtMom)*xy_Cori(i,j)
           U_RHSTmp         = xyz_U_RHS(i,j,k)
 
           xyz_U_RHS(i,j,k) = (U_RHSTmp + CoriImplFac*xyz_V_RHS(i,j,k))/(1d0 + CoriImplFac**2)
@@ -463,6 +517,18 @@ contains
        end do
     end if
 
+    
+    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot, xy_VBarot,       & ! (out)
+         & xyz_U, xyz_V, xyz_HN, xy_SSHN, xy_TOPO                  & ! (in)
+         & )
+    
+    !$omp parallel do
+    do k = KS, KE
+       xyz_U(:,:,k) = xyz_U(:,:,k) - xy_UBarot + xy_UBarotN
+       xyz_V(:,:,k) = xyz_V(:,:,k) - xy_VBarot + xy_VBarotN
+    end do
+
+    
     !** Update tracers -------------------------------------------------------
     
     call DOGCM_Dyn_driver_HTRCRHS( xyza_HTRC_RHS,                                                & ! (out)
@@ -490,8 +556,8 @@ contains
     !    & pseudo-compressible algorithm
 
     xyz_HA = xyz_HB
-    call DOGCM_Dyn_driver_OMGDiag( xyz_OMG,       & ! (out)
-         & xyz_Div, xyz_HB, xyz_HA, dtSSH         & ! (in)
+    call DOGCM_Dyn_driver_OMGDiag( xyz_OMG,                    & ! (out)
+         & xyz_Div, xyz_HB, xyz_HA, xyz_Z, xy_Topo, dtSSH      & ! (in)
          & )
     xyz_H = xyz_HA
     
@@ -512,14 +578,6 @@ contains
          & xyz_DensEdd, xyz_H                               & ! (in)
          & )
 
-
-    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarotN, xy_VBarotN,         & ! (out)
-         & xyz_UN, xyz_VN, xyz_HN, xy_SSHN, xy_TOPO                    & ! (in)
-         & )
-
-    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarotB, xy_VBarotB,       & ! (out)
-         & xyz_UB, xyz_VB, xyz_HB, xy_SSHB, xy_TOPO                  & ! (in)
-         & )
     
     alpha_ = 0.5d0
     gamma_ = 0.5d0
@@ -529,11 +587,8 @@ contains
     !$omp parallel private(i,j,k)
     !$omp do
     do j = JS, JE
-       xy_CoriUBarot(:,j)   =   xy_Cori(:,j)*(CoriCoefN*xy_UBarotN(:,j) + CoriCoefB*xy_UBarotB(:,j))
-       xy_CoriVBarot(:,j)   =   xy_Cori(:,j)*(CoriCoefN*xy_VBarotN(:,j) + CoriCoefB*xy_VBarotB(:,j))
-       
-       xy_SfcPresMomEq(:,j) =    CoriCoefN*xy_SfcPresN(:,j) + CoriCoefB*xy_SfcPresB(:,j) &
-            &                  - xy_SfcPresN(:,j)
+       xy_CoriUBarot(:,j)  =   xy_Cori(:,j)*(CoriCoefN*xy_UBarotN(:,j) + CoriCoefB*xy_UBarotB(:,j))
+       xy_CoriVBarot(:,j)  =   xy_Cori(:,j)*(CoriCoefN*xy_VBarotN(:,j) + CoriCoefB*xy_VBarotB(:,j))
     end do
     
     !$omp do collapse(2)
@@ -551,7 +606,7 @@ contains
     call DOGCM_Dyn_driver_MOMBarocRHS( &
          & xyz_U_RHS, xyz_V_RHS,                         & ! (out)
          & xyz_U, xyz_V, xyz_OMG, xyz_Vor, xyz_Div,      & ! (in)
-         & xyz_H, xyz_Pres, xyz_DensEdd, xyz_GeoPot,     & ! (in)
+         & xyz_HN, xyz_Pres, xyz_DensEdd, xyz_GeoPot,    & ! (in)
          & xyz_CoriU, xyz_CoriV,                         & ! (in)
          & xyz_U_RHS_phy, xyz_V_RHS_phy                  & ! (in)
          & )
@@ -561,7 +616,7 @@ contains
     call ProfUtil_RapStart('-OcnImpl_Mom', 3)
     call DOGCM_Phys_driver_ImplUV( xyz_UA, xyz_VA,           & ! (out)
          & xyz_UN, xyz_VN, xyz_U_RHS, xyz_V_RHS,             & ! (in)
-         & xyz_H, xyz_VViscCoef, xy_BtmFrictCoef,            & ! (in)
+         & xyz_HN, xyz_VViscCoef, xy_BtmFrictCoef,           & ! (in)
          & dtMom, lambda                                     & ! (in)
          & )
 
@@ -611,47 +666,118 @@ contains
 
     !- Barotropic mode ----------------------------------------------------------------------------
 
-    call DOGCM_Dyn_driver_MOMBarotRHS( &
-       & xy_UBarot_RHS, xy_VBarot_RHS,                      & ! (out)
-       & xy_CoriUBarot, xy_CoriVBarot, xy_SfcPresMomEq,     & ! (in)
-       & xy_UBarocForce, xy_VBarocForce                     & ! (in)
-       & )
+    dtSSH_s = dtSSH/dble(BarotSubCycNum)
+    
+    !$omp parallel do
+    do j=JS, JE
+       xy_UBarot(:,j)  = xy_UBarotN(:,j)
+       xy_VBarot(:,j)  = xy_VBarotN(:,j)
+       xy_SSH(:,j)     = xy_SSHN(:,j)
+       xy_SfcPres(:,j) = xy_SfcPresN(:,j)
 
-    if (alpha_ > 0d0) then
-       !$omp parallel do private(CoriImplFac) 
-       do j = JS, JE
-       do i = IS, IE
-          CoriImplFac     = alpha_*dtSSH*xy_Cori(i,j)
-          xy_UBarotA(i,j) = xy_UBarotN(i,j) + &
-               & dtSSH*(xy_UBarot_RHS(i,j) + CoriImplFac*xy_VBarot_RHS(i,j)) / (1d0 + CoriImplFac**2)       
+       xy_UBarotA(:,j) = 0d0
+       xy_VBarotA(:,j) = 0d0
+       xy_SSHA(:,j)    = 0d0
+       xy_UVolFlxBarot(:,j) = 0d0
+       xy_VVolFlxBarot(:,j) = 0d0
+    end do
+    
+    do m=1, BarotSubCycNumMax
 
-          xy_VBarotA(i,j) = xy_VBarotN(i,j) + &
-               & dtSSH*(xy_VBarot_RHS(i,j) - CoriImplFac*xy_UBarot_RHS(i,j)) / (1d0 + CoriImplFac**2)
+       select case(KinBC_Surface)
+       case( KinBCTYPE_FreeSurf )
+          call DOGCM_Dyn_driver_SSHRHS( xy_SSH_RHS,                      &   ! (out)
+               & xy_SSH, xy_Topo, xy_UBarot, xy_VBarot, xy_FreshWtFlx   )    ! (in)
+          !$omp parallel do
+          do j=JS, JE
+             xy_SSH(:,j) = xy_SSH(:,j) + dtSSH_s*xy_SSH_RHS(:,j)
+             xy_SfcPres(:,j) = RefDens*Grav*xy_SSH(:,j)
+          end do
+       end select
 
-          xy_SfcPresA(i,j) = xy_SfcPresN(i,j)
-       end do
+       
+       !$omp parallel do
+       do j=JS, JE
+          xy_CoriUBarot(:,j) = xy_Cori(:,j)*xy_UBarot(:,j)
+          xy_CoriVBarot(:,j) = xy_Cori(:,j)*xy_VBarot(:,j)
+          xy_SfcPresMomEq(:,j) = xy_SfcPres(:,j) - xy_SfcPresN(:,j)
        end do
        
-    else
-       !$omp parallel
-       !$omp workshare
-       xy_UBarotA(:,:) = xy_UBarotN + dtSSH*xy_UBarot_RHS
-       xy_VBarotA(:,:) = xy_VBarotN + dtSSH*xy_VBarot_RHS
-       xy_SfcPresA(:,:) = xy_SfcPresN(:,:)
-       !$omp end workshare
-       !$omp end parallel
-    end if
+       call DOGCM_Dyn_driver_MOMBarotRHS( &
+            & xy_UBarot_RHS, xy_VBarot_RHS,                      & ! (out)
+            & xy_CoriUBarot, xy_CoriVBarot, xy_SfcPresMomEq,     & ! (in)
+            & xy_UBarocForce, xy_VBarocForce                     & ! (in)
+            & )
+       
+       if (alpha_ > 0d0) then
+          !$omp parallel do private(CoriImplFac) 
+          do j = JS, JE
+          do i = IS, IE
+             CoriImplFac     = alpha_*dtSSH_s*xy_Cori(i,j)
+             xy_UBarot(i,j) = xy_UBarot(i,j) + &
+                  & dtSSH_s*(xy_UBarot_RHS(i,j) + CoriImplFac*xy_VBarot_RHS(i,j)) / (1d0 + CoriImplFac**2)       
 
-    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarotA, xy_VBarotA,           & ! (out)
-         & xyz_UA, xyz_VA, xyz_H, xy_SSH, xy_TOPO                        & ! (in)
-         & )
-    
-    PresTAvgCoefA = alpha_
-    call DOGCM_Dyn_driver_BarotUpdate( &
-         & xy_UBarotA, xy_VBarotA,                      & ! (inout)
-         & xy_SfcPresA, xy_SSHA,                        & ! (inout)
-         & xy_Cori, dtMom, dtSSH, PresTAvgCoefA         & ! (in)
-         & )
+             xy_VBarot(i,j) = xy_VBarot(i,j) + &
+                  & dtSSH_s*(xy_VBarot_RHS(i,j) - CoriImplFac*xy_UBarot_RHS(i,j)) / (1d0 + CoriImplFac**2)
+          end do
+          end do
+       else
+          !$omp parallel
+          !$omp workshare
+          xy_UBarot(:,:) = xy_UBarot + dtSSH_s*xy_UBarot_RHS
+          xy_VBarot(:,:) = xy_VBarot + dtSSH_s*xy_VBarot_RHS
+          !$omp end workshare
+          !$omp end parallel
+       end if
+
+       select case(KinBC_Surface)
+       case ( KinBCTYPE_RigidLid, KinBCTYPE_LinFreeSurf )
+
+          ! Pressure projection
+              
+          PresTAvgCoefA = alpha_
+          !$omp parallel do
+          do j=JS, JE
+             xy_UBarotA(:,j)  = xy_UBarot(:,j)
+             xy_VBarotA(:,j)  = xy_VBarot(:,j)
+             xy_SSHA(:,j)     = xy_SSH(:,j)
+             xy_SfcPresA(:,j) = xy_SfcPres(:,j)
+          end do
+          call DOGCM_Dyn_driver_BarotUpdate( &
+               & xy_UBarotA, xy_VBarotA,                           & ! (inout)
+               & xy_SfcPresA, xy_SSHA,                             & ! (inout)
+               & xy_Cori, xy_Topo, dtMom, dtSSH_s, PresTAvgCoefA,  & ! (in)
+               & xy_FreshWtFlx                                     & ! (in)
+               & )
+
+          !---
+          
+       case ( KinBCTYPE_FreeSurf )
+
+          !$omp parallel do
+          do j=JS, JE
+             xy_UBarotA(:,j) = xy_UBarotA(:,j) + barot_tavg_coefA(m)*xy_UBarot(:,j)
+             xy_VBarotA(:,j) = xy_VBarotA(:,j) + barot_tavg_coefA(m)*xy_VBarot(:,j)             
+             xy_SSHA(:,j)    = xy_SSHA(:,j) + barot_tavg_coefA(m)*xy_SSH(:,j)
+
+             xy_UVolFlxBarot(:,j) = xy_UVolFlxBarot(:,j) &
+                  & + barot_tavg_coefB(m)*(xy_Topo(:,j) + xy_SSH(:,j))*xy_UBarot(:,j)
+             xy_VVolFlxBarot(:,j) = xy_VVolFlxBarot(:,j) &
+                  & + barot_tavg_coefB(m)*(xy_Topo(:,j) + xy_SSH(:,j))*xy_VBarot(:,j)
+          end do
+
+          if (m == BarotSubCycNumMax) then
+             xy_SfcPresA(:,:) = RefDens*Grav*xy_SSHA
+          end if
+       end select
+
+    end do  ! end subcyc
+
+!!$    write(*,*) "U:", xy_UBarotA(IS,JS:JE)
+!!$    write(*,*) "V:", xy_VBarotA(IS,JS:JE)
+!!$    write(*,*) "SSH:", xy_SSHA(IS,JS:JE)
+!!$    write(*,*) "VVolFlx:", xy_VVolFlxBarot(IS,JS:JE)
+!!$    write(*,*) "----------------------"
     
     !----------------------------------------------------------------------
     
@@ -677,31 +803,45 @@ contains
 
        xyz_U(:,j,k) = (5d0*xyz_UA(:,j,k) + 8d0*xyz_UN(:,j,k) - xyz_UB(:,j,k))/12d0
        xyz_V(:,j,k) = (5d0*xyz_VA(:,j,k) + 8d0*xyz_VN(:,j,k) - xyz_VB(:,j,k))/12d0       
-       xyz_H(:,j,k) = (5d0*xyz_HA(:,j,k) + 8d0*xyz_HN(:,j,k) - xyz_HB(:,j,k))/12d0       
+       xyz_H(:,j,k) = (5d0*xyz_HA(:,j,k) + 8d0*xyz_HN(:,j,k) - xyz_HB(:,j,k))/12d0
     end do
-    end do
-    do j = JS, JE
-       xy_SSH(:,j) = (5d0*xy_SSHA(:,j) + 8d0*xy_SSHN(:,j) - xy_SSHB(:,j))/12d0
     end do
 
     != Update tracers ****************************************************
     !
 
-    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot, xy_VBarot,           & ! (out)
-         & xyz_U, xyz_V, xyz_H, xy_SSH, xy_TOPO                        & ! (in)
-         & )
-    
     !** Modify horizontal momentum such that the vertical integrated mass fluxes is
     !   consistent with surface height equation. 
+    
+    select case (KinBC_Surface)
+    case(KinBCTYPE_RigidLid)
 
-!!$    !$omp parallel do collapse(2) private(j,k)
-!!$    do k = KS, KE
-!!$    do j = JS, JE
-!!$       xyz_U(:,j,k) = xyz_U(:,j,k) + (xy_UVolFlxBarot(:,j)/(xy_SSH(:,j) + xy_Topo(:,j))) - xy_UBarot(:,j)
-!!$       xyz_V(:,j,k) = xyz_V(:,j,k) + (xy_VVolFlxBarot(:,j)/(xy_SSH(:,j) + xy_Topo(:,j))) - xy_VBarot(:,j)
-!!$    end do
-!!$    end do
- 
+    case(KinBCTYPE_LinFreeSurf)
+       call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot, xy_VBarot,       & ! (out)
+            & xyz_U, xyz_V, xyz_H, xy_SSHA, xy_TOPO                   & ! (in)
+            & )
+
+       !$omp parallel do collapse(2) private(j,k)
+       do k = KS, KE
+       do j = JS, JE
+          xyz_U(:,j,k) = xyz_U(:,j,k) + xy_UBarotA(:,j) - xy_UBarot(:,j)
+          xyz_V(:,j,k) = xyz_V(:,j,k) + xy_VBarotA(:,j) - xy_VBarot(:,j)
+       end do
+       end do
+    case(KinBCTYPE_FreeSurf) 
+       call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot, xy_VBarot,           & ! (out)
+            & xyz_U, xyz_V, xyz_H, xy_SSH, xy_TOPO                        & ! (in)
+            & )
+
+       !$omp parallel do collapse(2) private(j,k)
+       do k = KS, KE
+       do j = JS, JE
+          xyz_U(:,j,k) = xyz_U(:,j,k) + (xy_UVolFlxBarot(:,j)/(xy_SSH(:,j) + xy_Topo(:,j))) - xy_UBarot(:,j)
+          xyz_V(:,j,k) = xyz_V(:,j,k) + (xy_VVolFlxBarot(:,j)/(xy_SSH(:,j) + xy_Topo(:,j))) - xy_VBarot(:,j)
+       end do
+       end do
+    end select
+    
     !- Diagnose horizontal divergence and relative vorcity ------------------
 
     call DOGCM_Dyn_driver_VorDivDiag( xyz_Vor, xyz_Div, &  ! (out)
@@ -710,8 +850,8 @@ contains
     
     !- Diagnose vertical velocity -------------------------------------------
 
-    call DOGCM_Dyn_driver_OMGDiag( xyz_OMG,       & ! (out)
-         & xyz_Div, xyz_HN, xyz_HA, dtSSH         & ! (in)
+    call DOGCM_Dyn_driver_OMGDiag( xyz_OMG,                   & ! (out)
+         & xyz_Div, xyz_HN, xyz_HA, xyz_Z, xy_Topo, dtSSH     & ! (in)
          & )
     
     
@@ -736,10 +876,7 @@ contains
 
     call ProfUtil_RapEnd('OcnDyn', 2)
 
-!!$    write(*,*) "(C) U:", xyz_UA(IS,JS:JE,KS)
-!!$    write(*,*) "(C) PTemp:", xyza_TRCA(IS,JS:JE,KS,TRCID_PTEMP)
-!!$    if (isNan(xyz_UA(IS,JS,KS)))stop
-    
+!!$    write(*,*) "------------"    
   end subroutine DOGCM_TInt_LFAM3_advance_Dyn
   
 end module DOGCM_TInt_LFAM3_mod

@@ -118,7 +118,7 @@ contains
 !!$  subroutine HBEBaroc_HTRCRHS( wz_HTRC_RHS,              &  ! (out)
   subroutine HBEBaroc_HTRCRHS( xyz_HTRC_RHS,                &  ! (out)
        & xyz_TRC, xyz_U, xyz_V, xyz_Div, xyr_OMG, xyz_H,    &  ! (in)
-       & xyz_HTRCRHS_phys )                                    ! (in)
+       & xyz_HTRCRHS_phys, KinBC_Surface )                     ! (in)
 
     ! モジュール引用; Use statements
     !
@@ -135,6 +135,7 @@ contains
     real(DP), intent(in) :: xyr_OMG(IA,JA,KA)
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xyz_HTRCRHS_phys(IA,JA,KA)
+    integer, intent(in) :: KinBC_Surface
 
     ! 局所変数
     ! Local variables
@@ -152,8 +153,8 @@ contains
 !!$    call calc_ADVFlxZ_Cen2( xyr_ADVFlxZ,    & ! (out)
 !!$         & xyr_OMG, xyz_TRC            )      ! (in)   
 
-    call calc_ADVFlxZ_QUICK( xyr_ADVFlxZ,   & ! (out)
-         & xyr_OMG, xyz_TRC            )      ! (in)   
+    call calc_ADVFlxZ_QUICK( xyr_ADVFlxZ,       & ! (out)
+         & xyr_OMG, xyz_TRC, KinBC_Surface )      ! (in)   
 
     
     !$omp parallel private(xy_Tmp)
@@ -230,15 +231,19 @@ contains
   end subroutine calc_ADVFlxZ_Cen2
 
   subroutine calc_ADVFlxZ_QUICK( xyr_ADVFlxZ, & ! (out)
-       & xyr_OMG, xyz_TRC                     & ! (in)
+       & xyr_OMG, xyz_TRC, KinBC_Surface      & ! (in)
        & )
 
+    use DOGCM_Admin_BC_mod, only: &
+         & KinBCTYPE_LinFreeSurf
+    
     ! 宣言文; Declaration statement
     !    
     real(DP), intent(out) :: xyr_ADVFlxZ(IA,JA,KA)
     real(DP), intent(in) :: xyr_OMG(IA,JA,KA)
     real(DP), intent(in) :: xyz_TRC(IA,JA,KA)
-
+    integer, intent(in) :: KinBC_Surface
+    
     ! 局所変数
     ! Local variables
     !    
@@ -295,10 +300,20 @@ contains
        xyr_ADVFlxZ(i,j,KS  ) = xyr_OMG(i,j,KS  )*(m1(KS)*xyz_TRC(i,j,KS) + m2(KS)*xyz_TRC(i,j,KS+1))
        xyr_ADVFlxZ(i,j,KE-1) = xyr_OMG(i,j,KE-1)*(m1(KE-1)*xyz_TRC(i,j,KE-1) + m2(KE-1)*xyz_TRC(i,j,KE))
     end do
-    end do
-     
+    end do    
     !$omp end parallel
-    
+
+
+    if (KinBC_Surface == KinBCTYPE_LinFreeSurf) then
+       do j=JS,JE
+       do i=IS, IS+_IMAX_-1
+          xyr_ADVFlxZ(i,j,KS-1) = xyr_OMG(i,j,KS-1)*xyz_TRC(i,j,KS)
+       end do
+       end do
+    end if
+!!$    write(*,*) xyr_OMG(IS,JE,KS-1), xyz_TRC(IS,JE,KS)
+!!$    if (isNan(xyz_TRC(IS,JE,KS))) stop
+
   end subroutine calc_ADVFlxZ_QUICK
   
   !- RHS of momentum equation ------------------------------------

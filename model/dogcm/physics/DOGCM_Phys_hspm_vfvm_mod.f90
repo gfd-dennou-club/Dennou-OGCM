@@ -297,13 +297,13 @@ contains
        call ProfUtil_RapStart('OcnPhys_ConvAdjust', 3)                     
        xyza_TRC_RHS = 0d0
        call DOGCM_VPhys_ConvAdjust_AddMixingTerm( &
-            & xyza_TRC_RHS(:,:,:,TRCID_PTEMP), xyza_TRC_RHS(:,:,:,TRCID_SALT),  & ! (inout)
-!!$            & xyza_TRC_RHS_phy(:,:,:,TRCID_PTEMP), xyza_TRC_RHS_phy(:,:,:,TRCID_SALT), & ! (inout)
+            & xyza_TRC_RHS(:,:,:,TRCID_PTEMP), xyza_TRC_RHS(:,:,:,TRCID_SALT),         & ! (inout)
             & xyz_ConvIndex,                                                           & ! (inout)
             & xyza_TRC(:,:,:,TRCID_PTEMP), xyza_TRC(:,:,:,TRCID_SALT),                 & ! (in)
             & xyz_H, xyz_Z, z_KAXIS_Weight, dt                                         & ! (in)
             & )
        xyza_TRC_RHS_phy = xyza_TRC_RHS_phy + xyza_TRC_RHS
+
 !!$       if( lhst_tend ) then
 !!$          call DOGCM_IO_History_HistPut( 'PTemp_t_vphys_CA', xyza_TRC_RHS(IS:IE,JS:JE,KS:KE,TRCID_PTEMP))
 !!$          write(*,*) "Conv:", 0d0*xyza_TRC(IS,JS+19,KS,TRCID_PTEMP) + xyza_TRC_RHS(IS,JS+10:28,KS,TRCID_PTEMP)*43200d0
@@ -626,6 +626,7 @@ contains
          & )
 
 
+    
 !!$    if (lhst_tend ) then
 !!$       write(*,*) "PTempA*:",  xyza_TRC0(IS,JS+10:28,KS,TRCID_PTEMP) &
 !!$            &                + xyza_HTRC_RHS(IS,JS+10:28,KS,TRCID_PTEMP)/xyz_H0(IS,JS+10:28,KS)*dt

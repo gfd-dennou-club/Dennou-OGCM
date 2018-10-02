@@ -77,6 +77,7 @@ contains
     call DOGCM_IO_History_RegistVar( 'BolusHT', 'JT', 'heat transport(bolus contribution)', 'PW' )
     call DOGCM_IO_History_RegistVar( 'IsoDiffHT', 'JT', 'heat transport(isopycnal diffusion contribution)', 'PW' )
     call DOGCM_IO_History_RegistVar( 'OcnHT', 'JT', 'total heat transport(ocean)', 'PW' )    
+    call DOGCM_IO_History_RegistVar( 'OcnHT_conv', 'JT', 'convergence of total heat transport(ocean)', 'W/m2' )    
     call DOGCM_IO_History_RegistVar( 'NumDiffTend', 'JT', 'tendency of ocean heat energy due to horizontal numerical filter', 'W/m2' )
 
     call DOGCM_IO_History_RegistVar( 'SIceHT', 'JT', 'heat transport(sea ice)', 'PW' )
@@ -128,6 +129,7 @@ contains
        & xyz_U, xyz_V, xyz_OMG, xyz_PTemp, xyz_Salt, xyz_H, xyz_Z, xy_Topo & ! (in)
        & )
 
+    
     ! 宣言文; Declaration statement
     !    
     real(DP), intent(out) :: y_EulerHT(JA)
@@ -154,6 +156,7 @@ contains
     real(DP) :: xy_CosLat(IA,JA)
     real(DP) :: xyz_PTemp_numdiff(IA,JA,KA)
     real(DP) :: y_OcnHT(JA)
+    real(DP) :: y_OcnHT_conv(JA)
 
     real(DP) :: xyz_PsiLonGM(IA,JA,KA)
     real(DP) :: yz_MSF_GM(JA,KA)
@@ -173,13 +176,15 @@ contains
     y_BolusHT(:)   = IntLonZ(xyz_BolusHT)
     y_IsoDiffHT(:) = IntLonZ(xyz_IsoDiffHT)
 
-    y_OcnHT(:) = y_EulerHT + y_BolusHT + y_IsoDiffHT    
+    y_OcnHT(:) = y_EulerHT + y_BolusHT + y_IsoDiffHT
     y_NumDiffTend(:) = IntLonZ(RefDens*Cp0*xyz_PTemp_numdiff)/(2d0*PI*RPlanet*xy_CosLat(IS,:))
+    y_OcnHT_conv(:) = - DivLat(y_OcnHT) + y_NumDiffTend
 
     call DOGCM_IO_History_HistPut( 'EulerHT', y_EulerHT(JS:JE)*Unit2PWFac )
     call DOGCM_IO_History_HistPut( 'BolusHT', y_BolusHT(JS:JE)*Unit2PWFac )
     call DOGCM_IO_History_HistPut( 'IsoDiffHT', y_IsoDiffHT(JS:JE)*Unit2PWFac )
     call DOGCM_IO_History_HistPut( 'OcnHT', y_OcnHT(JS:JE)*Unit2PWFac )
+    call DOGCM_IO_History_HistPut( 'OcnHT_conv', y_OcnHT_conv(JS:JE) )
     call DOGCM_IO_History_HistPut( 'NumDiffTend', y_NumDiffTend(JS:JE) )
 
     do k=KS, KE
@@ -188,6 +193,26 @@ contains
     call DOGCM_IO_History_HistPut( 'MSF_GM', yz_MSF_GM(JS:JE,KS:KE)/1d9 )
     
   contains
+    function DivLat(y_flxLatIntLon) result(y_div)
+
+      use SpmlUtil_mod, only: &
+           & w_DivMu_xy, xy_w
+      
+      real(DP), intent(in) :: y_flxLatIntLon(JA)
+      real(DP) :: y_div(JA)
+
+      real(DP) :: xy_div(IA,JA)
+      real(DP) :: xy_flxLatCos(IA,JA)
+      integer :: j
+      
+      do j = JS,JE
+         xy_flxLatCos(:,j) = y_flxLatIntLon(j)/(2d0*PI*RPlanet)
+      end do
+      xy_div(IS:IE,JS:JE) = xy_w(w_DivMu_xy(xy_flxLatCos(IS:IE,JS:JE)))/RPlanet
+      y_div(:) = xy_div(IS,:)
+      
+    end function DivLat
+
     function IntLonZ(xyz) result(y)
       real(DP), intent(in) :: xyz(IA,JA,KA)
       real(DP) :: y(JA)

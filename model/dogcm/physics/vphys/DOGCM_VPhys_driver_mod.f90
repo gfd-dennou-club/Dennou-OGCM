@@ -188,7 +188,7 @@ contains
     real(DP), parameter :: MixLyrDepth  = 40d0
     real(DP), parameter :: LInv         = 1d0/(0.1d0*MixLyrDepth)
     real(DP), parameter :: ViscCoefMax  = 5d-3
-    real(DP), parameter :: DiffCoefMax  = 1d-3 
+    real(DP), parameter :: DiffCoefMax  = 1d-3
 
     real(DP) :: xyz_Func(IA,JA,KA)
     integer :: k

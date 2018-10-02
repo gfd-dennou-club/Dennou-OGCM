@@ -93,6 +93,7 @@ module DOGCM_Exp_APECoupleClimate_mod
   real(DP), parameter :: DEF_OCN_MEAN_DEPTH = 5.2d3
 
   real(DP), save :: OcnInitSalt
+  real(DP), save :: OcnInitPTemp
   
   real(DP), parameter :: DensFreshWater = 1d3
 
@@ -288,7 +289,7 @@ contains
     if ( CurrentRunType == RUN_TYPE_COUPLED .and. CurrentRunCycle == 1 ) then
        xyz_U0(:,:,:)     = 0d0
        xyz_V0(:,:,:)     = 0d0
-       xyz_PTemp0(:,:,:) = 280d0
+       xyz_PTemp0(:,:,:) = OcnInitPTemp
        xyz_Salt0(:,:,:)  = OcnInitSalt
        xy_SfcPres0(:,:)  = 0d0
        xyz_H0(:,:,:)     = xyza_H(:,:,:,TIMELV_ID_N)
@@ -426,29 +427,32 @@ contains
             & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_WindStressV )
 
 
-       ! Input sea surface heat flux and fresh water flux (But, they wolud not be used.)
-!!$
-!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_SDwRFlx.nc", "a2o_SDwRFlx", &
-!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SDwRFlx )
-!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_LDwRFlx.nc", "a2o_LDwRFlx", &
-!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LDwRFlx )
-!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_SUwRFlx.nc", "a2o_SUwRFlx", &
-!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SUwRFlx )
-!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_LUwRFlx.nc", "a2o_LUwRFlx", &
-!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LUwRFlx )
-!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_LatHFlx.nc", "a2o_LatHFlx", &
-!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LatHFlx )
-!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_SenHFlx.nc", "a2o_SenHFlx", &
-!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SenHFlx )
-!!$       call get_Field4Standalone( SfcBCDataDir, "a2o_DSfcHFlxDTs.nc", "a2o_DSfcHFlxDTs", &
-!!$            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_DSfcHFlxDTs )
+       ! Input sea surface heat flux and fresh water flux
 
-       !-------
-       call get_Field4Standalone( SfcBCDataDir, "SfcHFlx_ns.nc", "SfcHFlx_ns", &
-            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlx0_ns )
+       if ( CurrentRunType == RUN_TYPE_STANDALONE ) then
 
-       call get_Field4Standalone( SfcBCDataDir, "SfcHFlx_sr.nc", "SfcHFlx_sr", &
-            & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlx0_sr )       
+          call get_Field4Standalone( SfcBCDataDir, "a2o_SDwRFlx.nc", "a2o_SDwRFlx", &
+               & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SDwRFlx )
+          call get_Field4Standalone( SfcBCDataDir, "a2o_LDwRFlx.nc", "a2o_LDwRFlx", &
+               & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LDwRFlx )
+          call get_Field4Standalone( SfcBCDataDir, "a2o_SUwRFlx.nc", "a2o_SUwRFlx", &
+               & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SUwRFlx )
+          call get_Field4Standalone( SfcBCDataDir, "a2o_LUwRFlx.nc", "a2o_LUwRFlx", &
+               & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LUwRFlx )
+          call get_Field4Standalone( SfcBCDataDir, "a2o_LatHFlx.nc", "a2o_LatHFlx", &
+               & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_LatHFlx )
+          call get_Field4Standalone( SfcBCDataDir, "a2o_SenHFlx.nc", "a2o_SenHFlx", &
+               & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SenHFlx )
+          
+          xy_SfcHFlx0_ns = xy_LUwRFlx - xy_LDwRFlx + xy_LatHFlx + xy_SenHFlx
+          xy_SfcHFlx0_sr = xy_SUwRFlx - xy_SDwRFlx               
+       else
+          call get_Field4Standalone( SfcBCDataDir, "SfcHFlx_ns.nc", "SfcHFlx_ns", &
+               & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlx0_ns )
+
+          call get_Field4Standalone( SfcBCDataDir, "SfcHFlx_sr.nc", "SfcHFlx_sr", &
+               & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_SfcHFlx0_sr )       
+       end if
        
        call get_Field4Standalone( SfcBCDataDir, "DSfcHFlxDTs.nc", "DSfcHFlxDTs", &
             & SfcBCMeanInitTime, SfcBCMeanEndTime, xy=xy_DSfcHFlxDTs )
@@ -1177,6 +1181,7 @@ contains
     !
     namelist /Exp_APECoupleClimate_nml/ &
          & OcnMeanDepth,                                           &
+         & OcnInitPTemp,                                           &
          & OcnInitSalt,                                            &
          & RunCycle, RunTypeName,                                  &
          & SfcBCDataDir, SfcBCMeanInitTime, SfcBCMeanEndTime,      &
@@ -1187,6 +1192,7 @@ contains
 
     OcnMeanDepth = DEF_OCN_MEAN_DEPTH
     OcnInitSalt  = 35d0
+    OcnInitPTemp  = 280d0
     
     RunCycle     = 1
     RunTypeName  = "Coupled"

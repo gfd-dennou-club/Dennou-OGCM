@@ -52,7 +52,7 @@ module DOGCM_TInt_driver_mod
   
   use DOGCM_Admin_TInteg_mod, only: &
        & TIMELV_ID_N, TIMELV_ID_B, TIMELV_ID_A, &
-       & DelTime,                               &
+       & DelTime, SubCycleNum,                  &
        & BarocTimeIntMode,                      &
        & VDiffTermACoef, CoriolisTermACoef
   
@@ -124,6 +124,7 @@ contains
     call DOGCM_Phys_driver_Init( configNmlName )
 
     call DOGCM_TInt_common_Init( configNmlName )
+    call DOGCM_TInt_LFAM3_Init( configNmlName )
     
   end subroutine DOGCM_TInt_driver_Init
 
@@ -136,6 +137,7 @@ contains
     !
 
     call DOGCM_TInt_common_Final()
+    call DOGCM_TInt_LFAM3_Final()
     
     call EOSDriver_Final()
     call DOGCM_Dyn_driver_Final()
@@ -178,8 +180,8 @@ contains
        case (TimeIntMode_LF)
           call DOGCM_TInt_LF_Do()
        case (TimeIntMode_LFAM3)
-          call DOGCM_TInt_LFAM3_Do()
-!          call DOGCM_TInt_LFAM3New_Do()
+!          call DOGCM_TInt_LFAM3_Do()
+          call DOGCM_TInt_LFAM3New_Do()
        end select
        
     end if

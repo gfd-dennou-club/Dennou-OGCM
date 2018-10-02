@@ -117,14 +117,14 @@ contains
 
   !-------------------------------------
 
-  subroutine DOGCM_Dyn_driver_SSHRHS( xy_SSH_RHS,                  &  ! (out)
-       & xy_SSH, xy_TotDepBasic, xyz_U, xyz_V, xy_FreshWtFlx   )      ! (in)
+  subroutine DOGCM_Dyn_driver_SSHRHS( xy_SSH_RHS,                          &  ! (out)
+       & xy_SSH, xy_TotDepBasic, xy_UBarot, xy_VBarot, xy_FreshWtFlx   )      ! (in)
 
     real(DP), intent(out) :: xy_SSH_RHS(IA,JA)
     real(DP), intent(in) :: xy_SSH(IA,JA)
     real(DP), intent(in) :: xy_TotDepBasic(IA,JA)
-    real(DP), intent(in) :: xyz_U(IA,JA,KA)
-    real(DP), intent(in) :: xyz_V(IA,JA,KA)
+    real(DP), intent(in) :: xy_UBarot(IA,JA)
+    real(DP), intent(in) :: xy_VBarot(IA,JA)
     real(DP), intent(in) :: xy_FreshWtFlx(IA,JA)
 
 !    call MessageNotify('M', module_name, "SSHRHS..")
@@ -133,13 +133,13 @@ contains
     case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)
        select case(SolverType)
        case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
-          call DOGCM_Dyn_spm_SSHRHS( xy_SSH_RHS(IS:IE,JS:JE),        &  ! (out)
-               & xy_SSH(IS:IE,JS:JE), xy_TotDepBasic(IS:IE,JS:JE),   &  ! (in)
-               & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), &  ! (in)
-               & xy_FreshWtFlx(IS:IE,JS:JE)   )                         ! (in)
+!!$          call DOGCM_Dyn_spm_SSHRHS( xy_SSH_RHS(IS:IE,JS:JE),        &  ! (out)
+!!$               & xy_SSH(IS:IE,JS:JE), xy_TotDepBasic(IS:IE,JS:JE),   &  ! (in)
+!!$               & xyz_U(IS:IE,JS:JE,KS:KE), xyz_V(IS:IE,JS:JE,KS:KE), &  ! (in)
+!!$               & xy_FreshWtFlx(IS:IE,JS:JE)   )                         ! (in)
        case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
           call DOGCM_Dyn_hspm_vfvm_SSHRHS( xy_SSH_RHS,               &  ! (out)
-               & xy_SSH, xy_TotDepBasic, xyz_U, xyz_V,               &  ! (in)
+               & xy_SSH, xy_TotDepBasic, xy_UBarot, xy_VBarot,       &  ! (in)
                & xy_FreshWtFlx   )                                      ! (in)
        end select
     case(OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR)
@@ -304,7 +304,8 @@ contains
   
   subroutine DOGCM_Dyn_driver_BarotUpdate( &
        & xy_UBarotA, xy_VBarotA, xy_SfcPresA, xy_SSHA,                     & ! (out)
-       & xy_Cori, DelTime, DelTimeSSH, PresTAvgCoefA                       & ! (in)
+       & xy_Cori, xy_TotDepthBasic, DelTime, DelTimeSSH, PresTAvgCoefA,    & ! (in)
+       & xy_FreshWtFlx                                                     & ! (in)
        & )
     
     real(DP), intent(inout) :: xy_UBarotA(IA,JA)
@@ -312,9 +313,11 @@ contains
     real(DP), intent(inout) :: xy_SfcPresA(IA,JA)
     real(DP), intent(inout) :: xy_SSHA(IA,JA)
     real(DP), intent(in) :: xy_Cori(IA,JA)
+    real(DP), intent(in) :: xy_TotDepthBasic(IA,JA)
     real(DP), intent(in) :: DelTime
     real(DP), intent(in) :: DelTimeSSH
     real(DP), intent(in) :: PresTAvgCoefA
+    real(DP), intent(in) :: xy_FreshWtFlx(IA,JA)
 
     select case(DynEqType)
     case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
@@ -329,7 +332,9 @@ contains
           call DOGCM_Dyn_hspm_vfvm_BarotUpdate( &
                & xy_UBarotA, xy_VBarotA,                            & ! (out)
                & xy_SfcPresA, xy_SSHA,                              & ! (out)
-               & xy_Cori, DelTime, DelTimeSSH, PresTAvgCoefA        & ! (in)
+               & xy_Cori, xy_TotDepthBasic,                         & ! (in)
+               & DelTime, DelTimeSSH, PresTAvgCoefA,                & ! (in)
+               & xy_FreshWtFlx                                      & ! (in)
                & )       
        end select
     case(OCNGOVERNEQ_DYN_NONDYN_MIXEDLYR)
@@ -344,12 +349,15 @@ contains
   !--------------------------------------------------------------
   
   subroutine DOGCM_Dyn_driver_OMGDiag( xyz_OMG,      & ! (out)
-       & xyz_Div, xyz_H, xyz_HA, DelTime )             ! (in)
+       & xyz_Div, xyz_H, xyz_HA,                     & ! (in)
+       & xyz_Z, xy_Topo, DelTime )                     ! (in)
 
     real(DP), intent(out) :: xyz_OMG(IA,JA,KA)
     real(DP), intent(in) :: xyz_Div(IA,JA,KA)
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xyz_HA(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)
+    real(DP), intent(in) :: xy_Topo(IA,JA)    
     real(DP), intent(in) :: DelTime
 
     select case(SolverType)
@@ -360,7 +368,8 @@ contains
             & )
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
        call DOGCM_Dyn_hspm_vfvm_OMGDiag( xyz_OMG,   & ! (out)
-            & xyz_Div, xyz_H,  xyz_HA, DelTime      & ! (in)
+            & xyz_Div, xyz_H,  xyz_HA,              & ! (in)
+            & xyz_Z, xy_Topo, DelTime               & ! (in)
             & )
     end select
 
@@ -463,7 +472,7 @@ contains
             & )
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
        call DOGCM_Dyn_hspm_vfvm_UVBarotDiag( xy_UBarot, xy_VBarot,        & ! (out)
-            & xyz_U, xyz_V, xyz_H, xy_SSH, xy_Topo                        & ! (in)
+            & xyz_U, xyz_V, xyz_H, xy_Topo                                & ! (in)
             & )
     end select
     

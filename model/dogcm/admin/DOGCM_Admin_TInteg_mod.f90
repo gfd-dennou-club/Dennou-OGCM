@@ -72,6 +72,7 @@ module DOGCM_Admin_TInteg_mod
   
   ! Temporal integration scheme
   integer, save, public :: BarocTimeIntMode
+  integer, save, public :: BarotTimeIntMode
   logical, save, public :: isVarBUsed_BarocTimeInt
   integer, save, public :: nStage_BarocTimeInt
 
@@ -268,6 +269,7 @@ contains
     ! IOSTAT of NAMELIST read
 
     character(TOKEN) :: barocTimeIntModeName
+    character(TOKEN) :: barotTimeIntModeName
 
     real(DP) :: DelTimeVal
     character(TOKEN) :: DelTimeUnit
@@ -288,12 +290,13 @@ contains
     !
     namelist /temporalInteg_nml/ &
          & cal_type,                                                 &
-         & barocTimeIntModeName, DelTimeVal, DelTimeUnit, SemiImplicitFlag, &
+         & barocTimeIntModeName, barotTimeIntModeName,               &
+         & DelTimeVal, DelTimeUnit, SemiImplicitFlag,                &
          & IntegTimeVal, IntegTimeUnit,                              &
          & InitYear, InitMonth, InitDay, InitHour, InitMin, InitSec, &
-         & EndYear, EndMonth, EndDay, EndHour, EndMin, EndSec, &
-         & RestartTimeVal, RestartTimeUnit, &
-         & SubCycleNum, &
+         & EndYear, EndMonth, EndDay, EndHour, EndMin, EndSec,       &
+         & RestartTimeVal, RestartTimeUnit,                          &
+         & SubCycleNum,                                              &
          & ProgMessageIntVal, ProgMessageIntUnit
 
     namelist /SemiImplicitScheme_nml/ &
@@ -308,10 +311,11 @@ contains
     cal_type = 'noleap'
     
     barocTimeIntMode = TimeIntMode_Euler
+    barotTimeIntMode = TimeIntMode_Euler
     DelTimeVal  = 10d0
     DelTimeUnit = 'min'
     SemiImplicitFlag = .true.
-    SubCycleNum = 2
+    SubCycleNum = 1
     
     RestartTimeVal  = 0d0
     RestartTimeUnit = 'sec'
@@ -394,6 +398,7 @@ contains
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, '  cal_type             = %a', ca=(/ cal_type /))
     call MessageNotify( 'M', module_name, '  BarocTimeIntMode     = %a', ca=(/ barocTimeIntModeName /))
+    call MessageNotify( 'M', module_name, '  BarotTimeIntMode     = %a', ca=(/ barotTimeIntModeName /))
     call MessageNotify( 'M', module_name, '  DelTime              = %f [%c]', d=(/ DelTimeVal /), c1=trim(DelTimeUnit) )
     call MessageNotify( 'M', module_name, '  SemiImplicitFlag     = %b     ', L=(/ SemiImplicitFlag /))
     call MessageNotify( 'M', module_name, '  SubCycleNum          = %d [time]', i=(/ SubCycleNum /))

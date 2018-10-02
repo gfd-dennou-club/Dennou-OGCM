@@ -14,6 +14,7 @@ LAPACKLIB=no
 export LDFLAGS="-L${MKLROOT}/lib/intel64"
 export SYSLDLIBS=" -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm"
 
+
 ./configure \
     --with-netcdf=${NETCDF_DIR}/lib/libnetcdf.a \
     --with-netcdf-include=${NETCDF_DIR}/include/netcdf.h \

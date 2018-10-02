@@ -327,6 +327,11 @@ contains
 
     ! モジュール引用; Use statement
     !
+
+    use DOGCM_Admin_BC_mod, only: &
+       & KinBC_Surface,         &
+       & KinBCTYPE_RigidLid,    &
+       & KinBCTYPE_LinFreeSurf
     
     use SpmlUtil_mod, only: &
          & xyz_DSig_xyz
@@ -336,11 +341,13 @@ contains
 
     real(DP), intent(out) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xy_SSH(IA,JA)
-
+    
     ! 局所変数
     ! Local variables
     !
+    integer :: j
     integer :: k
+    real(DP) :: xy_TotDep(IA,JA)
     
     ! 実行文; Executable statement
     !
@@ -367,15 +374,24 @@ contains
 
        ! sigma-coordinate
        !
-       
-       !$omp parallel do
-       do k=KS, KE
-          xyz_Z(:,:,k) = xy_Topo(:,:) * z_CK(k) ! z = H * s
-          xyz_H(:,:,k) = xy_Topo(:,:)           ! dz/ds = H
+
+       !$omp parallel
+       !$omp do
+       do j=JS, JE
+          xy_TotDep(:,j) = xy_Topo(:,j) + xy_SSH(:,j)
        end do
-       xyz_H(:,:,KS-1) = xyz_H(:,:,KS)
-       xyz_H(:,:,KE+1) = xyz_H(:,:,KE)
-       
+       !$omp do
+       do k=KS, KE
+          xyz_Z(:,:,k) = xy_TotDep(:,:) * z_CK(k) ! z = H * s
+          xyz_H(:,:,k) = xy_TotDep(:,:)           ! dz/ds = H
+       end do
+       !$omp do
+       do j=JS, JE
+          xyz_H(:,j,KS-1) = xyz_H(:,j,KS)
+          xyz_H(:,j,KE+1) = xyz_H(:,j,KE)
+       end do
+       !$omp end parallel
+
     end select
 
     

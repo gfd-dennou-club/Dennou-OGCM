@@ -88,7 +88,8 @@ contains
   !-----------
 
   subroutine HBEDiagnose_OMG( xyr_OMG,      & ! (out)
-       & xyz_Div, xyz_H, xyz_HA, DelTime )    ! (in)
+       & xyz_Div, xyz_H, xyz_HA,            & ! (in)
+       & xyz_Z, xy_Topo, DelTime )            ! (in)
 
 
     ! 宣言文; Declaration statement
@@ -97,6 +98,8 @@ contains
     real(DP), intent(in) :: xyz_Div(IA,JA,KA)
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xyz_HA(IA,JA,KA)
+    real(DP), intent(in) :: xyz_Z(IA,JA,KA)
+    real(DP), intent(in) :: xy_Topo(IA,JA)
     real(DP), intent(in) :: DelTime
 
     ! 作業変数
@@ -108,26 +111,35 @@ contains
 
     real(DP) :: z_DOMG(KA)
     real(DP) :: r_OMG(KA)
-
+    real(DP) :: z_DZ(KA)
+    real(DP) :: r_Z(KA)
+    
     ! 実行文; Executable statements
     !
     
-    !$omp parallel do private(k, r_OMG, z_DOMG) collapse(2)
+    !$omp parallel do private(k, r_OMG, z_DOMG, z_DZ, r_Z) collapse(2)
     do j=JS, JE
     do i=IS, IE
-       z_DOMG(:) = xyz_H(i,j,:)*xyz_Div(i,j,:)*z_CDK(:)
+       z_DZ(:) = xyz_H(i,j,:)*z_CDK(:)
+       z_DOMG(:) = xyz_Div(i,j,:)*z_DZ
        
-       r_OMG(KS-1) = 0d0
-       do k=KS, KE
-          r_OMG(k) = r_OMG(k-1) + z_DOMG(k)
+       r_OMG(KE) = 0d0
+       r_Z(KE) = - xy_Topo(i,j)
+       do k=KE-1, KS-1, -1
+          r_OMG(k) = r_OMG(k+1) - z_DOMG(k+1)
+          r_Z(k) = r_Z(k+1) + z_DZ(k+1)
        end do
+
+!!$       do k=KE, KS-1, -1
+!!$          r_OMG(k) = r_OMG(k) - r_OMG(KS-1)*(r_Z(k) + xy_Topo(i,j))/xy_Topo(i,j)
+!!$       end do
+
        xyr_OMG(i,j,:) = r_OMG(:)
     end do
     end do
 
-!!$    write(*,*) "check: OMG:", xyr_OMG(0,:,KE)
+!!$    write(*,*) "OMG Check:", xyr_OMG(IS,JE/2, KS-1:KE)
 !!$    xyr_OMG(:,:,KE) = 0d0
-    
   end subroutine HBEDiagnose_OMG
 
   !-----------
@@ -201,14 +213,13 @@ contains
     write(*,*) "check: V:", xyr_VHInt(0,:,KE)
     write(*,*) "check: OMG:", xyr_OMG(0,:,KE)
     xyr_OMG(:,:,KE) = 0d0
-
     
   end subroutine HBEDiagnose_OMG2
   
   !--------------
   
   subroutine HBEDiagnose_UVBarot( xy_UBarot, xy_VBarot,       & ! (out)
-       & xyz_U, xyz_V, xyz_H, xy_SSH, xy_Topo )                 ! (in)
+       & xyz_U, xyz_V, xyz_H, xy_Topo )                         ! (in)
 
     ! 宣言文; Declaration statement
     !        
@@ -217,7 +228,6 @@ contains
     real(DP), intent(in) :: xyz_U(IA,JA,KA)
     real(DP), intent(in) :: xyz_V(IA,JA,KA)
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
-    real(DP), intent(in) :: xy_SSH(IA,JA)
     real(DP), intent(in) :: xy_Topo(IA,JA)
 
     ! 作業変数
@@ -235,7 +245,8 @@ contains
     do j=JS, JE
     do i=IS, IE
        z_Fac(:) = xyz_H(i,j,:)*z_CDK(:)
-       totDep   = xy_SSH(i,j) + xy_Topo(i,j)
+       totDep   = sum(z_Fac(KS:KE))
+       
        xy_UBarot(i,j) = sum(xyz_U(i,j,KS:KE)*z_Fac(KS:KE))/totDep
        xy_VBarot(i,j) = sum(xyz_V(i,j,KS:KE)*z_Fac(KS:KE))/totDep
     end do

@@ -363,15 +363,23 @@ contains
     dtMom = dt 
     dtSSH = dt 
 
+    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot, xy_VBarot,         & ! (out)
+         & xyz_U, xyz_V, xyz_H, xy_SSH, xy_TOPO                      & ! (in)
+         & )
+
+    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot0, xy_VBarot0,       & ! (out)
+         & xyz_U0, xyz_V0, xyz_H0, xy_SSH0, xy_TOPO                  & ! (in)
+         & )
+    
     != Dynamical process ====================================================
 
     !** Update sea surface height --------------------------------------------
 
-    call DOGCM_Dyn_driver_SSHRHS( xy_SSH_RHS,              & ! (out)
-         & xy_SSH, xy_Topo, xyz_U, xyz_V, xy_FreshWtFlx    & ! (in)
+    call DOGCM_Dyn_driver_SSHRHS( xy_SSH_RHS,                      & ! (out)
+         & xy_SSH, xy_Topo, xy_UBarot, xy_VBarot, xy_FreshWtFlx    & ! (in)
          & )
     xy_SSHA(:,:) = xy_SSH0 + dtSSH * xy_SSH_RHS
-    
+
     !** Update vertical coordinate -------------------------------------------
 
     call DOGCM_Admin_Grid_UpdateVCoord( xyz_HA,   & ! (out)
@@ -387,8 +395,8 @@ contains
     
     !** Diagnose vertical velocity -------------------------------------------
 
-    call DOGCM_Dyn_driver_OMGDiag( xyz_OMG,       & ! (out)
-         & xyz_Div, xyz_H0, xyz_HA, dtSSH         & ! (in)
+    call DOGCM_Dyn_driver_OMGDiag( xyz_OMG,                   & ! (out)
+         & xyz_Div, xyz_H0, xyz_HA, xyz_Z, xy_Topo, dtSSH     & ! (in)
          & )
 
 !!$    call DOGCM_Dyn_driver_OMGDiag2( xyz_OMG,            & ! (out)
@@ -515,13 +523,6 @@ contains
          & xyz_DensEdd, xyz_H                                        & ! (in)
          & )
 
-    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot, xy_VBarot,         & ! (out)
-         & xyz_U, xyz_V, xyz_H, xy_SSH, xy_TOPO                      & ! (in)
-         & )
-
-    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarot0, xy_VBarot0,       & ! (out)
-         & xyz_U0, xyz_V0, xyz_H0, xy_SSH0, xy_TOPO                  & ! (in)
-         & )
     
     !- Baroclinic mode
 
@@ -643,15 +644,16 @@ contains
        !$omp end parallel
     end if
 
-    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarotA, xy_VBarotA,           & ! (out)
-         & xyz_UA, xyz_VA, xyz_H, xy_SSH, xy_TOPO                        & ! (in)
-         & )
+!!$    call DOGCM_Dyn_driver_UVBarotDiag( xy_UBarotA, xy_VBarotA,           & ! (out)
+!!$         & xyz_UA, xyz_VA, xyz_H, xy_SSH, xy_TOPO                        & ! (in)
+!!$         & )
     
     PresTAvgCoefA = 0.5d0 ! alpha
     call DOGCM_Dyn_driver_BarotUpdate( &
-         & xy_UBarotA, xy_VBarotA,                      & ! (inout)
-         & xy_SfcPresA, xy_SSHA,                        & ! (inout)
-         & xy_Cori, dtMom, dtSSH, PresTAvgCoefA         & ! (in)
+         & xy_UBarotA, xy_VBarotA,                         & ! (inout)
+         & xy_SfcPresA, xy_SSHA,                           & ! (inout)
+         & xy_Cori, xy_Topo,  dtMom, dtSSH, PresTAvgCoefA, & ! (in)
+         & xy_FreshWtFlx                                   & ! (in)         
          & )
 
     
