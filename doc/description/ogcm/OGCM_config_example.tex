@@ -1,0 +1,143 @@
+\section{パラメータの設定例}\label{model_ogcm_parameters}
+%%
+海洋モデルのパラメータ設定の例として, リスト\cite{dogcm_Pl64L60_conf}に, 
+\cite{ykawai2018_Dthesis}で行なった海惑星の気候実験における設定を示す. 
+なお, 海洋海氷モデルに入力する設定ファイルの中で, 海洋モデルと関係する部分のみを以下では示している.
+%%
+\begin{lstlisting}[caption={
+海洋モデルの設定ファイルのテンプレート.
+ただし, \#var\#のように書かれた部分は実験ケース等ごとに適切な値が入る.
+},label={dogcm_Pl64L60_conf},
+basicstyle=\ttfamily\footnotesize,
+frame=single]
+&DOGCM_nml
+  OCN_do  = .true.,
+  SICE_do = .true.,
+  exp_name = '#DOGCM_nml_EXP_NAME#',
+/
+!= 各過程で使用するスキームの選択 -----------------------------
+&GovernEq_nml
+  DynEqTypeName  = 'HydroBoussinesq',  ! 力学
+  EOSTypeName    = 'EOS_JM95',         ! 海水の状態方程式
+  LPhysNames     = 'LMixMOM, LMixTRC, RediGM',  ! 水平方向の物理
+  VPhysNames     = 'VMixMOM, VMixTRC, Convect', ! 鉛直方向の物理 
+  SolverTypeName = 'HSPM-VFVM',        ! 空間スキーム
+/
+!= 境界条件の設定 ----------------------------------------
+&BoundaryCondition_nml
+  KinBCSurface   = 'Rigid',
+  DynBCSurface   = 'SpecStress',
+  DynBCBottom    = 'NoSlip',
+  ThermBCSurface = '#BoundaryCondition_nml_ThermBCSurface#',
+    ! 結合 run では PrescFlux, 
+    ! 海洋海氷モデル単体 run では PrescFlux_Han1984
+  ThermBCBottom  = 'Adiabat', 
+  SaltBCSurface  = 'PrescFlux',
+  SaltBCBottom   = 'Adiabat', 
+/
+!= 物理定数の設定 ----------------------------------------
+&Constants_nml
+  RPlanet     = 6.37d6,
+  Omega       = 7.29d-5, 
+  Grav        = 9.8d0, 
+  hViscCoef   = 3d5,
+  vViscCoef   = 1d-3,
+  hDiffCoef   = 0d3,
+  vDiffCoef   = 3d-5, 
+  albedoOcean = 0d0,
+  LatentHeat  = 2.4253d6,
+  RefSalt     = 35d0, 
+/
+!= 格子の設定 ----------------------------------------
+&Grid_nml
+ IM = 1,   ! 経度格子点数.
+ JM = 64,  ! 緯度格子点数. 
+ KM = 60,  ! 鉛直層数.
+/
+&Grid_Spm_nml
+ NM = 63,  ! 最大全波数.
+/
+!= 周期的同期結合と関連した処理や実験ケースの設定 -----------
+&Exp_APECoupleClimate_nml
+ RunCycle            =  #Exp_APECPLClim_nml_RunCycle#, 
+ RunTypeName         = '#Exp_APECPLClim_nml_RunTypeName#', 
+     ! 結合 run では Coupled, 
+     ! 海洋海氷モデル単体 run では Standalone
+ SfcBCDataDir        = '#Exp_APECPLClim_nml_SfcBCDataDir#', 
+ SfcBCMeanInitTime   = #Exp_APECPLClim_nml_SfcBCMeanIniTime#, 
+ SfcBCMeanEndTime    = #Exp_APECPLClim_nml_SfcBCMeanEndTime#,
+ RestartDataDir      = '#Exp_APECPLClim_nml_RestartDataDir#', 
+ RestartMeanInitTime =  #Exp_APECPLClim_nml_RestartMeanInitTime#, 
+ RestartMeanEndTime  =  #Exp_APECPLClim_nml_RestartMeanEndTime#, 
+ OcnInitSalt         = 35d0, [psu]
+/
+!= 鉛直混合の設定 -----------
+&SGSPhys_VMixing_nml
+  VMixCoef_scheme_name = 'Simple'  
+/
+!= 水平混合の設定 -----------
+&RediGM_nml   ! Redi, GM スキーム
+  DiffCoefRedi    = 800.0,
+  DiffCoefGM      = 800.0,
+  InteriorTaperingName = 'DM95'
+  SlopeMax        = 4d-3,
+  Sd              = 1d-3, 
+  PBLTaperingName = 'LDD97'
+/
+&LPhys_DIFF_nml  ! 水平超粘性
+  NumDiffOrdH     = 4,     ! 超粘性の次数. 
+  NumDiffTimeVal  = 50.0,  ! 最大波数に対する e-folding time
+  NumDiffTimeUnit = 'day', ! e-folding time の単位 
+/
+!= 時間スキーム・時間管理の設定 -----------
+&TemporalInteg_nml
+  cal_type             = 'noleap', 
+  barocTimeIntModeName = 'TimeIntMode_LFAM3', ! 時間スキーム
+  DelTimeVal           = #TemporalInteg_nml_DelTimeHour#,
+       ! 基本的に, 結合runでは 4 h, 海洋海氷モデル単体runでは 12 h 
+  DelTimeUnit          = 'hour',
+  ReStartTimeVal       = #TemporalInteg_nml_RestartTimeVal#, 
+  ReStartTimeUnit      = 'day', 
+  InitYear = #TemporalInteg_nml_InitYear#, InitMonth=1, InitDay=1, InitHour=0,
+  InitMin  = 0, EndYear =#TemporalInteg_nml_EndYear#, EndMonth =1,
+  EndDay   = #TemporalInteg_nml_EndDay#, EndHour=0, EndMin=0,
+/
+!* セミ・インプリシットスキームに含まれる係数の設定 -----------
+&SemiImplicitScheme_nml
+  VDiffTermACoef    = 0.5d0,
+  CoriolisTermACoef = 0.5d0, 
+/
+!= ファイル関連の設定 ----------------------------------------
+!* ヒストリデータ出力の全体設定 
+&gtool_historyauto_nml
+  IntValue      = #gtool_historyauto_nml_IntValue#,  ! 出力間隔の数値
+  IntUnit       = 'day',                             ! 出力間隔の単位
+  OriginValue   = #gtool_historyauto_nml_OriginValue#,  
+  OriginUnit    = 'day',                             
+  TerminusValue = #gtool_historyauto_nml_TerminusValue#,  
+  TerminusUnit  = 'day',                             
+  FilePrefix    = '',
+/
+!* リスタートデータの入力・出力の設定
+&OGCM_IO_Restart_nml
+ OutputFileName = '#OcnRestartFile_nml_OutputFileName#', 
+ InputFileName  = '#OcnRestartFile_nml_InputFileName#', 
+ IntValue       = #OcnRestartFile_nml_IntValue#, 
+ IntUnit        = 'day'
+/
+!* ヒストリデータ出力の個別設定
+&gtool_historyauto_nml
+  Name = 'U, V, OMG, PTemp, Salt, H, HydPres, ConvIndex', 
+  Precision='float'
+/
+&gtool_historyauto_nml
+  Name = 'SfcPres, SfcHFlxO, SfcHFlx_ns, SfcHFlx_sr, DSfcHFlxDTs, FreshWtFlxS', 
+  Precision='float', 
+  TimeAverage = .true.
+/
+&gtool_historyauto_nml
+  Name = 'a2o_WindStressX, a2o_WindStressY, a2o_SenHFlx, a2o_LatHFlx,a2o_LDwRFlx, a2o_LUwRFlx, a2o_SDwRFlx, a2o_SUwRFlx, a2o_DSfcHFlxDTs,a2o_RainFall, a2o_SnowFall, a2o_Evap, a2s_Evap, a2o_SfcHFlxMod', 
+  Precision = 'double', 
+  TimeAverage = .true.
+/
+\end{lstlisting}

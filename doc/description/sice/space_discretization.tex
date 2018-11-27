@@ -1,0 +1,101 @@
+\section{空間離散化}\label{sice_model_space_scheme}
+\markright{\arabic{chapter}.\arabic{section} 空間離散化}
+%%
+\subsection{鉛直離散化}\label{sice_model_vspace_scheme}
+\eqref{eq:sice_model_basic_equations}に含まれる鉛直熱拡散項は, 
+有限体積法を用いて, 
+%%
+\begin{subequations}
+\begin{gather}
+ \dfrac{\rho_I h_I}{2} \left(\DD{E_{I,1}}{t}\right)_{\rm thermodyn} 
+ %= \dfrac{\rho_i h_i}{2}\left(C + \dfrac{L\mu S_i}{T_1^2}\right) \DD{T_1}{t} 
+ = K_{s1} (T_s - T_{I,1}) - K_{12} (T_{I,1} - T_{I,2}) + I, \\
+ %%
+ \dfrac{\rho_I h_I}{2} \left(\DD{E_{I,2}}{t}\right)_{\rm thermodyn} 
+ %\dfrac{\rho_i h_i}{2} C \DD{T_2}{t}
+  = K_{12} (T_{I,1} - T_{I,2}) - 2K_{12} (T_{I,2} - T_f) 
+\end{gather}
+\end{subequations}
+%%
+と鉛直離散化する. 
+ここで, 上式に含まれる$K_{s1}, K_{12}$は, 
+%% 
+\begin{align*}
+  K_{s1} = \dfrac{4 k_I k_S}{k_S h_I + 4 k_I h_S}, \;\;
+  K_{12} = \dfrac{2 k_I}{h_I}
+\end{align*}
+%%
+によって与えられ, $k_S$は雪の熱伝導率, $k_I$は氷の熱伝導率である.  
+$K_{s1}$の表現は, 氷層上端での熱伝導フラックスと, 
+雪層下端での熱伝導フラックスが等しいと仮定することによって決定される%
+\footnote{ 
+氷層上端での熱伝導フラックスと, 雪層下端での熱伝導フラックスが等しい条件は, 
+雪層と氷層の境界の温度を$T^*$とすると,  
+$$
+  K_s \dfrac{T_s - T^*}{h_S} = K_i \dfrac{T^* - T_{I,1}}{h_i/4}
+$$
+と書かれる. この式から, 
+$T^* = (K_s h_i T_s + 4 K_i h_s T_1)/(4K_i h_s + K_s h_i)$が得られる. 
+したがって, 氷層上層の上端から雪層を通過する熱伝導フラックスの表現として, 
+$$
+ K_s \dfrac{T_s - T^*}{h_s} 
+ = \dfrac{4 K_i K_s}{K_s h_I + 4K_i h_S} (T_s - T_{I,1}) 
+$$
+が得られ, 右辺の因子を$K_{s1}$と置いていることが分かる.  
+}. 
+
+\subsection{水平離散化}\label{sice_model_hspace_scheme}
+%%
+海氷の方程式系における力学項(現状は水平移流項のみ)の水平離散化に, 有限体積法を適用する.   
+$q=h_S, h_I, \rho_I h_I E_{I,1}/2, \rho_I h_I E_{I,2}/2$とすると, 
+%%
+\begin{subequations}
+\begin{gather}
+ \left(\DD{q}{t}\right)_{\rm dyn}
+ =  
+   - \left[ \dfrac{  \delta_i (e_2 u^* \overline{q}^{i,UP1}) 
+                   + \delta_j (e_2 v^* \overline{q}^{j,UP1})} {e_1 e_2} 
+      \right]_{i,j}
+\end{gather}
+\end{subequations}
+%%
+と書かれる. 
+ここで, $\overline{q}^{i,UP1}, \overline{q}^{j,UP1}$は, 1次精度の風上フラックスを与える補間を表し,  
+例えば, 前者は, 
+%%
+\begin{equation*}
+  \overline{q}^{i,UP1} 
+  = \dfrac{q_{i,j} + q_{i+1,j}}{2} 
+    + |u^*_{i+\frac{1}{2},j}| (q_{i,j} - q_{i+1,j})
+\end{equation*}
+%%
+と与えられる. 
+海氷の水平速度のパラメータリゼーション\eqref{eq:sice_model_horivel_param_thickness_diff}は, 
+海氷厚さ(厳密には質量)の式に対して水平拡散と等価となるように, 
+%%
+\begin{align}
+ (u^*)_{i+\frac{1}{2},j} 
+ = K_h^s 
+ \left(
+  \dfrac{\delta_i [m_{\rm sice} ]}{e_1 \; \tilde{m}_{\rm sice}}
+ \right)_{i+\frac{1}{2},j}, \;\;\;
+%% 
+ (v^*)_{i,j+\frac{1}{2}} 
+ = K_h^s 
+ \left(
+  \dfrac{\delta_j [m_{\rm sice} ]}{e_2 \; \tilde{m}_{\rm sice}}
+ \right)_{i,j+\frac{1}{2}}
+%%
+\label{eq:sice_model_horivel_param_thickness_diff_fvm}
+\end{align}
+%%
+によって与えられる. 
+ここで, $\tilde{m}_{\rm sice}$は, 例えば$i$方向に対して, 
+$$
+ (\tilde{m}_{\rm sice})_{i+\frac{1}{2},j} 
+ = {\rm max}\left[(\tilde{m}_{\rm sice})_{i,j}, \;\;
+                  (\tilde{m}_{\rm sice})_{i+1,j}
+  \right]
+$$
+のように定義される. 
+

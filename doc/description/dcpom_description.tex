@@ -1,0 +1,98 @@
+\documentclass[a4j,12pt,openbib,oneside]{jreport}
+\input{version}
+\title{{\LARGE Dennou-Clube Planetary Ocean Model \\
+              (DCPOM version \version) \\
+               支配方程式系とその離散化手法 }}
+\author{河合 佑太}
+\date{\today}
+
+\usepackage[dvipdfmx]{graphicx}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{amsmath}
+\usepackage{mathrsfs}
+\usepackage{Dennou6}		% 電脳スタイル ver 6
+\usepackage{siunitx}
+\usepackage[round]{natbib}
+\usepackage{bm}
+\usepackage{url}
+\usepackage{pxjahyper}
+
+\hypersetup{% options for hyperref
+ bookmarksopen=true,
+ bookmarksnumbered=true,
+ colorlinks=true,
+% linkcolor=red,
+ linkcolor=cyan,
+ citecolor=cyan,
+ urlcolor=cyan,
+}
+\usepackage{listings,jlisting} 
+\renewcommand{\lstlistingname}{リスト}
+\lstset{
+  breaklines=true,
+}
+\usepackage{natbib}
+\bibliographystyle{ametsoc}
+\bibpunct[,]{(}{)}{;}{a}{}{,}
+
+\def\thesection{\arabic{chapter}.\arabic{section}}
+\def\thesubsection{\arabic{chapter}.\arabic{section}.\arabic{subsection}}
+\def\theequation{\arabic{chapter}.\arabic{equation}}
+\def\thepage{\arabic{page}}
+\def\thefigure{\arabic{chapter}.\arabic{figure}}
+\def\thetable{\arabic{chapter}.\arabic{table}}
+\def\thefootnote{*\arabic{footnote}}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%   Set Counter (chapter, section etc. ) %%%%%%%%
+\setcounter{chapter}{0}    % 章番号
+\setcounter{section}{1}    % 節番号
+\setcounter{subsection}{1}    % 節番号
+\setcounter{equation}{0}   % 式番号
+\setcounter{page}{0}     % 必ず開始ページは明記する
+\setcounter{figure}{0}     % 図番号
+\setcounter{table}{0}      % 表番号
+%\setcounter{footnote}{0}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%        Dennou-Style Definition         %%%%%%%%
+
+%% 改段落時の空行設定
+\Dparskip      % 改段落時に一行空行を入れる
+%\Dnoparskip    % 改段落時に一行空行を入れない
+
+%% 改段落時のインデント設定
+\Dparindent    % 改段落時にインデントする
+%\Dnoparindent  % 改段落時にインデントしない
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Macro defined by author
+\def\univec#1{ \hat{ \Dvect{\rm #1}} }
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%             Text Start                 %%%%%%%%
+%%
+\begin{document}
+\maketitle
+\tableofcontents
+
+\chapter{はじめに}
+\input{introduction}
+
+\chapter{海洋大循環モデル}
+\input{ogcm/OGCM_description}
+
+\chapter{海氷モデル}
+\input{sice/SICE_description}
+
+
+%% 参考文献
+\renewcommand{\bibname}{参考文献}
+\markright{参考文献} %  節の題名を書
+\bibliography{reference}
+
+\end{document}
+

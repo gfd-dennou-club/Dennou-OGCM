@@ -1,0 +1,702 @@
+\section{空間離散化}
+\label{ocn_model_space_descretization}
+%%
+\markright{\arabic{chapter}.\arabic{section} 空間離散化} %  節の題名を書き込むこと
+
+\subsection{水平離散化: 球面調和関数に基づく擬スペクトル法の場合}
+%%
+球面の計算領域において, 有限差分法や有限体積法を適用する場合には, 
+通常は特異点の問題を何かしらの方法で解決する必要がある. 
+陸がある場合には, 特異点を海洋の計算領域から陸へ移動させた格子系(tripolar grid 等)を用いることができるが, 
+岸がなく全球が海洋で覆われた海惑星では, そのような方法は使えない. 
+一方で, 水平格子系として立方球面格子(MIT-gcm 等), 六角形格子(MPAS-Ocean 等)などを用いる海洋大循環モデルでは,
+全球海洋設定も自然に計算することができる.
+ここでは, 海惑星の海洋を計算する他の方法として, 伝統的な大気大循環モデルのように球面調和関数に基づく
+擬スペクトル法を用いる方法を記述する. 
+
+\subsubsection*{水平座標系・水平格子}
+%%
+球面調和関数に基づく擬スペクトル法を用いる場合は, 
+方程式系の記述のために水平座標系として$(\lambda,\mu)$(ここで, $\mu$はサイン緯度)を用いる. 
+このとき, 
+%%
+\begin{align*}
+  &i=\lambda, \;\;\; j = \mu, \\
+  &e_1 = a\cos{\phi}, \;\;\;e_2 = \dfrac{a}{\cos{\phi}}
+\end{align*}
+%%
+である. 
+水平格子系は経度方向には等間隔格子, 緯度方向にはガウス格子が用いられ, 
+全ての物理変数は同じ水平位置に定義される(A-grid). 
+各格子点の経度方向の座標は, 
+$$
+ \lambda_i = 2\pi \dfrac{(i-1)}{I} \;\;\;
+  (i = 1, 2, 3, \cdots, I), 
+$$
+によって与えられる. 
+また, 緯度方向の座標$\mu_j(j=1,2,\cdots,J)$は, $J$次の Legendre 多項式$P_J(\mu_j)$の
+ゼロ点であり, $-1<\mu_1<\mu_2< \dots < \mu_{J-1} < \mu_J < 1$となるようにガウス格子の
+添え字の順番を定義する. 
+
+\subsubsection*{準備 1: 方程式系の変形}
+%%
+はじめに, 水平離散化にスペクトル法を適用するのに都合が良い形式に, 
+数理表現\eqref{eq:OCN_basic_equations_s_coord}をもう一段階書き換える. 
+水平方向の運動量方程式は, 鉛直渦度$\zeta$と水平発散$D$($\underline{D}$ではないことに注意)に対する方程式に書き換える. 
+今, 簡潔に表記するために, 球面座標系におけるラブラス演算子を$\mathscr{L}$とし, 
+また, 
+%%
+\begin{align}
+  \mathscr{H}(A,B) = \dfrac{1}{a}\left( \dfrac{1}{1-\mu^2}\DP{A}{\lambda} + \DP{B}{\mu}  \right) 
+\label{eq:div_operator_H}
+\end{align}
+%%
+を導入する. 
+今, $U=u\cos\phi, V=v\cos\phi$とおくと, 
+演算子$\mathscr{H}$は, 
+%%
+\begin{align}
+  \nabla_h \cdot (\alpha \Dvect{u}) = \mathscr{H}(\alpha U, \alpha V), \;\;\;
+  \Dvect{k}\cdot\nabla_h \times (\alpha \Dvect{u}) = \mathscr{H}(\alpha V, -\alpha U) 
+\end{align}
+%%
+を満たすことに注意が必要である. 
+これらの演算子を用いて, \eqref{eq:OCN_basic_equations_s_coord}を書き換えれば,  \\\\
+%%
+\begin{subequations}
+渦度方程式:
+\begin{align}
+\DP{\zeta}{t}
+  = - \mathscr{H}(F_A,  F_B), 
+\end{align}
+発散方程式:
+\begin{align}
+\DP{D}{t}
+  = + \mathscr{H}(F_B, -F_A) 
+    - \mathscr{L} (F_C), 
+\end{align}
+%%
+%%
+トレーサー($T=\Theta,S$)の時間発散式: 
+%%
+\begin{align}
+ \DP{(e_3 T)}{t} = - \mathscr{H}(T e_3 U, T e_3 V) - \DP{(\omega T)}{s} + e_3
+ \mathcal{D}^T,
+\end{align}
+%%
+$p_h$の診断式: 
+\begin{equation}
+ \DP{p_h}{s} =  \dfrac{\rho'(\Theta,S,-\rho_0 gz(s))}{\rho_0} e_3, 
+\end{equation}
+%%
+$\omega$の診断式: 
+\begin{align}
+ \DP{\omega}{s} = - \mathscr{H}(e_3 U, e_3 V) + \varepsilon_1 \DP{e_3}{t}, 
+\end{align}
+%%
+表面変位に対する方程式: 
+%%
+\begin{align}
+ \varepsilon_1 \DP{\eta}{t} 
+  = - \mathscr{H} \big( (\eta + H) U_{barot}, \; 
+                         (\eta + H) V_{barot} \big) 
+    + \varepsilon_1 (P - E)
+\end{align}
+\label{eq:OCN_basic_equations_s_coord_for_hspm}
+\end{subequations}
+%%
+を得る. 
+
+ここで, $U=u\cos\phi, V=v\cos\phi$であり, 
+$F_A, F_B, F_C$は
+%%
+\begin{equation}
+\begin{split}
+ F_A &= 
+     (f + \zeta) U  + \dfrac{\omega}{e_3}\DP{V}{s}
+   - \dfrac{\rho'}{\rho_0}\DP{\Phi}{\mu} - \cos\phi \mathcal{D}^v, \\
+ %%
+ F_B &= 
+    (f + \zeta) V - \dfrac{\omega}{e_3}\DP{U}{s}
+   +  \dfrac{\rho'}{\rho_0}(1-\mu^2) \DP{\Phi}{\lambda} + \cos\phi\mathcal{D}^u , \\
+ %%
+ F_C &= \dfrac{(U^2 + V^2)}{2(1-\mu^2)} + \dfrac{1}{\rho_0}(p_h + p_s)
+\end{split}
+\end{equation}
+%%
+と定義される. ただし, $\Phi=gz$とおいた. 
+
+鉛直渦度と水平発散は, 
+流線関数$\psi$と速度ポテンシャル$\chi$を導入することで, 水平速度と結びつけられる. 
+今, 水平速度が, 
+%%
+\begin{align}
+  \Dvect{u} = \Dvect{k} \times \nabla \psi + \nabla \chi
+\end{align}
+%%
+と表せるとすると, 鉛直渦度と水平発散はそれぞれ
+%%
+\begin{align}
+  \zeta = \mathscr{L} \psi, \;\;\;
+  D = \mathscr{L}  \chi
+\label{eq:vordiv_scalarPot_relation_hspm}
+\end{align}
+%%
+を満たす. 
+したがって, 鉛直渦度や水平発散から水平速度を求めるには, 
+まず球面ラプラシアンを逆演算して$\psi, \chi$を求めてから, 
+%%
+\begin{align}
+\begin{split}
+ U =  (1-\mu^2) \mathscr{H} (\chi, -\psi), \;\;
+ V = (1-\mu^2) \mathscr{H} (\psi,\chi)
+\end{split}
+\label{eq:ScalrPot2HoriVec_hspm}
+\end{align}
+%%
+を計算すれば良い. 
+
+\subsubsection*{準備 2: 球面調和関数展開による擬スペクトル法の導入}
+%%
+球面上に定義される予報変数$\zeta,D,T,\eta$ (ここでは, 代表して$q$と書く)が, 球面調和関数$Y^m_n(\lambda,\mu)$を用いて, 
+%%
+\begin{align}
+ q(\lambda,\mu) = \sum_{m=-M}^{M} \sum_{n=|m|}^N \tilde{q}^m_n Y^m_n (\lambda,\mu)
+   = \sum_{m=-M}^{M} \sum_{n=|m|}^N \tilde{q}^m_n  P^m_n (\mu) e^{im\lambda}
+\end{align}
+%%
+のように関数展開されるとする. 
+ここで, $P^m_n$は, 2に規格化されたルジャンドル陪関数である. 
+また, $M,N$は展開の切断波数であり, 三角形切断を用いる場合には, 全波数の切断波数を$N_{tr}$とすると$M=N_{tr},N=N_{tr}$である%
+\footnote{
+軸対称モデルとして用いる場合は, $M=0, N=N_{tr}$である. 
+}. 
+%%
+スペクトル係数$\tilde{q}^m_n$は, 球面調和関数正変換
+%%
+\begin{align}
+ \tilde{q}^m_n 
+ = \dfrac{1}{4\pi}\int_0^{2\pi} \int_{-1}^1 q(\lambda,\mu) (Y^m_n )^* \Dd{\mu}\Dd{\lambda} 
+ =   \dfrac{1}{2}\int_{-1}^1 \left[ 
+       \dfrac{1}{2\pi} \int_0^{2\pi} q(\lambda,\mu) e^{-im\lambda}\Dd{\lambda} 
+      \right]P^m_n (\mu) \Dd{\mu}  
+\label{eq:spherical_harmonics_transform}
+\end{align}
+%%
+から計算される.  
+変換の過程に含まれる積分は, 以下の方法で数値的に評価される. 
+はじめに, \eqref{eq:spherical_harmonics_transform}のフーリエ正変換の部分は, 
+離散フーリエ変換(実際には高速フーリエ変換)を用いて, 
+%%
+\begin{align}
+  G^m(\mu_j) = \dfrac{1}{I}\sum_{i=0}^{I-1} q(\lambda_i,\mu_j) e^{-im\lambda_i}
+\label{eq:transform_fourier}
+\end{align}
+%%
+と計算される. 
+そして, ルジャンドル正変換の部分は, ガウス・ルジャンドルの積分公式を用いて, 
+%%
+\begin{align}
+ \tilde{q}^m_n = \sum_{j=1}^J w_j G^m(\mu_j) P^m_n(\mu_j)
+\label{eq:transform_legendre}
+\end{align}
+%%
+と計算される. 
+ここで, $w_j$はガウス重みであり, 
+%%
+\begin{align}
+ w_j = \dfrac{1}{2}\int_{-1}^1 \dfrac{P_J}{(\mu-\mu_j)P'_J(\mu_j)} \Dd{\mu}
+\end{align}
+%%
+によって与えられる. 
+逆変換も同様にして, 
+%%
+\begin{align}
+  G^m(\mu_j) = \sum_{n=|m|}^N \tilde{q}^m_n P^m_n(\mu_j), 
+\end{align}
+%%
+\begin{align}
+  q_{ij} \equiv q(\lambda_i,\mu_j) = \sum_{i=0}^{I-1} G^m(\mu_j) e^{im\lambda_i}, 
+\end{align}
+%%
+と計算される. 
+ここで, 下付き添え字の$ij$は, $(\lambda_i,\mu_j)$における物理空間上での格子点値であることを示す. 
+
+次に, 水平微分に関する項の正変換を示す. 
+はじめに, 経度微分$\partial/\partial \lambda$および緯度微分$\partial/\partial \phi$が作用する項の正変換を考えよう. 
+まず球面調和関数に基づく正変換\eqref{eq:spherical_harmonics_transform}を行い, 部分積分を実行した後に, 
+積分の評価に\eqref{eq:transform_legendre}, \eqref{eq:transform_legendre}を用いれば, 経度微分および緯度微分が作用する項の
+スペクトル変換は, 
+%%
+\begin{align}
+  \left(\widetilde{\DP{q}{\lambda}}\right)^m_n = \dfrac{1}{I} \sum_{i,j} im q_{ij} \; Y^m_n(\lambda_i,\mu_j) w_j, 
+\end{align}
+%%
+\begin{align}
+  \left(\widetilde{\DP{q}{\phi}}\right)^m_n = - \dfrac{1}{I} \sum_{i,j} q_{ij} \; e^{-im\lambda_j} \; (1-\mu_j^2) \DD{P^m_n}{\mu} \Big|_j w_j
+\end{align}
+%%
+によって求められることが分かる%
+\footnote{
+ここで記述した空間微分の正変換の手順は, (本質的には同じではあるが)モデルの実際の実装と少し異なる. 
+実際のプログラム上では, 水平微分を計算するために, 
+SPMODEL が提供する微分計算用のサブルーチン(w\_DivLambda\_xy, w\_DivMu\_xy 等)を呼び出す.
+SPMODEL の内部では, ispack の対応するサブルーチンを呼び出すことで, はじめに格子データをスペクトルデータに変換し, 
+さらにその結果を用いて水平微分のスペクトルデータを計算している. 
+}. 
+ここで, 後者の部分積分において, $q$が$\mu=\pm 1$においてゼロであることを仮定している. 
+また, ルジャンドル陪関数の微分は, 漸化式
+%%
+\begin{align}
+ (1-\mu^2) \DD{P^m_n}{\mu} = - n \varepsilon_{n,n+1}  P^m_{n+1} + (n+1) \varepsilon_{m,n} P^m_{n-1}
+\end{align}
+%%
+によって厳密に評価できる. 
+ここで, 
+$$
+ \varepsilon_{m,n} = \left( \dfrac{n^2 - m^2}{4n^2 -1} \right)^{1/2}
+$$
+である. 
+同様にして, 演算子$\mathscr{H}$が作用する項$\mathscr{H}(A,B)$の正変換は, 
+%%
+\begin{align}
+  \left[\widetilde{\mathscr{H(A,B)}}\right]^m_n
+ =   \dfrac{1}{I} \sum_{i,j} 
+   \left[   im A_{ij} \; Y^m_n(\lambda_i,\mu_j)
+          + B_{ij}\; e^{-im\lambda_i}\;  (1-\mu_j^2) \DD{P^m_n}{\mu} \Big|_j \right] \dfrac{w_j}{1-\mu_j^2} 
+\label{eq:div_operator_H_hspm}
+\end{align}
+%%
+によって求めることができる.  
+ここで, $A,B$は$\mu=\pm 1$においてゼロであることを仮定している. 
+
+擬スペクトル法の長所は, 非線形項に現れる積(例えば, $F_A$に含まれる$\zeta U$)を物理空間で評価することで, 
+波数空間において直接計算する場合に比べて計算量を大幅に減らすことが出来る点である 
+%%&
+\footnote{
+例えば, 自由度が$M$個ある一次元問題では, 波数空間において直接計算する場合の計算量は O($M^2$) である.
+一方で, まずスペクトルデータを逆変換し, 物理空間で積を計算した後に, 正変換してスペクトルデータに戻す
+(変換には FFT を用いるとする)場合には, O ($M \log M$) の計算量で済む.   
+}. 
+ただし, 擬スペクトル法的に非線形項を評価する場合には, それにより生じるエイリアシング誤差を取り除く必要がある.  
+三角切断波数$N_{tr}$の球面調和関数展開を考えるとき, 二つの変数の積から生じるエイリアシング誤差を
+完全に取り除くために, $J \ge (3N_{tr} + 1)/2$が満たされるように格子点数を設定する(3/2-rule)ことが広くなされる.   
+
+しかし, 上のように 3/2-rule を適用する場合には, 格子データをスペクトルデータに正変換する過程で情報量が落ちるため, 
+逆変換によって再び格子データに戻しても元の値には戻らない. 
+特に, 解像度が十分でない設定において物理場の中に急勾配がある場合には, 変換の過程で
+高次のスペクトル係数の情報が落ちると, 逆変換後の格子データに深刻なギブス振動が現れてしまう. 
+海惑星の海洋計算では, 海水温は海氷の真下ではほぼ氷点であるのに対し, 氷線緯度を境に南北に
+急激に変化する分布を持つために, このギブス振動が海氷下の海洋混合層の温度場に顕著に現れる.
+さらに, 海洋の表面温度の振動は二次的に海氷厚さの分布にも深刻な影響を与える.
+そのため, 本海洋モデルでは, この問題を回避するために$J=N_{tr}$と設定することを基本とするが,  
+エイリアシング誤差に伴う非線形不安定を抑制するために 4 階微分の拡散と等価なフィルタを導入する. 
+この方法は, super spectral viscosity method や, 選点法において exponential filter
+を導入する方法と等価である.
+
+\subsubsection*{方程式系の水平離散化}
+%%
+ここでは, 上で導入した球面調和関数展開を用いて水平離散化を行う. 
+\eqref{eq:OCN_basic_equations_s_coord_for_hspm}における渦度方程式, 発散方程式, 
+表面変位に対する方程式, トレーサーの時間発展式に対して正変換を適用すると, \\\\
+%%
+%%
+\begin{subequations}
+%%
+渦度方程式:
+\begin{align}
+\DP{\tilde{\zeta}^m_n}{t}
+  = - \left[\widetilde{ \mathscr{H}(F_A,  F_B) }\right]^m_n, 
+\label{eq:voriticity_eq_hspm}
+\end{align}
+%%
+発散方程式:
+\begin{align}
+\DP{\tilde{D}^m_n}{t}
+  = + \left[ \widetilde{ \mathscr{H}(F_B, -F_A) }  \right]^m_n
+    - \dfrac{n(n+1)}{a^2} (\widetilde{F_C})^m_n, 
+\label{eq:divergene_eq_hspm}
+\end{align}
+%%
+表面変位に対する方程式: 
+%%
+\begin{align}
+ \varepsilon_1 \DP{\tilde{\eta}^m_n}{t} = 
+      - \widetilde{ \left[  \mathscr{H} \big( 
+         (\varepsilon_2 \eta + H) U_{barot}, 
+         (\varepsilon_2 \eta + H) V_{barot} \big)
+         \right]}^m_n + \varepsilon_1 \widetilde{(P - E)}^m_n,
+\label{eq:sfc_height_eq_hspm}
+\end{align}
+%%
+トレーサー($T=\Theta,S$)の時間発散式: 
+%%
+\begin{align}
+ \DP{(\widetilde{e_3 T})^m_n}{t} = - \widetilde{ \left[\mathscr{H}(T e_3 U, T e_3 V) \right] }^m_n 
+                                   - \left[ \widetilde{ \DP{(\omega T)}{s} } \right]^m_n  
+                                   + \left( \widetilde{ e_3 \mathcal{D}^T } \right)^m_n
+\end{align}
+%%
+$p_h$の診断式: 
+\begin{equation}
+ \DP{(p_h)_{ij}}{s} =  \dfrac{\rho'(\Theta_{ij},S_{ij},-\rho_0 gz_{ij}(s))}{\rho_0} (e_3)_{ij}
+\end{equation}
+%%
+$\omega$の診断式: 
+\begin{align}
+ \DP{\omega_{ij}}{s} = - \left[ \widetilde{\mathscr{H}(e_3 U, e_3 V)} \right]_{ij} + \varepsilon_1 \DP{(e_3)_{ij}}{t}
+\label{eq:omega_diagnose_hspm}
+\end{align}
+%%
+\label{eq:OCN_basic_equations_s_coord_hspm_discrete}
+\end{subequations}
+%%
+を得る. 
+ここで, 演算子$\mathscr{H}$が作用する項は, 共通して\eqref{eq:div_operator_H_hspm}を用いて計算される. 
+ただし, \eqref{eq:omega_diagnose_hspm}の右辺 1 項目において, \eqref{eq:div_operator_H_hspm}から得られた
+空間微分項のスペクトルデータは, 逆変換により格子点データに戻されているとする. 
+
+鉛直渦度・水平発散のスペクトルデータから水平速度($U,V$)の格子データを求める計算は以下のように行う. 
+はじめに, \eqref{eq:vordiv_scalarPot_relation_hspm}において$\mathscr{L}^{-1}$を作用させて, 
+$\tilde{\zeta}^m_n, \tilde{D}^m_n$から流線関数と速度ポテンシャルのスペクトルデータを求める.
+%%
+\begin{equation}
+  \tilde{\psi}^m_n = \dfrac{a}{n(n+1)} \tilde{\zeta}^m_n,  \;\;
+  \tilde{\chi}^m_n = \dfrac{a}{n(n+1)} \tilde{D}^m_n. 
+\end{equation}
+%% 
+次に, これらを用いて, \eqref{eq:ScalrPot2HoriVec_hspm}の水平微分を波数空間で評価すれば, 
+$U,V$のスペクトルデータは, 
+%%
+\begin{equation}
+\begin{split}
+	&\tilde{U}^m_n 
+	  = - (n+2)\varepsilon_{m,n+1} \;\psi^m_{n+1} 
+	    + (n-1)\varepsilon_{m,n} \;\psi^m_{n-1} 
+	    + im \chi^m_n, \\
+	&\tilde{V}^m_n 
+		= im \psi^m_n
+		+ (n+2)\varepsilon_{m,n+1}\;\chi^m_{n+1} 
+	    - (n-1)\varepsilon_{m,n} \;\chi^m_{n-1} 
+\end{split}
+\end{equation}
+%%
+と計算される. 最後に, これらを逆変換すれば, $U,V$の格子データが得られる. 
+
+%\subsection{水平離散化: 有限体積法の場合}
+%%
+%\footnote{将来的に実装予定. }
+
+%\subsection{鉛直離散化: chebyshev 多項式に基づく擬スペクトル法の場合}
+%%
+\subsection{鉛直離散化: 有限体積法の場合}
+%%
+\subsubsection*{鉛直座標系, 鉛直格子}
+%%
+鉛直座標系は前節で導入した$s$座標系であり, 計算領域の鉛直方向は$K$個の不等間隔の格子セルによって分割される. 
+格子セル$k$において, 上下界面の$s$座標はそれぞれ$s_{k-1/2}, s_{k+1/2}$と書き, 
+その鉛直幅は$\Delta s_k = s_{k-1/2} - s_{k+1/2}$と書く. 
+また, セルの上下界面の中点をセル中心と呼び, その$s$座標は$s_k$と書く. 
+
+変数の鉛直配置は C-grid 型の変数配置を採用し, 鉛直速度はセル界面に定義される一方で, 
+それ以外の変数はセル中心に定義される. 
+
+
+\subsubsection*{準備: 有限体積法の導入}
+%%
+鉛直離散化に有限体積法を適用するために, ここでは有限体積法の基本的な考え方を記述する. 
+はじめに, 検査セル$V$におけるセル平均量
+%%
+\begin{equation*}
+  \overline{q}_k 
+   \equiv \dfrac{\int_V q \Dd{V}}{\int_V \Dd{V}} 
+\end{equation*}
+%%
+を定義する. 
+特に, 鉛直一次元問題に対してセル平均量の定義は, 
+%%
+\begin{equation*}
+  \overline{q}_k 
+   = \dfrac{1}{h_k} 
+     \int_{s_{k+1/2}}^{s_{k-1/2}} (q e_3)  \; \Dd{s}
+\end{equation*}
+%%
+となる. 
+ここで, $h_k$は検査セルの幾何的長さ(層の厚さ)である.  
+有限体積法の定式化の特徴は, 以下に書かれるように, このセル平均量の時間発展を計算する所にあり, 
+その定式化の特性により$q$(の一次のモーメント)は局所的・広域的に保存する.  
+例えば, フラックス形式で書かれた鉛直一次元の移流拡散方程式
+%%
+\begin{equation}
+  \DP{(e_3 T)}{t} 
+   = - \DP{(\omega T)}{s} + \DP{}{s}\left(\dfrac{A^{vT}}{e_3}\DP{T}{s} \right)
+     + e_3 \mathcal{D}^T
+\label{eq:fvm_fundamental_1D_AdvDiffEq}
+\end{equation}
+%%
+を考える. 
+検査セルに渡って積分し, ガウスの定理を適用すれば, 近似なしに検査セル$k$に対する方程式
+%%
+\begin{align}
+  \DP{(h_k \overline{q}_k)}{t}
+  =
+    \left[  - \omega T  + \dfrac{A^{vT}}{e_3} \DP{T}{s}
+    \right]^{s_{k-1/2}}_{s_{k+1/2}} 
+    + h_k \overline{\mathcal{D}^T}_k
+\label{eq:fvm_fundamental_1D_AdvDiffEq_volaverage}
+\end{align}
+%%
+が得られる. 
+右辺におけるセル界面の移流フラックスや拡散フラックスは, 近隣のセル平均値に基づいて近似的に計算される. 
+このとき, 有限体積法の数値誤差の収束性や数値的に表現される移流等の特性は, セル界面のフラックスの求め方に
+よって決まる. 
+
+本モデルでは, 伝統的な海洋大循環モデルにおける数値解法の技術を直接利用するために, 
+古典的な低次の有限体積法を適用することにする\footnote{
+近年では, 高次の空間精度を持つ有限体積法や不連続 Galerkin 法が, 
+大気大循環モデルや海洋大循環モデルにおいて用いられることがある. 
+本モデルでは, 伝統的に多くの海洋大循環モデルが用いてきた低次精度の有限体積法を用いる. 
+%が, 将来的には高次精度の解法も使えるようにしたい. 
+}.  
+その場合には, 典型的に, 鉛直移流項において高々空間2次精度の風上フラックス, 
+鉛直拡散項において空間1次精度の拡散フラックスを用いる. 
+具体的なフラックスの計算方法については, 次の少々節を参照されたい.
+また, 
+$$
+\overline{q}_k = q_k + {\rm O}( (\Delta z_k)^2 )
+$$   
+であるため, 空間二次精度までの有限体積法ではセル平均値とセル中心における点値を区別する必要はない. 
+さらに, $(e_3)_k$を 
+$$
+ (e_3)_k = \left(\DP{z}{s}\right)_k 
+ \approx \dfrac{h_k}{\Delta s_k} + {\rm O}( (\Delta s)^2 )
+$$
+と近似するのであれば, 空間二次精度の範囲において, \eqref{eq:fvm_fundamental_1D_AdvDiffEq_volaverage}は, 
+%%
+\begin{align}
+  \DP{[(e_3)_k \; \overline{q}_k]}{t}
+  =
+   \dfrac{1}{\Delta s_k} 
+   \left[  - \omega T  + \dfrac{A^{vT}}{e_3} \DP{T}{s}
+         \right]^{s_{k-1/2}}_{s_{k+1/2}} 
+    + (e_3)_k (\mathcal{D}^T)_k
+\label{eq:fvm_fundamental_1D_AdvDiffEq_ConserveFDMForm}
+\end{align}
+%%
+と書き換えても良く, 保存型有限差分法を適用した場合と等価な離散式が得られる. 
+次の少々節で示すように, 水平方向の運動量方程式以外の方程式は, 
+\eqref{eq:fvm_fundamental_1D_AdvDiffEq_ConserveFDMForm}に示す方針で鉛直離散化される. 
+一方で, 水平方向の運動量方程式のベクトル不変形で書いていあり, 移流項はフラックス形式ではないので, 
+ここでは\cite{arakawa1977computational}に基づく方法で鉛直離散化する.
+
+\subsubsection*{方程式系の鉛直離散化}
+%%
+以下の記述では, 変数の定義位置が水平方向には同じであることを仮定し, 
+水平位置を示す格子インデックスは省略する. 
+この仮定はスペクトル法を用いる場合には当てはまるが, 
+C-grid 型の有限体積法を用いる場合には当てはまらない.  
+後者の場合は, セル中心値とセル界面値の間の水平補間が実際は必要である. 
+
+セル中心値からセル界面値, あるいはセル界面値からセル中心値を求める計算は, 
+次のようになされる.  
+線形内挿を用いる場合は, 
+%%
+\begin{equation}
+  \overline{A}^{s,lin}
+  = \dfrac{  \Delta s_{k+p}^L \; A_{k+p-1/2} 
+           + \Delta s_{k+p}^U \; A_{k+p+1/2}} 
+          {\Delta s_{k+p}^L + \Delta_{k+p}^U} 
+          \;\;\;\;\;\; (p=0, \; \dfrac{1}{2})
+\label{eq:vertical_linear_interp} 
+\end{equation}
+%%
+によって行われる. 
+ここで, 
+$\Delta s_{k+p}^U = s_{k+p-1/2} - s_{k+p}$, 
+$\Delta s_{k+p}^L = s_{k+p} - s_{k+p+1/2}$であり, 
+$\overline{(\;)}^s$は鉛直補間値であることを示す.
+$p=0$のときはセル界面値からセル中心値への線形補間を表す一方, 
+$p=1$のときはセル中心値からセル界面値への線形補間を表し,   
+前者の場合は単なる算術平均となる.   
+
+鉛直レベル$s_{k+p}$における鉛直微分値は, 
+%%
+\begin{equation}
+ \delta_s [A]
+  = \dfrac{A_{k+p-1/2} - A_{k+p+1/2}}{s_{k+p-1/2} - s_{k+p+1/2}}
+  \;\;\;\;\;\; 
+  (p=0, \; \dfrac{1}{2})
+\label{eq:vertical_derivative_vfvm} 
+\end{equation}
+%%
+によって近似される. 
+$p=0$ (セル中心で微分値を評価)の場合は空間2次精度が保証されるが, 
+$p=1/2$ (セル界面で微分値を評価)の場合は一般には空間1次精度である. 
+
+次に,
+水平方向の運動量方程式の鉛直移流項は\cite{arakawa1977computational}に基づいて鉛直離散化を行い,   
+それ以外は\eqref{eq:fvm_fundamental_1D_AdvDiffEq_ConserveFDMForm}に例を示した有限体積法に基づいて鉛直離散化を行うと,
+\\\\ 
+%%
+\begin{subequations}
+水平方向の運動量方程式: 
+\begin{equation}
+  \DP{\overline{u}_k}{t}
+  =  
+     - \overline{\left( \dfrac{\omega}{e_3} \delta_s [u] \right)}^{s,lin}_{k}
+     + \left[
+         \dfrac{A^{vm}}{e_3} \delta_s[u]
+       \right]^{k-\frac{1}{2}}_{k+\frac{1}{2}}
+     + (\overline{F'_U})_k, 
+\label{eq:zonal_mom_invariantform_vfvm}
+\end{equation}
+\begin{equation}
+  \DP{\overline{v}_k}{t}
+  = 
+     - \overline{\left( \dfrac{\omega}{e_3} \delta_s [v] \right)}^{s,lin}_{k}
+     + \left[
+         \dfrac{A^{vm}}{e_3} \delta[s]
+       \right]^{k-\frac{1}{2}}_{k+\frac{1}{2}}
+     + (\overline{F'_V})_k, 
+\label{eq:meridional_mom_invariantform_vfvm}
+\end{equation}
+%%
+トレーサー($T=\Theta,S$)に対する方程式: 
+\begin{equation}
+  \DP{[(e_3)_k \; \overline{T}_k]}{t}
+  =  - \dfrac{1}{\Delta s_k} 
+     \left[
+         \omega \overline{T}^{s,QUICK}
+       - \dfrac{A^{vT}}{e_3} \delta_s [T]
+      \right]^{k-\frac{1}{2}}_{k+\frac{1}{2}}
+     + (e_3)_k (\overline{F'_T})_k
+\end{equation}
+%%
+$p_h$の診断方程式: 
+%%
+\begin{equation}
+ \dfrac{\left[ p_h \right]^{k-\frac{1}{2}}_{k+\frac{1}{2}}}{\Delta s_k} 
+ = - (e_3)_k \dfrac{(\overline{\rho'})_k}{\rho_0}g 
+\label{eq:hydrostatic_pressure_vfvm}
+\end{equation}
+%%
+$\omega_h$の診断方程式: 
+%%
+\begin{equation}
+ \dfrac{\left[ \omega \right]^{k-\frac{1}{2}}_{k+\frac{1}{2}}}{\Delta s_k}
+ = - (e_3)_k (\overline{\underline{D}})_k 
+   - \varepsilon_2 \DP{(e_3)_k}{t}
+\label{eq:vertical_velocity_scoord_vfvm}
+\end{equation}
+%%
+\end{subequations}
+%%
+を得る. 
+ここで, $F'_U, F'_V, F'_T$は鉛直移流項と鉛直粘性項以外の寄与を表す.  
+各項の鉛直離散化の特徴や詳細を以下に記述する. 
+
+水平運動量の鉛直移流項のセル平均値は, 各セルの上下の界面で 
+$\omega_{k+\frac{1}{2}} (\delta_s[u])_{k+\frac{1}{2}}$を計算し,
+その後セル中心へ線形補間することで求められる. このように鉛直移流項を評価する場合には, 
+摩擦や強制がない場合には系の水平方向の運動エネルギーの合計が保存される\citep{arakawa1977computational}
+という利点があるが, 空間精度の観点では一般には(鉛直格子セルが不等間隔の場合) 1 次精度である.
+
+鉛直粘性フラックス(および鉛直拡散フラックス)は,   
+%%
+\begin{equation*}
+ \left(\dfrac{A^{vm}}{e_3} \DP{u}{s} \right)_{k+\frac{1}{2}}
+  =\dfrac{A^{vm}_{k+\frac{1}{2}}}{e_{3,k+\frac{1}{2}}} 
+    \; \left( \delta_s [u] \right)_{k+\frac{1}{2}}. 
+ \label{eq:vertical_diffusive_flux_vfvm}
+\end{equation*}
+%%
+と近似する. 
+前述したように$\delta_s[u]_{k+1/2}$の空間精度は一般には1次精度しかないが, 
+鉛直粘性項を陰的に時間積分するときの係数行列が三重対角行列となるために, 陰的な時間積分に伴う計算コストが小さい. 
+ステンシルを上下に 1 点づつ増やせば, 鉛直粘性フラックスを空間2次精度で評価することも可能であるが,  
+陰的な時間積分に伴う計算コストを増やすため, ここでは\eqref{eq:vertical_diffusive_flux_vfvm}の方法を用いる. 
+  
+トレーサーの鉛直移流フラックスの評価には, Quadratic Upstream Interpolation for Convective
+Knimeatics (QUICK スキーム) \citep{leonard1979stable}を用いる.
+この方法では, 風上方向に寄った3つの近隣セルの値から二次関数を構築することによって,  
+セル界面でのトレーサの値が,  
+%%
+\begin{equation}
+  \overline{T}^{s,QUICK}_{k+\frac{1}{2}}
+  = \overline{T}^{s,lin}_k
+  -     \dfrac{\Delta s_k \Delta s_{k+1}}{4} C_{k+\frac{1}{2}}
+\label{eq:VerticalAdvFlux_QUICK}
+\end{equation}
+%%
+と計算される. 
+ここで, 
+%%
+\begin{equation*}
+  C_{k+\frac{1}{2}} = \begin{cases}
+    \dfrac{\Delta s_{k+1} \; (\delta_s[\delta_s [T]])_{k+1}} 
+          {2 \overline{\Delta s}^{s,lin}_{k+1}} \;\;
+          (\equiv C_{m,k+\frac{1}{2}}) 
+          &\;\;(\omega_{k+\frac{1}{2}} > 0) \\[12pt]
+    %%%%%%%%%%%%%
+    \dfrac{\Delta s_{k} \; (\delta_s[\delta_s [T]])_{k}}
+    {2 \overline{\Delta s}^{s,lin}_k} \;\;
+    (\equiv C_{p,k+\frac{1}{2}})
+    &\;\;(\omega_{k+\frac{1}{2}} < 0) 
+   \end{cases} 
+\end{equation*}
+%%
+である. 
+簡単な場合として, もし格子セルの幅が等間隔であれば, $\omega_{k+1/2}<0$のときに, 
+\eqref{eq:VerticalAdvFlux_QUICK}は, 
+$$
+ \overline{T}^{s,QUICK}_{k+\frac{1}{2}} = \dfrac{6T_{k} + 3T_{k+1} - T_{k-1}}{8}
+$$
+となる. 
+最終的な鉛直移流フラックスの表現としては,  以下のように流れの向きの場合分けが陽に現れない形式で書くことができる. 
+%%
+\begin{align}
+  (\omega \overline{T}^{s,QIOCK})_{k+\frac{1}{2}}
+  =\; &\omega_{k+\frac{1}{2}} \left[ 
+      \overline{T}^{s,lin}_{k+\frac{1}{2}}
+    - \dfrac{\Delta s_{k+1} \Delta s_{k}}{8} (C_m + C_p)_{k+\frac{1}{2}} 
+    \right]  \nonumber \\
+   &+ \left|\omega_{k+\frac{1}{2}}\right| \dfrac{\Delta s_{k+1} \Delta s_{k}}{8}
+      (C_m - C_p)_{k+\frac{1}{2}}. 
+\end{align}
+%% 
+QUICK スキームの精度は, セル界面への補間に二次関数を用いるので, 
+セル平均値と点値の間の変換が考慮されるならば 3 次精度を有する. 
+しかし, 今の場合には, 他の項の鉛直離散表現との兼ね合いから, 鉛直移流項の離散化の精度は高々2次精度あれば良いので,  
+\eqref{eq:VerticalAdvFlux_QUICK}においてもセル平均値と点値を区別しないことにする%
+\footnote{
+2次精度の誤差の収束性が担保されれば良いという観点では,
+$\omega_{k+1/2}\overline{T}^{lin,s}_k$もまた2次精度である.  
+しかし, このような中心フラックスは, 十分に解像できない分布を移流させるときに, 
+風上系のフラックスと比べると移流の表現が著しく悪く, 振動的な解を得る. 
+そのため, ここでは QUICK スキームを用いる. 
+}.  
+
+鉛直レベル$k+1/2$での静水圧は, \eqref{eq:hydrostatic_pressure_vfvm}を最上層から$k$層まで順番に足すことによって, 
+%%
+\begin{equation}
+ (p_h)_{k+\frac{1}{2}} 
+  = \sum_{k'=1}^k  \left[ 
+    \dfrac{\overline{\rho'}_{k'}}{\rho_0}g(e_3)_{k'} 
+     (e_3)_{k'} \Delta s_{k'} \right] 
+\end{equation}
+%%
+と求められる. 
+ここで, 定義により海面で$p_h$はゼロであることを適用した. 
+一方, 鉛直レベル$k-1/2$での鉛直速度は,
+\eqref{eq:vertical_velocity_scoord_vfvm}を最下層から$k$層まで順番に和を取ることによって,
+%%
+\begin{equation}
+ (\omega)_{k-\frac{1}{2}} 
+  =  \sum_{k'=k}^{K_b} \left[ \left(
+     (\overline{\underline{D}})_{k'}
+   - \varepsilon_1 \DP{(e_3)_{k'}}{t} \right) (e_3)_{k'} \Delta s_{k'} \right]
+\end{equation}
+%%
+と計算される. 
+ここで, 海底面の法線方向の速度成分はゼロである条件($\omega_{K_b}=0$)を適用した. 
+

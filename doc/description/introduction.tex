@@ -1,0 +1,78 @@
+%!TEX root = ./dcpom_description.tex
+\section{この文書について}
+地球流体電脳倶楽部では, 海洋大循環を考慮した惑星気候の探索を目指して, 
+海洋大循環モデルと海氷モデルを開発しており, 
+Dennou-Club Planetary Ocean Model (DCPOM) として公開している%
+\footnote{
+\url{https://www.gfd-dennou.org/arch/index.htm}からソースコード等を取得できる. 
+}. 
+本書では, DCPOM に含まれる海洋モデルと海氷モデルの支配方程式系や離散化手法を記述する. 
+
+現状, 本書の記述と実際のコードが一致しない所もあるので, ご了承頂きたい. 
+
+\section{DCPOM の概要}
+ここでは, DCPOM version \version \; (2018年10月2日版)の概要を記述する. 
+
+本書で主に対象とするのは, \verb|${TOP_DIR}/model/dogcm|ディレクトリ中にある, 海洋大循環モデルと海氷モデルのコードである. 
+この海洋大循環モデルで表現される過程と数値解法は, 以下にまとめられる。
+\begin{itemize}
+  \item 力学コア: 
+  \begin{itemize}
+    \item 浅い流体近似・静水圧近似をしたブジネスク方程式系
+  \end{itemize}
+  \item サブグリッド・スケールの過程のパラメタリゼーション
+    \begin{itemize}
+      \item メソスケールの渦による混合
+      \begin{itemize}  
+        \item 等密度面に沿った拡散スキーム \citep{redi1982oceanic} 
+        \item skew flux に基づく GM スキーム \citep{gent1990isopycnal,griffies1998gent}
+      \end{itemize} 
+      \item 対流による鉛直混合
+      \begin{itemize}  
+        \item 対流調節スキーム \citep{marotzke1991influence,rahmstorf1993fast}
+      \end{itemize}   
+    \end{itemize} 
+  \item 数値解法
+  \begin{itemize}
+    \item 水平離散化: 球面調和関数展開に基づくスペクトル法
+    \item 鉛直離散化: 有限体積法
+    \item 時間離散化
+    \begin{itemize}
+      \item 順圧モードと傾圧モードの分離　\citep{shchepetkin2005regional}
+      \item 移流項: LF-AM3 スキーム \citep{shchepetkin2005regional}
+  	  \item 鉛直拡散項, 伝播速度の速い波と関係した項: リープフロッグ法
+  	  \item 水平拡散項: 前進オイラー法または後退オイラー法
+    \end{itemize}                  
+  \end{itemize}
+\end{itemize}
+また, 海氷モデルで表現される過程とその数値解法は, 以下にまとめられる。
+\begin{itemize}
+  \item 熱力学過程: \citep{winton2000reformulated}に基づく三層モデル
+  \item 水平輸送のパラメタリゼーション: 海氷厚さの水平拡散で表現
+  \item 数値解法
+  \begin{itemize}
+    \item 水平離散化: 有限体積法
+    \item 鉛直離散化: 有限体積法
+    \item 時間離散化
+    \begin{itemize}  
+      \item 移流項: LF-AM3 スキーム \citep{shchepetkin2005regional}
+  	  \item 鉛直拡散項: リープフロッグ法
+  	  \item 水平拡散項: 前進オイラー法
+    \end{itemize}                  
+  \end{itemize}
+\end{itemize}
+
+なお, \verb|${TOP_DIR}/model|内には, 上記のモデルのディレクトリ(dogcm)以外にも, 
+「globalSWModel\_DG, globalSWModel\_FVM, ogcm」等のディレクトリが存在する. 
+これらは, 以下のように岸が取り扱うことを念頭にした海洋モデルの試作品であるが, 
+これらのモデルの詳細は, 本書においてまだ記述できていない.  
+
+\section{本書の構成}
+%%
+第\ref{ocn_model}章において, 海洋大循環モデルの支配方程式系と, 
+それらの離散化手法を記述する. 本章の最後に, 海洋モデルに与えるパラメータの設定例も示す. 
+第\ref{sice_model}章において, 海氷モデルの支配方程式系と, 
+それらの離散化手法を記述する. 本章の最後に, 海氷モデルに与えるパラメータの設定例も示す. 
+
+
+

@@ -1,0 +1,179 @@
+\section{時間離散化}\label{sice_model_time_scheme}
+\markright{\arabic{chapter}.\arabic{section} 時間離散化}
+%%
+\subsection{時間スキームの概要}\label{sice_model_time_scheme_brief}
+%%
+\subsubsection*{熱力学過程}\label{sice_model_time_scheme_brief_thermodyn}
+%%
+鉛直熱拡散項と関係した氷層のエンタルピーの時間変化を, 以下の形式で陰的に評価する. 
+%%
+\begin{equation*}
+ \dfrac{\rho_I h_I}{2} \left(\DD{E_{I,k}}{t}\right)_{\rm thermodyn} 
+  = \dfrac{\rho_I h_I}{2 \Delta t} 
+  \int_{t^n}^{t^*} \left(\DP{E_{I,k}}{T_{I,k}}\right)  \DD{T_{I,k}}{t} \Dd{t}
+  = \mathcal{D}_{\rm vdiff}^{vT_{I}} (T_{I,1}^*, T_{I,2}^*, T_s^*)
+\end{equation*}
+%%
+ここで, $k=1,2$であり, 
+また$\mathcal{D}_{\rm vdiff}^{vT_{I}} (T_I^*)$は, 鉛直離散化した鉛直熱拡散項を表す. 
+この時に, 海氷表面での熱収支式を連立することによって, 海氷の表面温度$T_s^*$も決定される.
+
+次に, 上で計算された鉛直熱伝導フラックスから, 海氷上端での融解量, 海氷下端での生成融解量が, 
+\eqref{eq:sice_model_surface_energy_budget}と\eqref{eq:sice_3lyr_model_bottom_energy_budget}によって計算される.
+この過程において, 海氷上端の積雪や昇華が考慮される. 
+
+最後に, 海氷内部の厚さの調整が行われる. 
+このとき, 雪層から氷層への変化や氷層の上下層の等分化が行われ, それに伴い氷層の温度も変化する.  
+
+\subsubsection*{力学過程}\label{sice_model_time_scheme_brief_dynamics}
+%%
+熱力学過程後の変数の値を用いて, 移流項に伴う海氷場の時間変化を陽的に評価する. 
+$q=h_S, h_I, \rho_I h_I E_{I,1}/2, \rho_I h_I E_{I,2}/2$とすると, 
+%%
+\begin{equation*}
+ \dfrac{q^{n+1} - q^*}{\Delta t}
+ = \left(\DD{q}{t}\right)_{\rm dyn} (h_S^*, h_I^*, q^*)
+\end{equation*}
+%%
+と書かれる. 
+力学過程において, 氷層のエンタルピーの時間発展式は, 保存形式であることに注意が必要である. 
+
+\subsection{時間スキームの詳細}\label{sice_model_time_scheme_detail}
+%%
+\subsubsection*{鉛直熱拡散方程式の時間離散化}
+%%
+海氷の鉛直熱拡散と関係する方程式は, 
+%%
+\begin{subequations}
+\begin{gather}
+ \dfrac{\rho_I h_I^n}{2}\left( C + \dfrac{L\mu S_i}{T_{I,1}^* T_{I,1}^n}\right)
+ \dfrac{T_{I,1}^* - T_{I,1}^n}{\Delta t} 
+ = K_{s1}^n (T_s^* - T_{I,1}^*) - K_{12}^n (T_{I,1}^* - T_{I,2}^*) + I, \\
+%%
+ \dfrac{\rho_I h_I^n}{2}C \dfrac{T_{I,2}^* - T_{I,2}^n}{\Delta t} 
+  = K_{12}^n (T^*_{I,1} - T^*_{I,2}) - 2K_{12}^n (T^*_{I,2} - T_f)
+\end{gather}
+\label{eq:sice_model_thermodyn_thermo_vdiff_fvm}
+\end{subequations}
+%%
+と時間離散化される%
+\footnote{
+\eqref{eq:sice_model_thermodyn_thermo_vdiff_fvm}(a) の左辺括弧内の表現を得るために,  
+$$
+ \frac{1}{\Delta t} \int_{t^*}^{t^n} 
+ \left(C + L_i \dfrac{\mu S_i}{T_{I,1}^2} \right) \; 
+  \DD{T_{I,1}}{t} \;\Dd{t} 
+ =  \left( C + \dfrac{L\mu S_i}{T_{I,1}^*
+     T_{I,1}^n}\right)
+     \dfrac{T_{I,1}^* - T_{I,1}^n}{\Delta t} 
+$$
+であることが用いられる. 
+}. 
+また, \eqref{eq:sice_model_thermodyn_thermo_vdiff_fvm}に加えて, 
+時刻$t^n$周りで海面熱フラックスを線形化した, 海氷面で融解が起きない場合の熱収支式
+%%
+\begin{equation}
+	A + B T_s^* = K_{s1} (T_{I,1}^* - T_s^*)
+\label{eq:sice_model_thermodyn_sfc_heat_budget_fvm}
+\end{equation}
+%%
+を連立させる. 
+ここで, 
+%%
+\begin{align*}
+  A 
+  &= F_s(T_s^n) - T_s^n \left(\DP{F_s}{T_s}\right)^n, \;\;
+  B
+   = \left(\DP{F_s}{T_s}\right)^n
+\end{align*} 
+%%
+とおいた. 
+後に記述するように, この方程式系で決定される海表面温度が, 雪もしくは海氷の融点を超える場合には, 
+\eqref{eq:sice_model_thermodyn_sfc_heat_budget_fvm}を連立せずに, 海氷面温度を固定した問題に変更する. 
+
+\cite{winton2000reformulated}では,
+以下に示すように, \eqref{eq:sice_model_thermodyn_thermo_vdiff_fvm}を解析的に解くことで,  
+$T_{I,1}^*$の表現を陽に導いている. 
+はじめに, \eqref{eq:sice_model_thermodyn_thermo_vdiff_fvm}(b) から, 
+%%
+\begin{equation}
+ T_{I,2}^* 
+ = \dfrac{  2 \Delta t K^n_{12} (T_{I,1}^* + 2 T_f) 
+          + \rho_I h_I C_i T_{I,2}^n}
+          {6\Delta t K^n_{12} + \rho_I h_I C_i} 
+\label{eq:sice_model_thermodyn_icetemp2_new}
+\end{equation}
+が得られる. 
+\eqref{eq:sice_model_thermodyn_sfc_heat_budget_fvm}と\eqref{eq:sice_model_thermodyn_icetemp2_new}を用いて, 
+\eqref{eq:sice_model_thermodyn_thermo_vdiff_fvm}(a)
+に現れる$T_s^*$と$T_{I,2}^*$を消去すると, 
+二次方程式
+$A_1 (T_{I,1}^*)^2 + B_1 T_{I,1}^* + C_1 = 0$
+が得られ, $T_{I,1}^*$は,
+%%
+\begin{equation}
+ T_{I,1}^* = - \dfrac{B_1 + (B_1^2 - 4 A_1 C_1)^{1/2}}{2 A_1}
+\label{eq:sice_model_thermodyn_icetemp1_new}
+\end{equation}
+%%
+と与えられる.  
+ここで, 
+%%
+\begin{align*}
+ A_1 
+ &= 
+   \dfrac{\rho_I h_I}{2\Delta t}C_i
+ + K_{12}\dfrac{4\Delta t K^n_{12} + \rho_I h_I C_i}
+               {6\Delta t K^n_{12} + \rho_I h_I C_i}
+ + \dfrac{K^n_{s1} B}{K^n_{s1} + B}, \\
+%%
+ B_1
+ &= 
+   - \dfrac{\rho_I h_I}{2\Delta t} 
+       \left( C_i T_{I,1}^n - \dfrac{L_i\mu S_I}{T_{I,1}^n} \right) 
+   - I \nonumber \\
+ &\;\;\;\; - K_{12}\dfrac{4\Delta t K^n_{12} T_f + \rho_i h_i C_i T_{I,2}^n}
+                 {6\Delta t K^n_{12} + \rho_i h_i C_i}
+   + \dfrac{K^n_{s1} A}{K^n_{s1} + B}, \\
+%%
+  C_1 
+  &= - \dfrac{\rho_I h_I}{2\Delta t} L_i \mu S_I
+\end{align*} 
+%%
+である. 
+これらの係数の符号を考慮すれば, 二次方程式のもう一つの解は正であり, 物理的に不適切であることが分かる.  
+以上から, 
+はじめに\eqref{eq:sice_model_thermodyn_icetemp1_new}から$T_{I,1}^*$が得られれば, 
+\eqref{eq:sice_model_thermodyn_icetemp2_new}から$T_{I,1}^*$, 
+\eqref{eq:sice_model_thermodyn_sfc_heat_budget_fvm}から$T_s^*$が求まる. 
+ 
+もし, \eqref{eq:sice_model_thermodyn_icetemp1_new}から得られた$T_s^*$が,
+雪の融点(雪が存在する場合)あるいは海氷の融点(雪が存在しない場合)を超えているならば, 
+海氷の表面温度を$T_s^*=0$(雪が存在する場合)あるいは$T_s^*=-\mu S_i$(雪が存在しない場合)と固定した問題に変更して, 
+鉛直熱拡散方程式を解き直す. 
+この場合の二次方程式の係数は, 
+%%
+\begin{align*}
+ A_1 
+ &= 
+   \dfrac{\rho_I h_I}{2\Delta t}C 
+ + K_{12}\dfrac{4\Delta t K^n_{12} + \rho_I h_I C_i}
+               {6\Delta t K^n_{12} + \rho_I h_I C_i}
+ + K_{s1}^n, \\
+%%
+ B_1
+ &= 
+   - \dfrac{\rho_I h_I}{2\Delta t} 
+       \left( C_i T_{I,1}^n - \dfrac{L_i\mu S_I}{T_{I,1}^n} \right) 
+   - I \nonumber \\
+ &\;\;\;\; - K_{12}\dfrac{4\Delta t K^n_{12} T_f + \rho_I h_I C_i T_{I,2}^n}
+                 {6\Delta t K^n_{12} + \rho_I h_I C_i}
+   - K_{s1}^n T_s^*
+%%
+\end{align*}
+%%
+である. 
+ただし, $C_1$は変わらない. 
+
+ここで陰的に求められた熱伝導フラックスを用いて, 海氷上下端での生成融解量が計算される. 
+

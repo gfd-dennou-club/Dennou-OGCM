@@ -1,0 +1,463 @@
+\section{時間離散化}
+\label{ocn_model_time_descretization}
+%%
+\markright{\arabic{chapter}.\arabic{section} 時間離散化} %  節の題名を書き込むこと
+%%
+\subsection{時間スキームの概要}
+%%
+方程式系の時間離散化は, 全体的には, 
+\cite{shchepetkin2005regional}で提案された予測子・修正子法の一種(LF-AM3スキーム)を用いる. 
+この方法の概要を説明するために, 空間離散化が完了した半離散化式
+%%
+\begin{equation*}
+  \DD{q_{ij}}{t} = F_{ij}(q)
+\end{equation*}
+%%
+を考えよう. 
+はじめに, 予測子$q_{ij}^{n+1,p}$はリープ・フロッグ法によって,  
+%%
+\begin{equation*}
+  q_{ij}^{n+1,p} = q_{ij}^{n-1} + 2\Delta t F_{ij} (q^{n}). 
+\end{equation*}
+%%
+と計算される. 
+修正子$q_{ij}^{n+1,c}$は, 直前に求めた予測子の値を使った,  
+3 次のアダムス・モルトン公式と類似した方法により, 以下のように計算される. 
+$$ 
+  q_{ij}^{n+1,c}
+  = q_{ij}^n 
+    + \Delta t F_{ij} \left(\dfrac{5q^{n+1,p}+8q^n-q^{n-1}}{12} \right) 
+$$
+最後, この修正子の値を$q_{ij}^{n+1}$とする.  
+もし右辺が$q$に関して線形項であれば, LF-AM3 スキームの精度は3次精度である. 
+
+しかしながら, 実際には, LF-AM3 スキームを全ての項に適用すると, 
+鉛直混合や外部波等の海洋大循環の移流よりも遥かに速い物理によって時間刻み幅が厳しく制限される. 
+そのため, 予測子と修正子の各ステップにおいて, 
+鉛直粘性項と鉛直拡散項にはクランク・ニコルソン法, 
+水平粘性項と水平拡散項には後退オイラー法を適用する. 
+ただし, メソスケールの渦による水平混合と関係した項には前進オイラー法を適用する. 
+また, 位相速度が速い外部波と関係した順圧モードをもとの方程式系から分離するために,  
+鉛直平均した水平方向の運動量方程式と連続の式を別に導き, 
+それらを適切な時間スキーム(陰解法あるいは外部波の時間積分に適した陽解法)を用いて時間積分する. 
+この過程の中で, 水平速度の順圧成分や表面変位(または表面圧力)の時間発展が計算される. 
+順圧モードを分離することで, 3次元の方程式系に対する時間刻み幅は, 外部波に伴う時間刻み幅よりも長く設定できる.  
+また, 海洋大循環モデルが想定とする問題においてはしばしば, 内部重力波も外部波の次に時間刻み幅を制約する. 
+そのため,　静水圧$p_h$を$t^{n+1},t^n,t^{n-1}$の間で時間平均し,
+それから水平圧力勾配項を計算することで, 内部重力波に伴う時間刻み幅の制約を緩和する. 
+そのためには, 水平方向の運動量方程式よりも先に, トレーサーの方程式を時間発展させる必要がある. 
+次節では, 実際に時間離散化を適用した結果や, 方程式系全体としての時間積分の手順を示す. 
+%%
+
+\subsection{時間スキーム詳細}
+%%
+時間積分の手順の詳細を以下に記述する.  
+
+\subsubsection*{\underline{ステージ1: 予測子の計算}}
+%%
+予測子の計算では, 非粘性項(移流項, コリオリ項, 圧力勾配項)の寄与のみを考慮する.
+
+\subsubsection*{1-1: 海水密度, 静水圧, 鉛直速度の診断}
+%%
+\vspace{-1cm}
+\begin{align*}
+ \rho'^n = \rho'(\Theta^n, S^n, - \rho_0 g z^n), \;\;\;  
+ p_h^n = \int_s^{s_T} g (\rho')^n e_3^n \; \Dd{s}, 
+\end{align*}
+%%
+\begin{align}
+ \omega^n 
+  = 
+    -& \int_{s_B}^s \nabla_h \cdot (e_3^n \Dvect{U}_h^n)  \;\Dd{s}
+    + \varepsilon_1 \left(\DP{e_3}{t}\right)_{\rm pseudo}
+\label{eq:omega_diagnose_pseudo_compressible_alhrithm}
+\end{align}
+%%
+ここで, $s_T, s_B$はそれぞれ, 計算領域の上下端における$s$の値である. 
+また, この段階では順圧方程式系は時間発展前であるので, 
+\eqref{eq:omega_diagnose_pseudo_compressible_alhrithm}における層の厚さの時間変化と関係する項は, 
+%%
+\begin{align}
+ \left(\DP{e_3}{t}\right)_{\rm pseudo}
+  = \left(\DP{z}{\eta}\right)^n_s \left[ 
+      \int_{s_B}^{s_T} \nabla_h \cdot (e_3^n \Dvect{U}_h^n) \;\Dd{s} 
+      - q_W^n \right]
+\label{eq:omega_diagnose_de3dt_pseudo_compressible_alhrithm}
+\end{align}
+%%
+と計算することにする.  
+ここで,
+\eqref{eq:omega_diagnose_de3dt_pseudo_compressible_alhrithm}は,
+順圧方程式系の時間離散式とは不整合であることに注意が必要である.
+
+\subsubsection*{1-2: 鉛直方向のスケール因子の仮更新}
+%%
+\vspace{-1cm}
+\begin{align}
+ \varepsilon_1 \dfrac{e_3^{n+1,*} - e_3^{n-1}}{2\Delta t}
+ = -& \nabla_h \cdot (e_3^n \Dvect{U}_h^n)
+   - \DP{\omega^n}{s}
+\end{align}
+%%
+ただし, 剛体蓋近似を適用する場合($\varepsilon_1=0$)は$e_3$は時間に依存しないため, 
+この過程は飛ばしても良い. 
+
+\subsubsection*{1-3: 水平速度の更新}  
+%%
+\vspace{-1cm}
+\begin{align*}
+ \dfrac{\Dvect{U}_h^{n+1,*} - \Dvect{U}_h^{n-1}}{2\Delta t}
+ = -& (\zeta^n + f) \; \Dvect{k}\times\Dvect{U}^n_h 
+   - \dfrac{\omega^n}{e_3^n} \DP{\Dvect{U}^n_h}{s} \nonumber \\
+   -& \nabla_h \left[ \dfrac{(\Dvect{U}^n_h)^2}{2} 
+      + \dfrac{p^n_s + p^n_h}{\rho_0} \right]
+      + g\dfrac{(\rho')^n}{\rho_0}\Dvect{\sigma}^n 
+\end{align*}
+%%
+ここで, $\Dvect{\sigma}=\sigma_1 \Dvect{i} + \sigma_2 \Dvect{j}$である. 
+
+\subsubsection*{1-4: トレーサーの更新}
+%%
+\vspace{-1.2cm}
+\begin{align*}
+ \dfrac{e_3^{n+1,*}T^{n+1,*} - e_3^{n-1}T^{n-1}}{\Delta \hat{t}}
+ = -& \nabla_h \cdot (e_3^n T^n \Dvect{U}_h^n)
+   - \DP{(T^n \omega^n)}{s}
+\end{align*}
+%%
+予測子の計算過程では,
+\eqref{eq:omega_diagnose_pseudo_compressible_alhrithm}に基づく体積フラックスや$e_3^{n+1,*}$が,
+順圧方程式系の時間離散式と整合的でないために, 予測子の計算過程ではトレーサーの積分の保存性は保証されないが,   
+トレーサーの一定値性は厳密に保証される. 
+トレーサーの積分の保存性は修正子の計算過程で最終的に保証されれば良いので, 
+この段階ではトレーサーの一定値性が保証されることがより重要である. 
+
+\subsubsection*{1-5: アダムス・モルトン公式による内挿}
+%%
+\vspace{-.5cm}
+時間レベル$n+\frac{1}{2}$での$\Dvect{U}_h$と$e_3$の値を, 
+三次のアダムス・モルトン公式
+%%
+\begin{align*}
+ q^{n+\frac{1}{2}} 
+  =   \dfrac{5}{12}q^{n+1,*} 
+    + \dfrac{8}{12}q^{n} 
+    - \dfrac{1}{12}q^{n-1}  
+\end{align*}
+%%
+から計算する. 
+また, 時間レベル$n+\frac{1}{2}$におけるトレーサー$T$の値は, 
+%%
+\begin{align*}
+ T^{n+\frac{1}{2}} 
+  = \dfrac{1}{e_3^{n+\frac{1}{2}}} 
+    \left[ 
+      e_3^{n+1,*} \dfrac{5}{12}T^{n+1,*} 
+    + e_3^n \dfrac{8}{12}T^{n} 
+    - e_3^{n-1} \dfrac{1}{12}T^{n-1} \right]   
+\end{align*}
+%%
+と計算する. 
+
+\subsubsection*{\underline{ステージ2: 修正子の計算}}
+%%
+\subsubsection*{2-1: 物理パラメタリゼーションによる時間変化率の計算}
+%%
+\vspace{-1.2cm}
+\begin{align*}
+  \mathcal{D}^{\Dvect{U}}
+=
+   \mathcal{D}^{l\Dvect{U}}_{\rm lvisc} ( \overline{\Dvect{U}}_h^{\theta_h})
+ + \mathcal{D}^{v\Dvect{U}}_{\rm vvisc}
+    \left( (A^{vm})^n, \overline{\Dvect{U}}_h^{\theta_v} \right)
+ + \mathcal{D}^{l\Dvect{U}}_{\rm lvisc,4th} (\overline{\Dvect{U}}_h^{\theta_h}),
+\end{align*}
+%%
+\begin{align*}
+  \mathcal{D}^{T} 
+  = 
+    \;&\mathcal{D}^{lT}_{\rm ldiff,Redi} (T^n)
+    + \mathcal{D}^{lT}_{\rm GM} (T^n)           \nonumber  \\
+    +& \mathcal{D}^{vT}_{\rm vdiff} 
+   	  \left((A^{vT})^n, \overline{T}^{\theta_v} \right)
+    + \mathcal{D}^{vT}_{\rm conv} (T^n)
+    + \mathcal{D}^{lT}_{\rm ldiff,4th} (\overline{T}^{\theta_h})
+\end{align*}
+%%
+ここで, $\overline{(\;)}^{\theta_h}$, $\overline{(\;)}^{\theta_v}$は, 
+粘性項や拡散項を陰的に扱うための, 時間レベル$n$から$n+1$の間の時間平均を表し, 
+例えば, 
+%%
+\begin{equation}
+  \overline{T}^{\theta_h} = \theta_h T^{n+1} + (1 - \theta_h)T^n
+\label{eq:time_level_average_ldiff}
+\end{equation}
+%%
+と書かれる. 
+
+なお, この計算過程で実際に計算されるのは,
+$\mathcal{D}^{\Dvect{U}}, \mathcal{D}^T$の内の時間レベル$n$と関係する項のみである.   
+時間レベル$n+1$と関係する項は, 水平速度の傾圧成分やトレーサーが更新されるときに陰的に評価される.
+
+\subsubsection*{2-2: 海水密度, 静水圧, 鉛直速度の診断}
+%%
+\vspace{-.5cm}
+1-1 と同様に, 時間レベル$n+\frac{1}{2}$における静水圧と鉛直速度を診断するが,     
+海水密度は 
+$$
+(\rho')^{n+\frac{1}{2}} 
+= \rho(\Theta^{n+\frac{1}{2}},S^{n+\frac{1}{2}},-\rho_0 g z^n) 
+$$
+と計算する.
+
+\subsubsection*{2-3: 水平速度の傾圧成分の更新}
+%%
+\vspace{-1.2cm}
+\begin{align}
+ \dfrac{\Dvect{U}_h^{n+1,**} - \Dvect{U}_h^n}{\Delta t}
+ =
+   -&\Dvect{k}\times \left[ 
+       \zeta^{n+\frac{1}{2}} \; \Dvect{U}^{n+\frac{1}{2}}_h
+     + f \overline{\Dvect{U}}^{\theta_c}_h   
+     \right]
+   - \dfrac{\omega^{n+\frac{1}{2}}}{e_3^n} \DP{\Dvect{U}_h^{n+\frac{1}{2}}}{s}
+     \nonumber \\
+   -& \nabla_h \left[ \dfrac{(\Dvect{U}^{n+\frac{1}{2}}_h)^2}{2} 
+       + \dfrac{p^n_s + p^{n+\frac{1}{2}}_h}{\rho_0} \right] 
+    + g\dfrac{(\rho')^{n+1/2}}{\rho_0}\Dvect{\sigma}^n \nonumber \\
+    &+ \mathcal{D}^{\Dvect{U}} 
+          \left( \Dvect{U}_h^{n+1,**}, \Dvect{U}_h^n, (A^{vm})^n \right)
+\label{eq:hori_vel_baroc_corrector}
+\end{align}
+%%
+ここで, $\overline{(\;)}^{\theta_c}$は, 
+コリオリ項を陰的に扱うための, 時間レベル$n$から$n+1,**$間の時間平均を表し,  
+\eqref{eq:time_level_average_ldiff}と同様に書かれる. 
+
+\eqref{eq:hori_vel_baroc_corrector}のコリオリ項,
+水平粘性項, 鉛直粘性項には, 時間レベル$n+1,**$の水平速度が含まれるため,
+厳密に陰的評価を行うには三次元データに対して連立線形方程式を解くことになる.
+しかし, これは計算コストが大変高いため, ${\rm O}((\Delta t)^2)$の誤差は許容することにして, 
+ここでは以下のように演算子分割を行う. 
+%%
+\begin{align}
+    \left[I + \Delta t \theta_c C \right]
+    &\left[I + \Delta t \theta_v D^m_v \right]
+	\left[I + \Delta t \theta_h D^m_h \right]
+    (\Dvect{U}_h^{n+1,**} - \Dvect{U}_h^n)    \nonumber \\ 
+  &= -
+  \Dvect{k} \times f\Dvect{U}_h^n + \mathcal{D}^{l\Dvect{U}}_{\rm lvisc}(\Dvect{U}_h^n)
+      + \mathcal{D}^{v\Dvect{U}}_{\rm vvisc}((A^{vm})^n \Dvect{U}_h^n)
+      + \Dvect{R}
+\end{align}
+%%
+ここで, $\Dvect{R}$は\eqref{eq:hori_vel_baroc_corrector}の右辺の内, 
+コリオリ項, 鉛直粘性項, 水平粘性項以外の項を表す. 
+また, $C, D_v^m, D_h^m$は, それぞれコリオリ項, 鉛直粘性項, 水平粘性項を$\Dvect{U}_h^n$
+で微分することにより得られる係数行列である. 
+
+次に行われる順圧方程式系の時間積分のために, 水平速度の傾圧方程式から順圧方程式への強制
+%%
+\begin{align}
+ \Dvect{G}_e = \dfrac{(\Dvect{U}_{barot})^{n+1,**}}{\Delta t}
+  + \left[
+       \nabla_h \dfrac{p_s^n}{\rho_0} 
+     + \Dvect{k}\times f \overline{(\Dvect{U}_{barot})}^{\theta_c} 
+    \right]
+\label{eq:baroclinic_to_barotropic_forcing}
+\end{align}
+%%
+を計算し, 保存しておく. 
+ここで, \eqref{eq:baroclinic_to_barotropic_forcing}に現れる水平速度の順圧成分は, 
+%%
+\begin{align*}
+  \left(\Dvect{U}_{barot}\right)^m 
+  = \dfrac{1}{\varepsilon_2 \eta^n + H} 
+    \int_{s_B}^{s_T} (\Dvect{U}_h^m e_3^n) \Dd{s}
+\end{align*}
+%%
+の形式で計算する. 
+
+最後に, $\Dvect{U}_h^{n+1,**}$から順圧成分を引くことによって, 
+時間レベル$n+1$の水平速度の傾圧成分は
+%%
+\begin{align*}
+ \Dvect{U}_{baroc}^{n+1} 
+ = \Dvect{U}_h^{n+1,**} - (\Dvect{U}_{barot})^{n+1,**}
+\end{align*}
+%%
+と決定される. 
+
+\subsubsection*{2-4: 水平速度の順圧成分と表面変位の更新}
+%%
+\vspace{-0.5cm}
+剛体蓋近似をする場合($\varepsilon_1=\varepsilon_2=0$)や
+自由表面の方程式を線形近似する場合($\varepsilon_1=1, \varepsilon_2=0$)には, 
+順圧方程式系を以下のように陰的に時間発展させる. 
+%%
+\begin{subequations}
+\begin{align}
+  \dfrac{\Dvect{U}^{n+1}_{barot} - \Dvect{U}^n_{barot}}{\Delta t}
+ = 
+ - g \nabla_h \overline{\eta}^{\theta_s}
+ - \Dvect{k}\times f \overline{(\Dvect{U}_{barot})}^{\theta_c} 
+ + \Dvect{G}_e, 
+\label{eq:barotro_eqs_hori_vel_implicit}
+\end{align}
+%%
+\begin{align}
+ \varepsilon_1 \dfrac{\eta^{n+1} - \eta^n}{\Delta t}
+ = - \nabla_h \cdot \left[ H \Dvect{U}^{n+1}_{barot} \right]
+   + \varepsilon_1 q_W^n
+\label{eq:barotro_eqs_ssh_implicit}
+\end{align}
+\end{subequations}
+%%
+実際には, これらの式から導かれる$\eta^{n+1}$に対する楕円方程式が解かれる.  
+ただし, 厳密に導いた場合には, コリオリ項を陰的に取り扱うことに起因して, 楕円演算子は対称とならなず大変扱いにくい. 
+この問題を回避するために, \cite{dukowicz1994implicit}で行われた演算子分割の手法を適用する. 
+はじめに, 補助変数
+%%
+\begin{equation}
+ \Dvect{U}^{n+1,*}_{\rm barot} 
+ = \Dvect{U}^{n+1}_{\rm barot}
+   + \theta_s \Delta t g \nabla_h (\eta^{n+1} - \eta^n)
+\label{eq:barot_eqs_hori_vel_optrsplit_auxvar}
+\end{equation}  
+%%
+を導入すれば, \eqref{eq:barotro_eqs_hori_vel_implicit}は, ${\rm O}(f(\Delta t)^3)$の
+分割誤差の範囲で, 
+%%
+\begin{align}
+  (I + \theta_C \Delta t C) (\Dvect{U}^{n+1,*}_{barot} - \Dvect{U}^n_{barot}) 
+ = 
+ - g \nabla_h \eta^n
+ - \Dvect{k}\times f \Dvect{U}_{barot}^n
+ + \Dvect{G}_e, 
+\label{eq:barotro_eqs_hori_vel_implicit_optrsplit}
+\end{align}
+%%
+と書くことができる. 
+そして, $\eta^{n+1}$に対する楕円方程式は, 
+\eqref{eq:barot_eqs_hori_vel_optrsplit_auxvar}と\eqref{eq:barotro_eqs_ssh_implicit}を用いて,
+%%
+\begin{align}
+ \left[ 
+ - \nabla_h \cdot (g H \theta_s \nabla_h  )
+ + \dfrac{\varepsilon_1}{(\Delta t)^2} \right] 
+    (\eta^{n+1} - \eta^n)
+ = - \nabla_h \cdot \left(\dfrac{H \Dvect{U}^{n+1,*}_{barot}}{\Delta t}\right) 
+   + \varepsilon_1 \dfrac{q_W^n}{\Delta t}
+\label{eq:elliptic_equation_for_ssh}
+\end{align}
+%%
+と導かれる. 
+したがって, 手順としては, 
+はじめに\eqref{eq:barotro_eqs_hori_vel_implicit}から$\Dvect{U}^{n+1,*}_{barot}$を得た後に,
+\eqref{eq:elliptic_equation_for_ssh}を解くことで$\eta^{n+1}$を計算する. 
+そして, この$\eta^{n+1}$を使って\eqref{eq:barot_eqs_hori_vel_optrsplit_auxvar}から
+$\Dvect{U}_{barot}^{n+1}$を求めれば良い. 
+
+一方, 自由表面に関して近似を行わない場合($\varepsilon_1=\varepsilon_2=1$)は, 
+傾圧方程式系よりも小さな時間刻み幅$\Delta \tau=\Delta t/M$を用いて, 
+順圧方程式系を以下のように陽的に時間発展させる($m=0,..,M-1$). 
+%%
+\begin{subequations}
+\begin{align}
+  \dfrac{\Dvect{U}^{n+\frac{m+1}{M}}_{barot} 
+         - \Dvect{U}^{n+\frac{m}{M}}_{barot}}
+        {\Delta \tau} = 
+ - g \nabla_h \overline{\eta}^{\theta_s}
+ - \Dvect{k}\times f \overline{(\Dvect{U}_{barot})}^{\theta_c} 
+ + \Dvect{G}_e, 
+\end{align}
+%%
+\begin{align}
+\dfrac{\eta^{n+\frac{m+1}{M}} - \eta^{n+\frac{m}{M}}}{\Delta \tau}
+ = - \nabla_h \cdot \left[ 
+ 	    (\eta^{n+\frac{m}{M}} + H)\Dvect{U}^{n+\frac{m}{M}}_{barot}
+     \right] 
+   + q_W^n
+\end{align}
+%%
+\end{subequations}
+%%
+しかしながら, この方法で求めた$\Dvect{U}_{barot}^{n+1}$には, 
+傾圧方程式系の時間刻み幅では解像できない高周波数の振動が含まれるために, 
+これを水平速度の傾圧成分と結合して時間積分を続けると計算不安定を引き起こす.  
+そのため, 実際には$n+1$を少し超えて時間レベル$n+M_*/M$ 
+(ここで, $M < M_* \le 3M/2$)まで積分した後に, 適切な重みを用いて,  
+%% 
+\begin{equation*}
+ \Dvect{U}_{barot}^{n+1} 
+ = \sum_{m=1}^{M^*} a_m
+ \Dvect{U}_{barot}^{n+\frac{m}{M_*}}, \;\;\;
+  \eta^{n+1} = \sum_{m=1}^{M_*} a_m \eta^{n+\frac{m}{M_*}}
+\end{equation*}
+%%
+と時間平均することで, 時間レベル$n+1$の水平速度の順圧成分が決定される.
+
+順圧方程式を時間発展させる過程の中で, この後のトレーサーの移流計算で用いられる
+水平方向の体積フラックスの順圧成分は, 以下のように決定される.  
+%%
+\begin{equation}
+  \ll\!\! e_3 \Dvect{U}_h\!\!\gg^{n+\frac{1}{2}}
+=\begin{cases}
+\overline{\Dvect{U}}^{AM3}_{barot} \;\;\; &(\varepsilon_1=\varepsilon_2=0) \\
+\Dvect{U}_{barot}^{n+1} \;\;\; &(\varepsilon_1=1, \varepsilon_2=0) \\
+\sum_{m=0}^{M_*} \left( b_m \Dvect{U}_{barot}^{n+m/M_*} \right) 
+      \;\;\; &(\varepsilon_1=1,\varepsilon_2=1)
+\end{cases}
+\end{equation}
+%%
+ここで, $\overline{(\;)}^{AM3}$は, 時間レベル$n-1,n,n+1$の値を用いた 
+アダムス・モルトン公式による内挿を行うことを表す. 
+また, $b_m = M^{-1}\sum_{m'=m}^{M_*} a_{m'}$である.
+
+水平速度の順圧成分が更新されば, 最終的な時間レベル$n+1$の水平速度は,  
+%%
+\begin{align*}
+ \Dvect{U}_h^{n+1} = \Dvect{U}_{baroc}^{n+1} + \Dvect{U}_{barot}^{n+1}
+\end{align*}
+%%
+と求まる. 
+ 
+\subsubsection*{2-5: 深さの更新, 鉛直方向のスケール因子の更新}
+%%
+\vspace{-1.2cm}
+\begin{equation*}
+  z^{n+1} = z(i,j,s,\eta^{n+1}), \;\;\;
+  e_3^{n+1} = \DP{z^{n+1}}{s}
+\end{equation*}
+%%
+
+\subsubsection*{2-6: 鉛直速度の診断}
+%%
+\vspace{-1.2cm}
+\begin{align*}
+ \ll\!\!\omega^n\!\!\gg^{n+\frac{1}{2}}
+  = 
+    -& \int_{s_B}^s \nabla_h \cdot 
+       (\ll\!\! e_3 \Dvect{U}_h\!\!\gg^{n+\frac{1}{2}})  \;\Dd{s}
+    + \varepsilon_1 \dfrac{e_3^{n+1} - e_3^{n}}{\Delta t}
+\end{align*}
+%%
+ステージ 1-1 とは異なり, この鉛直速度の診断式は, 
+順圧方程式系の時間発展と整合的であることに注意が必要である. 
+ 
+\subsubsection*{2-7: トレーサーの更新} 
+%%
+\vspace{-1.2cm}
+\begin{align*}
+ \dfrac{e_3^{n+1}T^{n+1} - e_3^n T^n}{\Delta t}
+ = 
+   -& \nabla_h \cdot 
+    \left( \ll\!\!e_3 \Dvect{U}\!\!\gg^{n+\frac{1}{2}}
+                        T^{n+\frac{1}{2}} \right) 
+   - \DP{(\ll\!\!\omega\!\!\gg^{n+\frac{1}{2}} T^{n+\frac{1}{2}})}{s}
+   \nonumber \\
+   +&  e_3^n \; \mathcal{D}^{T} \left(T^{n+1},T^n, (A^{vT})^n \right)
+\end{align*}
+%%
+ステージ 1-4 とは異なり, 順圧方程式系の時間発展と整合的な体積フラックスを用いて,  
+トレーサーを移流させるため, 修正子の計算過程では最終的に積分の保存性と一定値性の両方が保証される. 

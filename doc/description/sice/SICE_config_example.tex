@@ -1,0 +1,64 @@
+\section{パラメータの設定例}
+%%
+海氷モデルのパラメータ設定の例として, リスト\cite{dogcm_Pl64L60_conf_sice}に, 
+\cite{ykawai2018_Dthesis}で行なった海惑星の気候実験における設定を示す. 
+なお, 海洋海氷モデルに入力する設定ファイルの中で, 海氷モデルと関係する部分のみを以下では示している.
+%%%%%%
+\begin{lstlisting}[caption={
+海氷モデルの設定ファイルのテンプレート.
+ただし, \#var\#のように書かれた部分は実験ケース等ごとに適切な値が入る.
+},label={dogcm_Pl64L60_conf_sice},
+basicstyle=\ttfamily\footnotesize,
+frame=single]
+&DOGCM_nml
+  OCN_do  = .true.,
+  SICE_do = .true.,
+  exp_name = '#DOGCM_nml_EXP_NAME#',
+/
+!= 格子の設定 ----------------------------------------
+&SeaIce_Grid_nml
+ IM = 1,
+ JM = 64
+/
+!= 物理定数の設定 ----------------------------------------
+&SeaIce_Admin_Constants_nml
+ AlbedoOcean   = 0d0, 
+ EmissivOcean  = 1d0,
+ EmissivSnow   = 1d0,
+ EmissivIce    = 1d0,
+ IceMaskMin    = 0.999999999999999999999999999999d0,
+ IceThickMin   = 1d-2, 
+ SIceHDiffCoef = #SeaIce_Admin_Constants_nml_SIceHDiffCoef#d0, 
+                 ! 海氷厚さの水平拡散係数
+/
+!= 表面アルベドの計算方法の設定 ----------------------------------------
+&SeaIce_Boundary_SfcAlbedo_nml
+ SIceSfcAlbedoName = 'I07SGS',
+ AlbedoSnowWarm    = 0d0,
+ AlbedoSnowCold    = 0.5d0,
+ TLVTempAlbedoSnow = -10d0, 
+ SFCALBEDO_I07SGS_FlagIceAreaFrac = .true.,  
+                       ! 表面アルベドの工夫を適用するかのフラグ
+/
+!= ファイル関連の設定 ----------------------------------------
+!* ヒストリデータ出力の全体設定 
+&SeaIce_IO_History_nml
+  IntValue      = #gtool_historyauto_nml_IntValue#,  ! 出力間隔の数値
+  IntUnit       = 'day',                             ! 出力間隔の単位
+  FilePrefix    = '',
+/
+!* リスタートデータの入力・出力の設定
+&SeaIce_IO_Restart_nml
+ OutputFileName = '#SIceRestartFile_nml_OutputFileName#', 
+ InputFileName  = '#SIceRestartFile_nml_InputFileName#', 
+ IntValue       = #SIceRestartFile_nml_IntValue#, 
+ IntUnit        = 'day'
+/
+!* ヒストリデータ出力の個別設定
+&SeaIce_IO_History_nml
+   Name = 'SIceEn, SIceV, SIceCon, SnowThick, IceThick, SIceTemp, SIceSfcTemp,SfcAlbedoAI', 
+/
+&SeaIce_IO_History_nml
+  Name = 'Wice, SfcHFlxAI, DelSfcHFlxAI, SfcHFlxAI0_ns, SfcHFlxAI0_sr, DSfcHFlxAIDTs, SfcHFlxAO, DSfcHFlxAODTs', 
+  TimeAverage = .true.
+\end{lstlisting}

@@ -1,0 +1,273 @@
+\section{モデルの基礎}\label{sice_model_basic}
+\markright{\arabic{chapter}.\arabic{section} モデルの基礎} %  節の題名を書き込むこと
+\subsection{基礎方程式系}
+%%
+海氷モデルの基礎方程式系は, 海洋モデルと同様に水平直交曲線座標系において, 
+%%
+\begin{subequations} 
+\label{eq:sice_model_basic_equations}
+\begin{gather}
+  \DP{h_S}{t} =
+    - \dfrac{1}{e_1 e_2} \left[ 
+       \DP{(e_2 u^* h_S)}{i} + \DP{(e_1 v^* h_S)}{j} 
+      \right] + \mathcal{S}(h_S),  \\
+%%
+  \DP{h_I}{t} =
+    - \dfrac{1}{e_1 e_2} \left[ 
+       \DP{(e_2 u^* h_I)}{i} + \DP{(e_1 v^* h_S)}{j} 
+      \right] + \mathcal{S}(h_S),  \\
+%%
+  \rho_I \DP{E_I}{t} = 
+     - \dfrac{v^*}{a} \DP{E_I}{\phi} 
+     + \DP{}{z} \left(k_{\rm sice} \DP{T_I}{z} + I \right). 
+ \end{gather}
+\end{subequations}
+%%
+と書かれる. 
+ここで, $h_S$は雪層の厚さ, $h_I$は氷層の厚さ, 
+$E_I$は氷層のエンタルピー, $T_I$は氷層内の温度, $\rho_I$は氷の密度, 
+$u^*, v^*$は海氷の東西・南北輸送速度, 
+$k_{\rm sice}(z)$は海氷の熱伝導係数, 
+$I(z)$は海氷内へ貫入する短波放射フラックスである. 
+また, $\mathcal{S}(h_S), \mathcal{S}(h_I)$はそれぞれ, 雪層や氷層の生成融解量を表す項である.  
+
+%%
+\begin{figure}[tb]
+\begin{center}
+ \includegraphics[width=13.5cm]{sice/figs/sice_model_schematic_fig.png}
+ \caption[]
+{\footnotesize
+海氷モデルの模式図.  
+}
+\label{fig:sice_model_schematic_fig}
+\end{center} 
+\end{figure}
+%%
+海氷表面において, 大気海氷間のエネルギー収支式
+%%
+\begin{equation}
+  F_s^\uparrow - F_{\rm sice,top}^\uparrow
+  = \begin{cases}
+      0                   & (T_s < T_f) \\
+     -M_{\rm top}      & (T_s = T_f)
+    \end{cases}
+\label{eq:sice_model_surface_energy_budget}
+\end{equation}
+%%
+が満たされなければならない.  
+ここで,  $F_s^\uparrow$は, 
+$$
+F_s^\uparrow 
+= - (1 - \alpha_i) F_R^\downarrow 
+  + I^\downarrow
+  - F_L^\downarrow 
+  + \epsilon_L \sigma T_s^4 
+  + F_{SH}^\uparrow + F_{LH}^\uparrow
+$$
+であり, 
+$F_R^\downarrow, I^\downarrow, F_L^\downarrow, F_{SH}^\uparrow,
+F_{LH}^\uparrow, F_{\rm sice, top}^\uparrow$は, 
+それぞれ下向き短波放射フラックス, 海氷内へ貫入する短波放射フラックス, 下向き長波放射フラックス,
+顕熱フラックス, 潜熱フラックス, 海氷表面における海氷内の熱伝導フラックスを表す.
+また, $M_{\rm top}$は海氷表面における(単位面積・単位時間あたりの)海氷の融解エネルギーである. 
+
+海氷底面において, 海氷の温度は常に氷点$T_f$である.   
+また, そこでは, 海氷海洋間のエネルギー収支式 
+%%
+\begin{equation}
+  - F_{\rm sice,btm}^\uparrow + F_{IO}
+  = M_{\rm btm}
+\label{eq:sice_model_bottom_energy_budget}
+\end{equation}
+%%
+が満たされなければならない. 
+ここで, $F_{\rm sice,btm^\uparrow}, F_{IO}$はそれぞれ, 
+海氷底面での海氷内の熱伝導フラックス, 海洋からの熱フラックスである.
+そして,  $M_{\rm top}$は海氷底面における(単位面積・単位時間あたりの)海氷の融解エネルギーである. 
+
+\subsection{熱力学過程}\label{sice_model_basic_thermodyn}
+%%
+海氷モデルの熱力学過程は,
+\cite{winton2000reformulated}によって提案された三層の海氷熱力学モデルに基づく(図\ref{fig:sice_model_schematic_fig}).
+氷層の上下層(それそれ添字を1, 2とする)に対する海氷のエンタルピーの方程式は, 
+%%
+\begin{subequations}
+\begin{gather}
+  E_{I,1}
+  = C_i (T_{I,1} + \mu S_I) - L_i (1 + \mu S_I/T_{I,1}), \\
+%%
+  E_{I,2}
+  = C_i (T_{I,2} + \mu S_I) - L_i
+\end{gather}
+\label{eq:sice_icelyr_entalphy_eqs}
+\end{subequations}
+%%
+によって与えられる. 
+ここで, $S_I$は海氷の塩分, 
+$C_i$は内部融解を除外した氷の比熱, 
+$L_i$は氷の融解に伴う潜熱, 
+$\mu$は氷点の塩分依存性に伴う定数である. 
+氷層上層・下層の温度$T_{I,1},T_{I,2}$は, \eqref{eq:sice_icelyr_entalphy_eqs}から診断的に計算される. 
+一方で, 雪層の単位質量あたりのエンタルピーは, 常に
+$$
+E_{S} = -L_i
+$$
+とし, 雪層内部の温度は考慮されない. 
+
+一タイムステップ内で熱力学過程は, 大まかには, 以下のステップに分けられる.
+%%  
+\begin{enumerate}
+  \setlength{\itemsep}{-2pt}
+  \item 鉛直熱拡散項の陰的な時間積分
+  \item 海氷の融解量, 生成量の計算
+  \item 海氷内部の厚さの調整
+\end{enumerate}
+%% 
+鉛直熱拡散項の表現は鉛直離散化や時間離散化の方法と深く関係するので,
+その詳細は第\ref{sice_model_vspace_scheme}節および第\ref{sice_model_time_scheme_detail}節で記述する.
+以下では, 残りの二つのステップについて記述する. 
+
+\subsubsection*{海氷の融解・生成量の計算}
+%%
+鉛直拡散項を評価することで得られた海氷上下端での鉛直熱伝導フラックスを用いて, 
+海氷上下端での融解生成量を計算する. 
+
+海氷上端における単位面積, 単位時間あたりの融解エネルギーは, 
+%%
+\begin{equation*}
+ M_{\rm top} = F_{\rm sice,top}^\uparrow (T_s^*, T_{I,1}^*)
+              - F_s^\uparrow (T_s^*)
+              %K_{s1} (T_{I,1}^* - T_s^*)
+              %- (A + B T_s\*)
+\label{eq:sice_3lyr_model_surface_energy_budget}              
+\end{equation*}
+%%
+と計算される. 
+ここで, $()^*$は, 鉛直熱拡散項を陰的に一タイムステップ時間積分することによって得られた温度であることを示す.
+$T_s^*$が雪の融点(雪が存在する場合)あるいは海氷の融点(雪が存在しない場合)よりも低くければ$M_{\rm top}=0$であるが, 
+等しい場合には$M_{\rm top}>0$であり, 海氷上端で融解が起こる. 
+このとき, $\Delta t$間の単位面積あたりの融解エネルギーは$M_{\rm top} \Delta t$であり, 
+これがゼロになるまで海氷の最上層から順番に融解させる. 
+この際, 降雪や昇華による海氷上端での質量変化も考慮する. 
+
+海氷下端における単位面積・単位時間あたりの融解エネルギーは, 
+%%
+\begin{equation*}
+ M_{\rm btm} = F_{IO} - F_{\rm sice,btm}^\uparrow (T_{I,2}^*)
+\label{eq:sice_3lyr_model_bottom_energy_budget}
+\end{equation*}
+%%
+と計算される.  
+海洋からの熱フラックスは, 
+$$
+ F_{IO} = \rho_W C_{po} c_t (T_{\rm ocn} - T_f)
+$$
+の形式で与える. 
+ここで, $T_{\rm ocn}$は海洋モデルの第一層目の温度, 
+$\rho_W$は海水の密度, $C_{po}$は海水の比熱, 
+$c_t$はバルク輸送係数である. 
+$M_{\rm btm}<0$の場合は下端で海氷が生成される. 
+このとき, $\Delta t$間の下端での海氷の生成量は, 
+%%
+\begin{equation*}
+ \Delta h_{I,2} 
+ = M_{\rm btm} \Delta t / \left[ \rho_I E_{I,2}(T_f,S_i) \right]
+\end{equation*}
+%%
+によって与えられる. 
+一方, $M_{\rm btm}>0$の場合は, 海氷下端で融解が起こる. 
+海氷上端での融解と同様に, $M_b \Delta t$がゼロになるまで海氷の最下層から順番に融解させる. 
+
+\subsubsection*{海氷内部の厚さの調整}
+%%
+海面よりも低い位置にある雪層を氷層上層へと変換する. 
+雪層と氷層上層の厚さの変化は, アルキメデスの原理から,  
+それぞれ, 
+%%
+\begin{align*}
+ \Delta h_S
+ &= -{\rm max}
+   \left[
+    \left(h_{S,{\rm old}} - \dfrac{\rho_W-\rho_I}{\rho_S}h_{I,{\rm old}} \right)
+    \dfrac{\rho_I}{\rho_W}, 0 \right], \\
+%%%%%
+ \Delta h_I
+ &= {\rm max}
+   \left[
+   \left(h_{S,{\rm old}} - \dfrac{\rho_W-\rho_I}{\rho_S} h_{I,{\rm old}} \right)
+   \dfrac{\rho_S}{\rho_W}, 0 \right]
+\end{align*}
+%%
+と計算される%
+\footnote{
+海面より低い位置にある雪層の厚さを$\Delta h_S$, 
+その部分が氷層に変換されたときの氷層の厚さの増加を$\Delta h_I$とすると, 
+アルキメデスの原理および質量保存則から, 
+$$
+\rho_W (h_{I,{\rm old}} + \Delta h_I)
+   = \rho_S h_{S,{\rm old}} + \rho_I h_{I,{\rm old}},
+\;\; 
+\rho_S \Delta h_S = \rho_I \Delta h_I 
+$$ 
+が満たされなければならない. 
+これらの式から, $\Delta h_S, \Delta h_I$が決定される. 
+}. 
+ここで, $\rho_W$は海水の密度, $h_{I,{\rm old}}, h_{S,{\rm old}}$である. 
+変換後の氷層上層のエンタルピーや温度は, 氷層の等分化で行われる方法と同様の方法で決められる(以下参照).
+ 
+熱力学過程の最後に, 氷層の上下層の厚さを等しくする. 
+上下層の間で質量を移動させるときに, 質量を与える側の層の温度は変えないが, 
+質量をもらう側の層の温度は, もとの各層が占める割合でエンタルピーを平均することで決められる.
+例えば, 上層の方が薄い場合には, 新しい上層を構成する元の上下層の割合をそれぞれ$f_1, 1 - f_1$とすると, 
+上層の新しいエンタルピーは, 
+%%
+\begin{align*}
+  E_{I,1}(T_{I,1}^{\rm new})
+  = (1 - f_1) E_{I,1}(T_{I,1}^{\rm old}) + f_1 E_{I,2}(T_{I,2}^{\rm old})
+\end{align*}
+%
+と書くことができる. 
+これを解けば, 上層の新しい温度は, 
+%%
+\begin{align*}
+  T_{I,1}^{\rm new}
+   = \dfrac{T^* - [(T^*)^2 + 4\mu S_I L_i /C_i]^{1/2}}{2}
+\end{align*}
+%%
+と与えられる. 
+ここで, 
+%%
+\begin{align*}
+ \tilde{T} 
+ =   f_1 \left(    T_{I,1}^{\rm old} 
+               -  \dfrac{L_i}{C_i}\dfrac{\mu S_I}{T_{I,1}^{\rm old}} \right) 
+   + (1 - f_1 ) T_{I,2}^{\rm old} 
+\end{align*}
+%%
+である. 
+一方で, 下層の方が薄い場合には, 新しい下層を構成する元の上下層の割合をそれぞれ$f_1, 1 - f_1$とすると, 
+下層の新しい温度は, 同様に考えることで, 
+%%
+\begin{align*}
+  T_{I,2}^{\rm new} = \tilde{T}
+\end{align*}
+%%
+によって与えられることが分かる. 
+ただし, $T_{I,2}^{\rm new}$は氷の融点を超える場合があり得る. 
+この場合には, 氷の融点を超過した分のエネルギーを上層に渡すことで下層の氷の温度を調整する. 
+
+\subsection{力学過程}
+%%
+本モデルでは現状, 海氷の力学は陽には取り扱わない. 
+しかし, 海氷の水平輸送を全く考慮しない場合は, 海氷場がしばしば平衡状態に落ち着かないため, 
+海氷の水平速度を, 海氷厚さの水平拡散の形式で, 
+%%
+\begin{equation}
+ u^* = \dfrac{K_h^s}{e_1 \; m_{\rm sice}} \DP{m_{\rm sice}}{i}, \;\;\; 
+ v^* = \dfrac{K_h^s}{e_2 \; m_{\rm sice}} \DP{m_{\rm sice}}{j}
+\label{eq:sice_model_horivel_param_thickness_diff}
+\end{equation}
+%%
+とパラメータ化する. 
+ここで, $K_h^s$は水平拡散係数, 
+$m_{\rm sice}=\rho_S h_S + \rho_I h_I$は海氷の単位面積あたりの質量である. 

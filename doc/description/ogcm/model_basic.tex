@@ -1,0 +1,616 @@
+\section{モデルの基礎}
+\markright{\arabic{chapter}.\arabic{section} モデルの基礎} %  節の題名を書き込むこと
+%%
+将来的にモデルを拡張することを念頭に, 水平方向は局所直交座標系, 
+鉛直方向は一般化した鉛直座標系を用いてモデルの方程式系を記述する. 
+はじめに, モデルの基礎方程式系をベクトル形式で示す. 
+次に水平座標系が局所直交座標系, 鉛直座標が幾何的座標($z$座標)の場合の方程式系を記述する.  
+その後, 一般化した鉛直座標系($s$座標)を導入して, $s$座標を用いた場合の表現を得ることにする. 
+
+\subsection{基礎方程式系の導入}
+%%
+海洋大循環モデルの基礎方程式系は, 静力学ブジネスク方程式系(プリミティブ方程式系)であり, 
+運動量方程式, 連続の式, 温位と塩分の保存式, 海水の状態方程式により構成される. 
+今, 等ジオポテンシャル面と直交する単位ベクトルを$\Dvect{k}$, 
+等ジオポテンシャル面と接する単位ベクトルを$(\Dvect{i},\Dvect{j})$として, 
+局所直交座標系$(\Dvect{i}, \Dvect{j}, \Dvect{k})$を導入する. 
+また, 三次元速度ベクトル$\Dvect{U}$は$\Dvect{U}=\Dvect{U}_h + w \Dvect{k}$のように水平成分と鉛直成分に分割する. 
+このとき, 静力学ブジネスク方程式系のベクトル不変形式は以下のように書かれる. 
+%%
+\begin{subequations} 
+\label{eq:OCN_primitive_eq_vector_form}
+\begin{gather}
+ \DP{\Dvect{U}_h}{t} = 
+   - \left[ (\nabla \times \Dvect{U}) \times \Dvect{U} + \nabla \left(\dfrac{\Dvect{U}^2}{2}\right) \right]_h  
+   - f \Dvect{k} \times \Dvect{U}_h 
+   - \dfrac{1}{\rho_0} \nabla_h p  + \Dvect{\mathcal{\tilde{D}}}^{\bm{U}} , 
+\label{eq:horizontal_mom_eq} \\
+%%
+ \DP{p}{z} = - \rho g, 
+ \label{eq:hydrostatic_eq} \\
+%%
+ \nabla \cdot \Dvect{U} = 0, 
+ \label{eq:continuous_eq} \\
+%%
+ \DP{\Theta}{t} = - \nabla\cdot(\Theta\Dvect{U}) + \mathcal{\tilde{D}}^\Theta , \\
+%%
+ \DP{S}{t} = - \nabla\cdot(S\Dvect{U}) + \mathcal{\tilde{D}}^S, \\
+%%
+ \rho = \rho(\Theta, S, p). 
+%%
+\end{gather}  
+\end{subequations}
+%%
+ここで, $\nabla$は三次元勾配ベクトル, $t$は時刻, $z$は鉛直座標, $\rho$は海水の密度, 
+$\rho_0$は基準密度, $p$は圧力, 
+$f=2\Dvect{\Omega}\cdot\Dvect{k}$はコリオリパラメータ($\Dvect{\Omega}$は自転角速度ベクトル), 
+$g$は重力加速度である. 
+また, $\Dvect{\mathcal{\tilde{D}}}^{\bm{U}}, \mathcal{\tilde{D}}^\Theta, \mathcal{\tilde{D}}^S$は, 
+中規模渦による水平混合, 小スケールの渦や対流による鉛直混合などの, 
+サブグリッド・スケールの物理を表現するパラメタリゼーションの項を表す. 
+
+海面における運動学的な境界条件は, 
+%%
+\begin{subequations}
+\begin{equation}
+  w = \DP{\zeta}{t} + \Dvect{U}_h \cdot \nabla_h \eta + (P - E) \;\;\; {\rm at} \; z = \eta, 
+\label{eq:ocn_surface_bc}
+\end{equation}
+%%
+である. 
+ここで, $\eta$は海水表面の変位である. また, $(P-E)$は淡水フラックスであり, 降水量と蒸発量の差を表す. 
+一方で, 海底面における運動学的な境界条件は, 
+\begin{equation}
+  w = - \Dvect{U}_h \cdot \nabla_h H \;\;\; {\rm at} \; z = -H
+\label{eq:ocn_bottom_bc}
+\end{equation}
+\label{eq:ocn_vertical_bc}
+\end{subequations}
+%%
+である. 
+ここで, $H$は平均的な海面($z=0$)から海底までの距離である. 
+
+\subsection{圧力の定式化}
+%%
+ある深さ$z$における圧力$p$は, 大気圧$p_a$, 
+基準となる海水面($z=0$)に対する表面の変動と関係した圧力$p_s$, 
+静水圧$p_h$の三つの寄与に分割され, 
+%%
+\begin{align*}
+ p(i,j,z,t) 
+ &= p_a + p_s(i,j,t) + p_h(i,j,z,t)  \\
+ &= p_a + (\rho_0 g\eta) + (p_h - \rho_0 gz)
+\end{align*}
+%%
+と書かれる. 
+ここで, $p_h$は, 静水圧平衡の式\eqref{eq:hydrostatic_eq}から, 
+%%
+\begin{equation*}
+  p_h(i,j,z,t) = \int^\eta_z g \left[\rho(\Theta,S, -\rho_0 g z') - \rho_0 \right] \Dd{z'}
+\end{equation*}
+%%
+と求まる. 
+ただし, ブジネスク方程式系においてエネルギー論の一貫性を保つには, 
+状態方程式に現れる圧力は深さのみに依存する形式で書く必要があるため, 
+$p \approx -\rho_0 gz$と近似している.
+表面圧力$p_s$の計算には, 以下の 2 通りの方法がある. 
+%%
+\begin{enumerate}
+  \setlength{\itemsep}{-0.5mm} % 項目の隙間
+  \setlength{\parskip}{-0.5mm} % 段落の隙間
+ \item 海水面の変位$\eta$を新たな予報変数として導入し, $\eta$(すなわち$p_s=\rho_0 g \eta$)の時間発展式を解く. 
+ \item 海面において剛体蓋近似を適用し, $p_s$は診断的に決定する. 
+\end{enumerate}
+%%
+前者の方法において, $\eta$の時間発展式は連続の式を鉛直積分することで得られる. 
+海面の変位を許容する場合には表面波を表現できるが, その位相速度は海洋大循環
+と比べるとずっと速い(数百 m/s)ために, 時間刻み幅に強い制約を与える. 
+後者の場合では, 鉛直積分した水平速度が非発散であるという拘束条件を用いて, 
+表面圧力に関する楕円方程式を導くことができる. 海面の変位は許されないために, 
+表面波は解として含まれない. 剛体蓋近似の適用は, 表面波(外部重力波)だけでなく
+順圧ロスビー波等の長波にも影響を与えることに注意が必要である. 
+
+\subsubsection*{ \underline{方法 1 の場合: 表面変位$\eta$の時間発展式} }
+%%
+連続の式\eqref{eq:continuous_eq}を, 海底$z=-H$から海面$z=\eta$まで鉛直積分すると, 
+%%
+\begin{equation*}
+  w_{z=\eta} = w_{z=-H} - \int_{z=-H}^{z=\eta} \nabla_h \cdot \Dvect{U}_h \; dz
+\end{equation*}
+%%
+となる. 
+海面および海底での運動学的境界条件\eqref{eq:ocn_vertical_bc}を適用すると, 
+$\eta$の時間発展式として, 
+%%
+\begin{equation}
+  \DP{\eta}{t} = - \nabla_h \cdot \int_{z=-H}^{z=\eta} \Dvect{U}_h \; dz
+                 + (P - E)
+\label{eq:free_surface_flux_eq}
+\end{equation}
+%%
+を得る. 
+
+\subsubsection*{ \underline{方法 2 の場合: 表面圧力$p_s$の診断方程式} }
+%%
+剛体蓋近似を適用する場合には, $w=D\eta/Dt=0$であることを課すので, 
+$\eta$は常に定数(ここでは, ゼロとする)である. したがって, 
+\eqref{eq:free_surface_flux_eq}は, 
+%%
+\begin{equation}
+ \nabla_h \cdot \int_{z=-H}^{z=0} \Dvect{U}_h = 0
+\label{eq:rigid_lid_constraintment_horimom}
+\end{equation}
+%%
+となり, 鉛直積分した水平速度は非発散でなければならない. 
+次に, 水平方向の運動量方程式\eqref{eq:horizontal_mom_eq}を$z=-H$から$z=0$まで鉛直積分し, 
+水平発散をとった後に, \eqref{eq:rigid_lid_constraintment_horimom}を適用すれば, 
+%%
+\begin{equation}
+ \nabla_h \cdot ( H \nabla_h \; p_s) = \int_{-H}^0 F_b \; dz
+\label{eq:rigid_lid_pressure_poisson}
+\end{equation}
+%%
+が得られる. 
+ここで, $F_b$は, 表面圧力勾配の項(と局所時間微分の項)を除く全ての項の寄与を表す. 
+この表面圧力に対する楕円方程式を解くことにより, 表面圧力を決定できる. 
+
+\subsection{水平直交曲線座標・$z$座標における基礎方程式系の表現}
+%%
+水平直交曲線座標・鉛直$z$座標の座標変数$(i,j,z)$は, 
+地理座標系の座標変数と
+%%
+\begin{equation*}
+ i = i(\lambda,\phi), \;\; j = j(\lambda,\phi) \;\; z=z
+\end{equation*}
+%%
+によって関係付けられるとする. 
+ここで, $\lambda$は経度, $\phi$は緯度, $z$は平均海面水位からの高度である. 
+それぞれの方向の単位ベクトルは前に定義した$\Dvect{i}, \Dvect{j}, \Dvect{k}$であり,  
+これらは局所的に直交することに注意が必要である. 
+このとき, 水平方向のスケール因子$e_1, e_2, e_3$は, 
+%%
+\begin{equation*}
+\begin{split}
+  e_1 &= a \left[ \left(\DP{\lambda}{i} \cos\phi \right)^2 + \left(\DP{\phi}{i}\right)^2 \right]^{1/2}, \\ 
+  e_2 &= a \left[ \left(\DP{\lambda}{j} \cos\phi \right)^2 + \left(\DP{\phi}{j}\right)^2 \right]^{1/2}
+\end{split}
+\end{equation*}
+%%
+によって与えられる. 
+惑星半径に対して海洋が十分に浅いモデルを考えるので, もとのスケール因子に含まれる$(a+z)$は$a$に置き換えた. 
+
+導入した座標系$(i,j,k)$において, 
+モデルの基礎方程式系\eqref{eq:OCN_primitive_eq_vector_form}は以下のように書かれる. 
+%%
+\begin{subequations} 
+\label{eq:OCN_basic_equations_z_coord}
+\begin{equation}
+\begin{split}
+  \DP{u}{t} 
+  =& + (\zeta + f)v -  \dfrac{1}{e_1} \DP{}{i} \left( \dfrac{u^2 + v^2}{2} \right) 
+     - w\DP{u}{z}            \\
+   & - \dfrac{1}{e_1} \DP{}{i} \left( \dfrac{p_s + p_h}{\rho_0} \right) 
+     + \mathcal{\tilde{D}}^u, 
+\end{split}
+\end{equation}
+%%
+\begin{equation}
+\begin{split}
+  \DP{v}{t} 
+   =& - (\zeta + f)u -  \dfrac{1}{e_2} \DP{}{j} \left( \dfrac{u^2 + v^2}{2} \right) 
+      - w\DP{v}{z}             \\
+    & - \dfrac{1}{e_2} \DP{}{j} \left( \dfrac{p_s + p_h}{\rho_0} \right) 
+      + \mathcal{\tilde{D}}^v, 
+\end{split}
+\end{equation}
+%%
+\begin{equation}
+  \DP{p_h}{z} = - (\rho - \rho_0)  g, 
+\end{equation}
+%%
+\begin{equation}
+  \DP{w}{z} = - \chi \\
+\end{equation}
+%%
+\begin{equation}
+  \DP{\Theta}{t} 
+  =   
+    - \dfrac{1}{e_1 e_2}\left[ \DP{(e_2 u \Theta)}{i} + \DP{(e_1 v \Theta)}{j} \right]
+    - \DP{(\Theta w)}{z}
+    + \mathcal{\tilde{D}}^\Theta, 
+\end{equation} 
+%%
+\begin{equation}
+  \DP{S}{t} 
+  =   
+    - \dfrac{1}{e_1 e_2}\left[ \DP{(e_2 u S)}{i} + \DP{(e_1 v S)}{j} \right]
+    - \DP{(S w)}{z}
+    + \mathcal{\tilde{D}}^S, 
+\end{equation}
+%%
+\begin{equation}
+  \rho_o = \rho_o(\Theta,S,z). 
+\end{equation}
+%%
+\end{subequations}
+%%
+ここで, $(u,v)$は水平速度ベクトル$\Dvect{U}_h$の各方向成分, 
+$\Dvect{\mathcal{\tilde{D}}}^{\bm{U}}=(\mathcal{\tilde{D}}^u, \mathcal{\tilde{D}}^v)$である. 
+また, $\zeta$は相対渦度の鉛直成分, $D$は速度の水平発散であり, $z$座標系において, 
+%%
+\begin{equation}
+ \zeta = \dfrac{1}{e_1 e_2}\left[ \DP{(e_2 v)}{i} - \DP{(e_1 u)}{j} \right], \;\;\;
+ D  = \dfrac{1}{e_1 e_2}\left[ \DP{(e_2 u)}{i} + \DP{(e_1 v)}{j} \right]
+\label{eq:relvor_hdiv_zcoord}
+\end{equation}
+%
+と書かれる. 
+なお, 表面圧力$p_s$は, \eqref{eq:rigid_lid_pressure_poisson}あるいは\eqref{eq:free_surface_flux_eq}から決定され, 
+また大気圧の影響はここでは無視した. 
+
+\subsection{水平直交曲線座標・一般鉛直座標における基礎方程式系の表現}
+%%
+現業の海洋モデルでは, 海底地形や海面変位を考慮するために様々な鉛直座標が用いられる. 
+対象とする問題に応じて適切な鉛直座標が選択できるように, しばしば一般化した鉛直座標($s$座標)を用いて
+定式化がなされる. 
+今, $z$座標系の座標変数を$(i^*,j^*,z^*)$と$s$座標系の座標変数を$(i,j,s)$とすると, 
+$z$座標系から$s$座標系への変換は, 
+%%
+\begin{equation*}
+  i = i^*, \;\; j = j^*, \;\; s = s(i^*,j^*,z^*,t^*), \;\; t=t^*
+\end{equation*}
+%%
+によって関係付けられる. 
+
+次に, $z$座標系の方程式系から$s$座標系の方程式系への変換に必要な幾つかの関係式を導く.
+物理量$\Psi$が, $z$座標系では$\Psi=\psi^*(i^*,j^*,z^*,t^*)$,
+$s$座標系では$\Psi=\psi(i,j,s,t)$と表されるとすると, 
+物理量$\Psi$の偏微分は, 微分の連鎖率によって, 
+%%
+\begin{equation}
+\begin{split}
+ \DP{\psi^*}{i^*} &= \DP{\psi}{i} + \DP{\psi}{s}\DP{s}{i^*} 
+                   = \DP{\psi}{i} - \dfrac{e_1}{e_3}\sigma_1 \DP{\psi}{s}, \\
+ \DP{\psi^*}{j^*} &= \DP{\psi}{j} + \DP{\psi}{s}\DP{s}{j^*} 
+                   = \DP{\psi}{j} - \dfrac{e_2}{e_3}\sigma_2 \DP{\psi}{s}, \\
+ \DP{\psi^*}{z^*} &= \DP{\psi}{s} \DP{s}{z^*} 
+                   = \dfrac{1}{e_3} \DP{\psi}{s}, \\
+ \DP{\psi^*}{t^*} &= \DP{\psi}{t} + \DP{\psi}{s}\DP{s}{t^*} 
+                   = \DP{\psi}{t} + \DP{\psi}{s}\DP{s}{t}                   
+\end{split}
+\label{eq:derivative_chain_rule_scoord}
+\end{equation}
+%%
+と変換される. 
+ここで, $e_3$は鉛直方向のスケール因子, $\sigma_1, \sigma_2$は水平方向の$s$面の傾斜であり, 
+%%
+\begin{equation*}
+ e_3 = \DP{z^*}{s}, \;\; 
+ \sigma_1 = \dfrac{1}{e_1} \left(\DP{z^*}{i^*}\right)_s, \;\;
+ \sigma_2 = \dfrac{1}{e_2} \left(\DP{z^*}{j^*}\right)_s
+\end{equation*} 
+%%
+と定義される. 
+一方, $\Psi$のラグランジュ微分は, \eqref{eq:derivative_chain_rule_scoord}を用いて, 
+%%
+\begin{equation*}
+\begin{split}
+ \DD{\psi^*}{t^*} &=   \DP{\psi^*}{t^*} 
+                     + \dfrac{u}{e_1}\DP{\psi^*}{i^*}
+                     + \dfrac{v}{e_2}\DP{\psi^*}{j^*}
+                     + w\DP{\psi^*}{z^*} \\
+                 &= \DP{\psi}{t} 
+                     + \dfrac{u}{e_1}\DP{\psi}{i}
+                     + \dfrac{v}{e_2}\DP{\psi}{j}
+                     + \left(w + e_3 \DP{s}{t} - \sigma_1 u - \sigma_2 v \right) \dfrac{1}{e_3} \DP{\psi}{s}
+\end{split}
+\end{equation*}
+%%
+と変換される. 
+したがって, $s$座標系における鉛直速度$\omega$は, 
+%%
+\begin{equation*}
+  \omega \equiv \DD{s}{t^*} 
+=  w - w_s - \sigma_1 u - \sigma_2 v
+\end{equation*}
+%%
+によって与えられる. ここで, 
+$w_s \equiv (\partial z^*/\partial t)_s = - e_3 (\partial s/\partial t)_{z^*}$
+である.
+最終的に, $\Psi$のラグランジュ微分は, 
+%%
+\begin{equation}
+ \DD{\psi^*}{t^*} = \DP{\psi}{t} 
+                     + \dfrac{u}{e_1}\DP{\psi}{i}
+                     + \dfrac{v}{e_2}\DP{\psi}{j}
+                     + \omega \DP{\psi}{s}
+\label{eq:lagrange_derivative_scoord}
+\end{equation}
+%%
+と書ける. 
+
+$z$座標系における方程式系\eqref{eq:OCN_basic_equations_z_coord}や
+鉛直渦度や水平発散の表現\eqref{eq:relvor_hdiv_zcoord}に対して, 
+鉛直座標変換のための関係式\eqref{eq:derivative_chain_rule_scoord}, \eqref{eq:lagrange_derivative_scoord}を適用し整理すると, 以下の$s$座標系における方程式系を導かれる. \\\\
+%%
+\noindent
+\framebox[15cm][c]{
+\begin{minipage}{13cm}
+\begin{subequations} 
+\label{eq:OCN_basic_equations_s_coord}
+\begin{equation}
+\begin{split}
+ \DP{u}{t} 
+  =& + (\zeta + f)v -  \dfrac{1}{e_1} \DP{}{i} \left( \dfrac{u^2 + v^2}{2} \right) 
+     - \dfrac{\omega}{e_3} \DP{u}{s}            \\
+   & - \dfrac{1}{e_1} \DP{}{i} \left( \dfrac{p_h+p_s}{\rho_0} \right) 
+     + g\dfrac{\rho'}{\rho_0} \sigma_1 
+     + \mathcal{D}^u, 
+\end{split}
+\end{equation}
+%%
+\begin{equation}
+\begin{split}
+  \DP{v}{t} 
+   =& - (\zeta + f)u -  \dfrac{1}{e_2} \DP{}{j} \left( \dfrac{u^2 + v^2}{2} \right) 
+      - \dfrac{\omega}{e_3}\DP{v}{s}             \\
+    & - \dfrac{1}{e_2} \DP{}{j} \left( \dfrac{p_s + p_h}{\rho_0} \right) 
+     + g\dfrac{\rho'}{\rho_0} \sigma_2
+     + \mathcal{D}^v, 
+\end{split}
+\end{equation}
+%%
+\begin{equation}
+  \dfrac{1}{e_3}\DP{p_h}{s} = - \dfrac{\rho'}{\rho_0}  g, 
+\end{equation}
+%%
+\begin{equation}
+  \varepsilon_1 \DP{e_3}{t} + e_3 \underline{D} + \DP{\omega}{s} = 0, \\
+\end{equation}
+%%
+\begin{equation}
+\begin{split}
+ \varepsilon_1 \DP{\eta}{t} 
+  =   
+    &- \dfrac{1}{e_1 e_2}\left[ 
+    		  \DP{\left(e_2 (\varepsilon_2 \eta + H) U_{barot}\right)}{i} 
+    		+ \DP{\left(e_1 (\varepsilon_2 \eta + H) V_{barot}\right)}{j} 
+    \right]  \\
+    	&+ \varepsilon_1 (P-E) 
+\end{split}
+\end{equation} 
+%%
+\begin{equation}
+ \dfrac{1}{e_3}\DP{(e_3 \Theta)}{t} 
+  =   
+    - \dfrac{1}{e_1 e_2 e_3}\left[ \DP{(e_2 e_3 u \Theta)}{i} + \DP{(e_1 e_3 v \Theta)}{j} \right]
+    - \dfrac{1}{e_3} \DP{(\Theta \omega)}{s}
+    + \mathcal{D}^\Theta, 
+\end{equation} 
+%%
+\begin{equation}
+  \dfrac{1}{e_3}\DP{(e_3 S)}{t} 
+  =   
+    - \dfrac{1}{e_1 e_2 e_3}\left[ \DP{(e_2 e_3 u S)}{i} + \DP{(e_1 e_3 v S)}{j} \right]
+    - \dfrac{1}{e_3} \DP{(S \omega)}{s}
+    + \mathcal{D}^S, 
+\end{equation}
+%%
+\begin{equation}
+  \rho_o = \rho_o(\Theta,S,z(i,j,s,t)). 
+\end{equation}
+%%
+\end{subequations}
+\end{minipage}
+}\\\\
+%%
+ここで, $\rho'(=\rho - \rho_0)$は参照密度からの偏差である. 
+また, $\mathcal{D}^u, \mathcal{D}^v, \mathcal{D}^\Theta, \mathcal{D}^S$はそれぞれ, 
+$\mathcal{\tilde{D}}^u, \mathcal{\tilde{D}}^v, \mathcal{\tilde{D}}^\Theta, \mathcal{\tilde{D}}^S$
+の$s$座標系での表現である. 
+$s$座標系の鉛直渦度と水平発散の表現は, $s$座標系において, 
+%%
+\begin{equation}
+ \zeta = \dfrac{1}{e_1 e_2}\left[ \DP{(e_2 v)}{i} - \DP{(e_1 u)}{j} \right], \;\;\;
+ \underline{D}  = \dfrac{1}{e_1 e_2 e_3}\left[ \DP{(e_2 e_3 u)}{i} + \DP{(e_1 e_3 v)}{j} \right]
+\label{eq:relvor_hdiv_generalvcoord}
+\end{equation}
+%
+となる. 
+$\underline{D}$は, $e_3=e_3(z)$の場合を除いて, 前に示した水平発散の表現$D$とは一致しないことに注意されたい. 
+$U_{barot}, V_{barot}$は, 鉛直平均した水平速度(順圧成分)であり, 
+例えば, $U_{barot}$は, 
+%%
+\begin{align*}
+ U_{barot} = \dfrac{1}{\varepsilon_2 \eta + H}
+  \int_{s(z=-H)}^{s(z=\varepsilon_2 \eta)} (U e_3) \; \Dd{s}
+\end{align*}
+%%
+によって定義される. 
+$\varepsilon_1, \varepsilon_2$は海面(故に表面圧力)の扱いにより決まる指標であり, 
+(i) 剛体蓋近似を適用する場合は$\varepsilon_1=\varepsilon_2=0$, 
+(ii) 線形化した自由表面の扱いの場合は$\varepsilon_1=1, \varepsilon_2=0$,
+(iii) 海面の扱いに関して近似をしない場合は$\varepsilon_1=\varepsilon_2=1$である. 
+表面圧力$p_s$は,
+(i)の場合は\eqref{eq:rigid_lid_pressure_poisson},
+(ii)または(iii)の場合は\eqref{eq:free_surface_flux_eq}の方法に基づいて決定される. 
+任意の時刻・位置における$z$の値は, $\eta$が既知であれば, 定義した鉛直座標変換の関係式から計算することができ,  
+同時に鉛直方向のスケール因子$e_3(=\partial z/\partial s)$も計算できる. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{サブグリッド・スケールの物理の表現}
+%%
+重力の存在は, 水平運動と鉛直運動の間に強い非等方性を生む. 
+そのため, \eqref{eq:OCN_basic_equations_s_coord}における, 
+サブグリッド・スケールの物理による寄与$D^q$(ただし, $q=u,v,\Theta,S$)を, 
+水平運動に伴う寄与$\mathcal{D}^{lq}$と鉛直運動に伴う寄与$\mathcal{D}^{vq}$に分ける. 
+ここでは, これらの項の形式を簡潔にまとめることに主眼を置き,  
+各パラメタリゼーション・スキームの詳細については参考文献を参照されたい.  
+
+\subsubsection*{\underline{鉛直方向の混合}}
+%%
+鉛直乱流混合を生じさせるシア不安定や内部波の砕破等の過程は, 
+海洋大循環モデルで典型的な格子スケールよりもはるかに小さいため, 
+その効果を取り入れるにはパラメータ化する必要がある. 
+鉛直乱流フラックスは, 格子スケールの変数の空間勾配に線形に比例すると仮定し, 
+$\overline{q'w'}= -A^{vq} \partial{\overline{q}}/\partial {z}$のように表現する. 
+このとき, 運動量, トレーサーの鉛直乱流混合を表現する項は, 二階の空間微分を用いて, 
+%%
+\begin{equation*}
+\begin{split}
+ \Dvect{\mathcal{D}}^{v{\bm U}} 
+    &= \dfrac{1}{e_3} \DP{}{s}\left( \dfrac{A^{vm}}{e_3} \DP{\Dvect{U}_h}{s} \right), \\
+ \mathcal{D}^{v\Theta}  &= \dfrac{1}{e_3}\DP{}{s}\left( \dfrac{A^{vT}}{e_3} \DP{\Theta}{s} \right), \;\;
+ \mathcal{D}^{vS}  = \dfrac{1}{e_3}\DP{}{s}\left( \dfrac{A^{vT}}{e_3} \DP{S}{s} \right)
+\end{split}
+\end{equation*}
+%%
+と書かれる. 
+ここで, $A^{vm}, A^{vT}$はそれぞれ, 鉛直渦粘性係数, 鉛直渦拡散係数である. 
+これらの係数として, (a)定数, (b)位置の関数, (c)局所的な流体の特性(安定度やリチャードソン数など)の簡単な関数, 
+の三種類の場合がモデルでは想定されている. 
+鉛直乱流混合をより良く表現するために海洋モデル業界では, K-profile パラメタリゼーション(KPP)スキーム
+\citep{large1994oceanic}等の乱流クロージャーが用いられるが, 本モデルには今の所実装できていない. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{\underline{水平方向の混合}}
+%%
+水平方向の乱流混合は, メソスケールの乱流(直径数百 km 程度)による混合と, 
+サブメソスケールの乱流(1$\sim$50 km 程度)による混合に大きくは分けられる. 
+メソスケールの乱流は, 解像度が十分に高ければ, 静力学平衡を仮定する海洋大循環モデルにおいても陽に表現できる. 
+しかしながら, 全球領域で長時間積分を行う場合に, メソスケールの渦を十分に表現できる解像度で計算することは今でも容易でない.  
+そのため, 伝統的には, 等密度面混合スキーム\citep{redi1982oceanic}と 
+GM スキーム\citep{gent1990isopycnal}といったパラメタリゼーションを用いる.
+一方, サブメソスケールの乱流は, 海洋大循環モデルにおいて現実的な格子スケールよりも遥かに小さく, 
+また静力学近似の適用限界も存在するために, モデルの中で陽に表現することは難しい. 
+そのため, サブメソスケールの渦の効果をモデルに取り入れるためにはパラメタリゼーションを要する.  
+以下では, トレーサーに対する二次の水平拡散, 四次の水平拡散, メソスケール渦による移流のパラメタリゼーション, 
+水平運動量に対する二次の水平粘性, 四次の水平粘性に伴う項の形式をまとめる. 
+
+はじめに, トレーサー$T$に対する二次の水平拡散の表現は,  
+%%
+\begin{equation}
+ \mathcal{D}^{lT}_{\rm ldiff} = \nabla\cdot (A^{lT} \mathcal{R} \nabla T), 
+ \;\;\;\; 
+ \mathcal{R} =
+\begin{pmatrix}
+  1 &0 &-r_1              \\
+  0 &1 &-r_2               \\
+  -r_1 &-r_2 &r_1^2 + r_2^2
+\end{pmatrix}
+\label{eq:lateral_diffusion_expression}
+\end{equation}
+%%
+である. 
+ここで, $r_1, r_2$は, モデル座標系の水平面と拡散演算子が作用する面との間の傾斜を表す. 
+\eqref{eq:lateral_diffusion_expression}は, 等ジオポテンシャル面に沿う拡散を想定するならば厳密な表現である. 
+一方で, 等密度面に沿った拡散を想定するならば, 
+現実の海洋内部領域における等密度面の傾斜が最大でも$10^{-2}$程度であることを利用した近似的な表現である\citep{redi1982oceanic}. 
+$r_1, r_2$は, 等ジオポテンシャル面に沿った拡散に対しては, 
+$r_1=\sigma_1, r_2=\sigma_2$であり, $z$座標系では$r_1=r_2=0$となる. 
+また, 等密度面に沿った拡散に対しては, 
+%%
+\begin{equation*}
+  r_1 = - \dfrac{e_3}{e_1} \left(\DP{s}{i}\right)_\rho, \;\;\;
+  r_2 = - \dfrac{e_3}{e_2} \left(\DP{s}{j}\right)_\rho
+\end{equation*}
+%%
+である. 
+%$z$座標系の場合には, $e_3=1, s=z$となる. 
+
+トレーサー$T$に対する四次の水平拡散は, 
+%%
+\begin{equation*}
+ \mathcal{D}^{lT}_{\rm ldiff,4th} = 
+   \nabla \cdot \left\{  A^{lT,4th} \; \mathcal{R} \nabla
+       \left[ \nabla \cdot  (\mathcal{R} \nabla T) \right]
+    \right\}
+\end{equation*}
+%%
+の形式で与えられる. 
+
+メソスケール渦により生じる移流のパラメタリゼーション\citep{gent1990isopycnal}は, 
+%%
+\begin{equation*}
+ \mathcal{D}^{lT}_{\rm GM} = \nabla \cdot \left(\Dvect{U}^* T \right)
+\end{equation*}
+%%
+と書かれる. 
+ここで, $\Dvect{U}^*=(u^*,v^*,w^*)$は渦により生じる, 非発散な移流速度である. 
+この速度は, 
+%%
+\begin{equation*}
+\begin{split}
+  u^* &= \dfrac{1}{e_3}\DP{}{s} (A^{GM} \tilde{r}_1), \;\;
+  v^* = \dfrac{1}{e_3}\DP{}{s} (A^{GM} \tilde{r}_2), \\
+  w^* &= - \dfrac{1}{e_1 e_2} \left[ 
+             \DP{}{i} (A^{GM} e_2 \tilde{r}_1)
+           + \DP{}{i} (A^{GM} e_1 \tilde{r}_2)
+          \right]
+\end{split} 
+\end{equation*}
+%%
+と定義される. 
+ここで, $A^{GM}$は渦により生じる速度と関係する係数であり, しばしば等密度面混合における拡散係数と同じ値が設定される. 
+$\tilde{r}_1, \tilde{r}_2$は, \textbf{ジオポテンシャル面}と等密度面の間の傾斜
+$$
+\tilde{r}_n = r_n + \sigma_n \;\; (n=1,2 )
+$$
+であり,  $z$座標系の場合は単に$\tilde{r}_n=r_n$となる. 
+また, 境界において, $\Dvect{U}^*$の法線方向の成分はゼロに設定する. 
+GM スキームや等密度面混合スキームを実際に用いる際には, $\tilde{r}_n$が非常に大きい場所(海面の境界層内など)において, 
+計算不安定の軽減や他のパラメタリゼーションスキーム(境界層スキーム等)との競合を避けるための対処
+\citep{danabasoglu1995sensitivity,large1997sensitivity,griffies1998gent}が必要である. 
+%GM スキームや等密度面混合スキームの詳細については, 第??章を参照されたい. 
+
+水平運動量$\Dvect{U}_h$に対する二次の水平粘性に対する表現は, 
+%%
+\begin{equation*}
+\begin{split}
+ \Dvect{\mathcal{D}}^{l {\bm U}}_{\rm lvisc}
+ &= \nabla_h (A^{lm} \chi) - \nabla_h \times (A^{lm} \zeta \Dvect{k})  \\
+ &= 
+\begin{pmatrix}
+ \dfrac{1}{e_1}\DP{(A^{lm}\chi)}{i} - \dfrac{1}{e_2 e_3}\DP{(A^{lm} e_3 \zeta)}{j} \\
+ \dfrac{1}{e_2}\DP{(A^{lm}\chi)}{j} + \dfrac{1}{e_1 e_3}\DP{(A^{lm} e_3 \zeta)}{i}
+\end{pmatrix}
+\end{split}
+\end{equation*}
+%%
+である
+\footnote{
+水平速度ベクトル$\Dvect{U}_h$に対するラプラシアンは, ベクトル恒等式を用いて, 
+%%
+\begin{equation*}
+\begin{split}
+  \nabla^2 \Dvect{U}_h
+ &= \nabla (\nabla \cdot\Dvect{U}_h) -  \nabla_h \times(\nabla \times \Dvect{U}_h)  \\
+ & \\
+ &=  \nabla_h (\chi) - \nabla_h \times (\zeta\Dvect{k}) + \dfrac{1}{e_3}\DP{}{s}\left(\dfrac{1}{e_3}\DP{\Dvect{U}_h}{s} \right)
+\end{split}
+\end{equation*}
+%%
+と変形できる. 
+}. 
+この表現において, 水平運動量はモデル座標の水平面に沿って拡散される. 
+スカラー場に対する拡散演算子の場合とは違い, モデル座標の水平面と異なる等値面に沿った
+水平粘性の表現を一般に得ることは困難である. 
+ただし, デカルト座標系の場合には, スカラー場の拡散演算子のように, 
+%%
+\begin{equation*}
+  \mathcal{D}^{lu}_{\rm lvisc} = \nabla\cdot(\mathcal{R}\nabla u), \;\;
+  \mathcal{D}^{lv}_{\rm lvisc} = \nabla\cdot(\mathcal{R}\nabla v)
+\end{equation*}
+%%
+と書くことができる. 
+
+最後に, 水平運動量$\Dvect{U}_h$に対する四次の水平粘性は, 
+%%
+\begin{equation*}
+  \mathcal{D}^{l{\bm U}}_{\rm lvisc,4th} = 
+       \nabla_h \left\{ \nabla_h \cdot \left[ A^{lm,4th} \;  \nabla_h (\chi) \right]\right\}
+     + \nabla_h \times \{ \Dvect{k}\cdot\nabla\times\left[A^{lm,4th} \; \nabla_h\times(\zeta \Dvect{k}) \right]  \}
+\end{equation*}
+%%
+の形式で与えられる. 
+ただし, 4 次の水平粘性もまた, モデル座標の水平面に沿って水平運動量が拡散される場合のみを考えることにする. 

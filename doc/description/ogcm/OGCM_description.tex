@@ -1,0 +1,21 @@
+%\section{海洋大循環モデルの詳細}
+\label{ocn_model}
+\markright{\arabic{chapter}.\arabic{section} 海洋大循環モデル} %  節の題名を書き込むこと
+%%
+本章では, 海洋大循環モデルの詳細を記述する. 
+なお, \cite{ykawai2018_Dthesis}の数値実験では本海洋モデルを軸対称モデルとして使用したが, 
+以下に記述するように, 実際には汎用性のために三次元モデルとして定式化を行い, 実装している. 
+
+%% モデルの基礎
+\input{ogcm/model_basic}
+
+%% 時間離散化
+\input{ogcm/time_discretization}
+
+%% 空間離散化
+\input{ogcm/space_discretization}
+
+%% 物理パラメタリゼーションの詳細
+
+%% パラメータの設定例
+\input{ogcm/OGCM_config_example}
