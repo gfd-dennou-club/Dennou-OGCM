@@ -1,11 +1,11 @@
 SUBDIRS =
 
 AM_FCFLAGS = \
-        $(MODPATHFLAG)$(srcdir)/../../../include/ \
-        $(MODPATHFLAG)$(srcdir)/../util           \
-        $(MODPATHFLAG)$(srcdir)/../admin          \
-        $(MODPATHFLAG)$(srcdir)/../seaice         \
-	$(MODPATHFLAG)$(srcdir)/../boundary       \
+        $(MODPATHFLAG)$(srcdir)/../../../../include/ \
+        $(MODPATHFLAG)$(srcdir)/../util              \
+        $(MODPATHFLAG)$(srcdir)/../admin             \
+        $(MODPATHFLAG)$(srcdir)/../seaice            \
+	$(MODPATHFLAG)$(srcdir)/../boundary          \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 LDADD = \

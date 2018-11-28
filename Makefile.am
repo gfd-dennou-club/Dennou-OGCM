@@ -1,3 +1,23 @@
+ACLOCAL_AMFLAGS = -I m4
+
+# These files get added to the distribution.
+EXTRA_DIST =  COPYRIGHT ChangeLog VERSION
+EXTRA_DIST += README INSTALL
+EXTRA_DIST += doc 
+
+
+FC=@FC@
+F90MODTYPE=@F90MODTYPE@
+MODEXT=@MODEXT@
+MODPATHFLAG=@MODPATHFLAG@
+SYSFFLAGS=@SYSFFLAGS@
+SYSLDFLAGS=@SYSLDFLAGS@
+SYSLDLIBS=@SYSLDLIBS@
+
+SYSCXXFLAGS=@SYSCXXFLAGS@
+
+#------------------------------------------------
+
 SUBDIRS = \
 	libsrc \
 	test \
@@ -10,17 +30,7 @@ SUBDIRS = \
 
 #	model/globalSWModel_DG2 
 
-ACLOCAL_AMFLAGS = -I m4
-
-FC=@FC@
-F90MODTYPE=@F90MODTYPE@
-MODEXT=@MODEXT@
-MODPATHFLAG=@MODPATHFLAG@
-SYSFFLAGS=@SYSFFLAGS@
-SYSLDFLAGS=@SYSLDFLAGS@
-SYSLDLIBS=@SYSLDLIBS@
-
-SYSCXXFLAGS=@SYSCXXFLAGS@
+#------------------------------------------------
 
 #dist-hook:
 #	sh $(top_srcdir)/dist_tool/generate-ChangeLog.sh       

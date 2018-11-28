@@ -85,11 +85,7 @@ if test x"$ax_cv_fortran_modflag" = x"not found" ; then
   AC_MSG_ERROR([unable to find $FC module include flag])
 fi
 AC_SUBST(MODPATHFLAG, ${ax_cv_fortran_modflag})
-# Check C/C++ compiler
-AC_PROG_CC
-AC_PROG_CXX
 
-AC_SUBST(CPPHEADEREXT, ".hpp")
 # Checks for libraries.
 #
 # * netcdf
@@ -269,14 +265,25 @@ AC_SUBST(SYSLDLIBS)
 AC_SUBST(SYSLDFLAGS)
 AC_SUBST(SYSFFLAGS)
 
-# Checks for header files.
-# Checks for typedefs, structures, and compiler characteristics.
-# Checks for library functions.
+
+#---
+
 # * Calling libtool
 
+#
+# Other commands
+#
 AM_PROG_AR
+AC_PROG_CPP
 
+AC_PROG_LIBTOOL
+
+#
+# * Calling libtool
 LT_INIT
+
+#== Output file settings
+#
 AC_CONFIG_FILES([
                  Makefile
                  libsrc/Makefile
@@ -309,14 +316,15 @@ AC_CONFIG_FILES([
 		 model/sogcm/unit_test/Makefile
 		 model/sogcm/tool/Makefile
 		 model/dogcm/Makefile
-		 model/dogcm/util/Makefile
-		 model/dogcm/seaice/Makefile		 
-		 model/dogcm/admin/Makefile		 
-		 model/dogcm/boundary/Makefile
-		 model/dogcm/io/Makefile
-		 model/dogcm/dynamics/Makefile
-		 model/dogcm/physics/Makefile
-		 model/dogcm/tint/Makefile
+		 model/dogcm/src/Makefile
+		 model/dogcm/src/util/Makefile
+		 model/dogcm/src/seaice/Makefile		 
+		 model/dogcm/src/admin/Makefile		 
+		 model/dogcm/src/boundary/Makefile
+		 model/dogcm/src/io/Makefile
+		 model/dogcm/src/dynamics/Makefile
+		 model/dogcm/src/physics/Makefile
+		 model/dogcm/src/tint/Makefile
 ])
 
 AC_OUTPUT

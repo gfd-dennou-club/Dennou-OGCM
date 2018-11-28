@@ -1,8 +1,8 @@
 SUBDIRS =
 
 AM_FCFLAGS = \
-        $(MODPATHFLAG)$(srcdir)/../../../src/ \
-        $(MODPATHFLAG)$(srcdir)/../util     \
+        $(MODPATHFLAG)$(srcdir)/../../../../include/ \
+	$(MODPATHFLAG)$(srcdir)/../util     \
 	$(MODPATHFLAG)$(srcdir)/../admin    \
 	$(MODPATHFLAG)$(srcdir)/../boundary \
         $(MODPATHFLAG)$(srcdir)/../dynamics \

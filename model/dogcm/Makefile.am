@@ -1,19 +1,14 @@
-SUBDIRS = \
-	util admin io boundary seaice dynamics physics tint
+SUBDIRS = src
 
 ################
 
+bin_PROGRAMS = 
+lib_LTLIBRARIES=
+noinst_LTLIBRARIES=
+
 AM_FCFLAGS = \
         $(MODPATHFLAG)$(srcdir)/../../include/ \
-        $(MODPATHFLAG)$(srcdir)/admin          \
-        $(MODPATHFLAG)$(srcdir)/util           \
-        $(MODPATHFLAG)$(srcdir)/io             \
-	$(MODPATHFLAG)$(srcdir)/boundary       \
-	$(MODPATHFLAG)$(srcdir)/dynamics       \
-        $(MODPATHFLAG)$(srcdir)/physics        \
-        $(MODPATHFLAG)$(srcdir)/seaice         \
-        $(MODPATHFLAG)$(srcdir)/tint           \
-        $(MODPATHFLAG)$(srcdir)/exp            \
+        $(MODPATHFLAG)$(srcdir)/include        \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 
@@ -31,8 +26,6 @@ copy_header:
 		@echo "Copy generated header files into $(srcdir)/include"
 		@$(MKDIR_P) $(srcdir)/include
 		@find . -name "*@MODEXT@" -exec $(install_sh_DATA) {} $(srcdir)/include \;
-
-bin_PROGRAMS = 
 
 ######################################################################
 
@@ -79,11 +72,10 @@ endif
 if DSOGCM_AXISYM
 
 bin_PROGRAMS += dogcm_axisym
-dogcm_axisym_SOURCES =\
-	ogcm_main.f90
-dogcm_axisym_LDADD = \
-	libDOGCM.la                          \
-	$(srcdir)/seaice/libDSIce.la         \
+dogcm_axisym_SOURCES = src/ogcm_main.f90
+dogcm_axisym_LDADD =\
+	libDOGCM.la                                   \
+	$(srcdir)/src/seaice/libDSIce.la              \
 	$(LDADD)
 endif
 
@@ -95,45 +87,43 @@ ocndiag_SOURCES =\
 	tool/ocndiag/OcnDiag_HeatTransport_mod.f90       \
 	tool/ocndiag/ocndiag_main.f90
 ocndiag_LDADD = \
-	libDOGCM.la                          \
-	$(srcdir)/seaice/libDSIce.la         \
+	libDOGCM.la                              \
+	$(srcdir)/src/seaice/libDSIce.la         \
 	$(LDADD)
 
 #######################################################################
 
-lib_LTLIBRARIES = \
-	libDOGCM.la
-
-noinst_LTLIBRARIES = \
-	libDOGCMExp.la
-
-#-----------------------------------------------------------------
+lib_LTLIBRARIES += libDOGCM.la
 
 libDOGCM_la_SOURCES = \
-	DOGCM_main_mod.f90
+	src/DOGCM_main_mod.f90
 
 libDOGCM_la_LIBADD = \
-	libDOGCMExp.la                            \
-	$(srcdir)/tint/libDOGCMTInt.la            \
-	$(srcdir)/physics/libDOGCMPhysics.la      \
-	$(srcdir)/dynamics/libDOGCMDynamics.la    \
-	$(srcdir)/io/libDOGCMIO.la                \
-	$(srcdir)/boundary/libDOGCMBoundary.la    \
-	$(srcdir)/admin/libDOGCMAdmin.la          \
-	$(srcdir)/util/libDOGCMUtil.la            \
-	$(srcdir)/util/libSpmlUtil.la
+	src/tint/libDOGCMTInt.la            \
+	src/physics/libDOGCMPhysics.la      \
+	src/dynamics/libDOGCMDynamics.la    \
+	src/io/libDOGCMIO.la                \
+	src/boundary/libDOGCMBoundary.la    \
+	src/admin/libDOGCMAdmin.la          \
+	src/util/libDOGCMUtil.la            \
+	src/util/libSpmlUtil.la             \
+	libDOGCMExp.la
 
-DOGCM_main_mod.f90 : \
+
+src/DOGCM_main_mod.f90 : \
 	libDOGCMExp.la
 
 ######################################################################
 
+
+noinst_LTLIBRARIES += libDOGCMExp.la
+
 dist_libDOGCMExp_la_SOURCES = \
 	exp/$(exp_name)/DOGCM_Exp_$(exp_name)_mod.f90 \
-	exp/DOGCM_Exp_driver_mod.f90
+	src/DOGCM_Exp_driver_mod.f90
 
 AM_FCFLAGS += "-DExp_$(exp_name)"
 
-DOGCM_Exp_driver_mod.f90 : \
+src/DOGCM_Exp_driver_mod.f90 : \
 	exp/$(exp_name)/DOGCM_Exp_$(exp_name)_mod.o
 
