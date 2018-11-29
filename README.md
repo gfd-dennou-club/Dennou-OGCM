@@ -41,11 +41,6 @@ Models
     - The model mesh is spherical triangle mesh, and the governing equation are
       discritized with a DG method proposed by Läuter et al. (2008).
 
-Main developers
------------------------------------------------------------------------------------------
-
-  - Yuta Kawai (Kobe university and RIKEN R-CCS) and the collaborators in GFD-Dennou Club
-
 
 Some informations
 -----------------------------------------------------------------------------------------
@@ -56,6 +51,27 @@ Some informations
 - About license
   - Please see COPYRIGHT in the top directory.
   
+- What is contained in each directory?
+  - ``libsrc'' directory
+    - There are fortran modules of a common library used in oceanic models shown above. 
+  - ``test'' directory
+    - There are some test programs to check functions provided by common library. 
+  - ``tool'' directory
+    - There are some common tools for oceanic models shown above.
+      For examle, grid generator for globalSWM-FVM and globalSWM-DG is prepared. 
+  - ``model'' directory
+    - There are some oceanic models (i.e, dogcm, globalSWM-FVM, globalSWM-DG, ..) with a common library.   
+  - ``doc'' directory 
+    - There are some descriptions of ocean models: descriptions of model formulation and discretization, ..
+  - ``build-aux, m4'' directory
+    - There are some macro files used for generating configure file. 
+
+
+Main developers
+-----------------------------------------------------------------------------------------
+
+  - Yuta Kawai (Kobe university and RIKEN R-CCS) and the collaborators in GFD-Dennou Club
+
 
 Some links associated with this project
 -----------------------------------------------------------------------------------------
