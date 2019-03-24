@@ -1,0 +1,119 @@
+\section{準備}
+
+\subsection{動作環境}
+
+DCPOM は, 以下の環境での動作を確認済みである.
+\begin{itemize}
+\item OS
+  \begin{itemize}
+    \item SUSE Linux Enterprise Server 11 SP3
+    \item Debian GNU/Linux ver. 8.11
+    \item MacOS High Sierra ver. 10.13.6
+  \end{itemize}
+\item Fortan コンパイラ
+\begin{itemize}
+  \item GFortran ver. 8.2.0
+  \begin{itemize}  
+    \item with LAPACK ver. 3.5.0
+    \item with OpenMPI ver. 3.1.3  
+  \end{itemize}
+  \item GFortran ver. 4.9.2
+  \begin{itemize}  
+    \item with LAPACK ver. 3.8.0
+    \item with OpenMPI ver. 1.6.5  
+  \end{itemize}  
+  \item Intel \textsuperscript \textregistered Compilers ver. 16.0.1
+  \begin{itemize}  
+    \item with Intel \textsuperscript \textregistered MKL
+    \item with Intel \textsuperscript \textregistered MPI Libray ver. 5.1.2
+  \end{itemize}  
+\end{itemize}
+\end{itemize}
+
+\subsection{必要なソフトウェア}
+
+DCPOM を利用するためには, 以下のソフトウェアを事前にインストールしてお
+く必要がある.
+\begin{itemize}
+  \item netCDF, $>=$ ver. 3.6
+  \item ispack, ver. 1.0.4
+  \item gtool5, $>=$ ver. 20101218-1
+  \item SPMODEL, $>=$ ver. 0.8.0
+  \item (MPI library)
+  
+\end{itemize} 
+MPI 並列化した DCPOM を使用したい場合は, MPI ライブラリが必要である. 
+以下では, 上記のソフトウェアのインストールが完了しているとする. 
+
+%---------------------------------------------------------------
+\subsection{DCPOM のビルド}
+
+\subsubsection*{TGZ パッケージの展開}
+
+最新版のソースコードは, \url{https://www.gfd-dennou.org/library/dcpom/dcpom_current.tgz}から取得できる. 
+以下のように, 適当な作業ディレクトリでソースアーカイブを展開する. 
+\begin{alltt}
+  $ tar xvzf dcpom_current.tgz
+\end{alltt}
+
+使用する Fortran コンパイラを, 環境変数 FC に指定する. 
+例えば, gfortran を使用する場合は, 
+%%
+\begin{alltt}
+  $ export FC=gfortran
+\end{alltt}
+%%
+と指定する. 
+コードの最適化やデバッグ等のオプションは, 環境変数 FCFLAGS に設定する. 
+以下の例では, gfortran を使用する場合に, レベル3の最適化とスレッド並列化を
+行うときのオプションを示している.
+%%
+\begin{alltt}
+  $ export FCFLAGS="-O3 -fopenmp"
+\end{alltt}
+
+\subsubsection*{configure の実行}
+ 
+トップディレクトリにおいて, 以下のように必要なライブラリのパスを指定して, configure を実行する. これによって, Makefile が生成される. 
+%%
+\begin{alltt}
+  $ ./configure --with-netcdf=/usr/local/netcdf/lib/libnetcdf.a \
+                --with-ispack=/usr/local/ispack/lib/libisp.a    \
+                --with-gtool5=/usr/local/gtool5/lib/libgtool5.a \
+                --with-spml=/usr/local/spml/lib/libspml-omp.a
+\end{alltt}
+%%
+上記のコマンドにおいて, 「--with-**=」で使用するライブラリのパスを指定している. 
+netCDF ライブラリが共有ライブラリである場合は, 加えて --with-netcdff= の指定が必要なときもある. 
+また, 軸対称計算を行いたい場合は「--with-dogcm-mode=AXISYM」を,  
+緯度方向のスペクトル変換に sjpack を使用したい場合は「--enable-sjapck」をオプションに追加されたい. 
+
+インストール先などを変更したい場合などには, さらにオプションを指定する必要がある. 
+指定可能なオプションは以下のコマンドで確認できる.
+%%
+\begin{alltt}
+$ ./configure --help
+\end{alltt}
+
+MPI 並列化した DCPOM を使用したい場合は, MPI ライブラリのインストールに加えて, MPI サポートを有効にして gtool5 や SPMODEL をビルドする必要がある(詳細は gtool5 や SPMODEL のインストールドキュメント%
+\footnote{
+gtool5 のインストールドキュメント: \url{http://www.gfd-dennou.org/library/gtool/gtool5/gtool5_current/INSTALL.htm}
+}
+\footnote{
+SPMODEL のインストールドキュメント: \url{http://www.gfd-dennou.org/library/spmodel/spml_current/doc/INSTALL.htm.ja}
+}
+を参照). そして, DCPOM の「configure」を実行する際には, 環境変数 FC に mpif90 等の MPI 用のコンパイルコマンドを指定する必要がある. 
+
+\subsubsection*{コンパイル}
+
+以下のように, make を実行してソースコードをコンパイルする. 
+%%
+\begin{alltt}
+  $ make
+\end{alltt}
+
+\verb|libsrc, tool, model| ディレクトリの順番に, ソースコードのコンパイルが行われる. 
+問題なくコンパルが完了すれば, 例えば, model/dogcm 以下に, 
+dogcm (DCPOM に含まれる海洋海氷モデルの一つ)や実験結果の解析用プログラムがそれぞれ,  
+\verb|dogcm_axisym| (軸対象設定の場合), \verb|ocndiag| として作成される. 
+

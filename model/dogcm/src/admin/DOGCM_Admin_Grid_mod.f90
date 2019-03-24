@@ -138,7 +138,7 @@ module DOGCM_Admin_Grid_mod
 
   character(*), parameter:: module_name = 'DOGCM_Admin_Grid_mod' !< Module Name
 
-  logical :: isInitialzed = .false.
+  logical :: isGridInfoInitialzed = .false.
   
 contains
   subroutine DOGCM_Admin_Grid_Init(configNmlFileName)
@@ -221,7 +221,7 @@ contains
     ! 実行文; Executable statement
     !
 
-    if(isInitialzed) then
+    if(isGridInfoInitialzed) then
        deallocate( x_CI, x_CDI, x_RCDI, x_FI, x_FDI, x_RFDI )
        deallocate( y_CJ, y_CDJ, y_RCDJ, y_FJ, y_FDJ, y_RFDJ )
        deallocate( z_CK, z_CDK, z_RCDK, z_FK, z_FDK, z_RFDK )
@@ -251,7 +251,6 @@ contains
     ! 局所変数
     ! Local variables
     !
-    integer :: k
 
     ! 実行文; Executable statement
     !
@@ -259,66 +258,68 @@ contains
     !---------------------------------
     
     
-    allocate( x_CI(IA), x_CDI(IA), x_RCDI(IA), x_FI(IA), x_FDI(IA), x_RFDI(IA), x_IAXIS_Weight(IA) )
-    allocate( y_CJ(JA), y_CDJ(JA), y_RCDJ(JA), y_FJ(JA), y_FDJ(JA), y_RFDJ(JA), y_JAXIS_Weight(JA) )
-    allocate( z_CK(KA), z_CDK(KA), z_RCDK(KA), z_FK(KA), z_FDK(KA), z_RFDK(KA), z_KAXIS_Weight(KA) )
-
-    allocate( xy_Lon(IA,JA), xy_Lat(IA,JA) )
-    allocate( xyz_Lon(IA,JA,KA), xyz_Lat(IA,JA,KA), xyz_Z(IA,JA,KA) )
-    allocate( xy_Topo(IA,JA) )
-    allocate( SCALEF_E1(IA,JA,4), SCALEF_E2(IA,JA,4) )
-
     select case(SolverType)
-    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)    
-       call DOGCM_GaussSpmGrid_ConstructGrid( &
-            & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
-            & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
-            & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
-            & xy_Lon, xy_Lat,                                & ! (out)
-            & SCALEF_E1, SCALEF_E2,                          & ! (out)
-            & IS, IE, IA, IM, IHALO,                         & ! (in)
-            & JS, JE, JA, JM, JHALO,                         & ! (in)
-            & KS, KE, KA, KM, KHALO                          & ! (in)
-            & )
-       
+    case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)   
+      call allocate_GridInfoArray()       
+      call DOGCM_GaussSpmGrid_ConstructGrid( &
+        & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
+        & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
+        & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
+        & xy_Lon, xy_Lat,                                & ! (out)
+        & SCALEF_E1, SCALEF_E2,                          & ! (out)
+        & IS, IE, IA, IM, IHALO,                         & ! (in)
+        & JS, JE, JA, JM, JHALO,                         & ! (in)
+        & KS, KE, KA, KM, KHALO                          & ! (in)
+        & )
+      call set_GridInfo()       
     case(OCNGOVERNEQ_SOLVER_HSPM_VFVM)
-       call DOGCM_GaussSpmVFvmGrid_ConstructGrid( &
-            & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
-            & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
-            & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
-            & xy_Lon, xy_Lat,                                & ! (out)
-            & SCALEF_E1, SCALEF_E2,                          & ! (out)
-            & IS, IE, IA, IM, IHALO,                         & ! (in)
-            & JS, JE, JA, JM, JHALO,                         & ! (in)
-            & KS, KE, KA, KM, KHALO                          & ! (in)
-            & ) 
-
+      call allocate_GridInfoArray()
+      call DOGCM_GaussSpmVFvmGrid_ConstructGrid( &
+        & x_CI, x_CDI, x_FI, x_FDI, x_IAXIS_Weight,      & ! (out)
+        & y_CJ, y_CDJ, y_FJ, y_FDJ, y_JAXIS_Weight,      & ! (out)
+        & z_CK, z_CDK, z_FK, z_FDK, z_KAXIS_Weight,      & ! (out)
+        & xy_Lon, xy_Lat,                                & ! (out)
+        & SCALEF_E1, SCALEF_E2,                          & ! (out)
+        & IS, IE, IA, IM, IHALO,                         & ! (in)
+        & JS, JE, JA, JM, JHALO,                         & ! (in)
+        & KS, KE, KA, KM, KHALO                          & ! (in)
+        & ) 
+      call set_GridInfo()
     case default
        call MessageNotify('E', module_name, "Unexcept Solver is specified. Check!")
     end select
 
-
-    !--------------
-
-
-    x_RCDI(:) = 1d0/x_CDI(:)
-    x_RFDI(:) = 1d0/x_FDI(:)
-
-    y_RCDJ(:) = 1d0/y_CDJ(:)
-    y_RFDJ(:) = 1d0/y_FDJ(:)
-
-    z_RCDK(:) = 1d0/z_CDK(:)
-    z_RFDK(:) = 1d0/z_FDK(:)
-    
-    do k = 1, KA
-       xyz_Lon(:,:,k) = xy_Lon(:,:)
-       xyz_Lat(:,:,k) = xy_Lat(:,:)
-    end do
-
-    
     !---------------------------------------------
+  contains
+    subroutine allocate_GridInfoArray()
+      allocate( x_CI(IA), x_CDI(IA), x_RCDI(IA), x_FI(IA), x_FDI(IA), x_RFDI(IA), x_IAXIS_Weight(IA) )
+      allocate( y_CJ(JA), y_CDJ(JA), y_RCDJ(JA), y_FJ(JA), y_FDJ(JA), y_RFDJ(JA), y_JAXIS_Weight(JA) )
+      allocate( z_CK(KA), z_CDK(KA), z_RCDK(KA), z_FK(KA), z_FDK(KA), z_RFDK(KA), z_KAXIS_Weight(KA) )
 
-    isInitialzed = .true.
+      allocate( xy_Lon(IA,JA), xy_Lat(IA,JA) )
+      allocate( xyz_Lon(IA,JA,KA), xyz_Lat(IA,JA,KA), xyz_Z(IA,JA,KA) )
+      allocate( xy_Topo(IA,JA) )
+      allocate( SCALEF_E1(IA,JA,4), SCALEF_E2(IA,JA,4) )
+      
+      isGridInfoInitialzed = .true.          
+    end subroutine allocate_GridInfoArray
+    
+    subroutine set_GridInfo()
+      integer :: k
+      x_RCDI(:) = 1d0/x_CDI(:)
+      x_RFDI(:) = 1d0/x_FDI(:)
+
+      y_RCDJ(:) = 1d0/y_CDJ(:)
+      y_RFDJ(:) = 1d0/y_FDJ(:)
+
+      z_RCDK(:) = 1d0/z_CDK(:)
+      z_RFDK(:) = 1d0/z_FDK(:)
+      
+      do k = 1, KA
+         xyz_Lon(:,:,k) = xy_Lon(:,:)
+         xyz_Lat(:,:,k) = xy_Lat(:,:)
+      end do
+    end subroutine set_GridInfo
     
   end subroutine DOGCM_Admin_Grid_construct
 

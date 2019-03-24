@@ -7,8 +7,8 @@ lib_LTLIBRARIES=
 noinst_LTLIBRARIES=
 
 AM_FCFLAGS = \
-        $(MODPATHFLAG)$(srcdir)/../../include/ \
-        $(MODPATHFLAG)$(srcdir)/include        \
+  $(MODPATHFLAG)$(srcdir)/../../include/ \
+  $(MODPATHFLAG)$(srcdir)/include        \
 	$(FCFLAGS) $(SYSFFLAGS)
 
 
@@ -56,7 +56,7 @@ exp_name = APECoupleClimate
 
 #######################################################################
 
-if DSOGCM_3D
+if DOGCM_3D
 
 bin_PROGRAMS += dogcm3d
 dogcm3d_SOURCES =\
@@ -67,9 +67,7 @@ dogcm3d_LDADD = \
 	$(LDADD)
 endif
 
-#######################################################################
-
-if DSOGCM_AXISYM
+if DOGCM_AXISYM
 
 bin_PROGRAMS += dogcm_axisym
 dogcm_axisym_SOURCES = src/ogcm_main.f90
@@ -78,6 +76,8 @@ dogcm_axisym_LDADD =\
 	$(srcdir)/src/seaice/libDSIce.la              \
 	$(LDADD)
 endif
+
+src/ogcm_main.f90: src/DOGCM_main_mod.o
 
 #######################################################################
 

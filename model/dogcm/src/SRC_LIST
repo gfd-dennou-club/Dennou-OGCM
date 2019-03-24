@@ -1,0 +1,249 @@
+= List of source code files in dogcm
+  dogcm のソースコードファイルリスト
+
+ Note that Japanese and English are described in parallel. 
+
+
+----------------------------------------------------------------------------------
+
+SRC_LIST     :: this file; 本ファイル
+Makefile.am  :: a file necessary for generating a Makefile to compile ocean model, sea-ice model and analysis tool;
+                海洋海氷モデル, 解析ツールのコンパル用の Makefile 生成に必要なファイル  
+ogcm_main.f90        :: a main program for ocean and sea-ice models;  
+                        海洋海氷モデルのメインプログラム
+DOGCM_main_mod.f90   :: a module providing simple interfaces for setup, time stepping and shutdown of OGCM. 
+                        海洋モデルの初期化, 時間進展, 終了処理を手軽に行うためのインターフェイスを提供するモジュール. 
+DOGCM_Exp_driver.f90 :: driver module for each numerical experiment; 
+                        各数値実験用のドライバーモジュール
+
+
+- util/ :: utility (They will be moved to $(TOP_DIR)/libsrc/ in the near future.)
+           ユーティリティ (将来的には $(TOP_DIR)/libsrc/ に移動させる)
+  
+  Makefile.am     :: a file necessary to generate a Makefile for this directory
+                     本ディレクトリに対する Makefile の生成に必要なファイル
+  
+  - math/         :: mathematical operations associated with spatial and temporal discretization
+                     空間離散化, 時間離散化と関係した数学演算
+    at_module_omp.f90      :: a parallelized version of at_module in SPMODEL with OpenMP
+                              SPMODEL の at_module のOpenMP による並列化版
+    SpmlUtil_mod.f90       :: a module providing some operations associated with spectral method. 
+                              Some subroutines for single layer, such as w_*_xy, in SPMODEL 
+                              are mainly called in k-direction loop (i.e; loop for vertical direction) 
+                              which is parallelized with OpenMP;
+                              スペクトル法と関係した演算を提供するモジュール. 主に, SPMODEL の単層用のサブルーチンが
+                              k 方向のループ (つまり鉛直方向のループ)内で呼び出される. このループは OpenMP により並列化している. 
+    VSpmUtil_mod.f90       :: a utility module in the case of using a spectral method for vertical discretization; 
+                              鉛直離散化にスペクトル法を用いる場合のユーティリティモジュール
+    VFvmUtil_mod.f90       :: a utility module in the case of using a finite volume method for vertical discretization;      
+                              鉛直離散化に有限体積法を用いる場合のユーティリティモジュール
+    CalculusDriver_mod.f90     :: a driver module for above two utility modules; 
+                                  上記の 2 つのユーティリティモジュールに対するドライバーモジュール
+    TemporalIntegUtil_mod2.f90 :: a utility module for temporal integration
+                                  時間積分のためのユーティリティモジュール
+  
+  - grid/         ::　Grid system; 格子系
+    GridIndex_mod.f90           :: Management of indexes and constants for grid system. 
+                                   格子系に関するインデックスや定数を管理
+    DOGCM_GaussSpmGrid_mod.f90  :: A module to construct horizontal gaussian grid for spectral method based on 
+                                   spherical harmonics expansion, and vertical collocation grid for spectral method 
+                                   based on Chebyshev polynomial expansion. 
+                                   球面調和関数展開に基づくスペクトル法のための水平ガウス格子と, Chebyshev 多項式に基づくスペクトル法
+                                   のための鉛直コロケーション格子を構築するためのモジュール
+    DOGCM_GaussSpmVFvm_mod.f90  :: A module to construct horizontal gaussian grid for spectral method based on 
+                                   spherical harmonics expansion, and vertical staggered grid for finite volume method. 
+                                   球面調和関数展開に基づくスペクトル法のための水平ガウス格子と
+                                   有限体積法のための鉛直スタッガード格子を構築するためのモジュール
+
+  - eos/                :: equation of state (EOS) of seawater; 海水の状態方程式
+  	EOS_Linear_mod.f90          :: EOS represented by linear function of potential temperature, salinity and depth; 
+                                   温位, 塩分, 深さの線形関数で表現される状態方程式 
+    EOS_SimpleNonLinear_mod.f90 :: EOS represented by quadratic function of potential temperature, salinity and depth;
+                                   温位, 塩分, 深さの2次関数で表現される状態方程式 
+  	EOS_JM95_mod.f90            :: EOS according to Jacket and Mcdougall (1995)
+                                   Jacket and Mcdougall (1995) による状態方程式
+  	EOSDriver_mod.f90           :: a driver module for above EOSs; 上記の EOS に対するドライバーモジュール
+
+  - misc/               :: miscellaneous directory; その他
+    OptionParser_mod.f90    :: a module for parsing runtime options; 実行時オプションを分析するためのモジュール
+    ProfUtil_mod.f90        :: a module for profiling computational time; 計算時間を計測するためのモジュール
+    UnitConversion_mod.f90  :: a module for converting units; 単位変換のためのモジュール
+
+
+- admin/      :: Mangement for parameters and variables in oceanic model; 海洋モデルのパラメータ・変数の管理
+  
+  Makefile.am :: a file necessary to generate a Makefile for this directory
+                本ディレクトリに対する Makefile の生成に必要なファイル
+  DOGCM_Admin_Constants_mod.f90      :: Setting of physical constants (This will be moved to $(TOP_DIR)/libsrc/); 
+                                        物理定数 (将来的には $(TOP_DIR)/libsrc/ 以下に移動)
+  DOGCM_Admin_BC_mod.f90             :: Setting of boundary condition; 境界条件の設定
+  DOGCM_Admin_Grid_mod.f90           :: Setting of grid system; 格子系の設定 
+  DOGCM_Admin_GaussSpmGridIndexDef.h :: Definition of symbolic constants applied for most inner loop; 
+                                        最内ループのインデックスに適用する記号定数の定義
+  DOGCM_Admin_GovernEq_mod.f90       :: Setting of governing equations; 支配方程式系の設定
+  DOGCM_Admin_Variable_mod.f90       :: Management of variables in model; モデルの変数の管理
+  DOGCM_Admin_TInteg_mod.f90         :: Setting of time integration method; 時間積分法の設定
+
+
+- io/         :: Input and Output of data; データの入出力
+  
+  Makefile.am :: a file necessary to generate a Makefile for this directory
+                 本ディレクトリに対する Makefile の生成に必要なファイル
+  DOGCM_IO_History_mod.f90 :: input and output of history files; ヒストリファイルの入出力
+  DOGCM_IO_Restart_mod.f90 :: input and output of restart files; リスタートファイルの入出力
+
+
+- boundary/   :: Management for boundary data; 境界データの管理
+  
+  Makefile.am :: a file necessary to generate a Makefile for this directory
+                本ディレクトリに対する Makefile の生成に必要なファイル
+  DOGCM_Boundary_vars_mod.f90       :: management of variables associated with boundary data; 
+                                       境界データと関連した変数の管理
+  DOGCM_Boundary_common_mod.f90     :: a module providing subroutines commonly used to calculate sea surface and bottom fluxes; 
+                                       海面, 海底フラックスの計算のために共通して用いられるサブルーチンを提供するモジュール
+  DOGCM_Boudnary_spm_mod.f90        :: a module to apply boundary conditions when spectral method is used for both horizontal 
+                                       and vertical discretizations;  
+                                       水平・鉛直離散化にスペクトル法を用いる場合に, 境界条件を課すためのモジュール 
+  DOGCM_Boundary_hspm_vfvm_mod.f90　:: a module to apply boundary conditions when spectral and finite volume method are used 
+                                      for horizontal and vertical discretizations, respectively;  
+                                      水平離散化にスペクトル法, 鉛直離散化に有限体積法を用いる場合に, 境界条件を課すためのモジュール 
+  DOGCM_Boundary_driver_mod.f90     :: a driver module to call above subroutines to set boundary data. 
+                                       上記の境界データの設定を行うサブルーチンを呼び出すためのドライバーモジュール 
+
+
+- dynamics/   :: Dynamical core; 力学コア
+  
+  Makefile.am :: a file necessary to generate a Makefile for this directory  (referred to as “hspm-vfvm”)
+              本ディレクトリに対する Makefile の生成に必要なファイル
+  DOGCM_Dyn_driver_mod.f90 :: a driver module to call below subroutines to calculate tendencies with dynamical process. 
+                              力学過程に伴う時間変化率を計算する以下のサブルーチンを呼び出すためのドライバーモジュール
+  
+  - hspm_vfvm/                :: horizontal: spectral method, vertical: finite volume method  
+    HBEBarot_hspm_vfvm_mod.f90    :: a module to calculate terms in barotropic equations
+                                    順圧方程式に含まれる項を計算するためのモジュール
+    HBEBaroc_hspm_vfvm_mod.f90    :: a module to calculate terms in baroclinic equations
+                                    傾圧方程式に含まれる項を計算するためのモジュール
+    HBEDiagnose_hspm_vfvm_mod.f90 :: a module to calculate diagnostic variables
+                                    診断変数を計算するためのモジュール
+    DOGCM_Dyn_hspm_vfvm_mod.f90   :: a driver module for subroutines in hspm-vfvm
+                                    hspm-vfvm 中のサブルーチンのためのドライバーモジュール
+  
+  - hspm_vspm/                 :: horizontal: spectral method, vertical: spectral method  (referred to as “hspm-vspm”)
+    HBEBarot_spm_mod.f90          :: a module to calculate terms in barotropic equations
+                                     順圧方程式に含まれる項を計算するためのモジュール
+    HBEBaroc_spm_mod.f90          :: a module to calculate terms in baroclinic equations
+                                    傾圧方程式に含まれる項を計算するためのモジュール
+    HBEDiagnose_spm_mod.f90       :: a module to calculate diagnostic variables
+                                    診断変数を計算するためのモジュール    
+    DOGCM_Dyn_spm_mod.f90         :: a driver module for subroutines in hspm-vspm
+                                     hspm-vspm 中のサブルーチンのためのドライバーモジュール
+
+
+- physics/    :: Sub-grid scale physical processes; サブグリッドスケールの物理過程
+  
+  Makefile.am :: a file necessary to generate a Makefile for this directory
+                 本ディレクトリに対する Makefile の生成に必要なファイル
+  DOGCM_Phys_hspm_vfvm_mod.f90  :: a module to manage physical processes in the case of using hspm-vfvm 
+                                   hspm-vfvm の場合の物理過程統括モジュール
+  DOGCM_Phys_spm_mod.f90        ::  a module to manage physical processes in the case of using hspm-v  
+                                    hspm-vspm の場合の物理過程統括モジュール
+  
+  - lphys/                     :: horizontal physics; 水平方向の物理 
+    LPhys_DIFF_spm_mod.f90          :: a modoule to evaluate horizontal viscosity and diffusion terms with spectral method; 
+                                       水平粘性・水平拡散項をスペクトル法によって評価するためのモジュール
+    LPhys_RediGMHelper_mod.f90      :: a modoule providing some subroutines commonly used to evaluate some terms 
+                                       associated with mesoscale eddy mixing using spectral method;  
+                                       メソスケール渦による混合と関係した項を評価するために共通して使われるサブルーチンを提供するモジュール
+    LPhys_RediGM_hspm_vfvm_mod.f90  :: a modoule to evaluate some terms associated with mesoscale eddy mixing in the case of using hspm-vfvm;
+                                       hspm-vfvm を用いる場合にメソスケール渦による混合と関係した項を評価するためのモジュール
+    LPhys_RediGM_spm_mod.f90    　　 :: a modoule to evaluate some terms associated with mesoscale eddy mixing in the case of using hspm-vspm;
+                                       hspm-vspm を用いる場合にメソスケール渦による混合と関係した項を評価するためのモジュール
+    DOGCM_LPhys_DIFF_driver_mod.f90 :: a driver module to calculate horizontal mixing 
+                                       (but this is not used at present); 
+                                       水平混合を計算するサブルーチンに対するドライバーモジュール (現状, 未使用) 
+    
+  - vphys/                     :: vertical physics; 鉛直方向の物理
+    DOGCM_VPhys_ConvAdjust_mod.f90  :: a module to perform instantaneous convective adjustment;
+                                       瞬時型の対流調節を行うためのモジュール 
+    SGSSlowConvAdjust_mod.f90       :: a module to perform convective adjustment in which time scale is considered; 
+                                       時定数を考慮した対流調節を行うためのモジュール
+    DOGCM_VPhys_driver_mod.f90　　　 :: a driver module for subroutines to calculate vertical mixing (but we should perform refactoring); 
+                                       鉛直混合を計算するサブルーチンに対するドライバーモジュール (現状, 整理が不十分) 
+  
+
+- tint/       :: Temporal integration; 時間積分
+  Makefile.am :: a file necessary to generate a Makefile for this directory
+          本ディレクトリに対する Makefile の生成に必要なファイル
+  DOGCM_TInt_common_mod.f90  :: a module providing subroutines commonly used in order to integrate governing equations
+                                by 1 stage of temporal scheme; 
+                                支配方程式系を時間スキームの 1 stage 分だけ時間積分するために共有して用いられるサブルーチンを提供するモジュール
+  DOGCM_TInt_LFAM3_mod.f90   :: a module used to integrate baroclinic system with LF-AM3 scheme. 
+                                At present, we assume that this temporal method is fundamentally used; 
+                                LF-AM3 スキームを用いて傾圧方程式系を時間積分するために使用されるモジュール. 
+                                現状, これを主に使用することを想定している. 
+  DOGCM_TInt_driver_mod.f90  :: a driver module for calling above subroutines to evolve governing equations
+                                支配方程式系の時間発展を行う上記のサブルーチンを呼び出すためのドライバーモジュール
+
+
+
+(The following is a sea-ice model contained in dogcm.)
+(以下は, dogcm に同梱している海氷モデル)
+
+- seaice/
+  Makefile.am :: a file necessary to generate a Makefile for this directory
+                 本ディレクトリに対する Makefile の生成に必要なファイル
+  DSIceDef.h          :: Definition of symbolic constants for debug; 
+                         デバック用の記号定数の定義
+  DSIce_main_mod.f90  :: a module providing simple interfaces for setup, time stepping and shutdown of sea-ice model. 
+                         海氷モデルの初期化, 時間進展, 終了処理を手軽に行うためのインターフェイスを提供するモジュール. 
+  
+  - admin/     :: Mangement for parameters and variables in sea-ice model; 海氷モデルのパラメータ・変数の管理
+    DSIce_Admin_Constants_mod.f90    :: Setting of physical constants (This will be moved to $(TOP_DIR)/libsrc/); 
+                                        物理定数 (将来的には $(TOP_DIR)/libsrc/ 以下に移動)
+    DSIce_Admin_GaussSpmGrid_mod.f90 :: A module to construct horizontal gaussian grid (This will be moved to $(TOP_DIR)/libsrc/);
+                                        水平ガウス格子を構築するためのモジュール (将来的には $(TOP_DIR)/libsrc/ 以下に移動)
+    DSIce_Admin_GridDef_mod.f90      :: Management of constants for grid system; 格子系に関する定数を管理
+    DSIce_Admin_Grid_mod.f90         :: Setting of grid system; 格子系の設定 
+    DSIce_Admin_GovernEq_mod.f90     :: Setting of governing equations; 支配方程式系の設定
+    DSIce_Admin_Variable_mod.f90     :: Setting of governing equations; 支配方程式系の設定
+    DSIce_Admin_TInteg_mod.f90       :: Setting of time integration method; 時間積分法の設定
+  
+  
+  - io/         :: Input and Output of data; データの入出力
+    DSIce_IO_History_mod.f90 :: input and output of history files; ヒストリファイルの入出力
+    DSIce_IO_Restart_mod.f90 :: input and output of restart files; リスタートファイルの入出力
+  
+    
+  - boundary/   :: Management for boundary data; 境界データの管理
+    DSIce_Boundary_Vars_mod.f90       :: management of variables associated with boundary data; 
+                                         境界データと関連した変数の管理
+    DSIce_Boundary_common_mod.f90     :: a module providing subroutines commonly used to calculate 
+                                         sea-ice surface and bottom fluxes; 
+                                         海氷の表面や底面でのフラックスを計算するために共通して用いられる
+                                         サブルーチンを提供するモジュール
+    DSIce_Boundary_SfcAlbedo_mod.f90  :: a module to give sea-ice surface albedo; 
+                                         海氷面のアルベドを与えるためのモジュール
+    DSIce_Boundary_driver_mod.f90
+  
+    
+  - dynamics/   :: Dynamical process; 力学過程
+    DSIce_Dyn_fvm_mod.f90       :: a module to evaluate some terms associated with horizontal transport using a finite volume method; 
+                                   水平輸送と関係した項を有限体積法を用いて評価するためのモジュール 
+    DSIce_Dyn_driver_mod.f90    :: a driver module for calling some subroutines in dynamical process;
+                                   力学過程のサブルーチンを呼び出すためのドライバーモジュール
+    
+  
+  - thermodyn/  :: Thermodynamics process; 熱力学過程
+    DSIce_ThermoDyn_Winton2000_mod.f90 :: a module to calculate vertical thermal diffusion in sea-ice 
+                                          based on a 3-layers model according to Winton (2000). 
+                                          Winton (2000) の3 層モデルに基づいて, 海氷の鉛直熱拡散を計算を行うためのモジュール
+  
+  - tint/       :: Temporal integration; 時間積分
+    DSIce_TInt_common_mod.f90 :: a module providing subroutines commonly used in order to integrate governing equations
+                                 by 1 stage of temporal scheme; 
+                                  支配方程式系を時間スキームの 1 stage 分だけ時間積分するために共有して用いられるサブルーチンを提供するモジュール
+    DSIce_TInt_driver_mod.f90:: a driver module for calling above subroutines to evolve governing equations
+                                支配方程式系の時間発展を行う上記のサブルーチンを呼び出すためのドライバーモジュール
+
+----------------------------------------------------------------------------------
+

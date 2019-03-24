@@ -22,7 +22,7 @@ Models
       - horizontal discretization: a spectral Eulerian method based spherical harmonics 
       - vertical discretization: a finite volume method
       - time discretization
-        - a LF-AM3 scheme (Shchepetkin and McWillams, 2005) for advective process
+        - a LF-AM3 scheme (Shchepetkin and McWilliams, 2005) for advective process
 	- a leapfrog scheme for fast wave process and vertical diffusive process,
 	  a backward Euler scheme for lateral diffusive process
   - Sea ice component
@@ -34,20 +34,13 @@ Models
     
 * Experimental models
   - Global shallow water model with a finite volume method (globalSWM-FVM)
-    - The grid sysyem is triangle - hexagonal grid, and the governing equations are
-      discritized with TRiSK proposed by Ringler et al. (2010).
+    - The grid sysyem is triangle - hexagonal grid, and the governing equations are discretized with TRiSK proposed by Ringler et al. (2010).
 
-  - Global shallow water model with a discontineous Galerkin method (globalSWM-DG)
-    - The model mesh is spherical triangle mesh, and the governing equation are
-      discritized with a DG method proposed by Läuter et al. (2008).
-
-Main developers
------------------------------------------------------------------------------------------
-
-  - Yuta Kawai (Kobe university and RIKEN R-CCS) and the collaborators in GFD-Dennou Club
+  - Global shallow water model with a discontinuous Galerkin method (globalSWM-DG)
+    - The model mesh is spherical triangle mesh, and the governing equation are discretized with a DG method proposed by Läuter et al. (2008).
 
 
-Some informations
+Some information
 -----------------------------------------------------------------------------------------
 
 - About installation
@@ -56,6 +49,15 @@ Some informations
 - About license
   - Please see COPYRIGHT in the top directory.
   
+- About what is contained in each directory
+  - Please see DIR_LIST in the top directory. 
+
+
+Main developers
+-----------------------------------------------------------------------------------------
+
+  - Yuta Kawai (Kobe university and RIKEN R-CCS) and the collaborators in GFD-Dennou Club
+
 
 Some links associated with this project
 -----------------------------------------------------------------------------------------
@@ -66,9 +68,10 @@ Some links associated with this project
   - https://www.gfd-dennou.org/arch/dcpam/index.htm.en
 - DCPCM: Dennou-Club Planetary Climate Model
   - https://github.com/gfd-dennou-club/Dennou-CCM
-
+- DCPOM-DG: Experimental OGCM with a discontinuous galerkin method 
+  - https://github.com/ywkawai/DCPOM-DG
 
 Acknowledgments
 -----------------------------------------------------------------------------------------
 
-- Y, Kawai is receiving partial support from the Junior Research Associate (JRA) program on RIKEN (FY2015-FY2017). 
+- Yuta Kawai received partial support from the Junior Research Associate (JRA) program on RIKEN (FY2015-FY2017). 

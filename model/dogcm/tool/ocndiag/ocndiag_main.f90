@@ -56,7 +56,9 @@ program ocndiag_main
        
   use DOGCM_Admin_Constants_mod
   use DOGCM_Admin_BC_mod
-  use DOGCM_Admin_TInteg_mod
+  use DOGCM_Admin_TInteg_mod, only: &
+    & DOGCM_Admin_TInteg_Init, DOGCM_Admin_TInteg_Final, &
+    & CurrentTime, TIMELV_ID_N, TIMELV_ID_A
   use DOGCM_Admin_Variable_mod
   use DOGCM_Admin_GovernEq_mod
   use DOGCM_Admin_Variable_mod
@@ -64,8 +66,7 @@ program ocndiag_main
   use DOGCM_Boundary_driver_mod
   use DOGCM_Boundary_vars_mod
   use DOGCM_TInt_driver_mod, only: &
-       & DOGCM_TInt_driver_Init, DOGCM_TInt_driver_Final, &
-       & CurrentTime
+       & DOGCM_TInt_driver_Init, DOGCM_TInt_driver_Final
 
   use DSIce_Admin_Constants_mod
   use DSIce_Admin_GovernEq_mod

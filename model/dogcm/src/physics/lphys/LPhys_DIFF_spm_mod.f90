@@ -170,7 +170,7 @@ contains
     write(*,*) "total wavenumber | SSVFilter(MOM) | SSVFilter(TRC) | Filter for dealiasing"
     do l=1, lMax
        nm(:) = nm_l(l)
-       write(*,'(i,3(ES15.7))') nm(1),  &
+       write(*,'(i5,3(ES15.7))') nm(1),  &
             & 1d0/(1d0 - 43200d0*w_HViscCoefH(l)), 1d0/(1d0 - 43200d0*w_HDiffCoefH(l)), &
             & w_Filter(l)
     end do

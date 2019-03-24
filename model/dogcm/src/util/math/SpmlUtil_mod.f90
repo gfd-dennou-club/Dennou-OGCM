@@ -27,9 +27,9 @@ module SpmlUtil_mod
   !* SPMODEL
   !
 
-#ifdef DSOGCM_MODE_AXISYM
+#ifdef DOGCM_MODE_AXISYM
 
-#ifdef DSOGCM_USE_SJPACK
+#ifdef DOGCM_USE_SJPACK
   use wa_zonal_module_sjpack
 #else
   use wa_zonal_module
@@ -37,7 +37,7 @@ module SpmlUtil_mod
 
 #else
 
-#ifdef DSOGCM_USE_SJPACK
+#ifdef DOGCM_USE_SJPACK
   use wa_module_sjpack
 #else
   use wa_module
@@ -207,7 +207,7 @@ contains
     im = iMax; jm = jMax; km = kMax;
     nm = nMax; tm = tMax;
 
-#ifdef DSOGCM_MODE_AXISYM
+#ifdef DOGCM_MODE_AXISYM
     lm = nm + 1
 #else
     lm = (nm + 1)*(nm + 1)

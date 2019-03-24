@@ -78,7 +78,8 @@ contains
     call DOGCM_IO_History_RegistVar( 'IsoDiffHT', 'JT', 'heat transport(isopycnal diffusion contribution)', 'PW' )
     call DOGCM_IO_History_RegistVar( 'OcnHT', 'JT', 'total heat transport(ocean)', 'PW' )    
     call DOGCM_IO_History_RegistVar( 'OcnHT_conv', 'JT', 'convergence of total heat transport(ocean)', 'W/m2' )    
-    call DOGCM_IO_History_RegistVar( 'NumDiffTend', 'JT', 'tendency of ocean heat energy due to horizontal numerical filter', 'W/m2' )
+    call DOGCM_IO_History_RegistVar( 'NumDiffTend', 'JT', &
+      & 'tendency of ocean heat energy due to horizontal numerical filter', 'W/m2' )
 
     call DOGCM_IO_History_RegistVar( 'SIceHT', 'JT', 'heat transport(sea ice)', 'PW' )
 

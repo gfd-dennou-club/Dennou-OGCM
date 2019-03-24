@@ -2,7 +2,7 @@
 \input{version}
 \title{{\LARGE Dennou-Clube Planetary Ocean Model \\
               (DCPOM version \version) \\
-               支配方程式系とその離散化手法 }}
+               ユーザーガイド}}
 \author{河合 佑太}
 \date{\today}
 
@@ -17,6 +17,7 @@
 \usepackage{url}
 \usepackage{pxjahyper}
 \usepackage{comment}
+\usepackage{alltt}
 
 \hypersetup{% options for hyperref
  bookmarksopen=true,
@@ -80,20 +81,25 @@
 \maketitle
 \tableofcontents
 
-\chapter{はじめに}
+\chapter{はじめに}\label{intro}
 \input{introduction}
 
-\chapter{海洋大循環モデル}
-\input{ogcm/OGCM_description}
+\chapter{インストール}\label{install}
+\input{install}
 
-\chapter{海氷モデル}
-\input{sice/SICE_description}
+\chapter{チュートリアル}\label{tutorial}
+%\input{introduction}
 
+\chapter{詳細設定}\label{setting_detail}
 
 %% 参考文献
 \renewcommand{\bibname}{参考文献}
 \markright{参考文献} %  節の題名を書
 \bibliography{reference}
+
+\begin{appendix}
+  \chapter{よくある質問}  
+\end{appendix}
 
 \end{document}
 

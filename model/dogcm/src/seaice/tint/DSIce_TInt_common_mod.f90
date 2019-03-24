@@ -295,7 +295,7 @@ contains
              write(*,*) "BtmHFlxIO=", xy_BtmHFlxIO(i,j), "FreshWtFlxS=", -xy_Wice(i,j)/DensFreshWater
              write(*,*) "***********************************************************************************"
           end if
-#endif !<- DEBUG_SEAICE
+#endif
            
        end do
     end do
@@ -447,7 +447,7 @@ contains
              write(*,*) "SfcHFlx=", xy_SfcHFlxAI(i,j), "DSfcHFlxDTs=", xy_DSfcHFlxAIDTs(i,j)
              write(*,*) "PenSDRFlx=", xy_PenSDRFlx(i,j), "BtmHFlx0=", xy_BtmHFlxIO(i,j)
           end if
-#endif  ! <- DEBUG_SEAICE             
+#endif             
 
           call DSIce_ThermoDyn_Winton2000_CalcIceTemp( &
                & xy_SIceSfcTempA(i,j), z_SIceTempA(KS:KE),            & ! (out)
@@ -477,7 +477,7 @@ contains
                   & )
              write(*,*) "(SfcResHFlx + BtmResHFlx)*dt=", dt*(SfcResHFlx + BtmResHFlx), dt*SfcResHFlx, dt*BtmResHFlx
           end if
-#endif ! <- DEBUG_SEAICE
+#endif
 !!$          xy_TmpNetHFlx(i,j) = dt*( &
 !!$               &   (xy_SfcHFlxAI(i,j) + xy_DSfcHFlxAIDTs(i,j)*(xy_SIceSfcTempA(i,j) - xy_SIceSfcTemp0(i,j))) &
 !!$               & - xy_BtmHFlxIO(i,j)                                                                         &
@@ -524,7 +524,7 @@ contains
                   & + excessMeltEn
              write(*,*) "-------------------------"
           end if
-#endif ! <- DEBUG_SEAICE
+#endif
 
           !---------------------------
 
@@ -553,7 +553,7 @@ contains
                   & + excessMeltEn
              write(*,*) "-------------------------"
           end if
-#endif ! <- DEBUG_SEAICE
+#endif
 
           !---------------------------
 
@@ -637,7 +637,7 @@ contains
           write(*,*) "BtmHFlxIOA=", xy_BtmHFlxIO(i,j), "FreshWtFlxS=", -xy_Wice(i,j)/DensFreshWater
           write(*,*) "***********************************************************************************"
        end if
-#endif !<- DEBUG_SEAICE
+#endif
 
     end do
     end do
@@ -670,7 +670,7 @@ contains
     
 #ifdef DEBUG_SEAICE
     write(*,*) "----------------------------------"
-#endif !<- DEBUG_SEAICE
+#endif
 
   end subroutine DSIce_TInt_common_advance_ThermoDyn
 
@@ -786,7 +786,7 @@ contains
              write(*,*) "SfcHFlx=", xy_SfcHFlxAI(i,j), "DSfcHFlxDTs=", xy_DSfcHFlxAIDTs(i,j)
              write(*,*) "PenSDRFlx=", xy_PenSDRFlx(i,j), "BtmHFlx0=", xy_BtmHFlxIO(i,j)
           end if
-#endif  ! <- DEBUG_SEAICE             
+#endif             
           
           call DSIce_ThermoDyn_Winton2000_CalcIceTemp( &
                & xy_SIceSfcTempA(i,j), z_SIceTempA(KS:KE),            & ! (out)
@@ -816,7 +816,7 @@ contains
                   & )
              write(*,*) "(SfcResHFlx + BtmResHFlx)*dt=", dt*(SfcResHFlx + BtmResHFlx), dt*SfcResHFlx, dt*BtmResHFlx
           end if
-#endif ! <- DEBUG_SEAICE
+#endif
            
           !---------------------------
         
@@ -847,7 +847,7 @@ contains
                   & + excessMeltEn
              write(*,*) "-------------------------"
           end if
-#endif ! <- DEBUG_SEAICE
+#endif
 
           !---------------------------
 
@@ -876,7 +876,7 @@ contains
                   & + excessMeltEn
              write(*,*) "-------------------------"
           end if
-#endif ! <- DEBUG_SEAICE
+#endif
 
   
           z_SIceEnA(KS  ) = 0.5d0*IceThickA*DensIce*calc_E_IceLyr1(z_SIceTempA(KS  ),SaltSeaIce)
@@ -1002,7 +1002,7 @@ contains
           write(*,*) "BtmHFlxIOA=", xy_BtmHFlxIO(i,j), "FreshWtFlxS=", -xy_Wice(i,j)/DensFreshWater
           write(*,*) "***********************************************************************************"
        end if
-#endif !<- DEBUG_SEAICE
+#endif
   
     end do
     end do
@@ -1011,7 +1011,7 @@ contains
 
 #ifdef DEBUG_SEAICE
     write(*,*) "----------------------------------"
-#endif !<- DEBUG_SEAICE
+#endif
 
   end subroutine DSIce_TInt_common_advance_ThermoDyn2
   
@@ -1104,7 +1104,7 @@ contains
              write(*,*) "BtmHFlxIO=", xy_BtmHFlxIO(i,j), "FreshWtFlxS=", -xy_Wice(i,j)/DensFreshWater
              write(*,*) "***********************************************************************************"
           end if
-#endif !<- DEBUG_SEAICE
+#endif
              
           xy_SIceCon(i,j)         = 0d0
           xy_IceThick(i,j)        = 0d0

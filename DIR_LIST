@@ -1,0 +1,57 @@
+= Information about what is contained in each directory
+  各ディレクトリに何が含まれているかの情報
+
+ Note that Japanese and English are described in parallel. 
+
+----------------------------------------------------------------------------------
+
+DIR_LIST     :: this file; 本ファイル
+
+
+- libsrc/   :: A common library used in oceanic models shown below.
+               以下の海洋モデルで用いられる共通ライブラリ 
+  - math/  :: modules for linear algebra and coordinate conversion; 
+              線形代数や座標変換のためのモジュール群
+  - mesh/  :: modules which manage fundamental information about mesh and provide the generation of Voronoi mesh
+              メッシュの基本情報の管理や Voronoi メッシュ生成のためのモジュール群
+  - data/  :: modules which manage the field data; 
+              場のデータを管理するためのモジュール群
+  - fvm/   :: modules which provide some differential operators obtained by the discretization with finite volume methods such as TRisK; 
+              TRiSK 等の有限体積法から得られる微分演算子を提供するモジュール群
+  - mesh2/ :: modules which provide some meshes for spherical domain 
+              球面領域用のメッシュを提供するモジュール群
+  - io/ ::  modules to input and output field data managed by the modules in the directory 'data/'
+            ディレクトリ「data」内のモジュールが管理する場のデータの入出力を行うためのモジュール
+- test
+  - unitTests/   ::  a directory in which there are some test programs to check functions provided by common library. 
+                     共通ライブラリによって提供される関数を確認するためのテストプログラムを含むディレクトリ. 
+
+- model/
+  - dogcm/           :: a global oceanic general circulation model for simulating ocean planet climates
+                        海惑星気候計算用の全球海洋大循環モデル
+  - globalSWM-FVM/   :: Global shallow water model with a mimetic finite volume method, TRiSK (experimental model)
+                        mimetic 有限体積法の一つである TRiSK を用いた全球浅水モデル (試作品)
+  - globalSWM-DG/    :: Global shallow water model discretized by a discontinuous Galerkin method with triangle elements
+                        三角形要素を使用した不連続ガラーキン法によって離散化された全球浅水モデル (試作品)
+  - old/ :: a directory containing some models which recently have not been maintained. 
+            現在保守していない幾つかのモデルを含むディレクトリ
+              
+
+- tool/     :: Some tools for simulations with oceanic models shown above. 
+              上述した海洋モデルを用いたシミュレーションのための幾つかのツール. 
+  - gridGen/        :: a tool to generate the grid data used for globalSWM-FVM and globalSWM-DG
+                       globalSWM-FVM や globalSWM-DG で使用される格子データを生成するためのツール
+  - nc2vtkConvert/  :: a tool to convert NetCDF into vtk file format
+                       NetCDF から vtk 形式のファイルへ変換するためのツール
+
+- doc/      :: Some documents for above ocean models
+               上述した海洋モデルに対するドキュメント
+  - description/   :: description of model 
+                      モデルの記述
+  - user-guide/    :: user guide
+                      ユーザガイド 
+  - old/ :: a directory containing some documentations which recently have not been maintained. 
+            現在保守していない幾つかのドキュメントを含むディレクトリ
+
+- build-aux/, m4/ :: directories containing macro files used for generating "configure" file
+                     「configure」ファイルの生成に使用されるマクロファイルを含むディレクトリ

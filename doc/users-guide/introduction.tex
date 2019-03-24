@@ -6,17 +6,22 @@ Dennou-Club Planetary Ocean Model (DCPOM) として公開している%
 \footnote{
 \url{https://www.gfd-dennou.org/arch/index.htm}からソースコード等を取得できる. 
 }. 
-本書では, DCPOM に含まれる海洋モデルと海氷モデルの支配方程式系や離散化手法を記述する. モデルの概要, 設定方法, 実行方法については, DCPOM 取り扱い説明書(\verb|doc/users-guide/dcpom_users-guide.pdf|)を参照されたい.  
+本書は, DCPOM に含まれる海洋モデルと海氷モデルの利用者に向けた取り扱い説明書であり, 
+DCPOM version \version \; に対応した説明を行う. 
+モデルの支配方程式系やその離散化手法の詳細については, 
+\verb|doc/description/dcpom_description.pdf|を参照されたい.  
 
-現状, 本書の記述と実際のコードが一致しない所もあるのでご了承頂きたい. 
-また, 本書で主に対象とするのは, \verb|${TOP_DIR}/model/dogcm|ディレクトリ中にある, 海洋大循環モデルと海氷モデルのコード(2018年10月2日版)である. 
-それ以外にも, 岸を取り扱うことを念頭にした海洋モデルの試作品(globalSWModel\_DG, globalSWModel\_FVM 等のディレクトリに対応)も存在するが, 
-これらのモデルの詳細は, 本書にはまだ記述できていない.  
+本書の構成は次の通りである. 
+第\ref{intro}章において, DCPOM の概要を示す. 
+第\ref{install}章において, インストール方法を説明する. 
+第\ref{tutorial}章において, DCPOM に含まれる海洋海氷モデルの基本的な使い方を, 
+理想実験のチュートリアルを通して説明する. 
+モデルの設定の変更方法などは, 第\ref{setting_detail}章で記述する. 
 
-\begin{comment}
+
 \section{DCPOM の概要}
-ここでは, DCPOM version \version \; (2018年10月2日版)の概要を記述する. 
 
+\subsection*{dogcm}
 本書で主に対象とするのは, \verb|${TOP_DIR}/model/dogcm|ディレクトリ中にある, 海洋大循環モデルと海氷モデルのコードである. 
 この海洋大循環モデルで表現される過程や, そこで用いられる数値解法の概要は以下である。
 \begin{itemize}
@@ -72,20 +77,12 @@ Dennou-Club Planetary Ocean Model (DCPOM) として公開している%
   \end{itemize}
 \end{itemize}
 
+\subsection*{その他の海洋モデル}
+
 なお, \verb|${TOP_DIR}/model|内には, 上記のモデルのディレクトリ(dogcm)以外にも, 
-「globalSWModel\_DG, globalSWModel\_FVM, ogcm」等のディレクトリが存在する. 
+「globalSWModel\_DG, globalSWModel\_FVM」等のディレクトリが存在する. 
 これらは, 以下のように岸が取り扱うことを念頭にした海洋モデルの試作品であるが, 
-これらのモデルの詳細は, 本書においてまだ記述できていない.  
-\end{comment}
+これらのモデルの詳細については, 本書にはまだ記述できていない.  
 
-\section{本書の構成}
-%%
-第\ref{ocn_model}章において, 海洋大循環モデルの支配方程式系と, 
-それらの離散化手法を記述する. 本章の最後に, 海洋モデルに与えるパラメータの設定例も示す. 
-第\ref{sice_model}章において, 海氷モデルの支配方程式系と, 
-それらの離散化手法を記述する. 本章の最後に, 海氷モデルに与えるパラメータの設定例も示す. 
 
-\section{注意点} 
-本書では, シェルとして「bash」を使用することを想定する. 
-実行環境に応じて, コマンドを適宜読み替えていただきたい. 
 
