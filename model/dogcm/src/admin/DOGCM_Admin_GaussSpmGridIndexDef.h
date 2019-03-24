@@ -1,4 +1,4 @@
-#ifdef DSOGCM_MODE_AXISYM
+#ifdef DOGCM_MODE_AXISYM
 #define _IMAX_ 1
 #define _IM_   1
 #else

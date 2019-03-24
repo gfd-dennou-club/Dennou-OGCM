@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 # Package name, version, email address for bug report
-AC_INIT([Dennou-OGCM],[1.0.1],[ykawai@gfd-dennou.org])
+AC_INIT([DCPOM],[1.0.1],[ykawai@gfd-dennou.org])
 
 # Set macro directory
 AC_CONFIG_MACRO_DIR([m4])
@@ -171,7 +171,7 @@ DC_ARG_WITH([lapack],
 if test x"$ac_cv_lib_lapack" !=  x"no" ; then
   DC_SET_LIBDIR_LIBNAME($ac_cv_lib_lapack, lapack_libdir, lapack_libname)
   SYSLDFLAGS="-L${lapack_libdir} ${SYSLDFLAGS}"
-  SYSLIBS="-l${lapack_libname} ${SYSLDLIBS}"
+  SYSLDLIBS="-l${lapack_libname} ${SYSLDLIBS}"
 elif test $ac_cv_lib_lapack = "no" ; then
   AC_MSG_NOTICE([Dennou-OGCM is configued without LAPACK library...])
 else
@@ -180,29 +180,29 @@ fi
 
 
 #
-# * dsogcm run mode
+# * dogcm run mode
 #
-DC_ARG_WITH([dsogcm-mode],
-            [dsogcm run mode],
-            [ac_cv_mode_dsogcm],
-            [ac_cv_mode_dsogcm="3D"])
+DC_ARG_WITH([dogcm-mode],
+            [dogcm run mode],
+            [ac_cv_mode_dogcm],
+            [ac_cv_mode_dogcm="3D"])
 
 #
-dsogcm_mode_axisym=false
-dsogcm_mode_3D=false
+dogcm_mode_axisym=false
+dogcm_mode_3D=false
 
-case $ac_cv_mode_dsogcm in
+case $ac_cv_mode_dogcm in
 AXISYM)
-        SYSFFLAGS="${SYSFFLAGS} -DDSOGCM_MODE_AXISYM"
-	dsogcm_mode_axisym=true
+        SYSFFLAGS="${SYSFFLAGS} -DDOGCM_MODE_AXISYM"
+	dogcm_mode_axisym=true
 	;;
 *)
-	dsogcm_mode_3D=true
+	dogcm_mode_3D=true
 	;;
 esac
 
-AM_CONDITIONAL(DSOGCM_AXISYM, test x$dsogcm_mode_axisym = xtrue)
-AM_CONDITIONAL(DSOGCM_3D, test x$dsogcm_mode_3D = xtrue)
+AM_CONDITIONAL(DOGCM_AXISYM, test x$dogcm_mode_axisym = xtrue)
+AM_CONDITIONAL(DOGCM_3D, test x$dogcm_mode_3D = xtrue)
 
 #
 # * --enable-sjpack
@@ -213,7 +213,7 @@ DC_ARG_ENABLE([sjpack],
 
 case $ac_cv_sjpack in
 yes)
-        SYSFFLAGS="${SYSFFLAGS} -DDSOGCM_USE_SJPACK"
+        SYSFFLAGS="${SYSFFLAGS} -DDOGCM_USE_SJPACK"
 	;;
 no)
 	;;
@@ -266,6 +266,24 @@ AC_SUBST(SYSLDFLAGS)
 AC_SUBST(SYSFFLAGS)
 
 
+# * Check w3m
+AC_CHECK_PROGS([ac_cv_w3m], [w3m], [no])
+if test x"$ac_cv_w3m" = x"no" ; then
+  AC_MSG_NOTICE([Specify w3m command if you want to update documents.])
+else
+  AC_SUBST(W3M, ${ac_cv_w3m})
+fi
+AM_CONDITIONAL([NO_W3M],[test x"$ac_cv_w3m" = x"no"])
+
+# * Check rd
+AC_CHECK_PROGS([ac_cv_rd2], [rd2], [no])
+if test x"$ac_cv_rd2" = x"no" ; then
+  AC_MSG_NOTICE([Specify rd2 command if you want to update documents.])
+else
+  AC_SUBST(RD2, ${ac_cv_rd2})
+fi
+AM_CONDITIONAL([NO_RD2],[test x"$ac_cv_rd2" = x"no"])
+
 #---
 
 # * Calling libtool
@@ -285,46 +303,30 @@ LT_INIT
 #== Output file settings
 #
 AC_CONFIG_FILES([
-                 Makefile
-                 libsrc/Makefile
-		 libsrc/math/Makefile
-                 libsrc/data/Makefile
-		 libsrc/mesh/Makefile
-		 libsrc/fvm/Makefile
-		 libsrc/mesh2/Makefile
-		 libsrc/io/Makefile
-		 test/Makefile
-		 test/unitTests/Makefile
-		 tool/Makefile
-		 model/globalSWModel_FVM/Makefile
-		 model/globalSWModel_DG/Makefile
-		 model/ogcm/Makefile
-		 model/ogcm/setup/Makefile
-		 model/ogcm/util/Makefile
-		 model/ogcm/dynamics/Makefile
-		 model/sogcm/Makefile
-		 model/sogcm/util/Makefile
-		 model/sogcm/setup/Makefile
-		 model/sogcm/governeq_driver/Makefile		 
-		 model/sogcm/boundary_cond/Makefile		 
-		 model/sogcm/dynamics/Makefile
-		 model/sogcm/sgs_param/Makefile
-		 model/sogcm/physics_driver/Makefile
-		 model/sogcm/seaice/Makefile
-		 model/sogcm/io/Makefile		 
-		 model/sogcm/experiment/Makefile
-		 model/sogcm/unit_test/Makefile
-		 model/sogcm/tool/Makefile
-		 model/dogcm/Makefile
-		 model/dogcm/src/Makefile
-		 model/dogcm/src/util/Makefile
-		 model/dogcm/src/seaice/Makefile		 
-		 model/dogcm/src/admin/Makefile		 
-		 model/dogcm/src/boundary/Makefile
-		 model/dogcm/src/io/Makefile
-		 model/dogcm/src/dynamics/Makefile
-		 model/dogcm/src/physics/Makefile
-		 model/dogcm/src/tint/Makefile
+    Makefile
+    libsrc/Makefile
+    libsrc/math/Makefile
+    libsrc/data/Makefile
+    libsrc/mesh/Makefile
+    libsrc/fvm/Makefile
+    libsrc/mesh2/Makefile
+    libsrc/io/Makefile
+    test/Makefile
+    test/unitTests/Makefile
+    tool/Makefile
+    model/globalSWModel_FVM/Makefile
+    model/globalSWModel_DG/Makefile
+    model/dogcm/Makefile
+    model/dogcm/src/Makefile
+    model/dogcm/src/util/Makefile
+    model/dogcm/src/seaice/Makefile
+    model/dogcm/src/admin/Makefile
+    model/dogcm/src/boundary/Makefile
+    model/dogcm/src/io/Makefile
+    model/dogcm/src/dynamics/Makefile
+    model/dogcm/src/physics/Makefile
+    model/dogcm/src/tint/Makefile
+    doc/Makefile
 ])
 
 AC_OUTPUT

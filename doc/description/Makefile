@@ -14,11 +14,10 @@ LATEX    = platex
 BIBTEX   = bibtex
 DVIPDF   = dvipdfmx -p a4
 CURL     = curl -f -s -S --create-dirs
-EXTRABB  = extrabb
+EXTRACTBB  = extractbb
 VERSION  = $(shell cat ../../VERSION)
-IMAGE_URL = http://www.gfd-dennou.org/dcpom1/doc_figs/description
-IMAGE_PATH = $(IMAGE_URL)/$(VERSION)$(if $(shell git branch --contains 2>/dev/null|grep -v master|grep -v release),-devel)
-
+IMAGE_URL = http://www.gfd-dennou.org/arch/dcpom/doc_figs
+IMAGE_PATH = $(IMAGE_URL)/DCPOM_v$(VERSION)/description
 
 IMAGE_OGCM_BASENAME = $(shell grep includegraphics ogcm/*tex | ruby -n -e '/^\s*\\includegraphics.*\{(.+)\}/ =~ $$_.split(":")[1] && print(/\A([^.]+)(\..+)?\Z/=~File.basename($$1) && $$1+($$2 || ".eps"),"\n")')
 IMAGE_SICE_BASENAME = $(shell grep includegraphics sice/*tex | ruby -n -e '/^\s*\\includegraphics.*\{(.+)\}/ =~ $$_.split(":")[1] && print(/\A([^.]+)(\..+)?\Z/=~File.basename($$1) && $$1+($$2 || ".eps"),"\n")')
@@ -42,12 +41,6 @@ SRCS = ${TARGET}.tex \
 	
 
 all: ${TARGET}.pdf
-
-update_images:
-	$(if $(IMAGE_URL),,$(error IMAGE_URL is empty))
-	for image in $(IMAGES) ; do \
-	  $(CURL) $(IMAGE_PATH)/`basename $$image` -z $$image -o $$image; \
-	done
 
 clean:
 	rm -f ${TARGET}.aux ${TARGET}.bbl ${TARGET}.blg ${TARGET}.dvi ${TARGET}.log ${TARGET}.out ${TARGET}.toc
@@ -74,10 +67,10 @@ $(VERFNAME): $(VERTEMPL)
 	
 ogcm/figs/%.png:
 	$(if $(IMAGE_URL),,$(error IMAGE_URL is empty))
-	$(CURL) $(IMAGE_PATH)/ogcm/`basename $@` -o $@
-	$(EXTRABB) $@
+	$(CURL) C$(IMAGE_PATH)/ogcm/`basename $@` -o $@
+	$(EXTRACTBB) $@
 
 sice/figs/%.png:
 	$(if $(IMAGE_URL),,$(error IMAGE_URL is empty))
 	$(CURL) $(IMAGE_PATH)/sice/`basename $@` -o $@
-	$(EXTRABB) $@
+	$(EXTRACTBB) $@

@@ -196,14 +196,14 @@ contains
     kMax = KM 
     tMax = kMax
 
-#ifdef DSOGCM_MODE_AXISYM
+#ifdef DOGCM_MODE_AXISYM
     if (iMax /= 1) then
        call MessageNotify("E", module_name, &
-            & "The number of grid points in longitude must be 1 in DSOGCM_MODE_AXISYM")
+            & "The number of grid points in longitude must be 1 in DOGCM_MODE_AXISYM")
     end if
 #endif
 
-#ifdef DSOGCM_MODE_AXISYM
+#ifdef DOGCM_MODE_AXISYM
     if (nMax == -1) nMax = ( 2*jMaxGlobe - 1 )/ 3
     lMax = nMax + 1 
 #else

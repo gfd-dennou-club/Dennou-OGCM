@@ -351,7 +351,7 @@ contains
             & "melt excessMeltEn=", excessMeltEn
        dhsMelt = 0d0; dh1Melt = 0d0; dh2Melt = 0d0
     end if
-#endif ! <- DEBUG_SEAICE
+#endif
     
     if ( BtmResHFlx > 0d0 ) then
 
@@ -407,7 +407,7 @@ contains
        write(*,*) "(bottom) dhsMelt=", dhsMelt, ", dh1Melt=", dh1Melt, ", dh2Melt=", dh2Melt, &
             & "melt excessMeltEn=", excessMeltEn
     end if
-#endif ! <- DEBUG_SEAICE
+#endif
 
     !-- SnowFall & Evaporation ------------------------------------------------------
 
@@ -424,7 +424,7 @@ contains
     if (debugFlag) then
        write(*,*) "(Surface) SnowFall [kg]:", SnowFall*dt
     end if
-#endif ! <- DEBUG_SEAICE
+#endif
 
     !* evaporation
     work = work + Evap*dt
@@ -472,9 +472,8 @@ contains
        write(*,*) " ExcessMeltEn =", ExcessMeltEn
        
     end if
-#endif ! <- DEBUG_SEAICE
-
-       
+#endif
+ 
   end subroutine DSIce_ThermoDyn_Winton2000_CalcLyrMassChange
 
   !-----------------------------------------------

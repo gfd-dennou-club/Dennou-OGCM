@@ -9,7 +9,7 @@
 !!
 program ogcm_main
 
-  ! ¥â¥¸¥å¡¼¥ë°úÍÑ; Use statement
+  ! ï¿½â¥¸ï¿½å¡¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½; Use statement
   !
 
   !* gtool5
@@ -50,12 +50,12 @@ program ogcm_main
        & ProfUtil_RapStart, ProfUtil_RapEnd,   &
        & ProfUtil_RapReport
   
-  ! Àë¸ÀÊ¸; Declaration statement
+  ! ï¿½ï¿½ï¿½ï¿½Ê¸; Declaration statement
   !
   implicit none
 
 
-  ! ¶É½êÊÑ¿ô
+  ! ï¿½É½ï¿½ï¿½Ñ¿ï¿½
   ! Local variables
   !
 
@@ -75,7 +75,7 @@ program ogcm_main
 
   !---------------------------------------------------------------------------------------------
   
-  ! ¼Â¹ÔÊ¸; Executable statement
+  ! ï¿½Â¹ï¿½Ê¸; Executable statement
   !
 
   call MessageNotify("M", PROGRAM_NAME, "Start..")
@@ -170,7 +170,7 @@ contains
   
   subroutine pass_field_ocn2sice()
 
-    ! ¥â¥¸¥å¡¼¥ë°úÍÑ; Use statements
+    ! ï¿½â¥¸ï¿½å¡¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½; Use statements
     !
     
     use DSIce_main_mod, only: &
@@ -205,7 +205,7 @@ contains
 !!$    
     real(DP) :: xy_SfcTemp(IA,JA)
     
-    ! ¼Â¹ÔÊ¸; Executable statement
+    ! ï¿½Â¹ï¿½Ê¸; Executable statement
     !
 
 !!$    xy_SfcTemp(:,:) = xyzaa_TRC(:,:,KS,TRCID_PTEMP,TIMELV_ID_N)
@@ -235,7 +235,7 @@ contains
   
   subroutine pass_field_sice2ocn()
 
-    ! ¥â¥¸¥å¡¼¥ë°úÍÑ; Use statements
+    ! ï¿½â¥¸ï¿½å¡¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½; Use statements
     !
     
     use DOGCM_main_mod, only: &
@@ -260,13 +260,13 @@ contains
          & xy_BtmHFlxIO, xy_FreshWtFlxS
 
     
-    ! ¶É½êÊÑ¿ô
+    ! ï¿½É½ï¿½ï¿½Ñ¿ï¿½
     ! Local variables
     !
 
     real(DP) :: xy_BtmHFlxIO_sr(IA,JA)
     
-    ! ¼Â¹ÔÊ¸; Executable statement
+    ! ï¿½Â¹ï¿½Ê¸; Executable statement
     !
 
     xy_BtmHFlxIO_sr(:,:) = 0d0
@@ -285,45 +285,45 @@ contains
   
   subroutine read_nmlData( configNmlFileName )
 
-    ! ¥â¥¸¥å¡¼¥ë°úÍÑ; Use statement
+    ! ï¿½â¥¸ï¿½å¡¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½; Use statement
     !
 
-    ! ¥Õ¥¡¥¤¥ëÆþ½ÐÎÏÊä½õ
+    ! ï¿½Õ¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     ! File I/O support
     !
     use dc_iounit, only: FileOpen
 
-    ! ¼ïÊÌ·¿¥Ñ¥é¥á¥¿
+    ! ï¿½ï¿½ï¿½Ì·ï¿½ï¿½Ñ¥ï¿½ï¿½á¥¿
     ! Kind type parameter
     !
-    use dc_types, only: STDOUT ! É¸½à½ÐÎÏ¤ÎÁõÃÖÈÖ¹æ. Unit number of standard output
+    use dc_types, only: STDOUT ! É¸ï¿½ï¿½ï¿½ï¿½ï¿½Ï¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½. Unit number of standard output
 
     !
     use dc_string, only: Split, Replace, StrInclude
 
-    ! Àë¸ÀÊ¸; Declaration statement
+    ! ï¿½ï¿½ï¿½ï¿½Ê¸; Declaration statement
     !
     character(*), intent(in) :: configNmlFileName
 
-    ! ¶É½êÊÑ¿ô
+    ! ï¿½É½ï¿½ï¿½Ñ¿ï¿½
     ! Local variables
     !
-    integer:: unit_nml        ! NAMELIST ¥Õ¥¡¥¤¥ë¥ª¡¼¥×¥óÍÑÁõÃÖÈÖ¹æ. 
+    integer:: unit_nml        ! NAMELIST ï¿½Õ¥ï¿½ï¿½ï¿½ï¿½ë¥ªï¿½ï¿½ï¿½×¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½. 
     ! Unit number for NAMELIST file open
 
-    integer:: iostat_nml      ! NAMELIST ÆÉ¤ß¹þ¤ß»þ¤Î IOSTAT. 
+    integer:: iostat_nml      ! NAMELIST ï¿½É¤ß¹ï¿½ï¿½ß»ï¿½ï¿½ï¿½ IOSTAT. 
     ! IOSTAT of NAMELIST read
     
-    ! NAMELIST ÊÑ¿ô·²
+    ! NAMELIST ï¿½Ñ¿ï¿½ï¿½ï¿½
     ! NAMELIST group name
     !
     namelist /dogcm_nml/ &
          & OCN_do, SIce_do
 
 
-    ! ¼Â¹ÔÊ¸; Executable statements
+    ! ï¿½Â¹ï¿½Ê¸; Executable statements
 
-    ! ¥Ç¥Õ¥©¥ë¥ÈÃÍ¤ÎÀßÄê
+    ! ï¿½Ç¥Õ¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¤ï¿½ï¿½ï¿½ï¿½ï¿½
     ! Default values settings
     !
 
@@ -331,7 +331,7 @@ contains
     SICE_do = .true.
     
     
-    ! NAMELIST ¤«¤é¤ÎÆþÎÏ
+    ! NAMELIST ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     ! Input from NAMELIST
     !
     if ( trim(configNmlFileName) /= '' ) then
@@ -352,7 +352,7 @@ contains
     
     
 
-    ! °õ»ú ; Print
+    ! ï¿½ï¿½ï¿½ï¿½ ; Print
     !
     call MessageNotify( 'M', PROGRAM_NAME, '----- Initialization Messages -----' )
     call MessageNotify( 'M', PROGRAM_NAME, '< DOGCM components             >')

@@ -113,7 +113,7 @@ DOGCM_Exp_driver.f90 :: driver module for each numerical experiment;
 
 - dynamics/   :: Dynamical core; 力学コア
   
-  Makefile.am :: a file necessary to generate a Makefile for this directory  (referred to as ``hspm-vfvm'')
+  Makefile.am :: a file necessary to generate a Makefile for this directory  (referred to as “hspm-vfvm”)
               本ディレクトリに対する Makefile の生成に必要なファイル
   DOGCM_Dyn_driver_mod.f90 :: a driver module to call below subroutines to calculate tendencies with dynamical process. 
                               力学過程に伴う時間変化率を計算する以下のサブルーチンを呼び出すためのドライバーモジュール
@@ -128,7 +128,7 @@ DOGCM_Exp_driver.f90 :: driver module for each numerical experiment;
     DOGCM_Dyn_hspm_vfvm_mod.f90   :: a driver module for subroutines in hspm-vfvm
                                     hspm-vfvm 中のサブルーチンのためのドライバーモジュール
   
-  - hspm_vspm/                 :: horizontal: spectral method, vertical: spectral method  (referred to as ``hspm-vspm'')
+  - hspm_vspm/                 :: horizontal: spectral method, vertical: spectral method  (referred to as “hspm-vspm”)
     HBEBarot_spm_mod.f90          :: a module to calculate terms in barotropic equations
                                      順圧方程式に含まれる項を計算するためのモジュール
     HBEBaroc_spm_mod.f90          :: a module to calculate terms in baroclinic equations
