@@ -161,6 +161,12 @@ contains
 
   end subroutine DOGCM_Exp_SetInitCond
   
+  subroutine DOGCM_Exp_Do()
+
+  end subroutine DOGCM_Exp_Do
+  
+  !-------------------------------------------------------------
+  
   function construct_WindStressU_Marshall07(xy_lat) result(windStressU)
     real(DP), intent(in) :: xy_lat(:,:)
     real(DP) :: windStressU(size(xy_lat,1), size(xy_lat,2))

@@ -82,9 +82,9 @@ contains
          & TIMELV_ID_N
     
     use DOGCM_Admin_Grid_mod, only: &
-         & iMax, jMax, kMax, nMax, lMax, &
-         & IS, IE, JS, JE, KS, KE,       &
-         & xyz_Lat, xyz_Lon, xy_Topo,    &
+         & iMax, jMax, kMax, nMax, lMax,       &
+         & IS, IE, IA, JS, JE, JA, KS, KE, KA, &
+         & xyz_Lat, xyz_Lon, xy_Topo,          &
          & DOGCM_Admin_Grid_UpdateVCoord, xyz_Z
 
     use DOGCM_Admin_Variable_mod, only: &
@@ -108,47 +108,47 @@ contains
     real(DP) :: z
     integer :: k
     real(DP) :: N2 
-    real(DP) :: wz_Chi(lMax,0:kMax)
+    real(DP) :: w_Chi(lMax)
     integer :: lpos
     real(DP) :: KEDensAvg0
-    real(DP) :: xyz_U(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_V(0:iMax-1,jMax,0:kMax)
-    real(DP) :: xyz_PTemp(0:iMax-1,jMax,0:kMax)
+    real(DP) :: xyz_U(IA,JA,KA)
+    real(DP) :: xyz_V(IA,JA,KA)
+    real(DP) :: xy_Uh(IA,JA)
+    real(DP) :: xy_Vh(IA,JA)
+    real(DP) :: xyz_PTemp(IA,JA,KA)
         
     ! 実行文; Executable statement
     !
-
+    
     call MessageNotify("M", module_name, "Set initial condition..")
 
-    N2 = BruntVaisFreq**2
+     N2 = BruntVaisFreq**2
 
-    xy_Topo = H0
-    xya_SSH(:,:,:) = 0d0
-    call DOGCM_Admin_Grid_UpdateVCoord( xyza_H(:,:,:,TIMELV_ID_N),  & ! (out)
+     xy_Topo = H0
+     xya_SSH(:,:,:) = 0d0
+     call DOGCM_Admin_Grid_UpdateVCoord( xyza_H(:,:,:,TIMELV_ID_N),  & ! (out)
          & xya_SSH(:,:,TIMELV_ID_N)                        & ! (in)
          & )
     
-    ! Set the initial perturbation of velociy field
-    lpos = l_nm(n, m)
-    wz_Chi = 0d0
-    wz_Chi(lpos,:) = 1d0
-    wz_Chi(lpos,:) = wz_Chi(lpos,:)/sqrt(2d0)
-
-    xyz_U = xya_GradLon_wa(wz_Chi)/RPlanet
-    xyz_V = xya_GradLat_wa(wz_Chi)/RPlanet
+     ! Set the initial perturbation of velociy field
+     lpos = l_nm(n, m)
+     w_Chi(:)    = 0d0
+     w_Chi(lpos) = 1d0/sqrt(2d0)
+     xy_Uh(IS:IE,JS:JE) = xy_GradLon_w(w_Chi)/RPlanet
+     xy_Vh(IS:IE,JS:JE) = xy_GradLat_w(w_Chi)/RPlanet 
     
-    do k=0, kMax
-       xyz_U(:,:,k) = xyz_U(:,:,k)*cos(l*PI*xyz_Z(IS:IE,JS:JE,k)/H0)
-       xyz_V(:,:,k) = xyz_V(:,:,k)*cos(l*PI*xyz_Z(IS:IE,JS:JE,k)/H0)
-       xyz_PTemp(:,:,k) = RefTemp + N2/(ThermalExpanCoef*Grav) * xyz_Z(IS:IE,JS:JE,k)
-    end do
+     do k=KS, KE
+       xyz_U(:,:,k) = xy_Uh*cos(l*PI*xyz_Z(:,:,k)/H0)
+       xyz_V(:,:,k) = xy_Vh*cos(l*PI*xyz_Z(:,:,k)/H0)
+       xyz_PTemp(:,:,k) = RefTemp + N2/(ThermalExpanCoef*Grav) * xyz_Z(:,:,k)
+     end do
 
-    KEDensAvg0 = AvrLonLat_xy(xyz_U(:,:,1)**2 + xyz_V(:,:,1)**2)
-    xyza_U(IS:IE,JS:JE,KS:KE,TIMELV_ID_N) = sqrt(KEDensAvg/KEDensAvg0)*xyz_U
-    xyza_V(IS:IE,JS:JE,KS:KE,TIMELV_ID_N) = sqrt(KEDensAvg/KEDensAvg0)*xyz_V
-    xyzaa_TRC(IS:IE,JS:JE,KS:KE,TRCID_PTEMP,TIMELV_ID_N) = xyz_PTemp
+    KEDensAvg0 = AvrLonLat_xy(xyz_U(IS:IE,JS:JE,KS)**2 + xyz_V(IS:IE,JS:JE,KS)**2)
+    xyza_U(:,:,:,TIMELV_ID_N) = sqrt(KEDensAvg/KEDensAvg0)*xyz_U
+    xyza_V(:,:,:,TIMELV_ID_N) = sqrt(KEDensAvg/KEDensAvg0)*xyz_V
+    xyzaa_TRC(:,:,:,TRCID_PTEMP,TIMELV_ID_N) = xyz_PTemp
 
-  end subroutine DOGCM_Exp_SetInitCond
+end subroutine DOGCM_Exp_SetInitCond
 
   subroutine DOGCM_Exp_Do()
 

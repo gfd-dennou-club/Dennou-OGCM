@@ -492,7 +492,7 @@ contains
          & xyz_CoriU, xyz_CoriV,                         & ! (in)
          & xyz_Zero, xyz_Zero                            & ! (in)
          & )
-    
+   
     if ( alpha > 0d0 ) then
        !$omp parallel do private(i,j,k,CoriImplFac,U_RHSTmp) collapse(2)
        do k = KS, KE

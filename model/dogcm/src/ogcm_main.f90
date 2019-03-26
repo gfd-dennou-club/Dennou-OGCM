@@ -1,5 +1,5 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2016 Yuta Kawai. All rights reserved.
+! Copyright (c) 2013-2019 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
 !> @brief Main program of Dennou-OGCM. 
 !!
@@ -9,7 +9,7 @@
 !!
 program ogcm_main
 
-  ! �⥸�塼������; Use statement
+  ! モジュール引用; Use statement
   !
 
   !* gtool5
@@ -50,12 +50,12 @@ program ogcm_main
        & ProfUtil_RapStart, ProfUtil_RapEnd,   &
        & ProfUtil_RapReport
   
-  ! ����ʸ; Declaration statement
+  ! 宣言文; Declaration statement
   !
   implicit none
 
 
-  ! �ɽ��ѿ�
+  ! 局所変数
   ! Local variables
   !
 
@@ -75,7 +75,7 @@ program ogcm_main
 
   !---------------------------------------------------------------------------------------------
   
-  ! �¹�ʸ; Executable statement
+  !  実行文; Executable statement
   !
 
   call MessageNotify("M", PROGRAM_NAME, "Start..")
@@ -122,19 +122,27 @@ program ogcm_main
           
      !* Sea ice component ************
 !!$     call MessageNotify( 'M', PROGRAM_NAME, "SIce component tstep=%d", i=(/ tstep_sice /)) 
-     if (SICE_do) call sice_advance_timestep(tstep_sice, loop_end_flag_sice, skip_flag=.false.)
-     call pass_field_sice2ocn()
-     tstep_sice = tstep_sice + 1
-     
+     if (SICE_do) then
+       call sice_advance_timestep(tstep_sice, loop_end_flag_sice, skip_flag=.false.)
+       if (OCN_do) call pass_field_sice2ocn()
+       tstep_sice = tstep_sice + 1
+     else
+       loop_end_flag_sice = .true.
+     end if
+
      !* Ocean component ************
 !!$     call MessageNotify( 'M', PROGRAM_NAME, "OCN component tstep=%d", i=(/ tstep_ocn /))
-     if (OCN_do) call ogcm_advance_timestep(tstep_ocn, loop_end_flag_ocn, skip_flag=.false.)
-     call pass_field_ocn2sice()
-     tstep_ocn = tstep_ocn + 1
-
+     if (OCN_do) then
+       call ogcm_advance_timestep(tstep_ocn, loop_end_flag_ocn, skip_flag=.false.)
+       if (SICE_do) call pass_field_ocn2sice()
+       tstep_ocn = tstep_ocn + 1
+     else
+          loop_end_flag_ocn = .true.   
+     end if
+     
      !* Call a subroutine defined by users.
      call DOGCM_Exp_driver_Do()
-     
+
      !
 
      !
@@ -170,7 +178,7 @@ contains
   
   subroutine pass_field_ocn2sice()
 
-    ! �⥸�塼������; Use statements
+    ! モジュール引用; Use statements
     !
     
     use DSIce_main_mod, only: &
@@ -205,7 +213,7 @@ contains
 !!$    
     real(DP) :: xy_SfcTemp(IA,JA)
     
-    ! �¹�ʸ; Executable statement
+    ! 実行文; Executable statement
     !
 
 !!$    xy_SfcTemp(:,:) = xyzaa_TRC(:,:,KS,TRCID_PTEMP,TIMELV_ID_N)
@@ -235,7 +243,7 @@ contains
   
   subroutine pass_field_sice2ocn()
 
-    ! �⥸�塼������; Use statements
+    ! モジュール引用; Use statements
     !
     
     use DOGCM_main_mod, only: &
@@ -260,13 +268,13 @@ contains
          & xy_BtmHFlxIO, xy_FreshWtFlxS
 
     
-    ! �ɽ��ѿ�
+    ! 局所変数
     ! Local variables
     !
 
     real(DP) :: xy_BtmHFlxIO_sr(IA,JA)
     
-    ! �¹�ʸ; Executable statement
+    ! 実行文; Executable statement
     !
 
     xy_BtmHFlxIO_sr(:,:) = 0d0
@@ -285,45 +293,35 @@ contains
   
   subroutine read_nmlData( configNmlFileName )
 
-    ! �⥸�塼������; Use statement
+    ! モジュール引用; Use statement
     !
 
-    ! �ե���������������
-    ! File I/O support
-    !
     use dc_iounit, only: FileOpen
-
-    ! ���̷��ѥ��᥿
-    ! Kind type parameter
-    !
-    use dc_types, only: STDOUT ! ɸ�����Ϥ������ֹ�. Unit number of standard output
-
-    !
+    use dc_types, only: STDOUT 
     use dc_string, only: Split, Replace, StrInclude
 
-    ! ����ʸ; Declaration statement
+    ! 宣言文; Declaration statement
     !
     character(*), intent(in) :: configNmlFileName
 
-    ! �ɽ��ѿ�
+    ! 局所変数
     ! Local variables
     !
-    integer:: unit_nml        ! NAMELIST �ե����륪���ץ��������ֹ�. 
+    integer:: unit_nml
     ! Unit number for NAMELIST file open
 
-    integer:: iostat_nml      ! NAMELIST �ɤ߹��߻��� IOSTAT. 
-    ! IOSTAT of NAMELIST read
-    
-    ! NAMELIST �ѿ���
+    integer:: iostat_nml 
+
     ! NAMELIST group name
     !
     namelist /dogcm_nml/ &
          & OCN_do, SIce_do
 
 
-    ! �¹�ʸ; Executable statements
+    ! 実行文; Executable statement
+    !
 
-    ! �ǥե������ͤ�����
+    ! デフォルト値の設定
     ! Default values settings
     !
 
@@ -331,7 +329,7 @@ contains
     SICE_do = .true.
     
     
-    ! NAMELIST ����������
+    ! NAMELIST から入力
     ! Input from NAMELIST
     !
     if ( trim(configNmlFileName) /= '' ) then
@@ -352,7 +350,7 @@ contains
     
     
 
-    ! ���� ; Print
+    ! 出力 ; Print
     !
     call MessageNotify( 'M', PROGRAM_NAME, '----- Initialization Messages -----' )
     call MessageNotify( 'M', PROGRAM_NAME, '< DOGCM components             >')

@@ -89,7 +89,7 @@ module DSIce_IO_History_mod
   integer :: HstDimsID_T  = 5  
   character(TOKEN) :: HstDimsList(5)
 
-  integer :: HstVarsNum
+  integer, public :: HstVarsNum
   integer, parameter :: HstVarsNumMax = 50
   character(TOKEN) :: HstVarsList(HstVarsNumMax)
   logical :: FlagTimeAverageList(HstVarsNumMax)
@@ -139,9 +139,8 @@ contains
 
     ! 実行文; Executable statements
     !
-
     if (isHistoryCreated) then
-       call HistoryClose( hst_seaice )
+      call HistoryClose( hst_seaice )
     end if
     
   end subroutine DSIce_IO_History_Final
@@ -361,9 +360,6 @@ contains
     !
     character(*), intent(in) :: configNmlFileName
     
-    ! 実行文; Executable statements
-    !
-
     ! 局所変数
     ! Local variables
     !
@@ -377,7 +373,10 @@ contains
 
     character(STRING) :: HstLongNameList(5)
     character(TOKEN) :: HstUnitsList(5)
-    
+  
+    ! 実行文; Executable statements
+    !
+
     ! Set arrays storing the name of axises
     !
     dims_K = (/ KAXIS_info%name /)
@@ -525,7 +524,7 @@ contains
             & configNmlFileName, mode = 'r' ) ! (in)
 
        pos_nml = ''; iostat_nml = 0
-       do while ( trim(pos_nml) /= 'APPEND' .and. iostat_nml == 0 )
+       do while ( .true. )
 
           TimeAverage = .false.
           Name        = ""
@@ -534,10 +533,14 @@ contains
                & nml = seaice_io_history_nml, iostat = iostat_nml )   ! (out)
           inquire( unit_nml, &      !(in)
                & position=pos_nml ) !(out)
+          if( trim(pos_nml) == 'APPEND' .or. iostat_nml /= 0 ) exit
+          
 
           HstVarsList_ptr => null()
-          Name = Replace( trim(Name), " ", "", .true.)
-          call Split( trim(Name), HstVarsList_ptr, ",")
+          if (len(trim(Name)) > 0) then
+               Name = Replace( trim(Name), " ", "", .true.)
+               call Split( trim(Name), HstVarsList_ptr, ",")
+          end if
 
           if (associated(HstVarsList_ptr)) then
              do n = 1, size(HstVarsList_ptr)

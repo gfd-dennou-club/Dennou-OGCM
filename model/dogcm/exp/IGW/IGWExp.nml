@@ -1,3 +1,7 @@
+&DOGCM_nml
+  OCN_do  = .true.,
+  SICE_do = .false.,
+/
 &numexp_nml
  BruntVaisFreq = 1e-02,          ! $ N $ [s].
                                  ! Brunt-Vaisala Frequency
@@ -16,18 +20,14 @@
  JM = 64
 /
 &TemporalInteg_nml
-!  barocTimeIntModeName = 'TimeIntMode_Euler', 
   barocTimeIntModeName = 'TimeIntMode_LFAM3', 
-  DelTimeVal = 0.5,
-  DelTimeUnit = 'hour',
-  ReStartTimeVal = 0.0, 
-  ReStartTimeUnit = 'day', 
+  DelTimeVal           = 0.5,
+  DelTimeUnit          = 'hour',
+  ReStartTimeVal       = 0.0, 
+  ReStartTimeUnit      = 'day', 
   InitYear=2000, InitMonth=1, InitDay=1, InitHour=0, InitMin=0,
-  EndYear =2000, EndMonth =4,
-  EndDay =1, EndHour=0, EndMin=0,
-!  IntegTimeVal  = 1.0,
-!  IntegTimeUnit  = 'day'
-  ProgMessageIntVal = 90.0,
+  EndYear =2000, EndMonth=2,  EndDay =1, EndHour=0,  EndMin=0,
+  ProgMessageIntVal  = 5.0,
   ProgMessageIntUnit = 'day',
 /
 &BoundaryCondition_nml
@@ -41,7 +41,7 @@
 /
 &gtool_historyauto_nml
   IntValue = 1.0,                  ! 出力間隔の数値
-  IntUnit = 'day',                 ! 出力間隔の単位 !  
+  IntUnit = 'day',                 ! 出力間隔の単位 
   FilePrefix = '',
 /
 &OGCM_IO_Restart_nml
@@ -51,7 +51,7 @@
  IntUnit = 'day'
 /
 &SeaIce_IO_History_nml
-  IntValue = 100.0,                  ! 出力間隔の数値
+  IntValue = 100.0,                 ! 出力間隔の数値
   IntUnit = 'day',                  ! 出力間隔の単位 
   FilePrefix = '',
 /
@@ -101,58 +101,18 @@
                               ! $ g $ [m s-2].
                               ! 重力加速度.
                               ! Gravitational acceleration
- AlbedoOcean = 0.1d0,
- EmissivOcean = 1d0, !0.97d0, 
- hViscCoef   = 3d5,
- vViscCoef   = 1d-02,
- hHyperViscCoef = 0d11, 
- vHyperViscCoef = 0d-7, 
- hDiffCoef   = 0d5,
- vDiffCoef   = 0d-05, 
- hHyperDiffCoef = 0d13, !5d13, 
- vHyperDiffCoef = 0d-7, 
- RoughnessParamBottom = 0.01,	
-/
-&SeaIceConstants_nml
-! AlbedoSnow = 0.7d0,
- EmissivOcean = 1d0,
- EmissivSnow  = 1d0,
- EmissivIce   = 1d0,
- IceMaskMin   = 0.999d0, 
- SIceHDiffCoef = 1d3, 
+  hViscCoef      = 0d0,
+  vViscCoef      = 0d0,
+  hHyperViscCoef = 0d0, 
+  vHyperViscCoef = 0d0, 
+  hDiffCoef      = 0d0,
+  vDiffCoef      = 0d0, 
+  hHyperDiffCoef = 0d0, 
+  vHyperDiffCoef = 0d0, 
 /
 !* For OGCM
 &gtool_historyauto_nml
-  Name = 'U, V, OMG, PTemp, Salt, H', 
+  Name = 'U, V, OMG, PTemp, Salt, H, SfcPres', 
   Precision = 'float'
-/
-&gtool_historyauto_nml
-  Name = 'SfcPres, HydPres, ConvIndex', ! Output variables
-  Precision='float'
-/
-&gtool_historyauto_nml
-  Name = 'VViscCoef, VDiffCoef', ! Output variables
-  Precision='float'
-/
-&gtool_historyauto_nml
-  Name = 'WindStressLon, TotDepthBasic', ! Output variables
-  Precision = 'float'
-/
-!* For Sea-ice model
-&SeaIce_IO_History_nml
- Name = 'IceThick', ! Output variables
- Precision = 'float'
-/
-
-!* For debug of coupler
-!&gtool_historyauto_nml
-! Name = 'TauXAtm, TauYAtm, SensFlxAtm, LatentFlxAtm, SWDWRFlxAtm, SWUWRFlxAtm, LWDWRFlxAtm, LWUWRFlxAtm, RainAtm, SnowAtm, SurfAirTempAtm, DSurfHFlxDTsAtm, DSurfLatentFlxDTsAtm',
-! Precision = 'float', 
-! TimeAverage = .true.
-!/
-&gtool_historyauto_nml
- Name = 'SurfHFlxO, SurfFwFlxO, SurfHFlxAI, SurfHFlxAO, SurfHFlxAIO',
- Precision='float',
- TimeAverage = .true.
 /
 

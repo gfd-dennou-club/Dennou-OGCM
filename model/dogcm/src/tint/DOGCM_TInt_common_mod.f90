@@ -554,7 +554,6 @@ contains
          & xyz_CoriU, xyz_CoriV,                      & ! (in)
          & xyz_U_RHS_phy, xyz_V_RHS_phy               & ! (in)
          & )
-    
 
     !-------
     call ProfUtil_RapStart('-OcnImpl_Mom', 3)

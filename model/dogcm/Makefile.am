@@ -39,13 +39,13 @@ copy_header:
 #exp_name = WindDrivCirc
 
 #= APEOGCirc --------------
-#exp_name = APEOGCirc
+exp_name = APEOGCirc
 
 #= APEOGCircSIce ----------
 #exp_name = APEOGCircSIce
 
 #= APECoupleClimate -------
-exp_name = APECoupleClimate
+#exp_name = APECoupleClimate
 
 #= EqJetAccel -------------
 #exp_name = EqJetAccel

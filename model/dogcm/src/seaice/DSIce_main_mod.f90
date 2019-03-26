@@ -62,7 +62,8 @@ module DSIce_main_mod
        & DSIce_IO_History_Final,             &
        & DSIce_IO_History_Create,            &
        & DSIce_IO_History_Output,            &
-       & DSIce_IO_History_HistPut
+       & DSIce_IO_History_HistPut,           &
+       & HstVarsNum
   
   use DSIce_IO_Restart_mod, only:            &
        & DSIce_IO_Restart_Init,              &
@@ -285,7 +286,7 @@ contains
     call MessageNotify( 'M', module_name, 'Set up IO part ..' ) 
     
     call DSIce_IO_History_Init( configNmlFile )
-    call DSIce_IO_History_Create( configNmlFile )
+    if (HstVarsNum > 0) call DSIce_IO_History_Create( configNmlFile )
 
     call DSIce_IO_Restart_Init( configNmlFile )
     call DSIce_IO_Restart_Create( configNmlFile )
@@ -342,8 +343,6 @@ contains
     call DSIce_Admin_GovernEq_Final()
     call DSIce_Admin_Constants_Final()
 
-!!$    call SpmlUtil_Final()
-    
   end subroutine DSIce_main_shutdown
 
   !-------------------------------------------------------------------------------------------------
