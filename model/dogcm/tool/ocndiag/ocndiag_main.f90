@@ -95,7 +95,7 @@ program ocndiag_main
   real(DP) :: TimeEnd
   real(DP) :: TimeInt
   real(DP) :: TimeCurrent
-  character(TOKEN) :: TimeUnits
+  character(STRING) :: TimeUnits
 
   type(gt_history) :: hst_diagvar
   

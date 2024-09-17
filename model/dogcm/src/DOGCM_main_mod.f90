@@ -468,22 +468,25 @@ contains
     real(DP), intent(in) :: xy_SfcHFlxSrRecv(IA,JA)
     real(DP), intent(in) :: xy_FreshWtFlxSRecv(IA,JA)
 
+    integer :: i, j
+
     ! 実行文; Executable statement
     !
 
-    !$omp parallel
-    !$omp workshare
-    xy_SfcHFlxIO_ns(:,:)  = xy_SfcHFlxNsRecv
-    xy_SfcHFlxIO_sr(:,:)  = xy_SfcHFlxSrRecv
-    xy_FreshWtFlxSIO(:,:) = xy_FreshWtFlxSRecv
+     !$omp parallel do private(i,j) collapse(2)
+     do j=JS, JE
+     do i=IS, IE
+          xy_SfcHFlxIO_ns(i,j)  = xy_SfcHFlxNsRecv(i,j)
+          xy_SfcHFlxIO_sr(i,j)  = xy_SfcHFlxSrRecv(i,j)
+          xy_FreshWtFlxSIO(i,j) = xy_FreshWtFlxSRecv(i,j)
     
-    where ( xy_SIceMaskRecv )
-       xy_OcnSfcCellMask(:,:) = OCNCELLMASK_SICE
-    elsewhere
-       xy_OcnSfcCellMask(:,:) = OCNCELLMASK_OCEAN
-    end where
-    !$omp end workshare
-    !$omp end parallel
+          if ( xy_SIceMaskRecv(i,j) ) then
+               xy_OcnSfcCellMask(i,j) = OCNCELLMASK_SICE
+          else
+               xy_OcnSfcCellMask(i,j) = OCNCELLMASK_OCEAN
+          end if
+     end do
+     end do
         
   end subroutine DOGCM_main_update_SIceField
 

@@ -153,7 +153,7 @@ contains
 
        w_HViscCoefH(l) = -(     ViscCoefH*(-w_LaplaEigVal(l) - 2d0/RPlanet**2)            &
             &                +  NumDiffCoefH*(  (-w_LaplaEigVal(l))**(NumDiffOrdH/2)      &
-            &                +                - (2d0/RPlanet**2)**(NumDiffOrdH/2) )        &
+            &                                 - (2d0/RPlanet**2)**(NumDiffOrdH/2) )       &
             &             )
 
 !!$       nm(:) = nm_l(l)

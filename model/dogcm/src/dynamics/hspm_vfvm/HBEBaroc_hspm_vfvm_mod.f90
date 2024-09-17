@@ -399,7 +399,7 @@ contains
        end do
        end do
        xy_A(IS:IE,JS:JE) = xy_CosLat(:,:)*( &
-            &   xy_A(IS:IE,JS:JE) +                                                  &
+            &   xy_A(IS:IE,JS:JE)                                                    &
             & + xyz_DensEdd(IS:IE,JS:JE,k)*xy_GradLat_w(w_GeoPot)/(RefDens*RPlanet)  &
             & )
 
@@ -412,7 +412,7 @@ contains
        end do
        end do
        xy_B(IS:IE,JS:JE) = xy_CosLat(:,:)*( &
-            &   xy_B(IS:IE,JS:JE) +                                                  &
+            &   xy_B(IS:IE,JS:JE)                                                    &
             & + xyz_DensEdd(IS:IE,JS:JE,k)*xy_GradLon_w(w_GeoPot)/(RefDens*RPlanet)  &
             & )
 

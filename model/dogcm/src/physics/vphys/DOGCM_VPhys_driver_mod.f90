@@ -267,7 +267,7 @@ contains
 !!$                  &   0.25d0*0.25d0*( xyz_EVDiffCoef(i,j-1,k-1) + 2d0*xyz_EVDiffCoef(i,j-1,k) + xyz_EVDiffCoef(i,j-1,k+1) ) &
 !!$                  & + 0.50d0*0.25d0*( xyz_EVDiffCoef(i,j,k-1) + 2d0*xyz_EVDiffCoef(i,j,k) + xyz_EVDiffCoef(i,j,k+1)       ) &
 !!$                  & + 0.25d0*0.25d0*( xyz_EVDiffCoef(i,j+1,k-1) + 2d0*xyz_EVDiffCoef(i,j+1,k) + xyz_EVDiffCoef(i,j+1,k+1) )
-             xyz_VDiffCoef(i,j,k) = xyz_VDiffCoef(i,j,k) + &
+             xyz_VDiffCoef(i,j,k) = xyz_VDiffCoef(i,j,k) &
                   & + 0.25d0*( xyz_EVDiffCoef(i,j,k-1) + 2d0*xyz_EVDiffCoef(i,j,k) + xyz_EVDiffCoef(i,j,k+1) )
 
           end do
