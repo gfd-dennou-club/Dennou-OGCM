@@ -123,12 +123,14 @@ contains
     real(DP) :: z_LyrThickIntWt(KA)
     logical  :: z_isAdjustOccur(KA)
 
+    real(DP) :: VInt_tmp(KA)
     real(DP) :: PTempVInt
 
     ! 実行文; Executable statement
     !
     
-    !$omp parallel do private(i, PTempVInt, z_PTempOri, z_PTemp, z_Salt, z_Z, z_LyrThickIntWt, z_isAdjustOccur)
+    !$omp parallel do private( i, j, &
+    !$omp VInt_tmp, PTempVInt, z_PTempOri, z_PTemp, z_Salt, z_Z, z_LyrThickIntWt, z_isAdjustOccur)
     do j=JS,JE
        do i=IS,IE
           z_PTemp(:) = xyz_PTemp(i,j,:)
@@ -145,8 +147,9 @@ contains
           xyz_PTemp_RHS(i,j,:) = xyz_PTemp_RHS(i,j,:) + (z_PTemp(:) - xyz_PTemp(i,j,:))/dt
           xyz_Salt_RHS(i,j,:) = xyz_Salt_RHS(i,j,:) + (z_Salt(:) - xyz_Salt(i,j,:))/dt
 
-          if( (PTempVInt - sum(z_LyrThickIntWt(:)*z_PTemp))/PTempVInt > 1d-12 ) then
-             write(*,*) "before=", PTempVInt, "after=", sum(z_LyrThickIntWt(:)*z_PTemp)
+          VInt_tmp(:) = z_LyrThickIntWt(:) * z_PTemp(:)
+          if( (PTempVInt - sum(VInt_tmp(KS:KE)))/PTempVInt > 1d-12 ) then
+             write(*,*) "before=", PTempVInt, "after=", sum(VInt_tmp(KS:KE))
              write(*,*) "LyrThickWt=", z_LyrThickIntWt(:)
              write(*,*) "z_PTemp=", z_PTemp
              call MessageNotify('E', module_name, &

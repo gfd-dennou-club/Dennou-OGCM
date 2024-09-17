@@ -173,27 +173,28 @@ contains
     real(DP), intent(in) :: xy_SIceSfcTemp(IA,JA)
     real(DP), intent(in) :: xyz_SIceTemp(IA,JA,KA)
 
+    integer :: i, j
+
     ! 実行文; Executable statements
     !
  
     !-------------------------------------------------
 
-    !$omp parallel
-    !$omp workshare
-    
-    xy_OcnFrzTemp(:,:) = 273.15d0 - 1.8d0  !- Mu*xy_SeaSfcSalt
-    
-    where (xy_SIceCon(:,:) >= IceMaskMin)
-       xy_FreshWtFlxS = ( &
-            &   xy_RainFall                                &
-            & + (1d0 - xy_SIceCon)*(xy_SnowFall - xy_Evap) &
-            & )/ DensFreshWater
-    elsewhere
-       xy_FreshWtFlxS = 0d0
-    end where
-
-    !$omp end workshare
-    !$omp end parallel
+     !$omp parallel do private(i,j) collapse(2)
+     do j = JS, JE
+     do i = IS, IE
+          xy_OcnFrzTemp(i,j) = 273.15d0 - 1.8d0  !- Mu*xy_SeaSfcSalt
+     
+          if ( xy_SIceCon(i,j) >= IceMaskMin ) then
+               xy_FreshWtFlxS(i,j) = ( &
+                    &   xy_RainFall(i,j)                                              &
+                    & + ( 1d0 - xy_SIceCon(i,j) )*( xy_SnowFall(i,j) - xy_Evap(i,j) ) &
+                    & )/ DensFreshWater
+          else
+               xy_FreshWtFlxS(i,j) = 0d0
+          end if
+     end do
+     end do
 
     !--------------------------------
     

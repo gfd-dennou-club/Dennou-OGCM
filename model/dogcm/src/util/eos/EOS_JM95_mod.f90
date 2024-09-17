@@ -315,7 +315,7 @@ contains
     alpha_div_beta = ab000 &
          & +      theta*( ab100 + theta*(ab200 + theta*(ab300 + theta*ab400)) )    &
          & + (S - 35d0)*( ab010 + ab110*theta + p*(ab011 + ab012*p)                &
-         & +            + (S - 35d0)*ab020                                    )    &
+         &              + (S - 35d0)*ab020                                    )    &
          & +          p*( ab001 + theta*(ab101 + theta*(ab201 + p*ab202))          &
          &                + p*p*ab003                                         )
 
@@ -323,7 +323,7 @@ contains
     beta = b000 &
          & +    theta*(b100 + theta*(b200 + theta*b300))                 &
          & + (S-35d0)*(   b010 + b110*theta + p*(b011 + b012*p)          &
-         & +            + (S-35d0)*b020                               )  &
+         &              + (S-35d0)*b020                               )  &
          & +        p*(   b001 + theta*(b101 + theta*b201 + p*b102)      &
          &              + p*(b002 + p*b003)                           )
 
