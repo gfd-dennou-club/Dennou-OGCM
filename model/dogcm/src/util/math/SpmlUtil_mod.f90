@@ -1,5 +1,5 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2016 Kawai Yuta. All rights reserved.
+! Copyright (c) 2013-2024 Kawai Yuta. All rights reserved.
 !-------------------------------------------------------------
 !> @brief The module which provides some  operators in calculus using spectral method.
 !!
@@ -223,14 +223,18 @@ contains
     end if
 
     call MessageNotify("M", module_name, "The number of thread is %d", i=(/ nThread /))
+    call MessageNotify("M", module_name, "at_Initial->")
     call at_Initial(kMax, tMax, SigMin, SigMax)
+    call MessageNotify("M", module_name, "<-at_Initial")
     
     Radius = RPlanet
 
     ! Allocate the memory of work variables in this module. 
     allocate(xy_CosLat(0:im-1,jm))
     xy_CosLat = cos(xy_Lat)
+    call MessageNotify("M", module_name, "construct_VDerivateOptrMat->")
     call construct_VDerivateOptrMat()
+    call MessageNotify("M", module_name, "<-construct_VDerivateOptrMat")
     
 
     !
@@ -665,6 +669,7 @@ contains
     real(DP) :: z_cgl(0:km)
     integer :: N
 
+    real(DP) :: tmp1(0:tm,0:km)
 
     ! 実行文; Executable statement
     !      
@@ -698,7 +703,9 @@ contains
 !!$
 !!$    tr_vIntCoefMat = transpose( matmul(TIntMat, transpose(TMat)) )
 !!$    tr_vDeriv1CoefMat = ( az_at(at_DSig_at(TMat)) )
-    tr_vDeriv2CoefMat = ( az_at(at_DSig_at(at_DSig_at(TMat))) )
+    tmp1(:,:) = at_DSig_at(TMat)
+    tmp1(:,:) = at_DSig_at(tmp1)
+    tr_vDeriv2CoefMat(:,:) = az_at(tmp1(:,:))
 
     allocate( G2SMat(0:km,0:km), S2GMat(0:km,0:km), &
          &    DifMat(0:km,0:km), IntMat(0:km,0:km) )
