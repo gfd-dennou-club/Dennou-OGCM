@@ -1,9 +1,9 @@
 !-------------------------------------------------------------
-! Copyright (c) 2013-2016 Kawai Yuta. All rights reserved.
+! Copyright (c) 2013-2024 Yuta Kawai. All rights reserved.
 !-------------------------------------------------------------
 !> @brief a template module
 !! 
-!! @author Kawai Yuta
+!! @author Yuta Kawai
 !!
 !!
 module DSIce_IO_History_mod 
@@ -497,6 +497,7 @@ contains
     
     character(TOKEN), pointer :: HstVarsList_ptr(:)
     integer :: n
+    logical :: is_add_var
     
     ! NAMELIST 変数群
     ! NAMELIST group name
@@ -524,7 +525,7 @@ contains
             & configNmlFileName, mode = 'r' ) ! (in)
 
        pos_nml = ''; iostat_nml = 0
-       do while ( .true. )
+       do while ( trim(pos_nml) /= 'APPEND' .and. iostat_nml == 0 )
 
           TimeAverage = .false.
           Name        = ""
@@ -532,21 +533,23 @@ contains
           read( unit_nml, &           ! (in)
                & nml = seaice_io_history_nml, iostat = iostat_nml )   ! (out)
           inquire( unit_nml, &      !(in)
-               & position=pos_nml ) !(out)
-          if( trim(pos_nml) == 'APPEND' .or. iostat_nml /= 0 ) exit
-          
+               & position=pos_nml ) !(out)          
 
           HstVarsList_ptr => null()
-          if (len(trim(Name)) > 0) then
-               Name = Replace( trim(Name), " ", "", .true.)
-               call Split( trim(Name), HstVarsList_ptr, ",")
-          end if
+          Name = Replace( trim(Name), " ", "", .true.)
+          call Split( trim(Name), HstVarsList_ptr, ",")
 
           if (associated(HstVarsList_ptr)) then
              do n = 1, size(HstVarsList_ptr)
-                if ( .not. StrInclude( HstVarsList(1:HstVarsNum), trim(HstVarsList_ptr(n)) )) then
+                is_add_var = .false.
+                if ( HstVarsNum == 0 ) then
+                   is_add_var = .true.
+                else if ( .not. StrInclude( HstVarsList(1:HstVarsNum), trim(HstVarsList_ptr(n)) )) then
+                   is_add_var = .true.
+                end if
+                if ( is_add_var ) then
                    HstVarsNum = HstVarsNum + 1
-                   if (HstVarsNum > HstVarsNumMax) then
+                   if ( HstVarsNum > HstVarsNumMax ) then
                       call MessageNotify( 'E', module_name, "Exceed the number of variables allowed to regist. Check!")
                    end if
                    HstVarsList(HstVarsNum) = trim(HstVarsList_ptr(n))
@@ -567,6 +570,7 @@ contains
     !
     call MessageNotify( 'M', module_name, '----- Initialization Messages -----' )
     call MessageNotify( 'M', module_name, 'Output Interval %f [%c]', d=(/IntValue/), c1=trim(IntUnit) )
+    call MessageNotify( 'M', module_name, 'HstVarsNum=%d', i=(/HstVarsNum/) )
 
   end subroutine read_nmlData
   
