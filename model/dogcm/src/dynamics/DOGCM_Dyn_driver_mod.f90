@@ -17,6 +17,8 @@ module DOGCM_Dyn_driver_mod
        & MessageNotify
 
   !* Dennou-OGCM
+  use ProfUtil_mod
+  
   use DOGCM_Admin_Grid_mod, only: &
        & IA, IS, IE, IM, &
        & JA, JS, JE, JM, &
@@ -129,6 +131,8 @@ contains
 
 !    call MessageNotify('M', module_name, "SSHRHS..")
 
+    call ProfUtil_RapStart('Dyn_SSHRHS', 3)
+
     select case(DynEqType)
     case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)
        select case(SolverType)
@@ -148,6 +152,8 @@ contains
        call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
     
+    call ProfUtil_RapEnd('Dyn_SSHRHS', 3)
+
   end subroutine DOGCM_Dyn_driver_SSHRHS
 
   !-------------------------------------
@@ -171,6 +177,8 @@ contains
     integer :: k
     
 !    call MessageNotify('M', module_name, "HTRCRHS..")
+
+    call ProfUtil_RapStart('Dyn_HTRCRHS', 3)
 
     select case(DynEqType)
     case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
@@ -199,6 +207,7 @@ contains
        call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
     
+    call ProfUtil_RapEnd('Dyn_HTRCRHS', 3)
   end subroutine DOGCM_Dyn_driver_HTRCRHS
 
   !--------------------------------------------------------------
@@ -226,6 +235,8 @@ contains
     real(DP), intent(in) :: xyz_VRHS_phys(IA,JA,KA)
     
 !    call MessageNotify('M', module_name, "MOMBarocRHS..")
+
+    call ProfUtil_RapStart('Dyn_MOMBarocRHS', 3)
 
     select case(DynEqType)
     case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
@@ -257,6 +268,7 @@ contains
        call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
     
+    call ProfUtil_RapEnd('Dyn_MOMBarocRHS', 3)
   end subroutine DOGCM_Dyn_driver_MOMBarocRHS
 
   !--------------------------------------------------------------
@@ -274,6 +286,8 @@ contains
     real(DP), intent(in) :: xy_VBarocForce(IA,JA)
 
  !   call MessageNotify('M', module_name, "MOMBarotRHS..")
+
+    call ProfUtil_RapStart('Dyn_MOMBarotRHS', 3)
 
     select case(DynEqType)
     case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
@@ -298,6 +312,7 @@ contains
        call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
     
+    call ProfUtil_RapEnd('Dyn_MOMBarotRHS', 3)
   end subroutine DOGCM_Dyn_Driver_MOMBarotRHS
 
   !--------------------------------------------------------------
@@ -318,6 +333,8 @@ contains
     real(DP), intent(in) :: DelTimeSSH
     real(DP), intent(in) :: PresTAvgCoefA
     real(DP), intent(in) :: xy_FreshWtFlx(IA,JA)
+
+    call ProfUtil_RapStart('Dyn_MOMBarotUpdate', 3)
 
     select case(DynEqType)
     case(OCNGOVERNEQ_DYN_HYDROBOUSSINESQ)    
@@ -344,6 +361,7 @@ contains
        call MessageNotify('E', module_name, 'Unexpected DynEqType is specfied. Check!')
     end select
     
+    call ProfUtil_RapEnd('Dyn_MOMBarotUpdate', 3)
   end subroutine DOGCM_Dyn_driver_BarotUpdate
   
   !--------------------------------------------------------------
@@ -360,6 +378,8 @@ contains
     real(DP), intent(in) :: xy_Topo(IA,JA)    
     real(DP), intent(in) :: DelTime
 
+    call ProfUtil_RapStart('Dyn_OMGDiag', 3)
+
     select case(SolverType)
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
        call DOGCM_Dyn_spm_OMGDiag( xyz_OMG(IS:IE,JS:JE,KS:KE),         & ! (out)
@@ -373,6 +393,7 @@ contains
             & )
     end select
 
+    call ProfUtil_RapEnd('Dyn_OMGDiag', 3)
   end subroutine DOGCM_Dyn_driver_OMGDiag
 
   subroutine DOGCM_Dyn_driver_OMGDiag2( xyz_OMG,      & ! (out)
@@ -384,6 +405,8 @@ contains
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
     real(DP), intent(in) :: xyz_HA(IA,JA,KA)
     real(DP), intent(in) :: DelTime
+
+    call ProfUtil_RapStart('Dyn_OMGDiag2', 3)
 
     select case(SolverType)    
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
@@ -398,7 +421,7 @@ contains
             & )
     end select
     
-
+    call ProfUtil_RapEnd('Dyn_OMGDiag2', 3)
   end subroutine DOGCM_Dyn_driver_OMGDiag2
   
   !--------------------------------------------------------------
@@ -410,6 +433,8 @@ contains
     real(DP), intent(out) :: xyz_Div(IA,JA,KA)
     real(DP), intent(in) :: xyz_U(IA,JA,KA)
     real(DP), intent(in) :: xyz_V(IA,JA,KA)
+
+    call ProfUtil_RapStart('Dyn_VorDivDiag', 3)
 
     select case(SolverType)    
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
@@ -423,7 +448,7 @@ contains
             & )
     end select
     
-
+    call ProfUtil_RapEnd('Dyn_VorDivDiag', 3)
   end subroutine DOGCM_Dyn_driver_VorDivDiag
   
   !--------------------------------------------------------------
@@ -434,6 +459,8 @@ contains
     real(DP), intent(out) :: xyz_HydPres(IA,JA,KA)
     real(DP), intent(in) :: xyz_DensEdd(IA,JA,KA)
     real(DP), intent(in) :: xyz_H(IA,JA,KA)
+
+    call ProfUtil_RapStart('Dyn_HydPresDiag', 3)
 
     select case(SolverType)    
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
@@ -447,7 +474,7 @@ contains
             & )
     end select
     
-    
+    call ProfUtil_RapEnd('Dyn_HydPresDiag', 3)    
   end subroutine DOGCM_Dyn_driver_HydPresDiag
 
   !--------------------------------------------------------------
@@ -463,6 +490,8 @@ contains
     real(DP), intent(in) :: xy_SSH(IA,JA)
     real(DP), intent(in) :: xy_Topo(IA,JA)
 
+    call ProfUtil_RapStart('Dyn_UVBarotDiag', 3)
+
     select case(SolverType)    
     case(OCNGOVERNEQ_SOLVER_HSPM_VSPM)
        call DOGCM_Dyn_spm_UVBarotDiag( &
@@ -476,8 +505,7 @@ contains
             & )
     end select
     
+    call ProfUtil_RapEnd('Dyn_UVBarotDiag', 3)
   end subroutine DOGCM_Dyn_driver_UVBarotDiag
   
 end module DOGCM_Dyn_driver_mod
-
-  
