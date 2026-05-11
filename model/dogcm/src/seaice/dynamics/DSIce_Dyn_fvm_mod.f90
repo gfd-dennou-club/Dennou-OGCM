@@ -234,8 +234,10 @@ contains
 
     !$omp parallel
 
+    !$omp workshare
     Flx(:,:,XDIR) = 0d0
-    
+    !$omp end workshare
+
     !$omp do collapse(2)
     do j = JS-1, JE
     do i = IS, IE

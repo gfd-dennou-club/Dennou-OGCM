@@ -393,13 +393,11 @@ contains
 !    z_FK(:) = (/ ( - 1d0/dble(KE-KS+ 1)*dble(k-(KS-1)), k=KS-1, KE) /)
     do k = KS, KE
        z_CK(k)  = 0.5d0*(z_FK(k-1) + z_FK(k))
+       z_CDK(k) = z_FK(k-1) - z_FK(k)
     end do
     z_CK(KS-1) = z_FK(KS-1) + 0.5d0*z_CDK(KS)
     z_CK(KE+1) = z_FK(KE) - 0.5d0*z_CDK(KE)
 
-    do k = KS, KE
-       z_CDK(k) = z_FK(k-1) - z_FK(k)
-    end do
     z_CDK(KS-1) = z_CDK(KS)
     z_CDK(KE+1) = z_CDK(KE)
     z_KAXIS_Weight(KS:KE) = z_CDK(KS:KE)
@@ -407,12 +405,6 @@ contains
     do k = KS-1, KE
        z_FDK(k) = z_CK(k) - z_CK(k+1)
     end do
-
-!!$    write(*,*) z_CK(KS:KE)
-!!$    write(*,*) z_FK(KS-1:KE)
-!!$    write(*,*) z_CDK(KS-1:KE+1)
-!!$    write(*,*) z_FDK(KS-1:KE)    
-!!$    stop
 
     !-----------------------------------------------------------------------
 
